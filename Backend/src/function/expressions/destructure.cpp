@@ -51,7 +51,7 @@ Ref translateDestructure(
   if (destructureM->structType->ownership == Ownership::OWN) {
     buildFlare(FL(), globalState, functionState, builder);
     globalState->getRegion(destructureM->structType)->discardOwningRef(FL(), functionState, blockState, builder, destructureM->structType, structRef);
-  } else if (destructureM->structType->ownership == Ownership::SHARE) {
+  } else if (destructureM->structType->ownership == Ownership::MUTABLE_SHARE || destructureM->structType->ownership == Ownership::IMMUTABLE_SHARE) {
     buildFlare(FL(), globalState, functionState, builder);
     // We dont decrement anything here, we're only here because we already hit zero.
 

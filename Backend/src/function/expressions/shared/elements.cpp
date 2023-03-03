@@ -14,7 +14,7 @@ LLVMValueRef checkIndexInBounds(
     Int* intMT,
     Ref sizeRef,
     Ref indexRef) {
-  auto inntRefMT = globalState->metalCache->getReference(Ownership::SHARE, Location::INLINE, intMT);
+  auto inntRefMT = globalState->metalCache->getReference(Ownership::MUTABLE_SHARE, Location::INLINE, intMT);
   auto sizeLE =
       globalState->getRegion(inntRefMT)
           ->checkValidReference(FL(), functionState, builder, true, inntRefMT, sizeRef);
@@ -279,7 +279,7 @@ void intRangeLoopReverseV(
     Ref sizeRef,
     std::function<void(Ref, LLVMBuilderRef)> iterationBuilder) {
   auto intLT = LLVMIntTypeInContext(globalState->context, innt->bits);
-  auto inntRefMT = globalState->metalCache->getReference(Ownership::SHARE, Location::INLINE, innt);
+  auto inntRefMT = globalState->metalCache->getReference(Ownership::MUTABLE_SHARE, Location::INLINE, innt);
   auto sizeLE =
       globalState->getRegion(inntRefMT)
           ->checkValidReference(FL(), functionState, builder, true, inntRefMT, sizeRef);

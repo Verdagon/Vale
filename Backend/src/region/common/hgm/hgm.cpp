@@ -124,7 +124,10 @@ WeakFatPtrLE HybridGenerationalMemory::assembleInterfaceWeakRef(
     Reference* targetType,
     InterfaceKind* interfaceKindM,
     InterfaceFatPtrLE sourceInterfaceFatPtrLE) {
-  assert(sourceType->ownership == Ownership::OWN || sourceType->ownership == Ownership::SHARE);
+  assert(
+      sourceType->ownership == Ownership::OWN ||
+      sourceType->ownership == Ownership::MUTABLE_SHARE ||
+      sourceType->ownership == Ownership::IMMUTABLE_SHARE);
   // curious, if its a borrow, do we just return sourceRefLE?
 
   LLVMValueRef genLE = nullptr;
@@ -137,7 +140,7 @@ WeakFatPtrLE HybridGenerationalMemory::assembleInterfaceWeakRef(
       genLE = getGenerationFromControlBlockPtr(globalState, builder, kindStructs, sourceType->kind,
           controlBlockPtrLE);
 //    }
-  } else if (sourceType->ownership == Ownership::BORROW) {
+  } else if (sourceType->ownership == Ownership::MUTABLE_BORROW || sourceType->ownership == Ownership::IMMUTABLE_BORROW) {
     assert(false); // impl
   } else {
     assert(false);
@@ -198,7 +201,7 @@ WeakFatPtrLE HybridGenerationalMemory::assembleStaticSizedArrayWeakRef(
   if (sourceSSAMT->ownership == Ownership::OWN) {
     auto controlBlockPtrLE = kindStructs->getConcreteControlBlockPtr(FL(), functionState, builder, sourceSSAMT, sourceRefLE);
     genLE = getGenerationFromControlBlockPtr(globalState, builder, kindStructs, sourceSSAMT->kind, controlBlockPtrLE);
-  } else if (sourceSSAMT->ownership == Ownership::BORROW) {
+  } else if (sourceSSAMT->ownership == Ownership::IMMUTABLE_BORROW || sourceSSAMT->ownership == Ownership::MUTABLE_BORROW) {
     assert(false); // impl
   } else {
     assert(false);
@@ -232,7 +235,7 @@ WeakFatPtrLE HybridGenerationalMemory::assembleRuntimeSizedArrayWeakRef(
   if (sourceSSAMT->ownership == Ownership::OWN) {
     auto controlBlockPtrLE = kindStructs->getConcreteControlBlockPtr(FL(), functionState, builder, sourceSSAMT, sourceRefLE);
     genLE = getGenerationFromControlBlockPtr(globalState, builder, kindStructs, sourceSSAMT->kind, controlBlockPtrLE);
-  } else if (sourceSSAMT->ownership == Ownership::BORROW) {
+  } else if (sourceSSAMT->ownership == Ownership::MUTABLE_BORROW || sourceSSAMT->ownership == Ownership::IMMUTABLE_BORROW) {
     assert(false); // impl
   } else {
     assert(false);
@@ -376,7 +379,8 @@ Ref HybridGenerationalMemory::getIsAliveFromWeakRef(
     return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isAliveLE);
   } else {
     assert(
-        weakRefM->ownership == Ownership::BORROW ||
+        weakRefM->ownership == Ownership::MUTABLE_BORROW ||
+        weakRefM->ownership == Ownership::IMMUTABLE_BORROW ||
             weakRefM->ownership == Ownership::WEAK);
 
     auto weakFatPtrLE =

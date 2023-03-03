@@ -156,12 +156,12 @@ public:
       Reference* refM,
       ControlBlockPtrLE controlBlockPtr);
 
-  // See CRCISFAORC for why we don't take in a mutability.
-  // Strong means owning or borrow or shared; things that control the lifetime.
-  LLVMValueRef getStrongRcFromControlBlockPtr(
-      LLVMBuilderRef builder,
-      Reference* refM,
-      ControlBlockPtrLE controlBlockPtr);
+//  // See CRCISFAORC for why we don't take in a mutability.
+//  // Strong means owning or borrow or shared; things that control the lifetime.
+//  LLVMValueRef getStrongRcFromControlBlockPtr(
+//      LLVMBuilderRef builder,
+//      Reference* refM,
+//      ControlBlockPtrLE controlBlockPtr);
 
   LLVMValueRef downcastPtr(LLVMBuilderRef builder, Reference* resultStructRefMT, LLVMValueRef unknownPossibilityPtrLE);
 

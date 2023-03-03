@@ -84,7 +84,7 @@ static LLVMValueRef getWrciFromControlBlockPtr(
     ControlBlockPtrLE controlBlockPtr) {
 //  assert(globalState->opt->regionOverride != RegionOverride::RESILIENT_V1);
 
-  if (refM->ownership == Ownership::SHARE) {
+  if (refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE) {
     // Shares never have weak refs
     assert(false);
     return nullptr;
@@ -261,7 +261,12 @@ WeakFatPtrLE WrcWeaks::assembleStructWeakRef(
     if (globalState->opt->regionOverride == RegionOverride::ASSIST ||
       globalState->opt->regionOverride == RegionOverride::NAIVE_RC ||
       globalState->opt->regionOverride == RegionOverride::FAST) {
-    assert(structTypeM->ownership == Ownership::OWN || structTypeM->ownership == Ownership::SHARE || structTypeM->ownership == Ownership::BORROW);
+    assert(
+        structTypeM->ownership == Ownership::OWN ||
+        structTypeM->ownership == Ownership::MUTABLE_SHARE ||
+        structTypeM->ownership == Ownership::IMMUTABLE_SHARE ||
+        structTypeM->ownership == Ownership::MUTABLE_BORROW ||
+        structTypeM->ownership == Ownership::IMMUTABLE_BORROW);
   } else assert(false);
 
   auto controlBlockPtrLE = kindStructsSource->getConcreteControlBlockPtr(FL(), functionState, builder, structTypeM, objPtrLE);
@@ -491,10 +496,12 @@ Ref WrcWeaks::getIsAliveFromWeakRef(
     Reference* weakRefM,
     Ref weakRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
+    case RegionOverride::RESILIENT_V3:
+      case RegionOverride::RESILIENT_V4:
       assert(
-          weakRefM->ownership == Ownership::BORROW ||
-              weakRefM->ownership == Ownership::WEAK);
+          weakRefM->ownership == Ownership::IMMUTABLE_BORROW ||
+          weakRefM->ownership == Ownership::MUTABLE_BORROW ||
+          weakRefM->ownership == Ownership::WEAK);
       break;
     case RegionOverride::FAST:
     case RegionOverride::NAIVE_RC:

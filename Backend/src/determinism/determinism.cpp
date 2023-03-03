@@ -804,8 +804,8 @@ void Determinism::buildWriteValueToFile(
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
-  assert(sourceRefMT->ownership == Ownership::SHARE); // not implemented for owns
-  auto hostRefMT = globalState->linearRegion->linearizeReference(sourceRefMT);
+  assert(sourceRefMT->ownership == Ownership::IMMUTABLE_SHARE || sourceRefMT->ownership == Ownership::MUTABLE_SHARE); // not implemented for owns
+  auto hostRefMT = globalState->linearRegion->linearizeReference(sourceRefMT, true);
 
   auto sourceRefLE =
       globalState->getRegion(sourceRefMT)
@@ -923,8 +923,8 @@ Ref Determinism::buildReadValueFromFile(
   auto int32LT = LLVMInt32TypeInContext(globalState->context);
   auto floatLT = LLVMDoubleTypeInContext(globalState->context);
 
-  assert(targetRefMT->ownership == Ownership::SHARE); // not implemented for owns
-  auto hostRefMT = globalState->linearRegion->linearizeReference(targetRefMT);
+  assert(targetRefMT->ownership == Ownership::MUTABLE_SHARE); // not implemented for owns
+  auto hostRefMT = globalState->linearRegion->linearizeReference(targetRefMT, true);
 
   buildFlare(FL(), globalState, functionState, builder);
   if (dynamic_cast<Int*>(targetRefMT->kind)) {

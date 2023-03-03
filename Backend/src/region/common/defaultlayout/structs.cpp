@@ -769,27 +769,27 @@ LLVMValueRef KindStructs::downcastPtr(LLVMBuilderRef builder, Reference* resultS
   return resultStructRefLE;
 }
 
-LLVMValueRef KindStructs::getStrongRcFromControlBlockPtr(
-    LLVMBuilderRef builder,
-    Reference* refM,
-    ControlBlockPtrLE structExpr) {
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-      break;
-    case RegionOverride::FAST:
-      assert(refM->ownership == Ownership::SHARE);
-      break;
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
-      assert(refM->ownership == Ownership::SHARE);
-      break;
-    default:
-      assert(false);
-  }
-
-  auto rcPtrLE = getStrongRcPtrFromControlBlockPtr(builder, refM, structExpr);
-  return LLVMBuildLoad(builder, rcPtrLE, "rc");
-}
+//LLVMValueRef KindStructs::getStrongRcFromControlBlockPtr(
+//    LLVMBuilderRef builder,
+//    Reference* refM,
+//    ControlBlockPtrLE structExpr) {
+//  switch (globalState->opt->regionOverride) {
+//    case RegionOverride::ASSIST:
+//    case RegionOverride::NAIVE_RC:
+//      break;
+//    case RegionOverride::FAST:
+//      assert(refM->ownership == Ownership::SHARE);
+//      break;
+//    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
+//      assert(refM->ownership == Ownership::SHARE);
+//      break;
+//    default:
+//      assert(false);
+//  }
+//
+//  auto rcPtrLE = getStrongRcPtrFromControlBlockPtr(builder, refM, structExpr);
+//  return LLVMBuildLoad(builder, rcPtrLE, "rc");
+//}
 
 // See CRCISFAORC for why we don't take in a mutability.
 LLVMValueRef KindStructs::getStrongRcPtrFromControlBlockPtr(
@@ -801,10 +801,11 @@ LLVMValueRef KindStructs::getStrongRcPtrFromControlBlockPtr(
     case RegionOverride::NAIVE_RC:
       break;
     case RegionOverride::FAST:
-      assert(refM->ownership == Ownership::SHARE);
+      assert(refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE);
       break;
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
-      assert(refM->ownership == Ownership::SHARE);
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_V4:
+      assert(refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE);
       break;
     default:
       assert(false);

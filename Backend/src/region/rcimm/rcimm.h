@@ -173,6 +173,7 @@ public:
   LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Reference* refMT,
       Ref regionInstanceRef,
       Ref ref) override;
 
@@ -365,6 +366,7 @@ public:
   LLVMValueRef getStringLen(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Reference* refMT,
       Ref regionInstanceRef,
       Ref ref) override;
 

@@ -168,6 +168,7 @@ public:
   LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Reference* refMT,
       Ref regionInstanceRef,
       Ref ref) override;
 
@@ -374,6 +375,7 @@ public:
   LLVMValueRef getStringLen(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Reference* refMT,
       Ref regionInstanceRef,
       Ref ref) override;
 
@@ -451,8 +453,8 @@ public:
   InterfaceKind* unlinearizeInterfaceKind(InterfaceKind* kindMT);
   StructKind* linearizeStructKind(StructKind* kindMT);
   InterfaceKind* linearizeInterfaceKind(InterfaceKind* kindMT);
-  Reference* linearizeReference(Reference* immRcRefMT);
-  Reference* unlinearizeReference(Reference* hostRefMT);
+  Reference* linearizeReference(Reference* immRcRefMT, bool mut);
+  Reference* unlinearizeReference(Reference* hostRefMT, bool mut);
 
   Weakability getKindWeakability(Kind* kind) override;
 
@@ -681,7 +683,8 @@ private:
 //  Reference* rootMetadataRefMT = nullptr;
 
   Str* linearStr = nullptr;
-  Reference* linearStrRefMT = nullptr;
+  Reference* mutLinearStrRefMT = nullptr;
+  Reference* immLinearStrRefMT = nullptr;
 };
 
 #endif

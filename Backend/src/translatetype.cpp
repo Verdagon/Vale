@@ -15,9 +15,11 @@ std::vector<LLVMTypeRef> translateTypes(
 
 Mutability ownershipToMutability(Ownership ownership) {
   switch (ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
       return Mutability::IMMUTABLE;
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::OWN:
     case Ownership::WEAK:
       return Mutability::MUTABLE;

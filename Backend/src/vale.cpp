@@ -31,7 +31,7 @@
 #include <llvm-c/Transforms/Scalar.h>
 #include <llvm-c/Transforms/Utils.h>
 #include <llvm-c/Transforms/IPO.h>
-#include "region/assist/assist.h"
+//#include "region/assist/assist.h"
 #include "region/resilientv3/resilientv3.h"
 #include "region/unsafe/unsafe.h"
 #include "function/expressions/shared/string.h"
@@ -40,7 +40,7 @@
 #include "function/expressions/shared/members.h"
 #include "function/expressions/expressions.h"
 #include "region/naiverc/naiverc.h"
-#include "region/resilientv4/resilientv4.h"
+//#include "region/resilientv4/resilientv4.h"
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -826,9 +826,9 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
 
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      globalState->mutRegion = new Assist(globalState);
-      break;
+//    case RegionOverride::ASSIST:
+//      globalState->mutRegion = new Assist(globalState);
+//      break;
     case RegionOverride::NAIVE_RC:
       globalState->mutRegion = new NaiveRC(globalState, globalState->metalCache->mutRegionId);
       break;
@@ -838,9 +838,9 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     case RegionOverride::RESILIENT_V3:
       globalState->mutRegion = new ResilientV3(globalState, globalState->metalCache->mutRegionId);
       break;
-    case RegionOverride::RESILIENT_V4:
-      globalState->mutRegion = new ResilientV4(globalState, globalState->metalCache->mutRegionId);
-      break;
+//    case RegionOverride::RESILIENT_V4:
+//      globalState->mutRegion = new ResilientV4(globalState, globalState->metalCache->mutRegionId);
+//      break;
     default:
       assert(false);
       break;

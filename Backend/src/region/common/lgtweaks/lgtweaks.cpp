@@ -103,7 +103,7 @@ static LLVMValueRef getLgtiFromControlBlockPtr(
     ControlBlockPtrLE controlBlockPtr) {
 //  assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V1);
 
-  if (refM->ownership == Ownership::SHARE) {
+  if (refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE) {
     // Shares never have weak refs
     assert(false);
     return nullptr;
@@ -223,7 +223,7 @@ WeakFatPtrLE LgtWeaks::assembleInterfaceWeakRef(
     Reference* targetType,
     InterfaceKind* interfaceKindM,
     InterfaceFatPtrLE sourceInterfaceFatPtrLE) {
-  assert(sourceType->ownership == Ownership::OWN || sourceType->ownership == Ownership::SHARE);
+  assert(sourceType->ownership == Ownership::OWN || sourceType->ownership == Ownership::MUTABLE_SHARE || sourceType->ownership == Ownership::IMMUTABLE_SHARE);
   // curious, if its a borrow, do we just return sourceRefLE?
 
   auto controlBlockPtrLE =
@@ -248,7 +248,10 @@ WeakFatPtrLE LgtWeaks::assembleStructWeakRef(
     Reference* targetTypeM,
     StructKind* structKindM,
     WrapperPtrLE objPtrLE) {
-  assert(structTypeM->ownership == Ownership::OWN || structTypeM->ownership == Ownership::SHARE);
+  assert(
+      structTypeM->ownership == Ownership::OWN ||
+      structTypeM->ownership == Ownership::MUTABLE_SHARE ||
+      structTypeM->ownership == Ownership::IMMUTABLE_SHARE);
   // curious, if its a borrow, do we just return sourceRefLE?
 
   auto controlBlockPtrLE =
@@ -459,7 +462,8 @@ Ref LgtWeaks::getIsAliveFromWeakRef(
     Ref weakRef,
     bool knownLive) {
   assert(
-      weakRefM->ownership == Ownership::BORROW ||
+      weakRefM->ownership == Ownership::MUTABLE_BORROW ||
+          weakRefM->ownership == Ownership::IMMUTABLE_BORROW ||
           weakRefM->ownership == Ownership::WEAK);
 
   if (knownLive && elideChecksForKnownLive) {

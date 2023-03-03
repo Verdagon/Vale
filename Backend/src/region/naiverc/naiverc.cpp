@@ -32,7 +32,7 @@ NaiveRC::NaiveRC(GlobalState* globalState_, RegionId* regionId_) :
               globalState->metalCache->builtinPackageCoord, namePrefix + "_Region"));
   regionRefMT =
       globalState->metalCache->getReference(
-          Ownership::BORROW, Location::YONDER, regionKind);
+          Ownership::MUTABLE_BORROW, Location::YONDER, regionKind);
   globalState->regionIdByKind.emplace(regionKind, globalState->metalCache->mutRegionId);
   kindStructs.declareStruct(regionKind, Weakability::NON_WEAKABLE);
   kindStructs.defineStruct(regionKind, {
@@ -131,16 +131,20 @@ void NaiveRC::alias(
       // This can happen if we just allocated something. It's RC is already zero, and we want to
       // bump it to 1 for the owning reference.
       adjustStrongRc(from, globalState, functionState, &kindStructs, builder, expr, sourceRef, 1);
-    } else if (sourceRef->ownership == Ownership::BORROW) {
+    } else if (sourceRef->ownership == Ownership::MUTABLE_BORROW) {
       adjustStrongRc(from, globalState, functionState, &kindStructs, builder, expr, sourceRef, 1);
+    } else if (sourceRef->ownership == Ownership::IMMUTABLE_BORROW) {
+      // No need to adjust for immutable regions
     } else if (sourceRef->ownership == Ownership::WEAK) {
       aliasWeakRef(from, functionState, builder, sourceRef, expr);
-    } else if (sourceRef->ownership == Ownership::SHARE) {
+    } else if (sourceRef->ownership == Ownership::MUTABLE_SHARE) {
       if (sourceRef->location == Location::INLINE) {
         // Do nothing, we can just let inline structs disappear
       } else {
         adjustStrongRc(from, globalState, functionState, &kindStructs, builder, expr, sourceRef, 1);
       }
+    } else if (sourceRef->ownership == Ownership::IMMUTABLE_SHARE) {
+      // No need to adjust for immutable regions
     } else
       assert(false);
   } else {
@@ -158,12 +162,14 @@ void NaiveRC::dealias(
     Ref sourceRef) {
   auto sourceRnd = sourceMT->kind;
 
-  if (sourceMT->ownership == Ownership::SHARE) {
+  if (sourceMT->ownership == Ownership::MUTABLE_SHARE || sourceMT->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
   } else if (sourceMT->ownership == Ownership::OWN) {
     // We can't discard owns, they must be destructured.
     assert(false); // impl
-  } else if (sourceMT->ownership == Ownership::BORROW) {
+  } else if (sourceMT->ownership == Ownership::IMMUTABLE_BORROW) {
+    // Don't need to do anything for an immutable region
+  } else if (sourceMT->ownership == Ownership::MUTABLE_BORROW) {
     auto rcLE = adjustStrongRc(from, globalState, functionState, &kindStructs, builder, sourceRef, sourceMT, -1);
     buildIfV(
         globalState, functionState, builder, isZeroLE(builder, rcLE),
@@ -176,7 +182,7 @@ void NaiveRC::dealias(
 }
 
 Ref NaiveRC::weakAlias(FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) {
-  assert(sourceRefMT->ownership == Ownership::BORROW);
+  assert(sourceRefMT->ownership == Ownership::MUTABLE_BORROW || sourceRefMT->ownership == Ownership::IMMUTABLE_BORROW);
   return regularWeakAlias(globalState, functionState, &kindStructs, &wrcWeaks, builder, sourceRefMT, targetRefMT, sourceRef);
 }
 
@@ -190,8 +196,10 @@ WrapperPtrLE NaiveRC::lockWeakRef(
     bool weakRefKnownLive) {
   switch (refM->ownership) {
     case Ownership::OWN:
-    case Ownership::SHARE:
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
       assert(false);
       break;
     case Ownership::WEAK: {
@@ -256,10 +264,12 @@ LLVMTypeRef NaiveRC::translateType(Reference* referenceM) {
   }
 
   switch (referenceM->ownership) {
-    case Ownership::SHARE:
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
       assert(false);
     case Ownership::OWN:
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
       assert(referenceM->location != Location::INLINE);
       return translateReferenceSimple(globalState, &kindStructs, referenceM->kind);
     case Ownership::WEAK:
@@ -401,9 +411,13 @@ void NaiveRC::storeMember(
     Reference* newMemberRefMT,
     Ref newMemberRef) {
   switch (structRefMT->ownership) {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::IMMUTABLE_BORROW:
+      assert(false);
+      break;
     case Ownership::OWN:
-    case Ownership::SHARE:
-    case Ownership::BORROW: {
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::MUTABLE_BORROW: {
       auto newMemberLE =
           globalState->getRegion(newMemberRefMT)->checkValidReference(
               FL(), functionState, builder, false, newMemberRefMT, newMemberRef);
@@ -435,8 +449,10 @@ std::tuple<LLVMValueRef, LLVMValueRef> NaiveRC::explodeInterfaceRef(
     Ref virtualArgRef) {
   switch (virtualParamMT->ownership) {
     case Ownership::OWN:
-    case Ownership::BORROW:
-    case Ownership::SHARE: {
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE: {
       return explodeStrongInterfaceRef(
           globalState, functionState, builder, &kindStructs, virtualParamMT, virtualArgRef);
     }
@@ -491,10 +507,10 @@ LLVMValueRef NaiveRC::checkValidReference(
   if (globalState->opt->census) {
     if (refM->ownership == Ownership::OWN) {
       regularCheckValidReference(checkerAFL, globalState, functionState, builder, &kindStructs, refM, refLE);
-    } else if (refM->ownership == Ownership::SHARE) {
+    } else if (refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE) {
       assert(false);
     } else {
-      if (refM->ownership == Ownership::BORROW) {
+      if (refM->ownership == Ownership::IMMUTABLE_BORROW || refM->ownership == Ownership::MUTABLE_BORROW) {
         regularCheckValidReference(checkerAFL, globalState, functionState, builder,
                                    &kindStructs, refM, refLE);
       } else if (refM->ownership == Ownership::WEAK) {
@@ -527,7 +543,7 @@ Ref NaiveRC::upgradeLoadResultToRefWithTargetOwnership(
   auto targetLocation = targetType->location;
 //  assert(sourceLocation == targetLocation); // unimplemented
 
-  if (sourceOwnership == Ownership::SHARE) {
+  if (sourceOwnership == Ownership::MUTABLE_SHARE || sourceOwnership == Ownership::IMMUTABLE_SHARE) {
     if (sourceLocation == Location::INLINE) {
       return sourceRef;
     } else {
@@ -544,7 +560,7 @@ Ref NaiveRC::upgradeLoadResultToRefWithTargetOwnership(
       // - Swapping from an element
       // - Swapping from a member
       return sourceRef;
-    } else if (targetOwnership == Ownership::BORROW) {
+    } else if (targetOwnership == Ownership::MUTABLE_BORROW || targetOwnership == Ownership::IMMUTABLE_BORROW) {
       auto resultRef = transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
       checkValidReference(FL(), functionState, builder, false, targetType, resultRef);
       return resultRef;
@@ -553,12 +569,12 @@ Ref NaiveRC::upgradeLoadResultToRefWithTargetOwnership(
     } else {
       assert(false);
     }
-  } else if (sourceOwnership == Ownership::BORROW) {
+  } else if (sourceOwnership == Ownership::MUTABLE_BORROW || sourceOwnership == Ownership::IMMUTABLE_BORROW) {
     buildFlare(FL(), globalState, functionState, builder);
 
     if (targetOwnership == Ownership::OWN) {
       assert(false); // Cant load an owning reference from a constraint ref local.
-    } else if (targetOwnership == Ownership::BORROW) {
+    } else if (targetOwnership == Ownership::MUTABLE_BORROW || targetOwnership == Ownership::IMMUTABLE_BORROW) {
       return sourceRef;
     } else if (targetOwnership == Ownership::WEAK) {
       // Making a weak ref from a constraint ref local.
@@ -688,9 +704,11 @@ Ref NaiveRC::upcast(
     InterfaceKind* targetInterfaceKindM) {
 
   switch (sourceStructMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
     case Ownership::OWN:
-    case Ownership::BORROW: {
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::MUTABLE_BORROW: {
       return upcastStrong(globalState, functionState, builder, &kindStructs, sourceStructMT, sourceStructKindM, sourceRefLE, targetInterfaceTypeM, targetInterfaceKindM);
     }
     case Ownership::WEAK: {
@@ -752,59 +770,15 @@ Ref NaiveRC::loadMember(
   globalState->getRegion(structRefMT)
       ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
 
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC: {
-      if (structRefMT->ownership == Ownership::SHARE) {
-        assert(false);
-      } else {
-        auto unupgradedMemberLE =
-            regularLoadMember(
-                globalState, functionState, builder, &kindStructs, structRefMT, structRef,
-                memberIndex, expectedMemberType, targetType, memberName);
-        return upgradeLoadResultToRefWithTargetOwnership(
-            functionState, builder, expectedMemberType, targetType, unupgradedMemberLE);
-      }
-    }
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4: {
-      if (structRefMT->ownership == Ownership::SHARE) {
-        assert(false);
-      } else {
-        if (structRefMT->location == Location::INLINE) {
-          auto structRefLE = checkValidReference(FL(), functionState, builder, false, structRefMT, structRef);
-          return wrap(globalState->getRegion(expectedMemberType), expectedMemberType,
-                      LLVMBuildExtractValue(
-                          builder, structRefLE, memberIndex, memberName.c_str()));
-        } else {
-          switch (structRefMT->ownership) {
-            case Ownership::OWN:
-            case Ownership::SHARE: {
-              auto unupgradedMemberLE =
-                  regularLoadMember(
-                      globalState, functionState, builder, &kindStructs, structRefMT, structRef,
-                      memberIndex, expectedMemberType, targetType, memberName);
-              return upgradeLoadResultToRefWithTargetOwnership(
-                  functionState, builder, expectedMemberType, targetType, unupgradedMemberLE);
-            }
-            case Ownership::BORROW:
-            case Ownership::WEAK: {
-              auto memberLE =
-                  resilientLoadWeakMember(
-                      globalState, functionState, builder, &kindStructs, structRefMT,
-                      structRef,
-                      structKnownLive, memberIndex, expectedMemberType, memberName);
-              auto resultRef =
-                  upgradeLoadResultToRefWithTargetOwnership(
-                      functionState, builder, expectedMemberType, targetType, memberLE);
-              return resultRef;
-            }
-            default:
-              assert(false);
-          }
-        }
-      }
-    }
-    default:
-      assert(false);
+  if (structRefMT->ownership == Ownership::MUTABLE_SHARE || structRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
+    assert(false);
+  } else {
+    auto unupgradedMemberLE =
+        regularLoadMember(
+            globalState, functionState, builder, &kindStructs, structRefMT, structRef,
+            memberIndex, expectedMemberType, targetType, memberName);
+    return upgradeLoadResultToRefWithTargetOwnership(
+        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE);
   }
 }
 
@@ -897,31 +871,15 @@ Ref NaiveRC::receiveAndDecryptFamiliarReference(
 }
 
 LLVMTypeRef NaiveRC::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC: {
-      switch (reference->ownership) {
-        case Ownership::BORROW:
-        case Ownership::OWN:
-        case Ownership::SHARE:
-          return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-        case Ownership::WEAK:
-          return kindStructs.getWeakVoidRefStruct(reference->kind);
-        default:
-          assert(false);
-      }
-      break;
-    }
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4: {
-      switch (reference->ownership) {
-        case Ownership::OWN:
-        case Ownership::SHARE:
-          return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-        case Ownership::BORROW:
-        case Ownership::WEAK:
-          return kindStructs.getWeakVoidRefStruct(reference->kind);
-      }
-      break;
-    }
+  switch (reference->ownership) {
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::OWN:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
+      return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
+    case Ownership::WEAK:
+      return kindStructs.getWeakVoidRefStruct(reference->kind);
     default:
       assert(false);
   }
