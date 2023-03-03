@@ -51,12 +51,12 @@ LLVMValueRef adjustStrongRc(
     Reference* refM,
     int amount);
 
-LLVMValueRef strongRcIsZero(
-    GlobalState* globalState,
-    KindStructs* structs,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    ControlBlockPtrLE exprLE);
+//LLVMValueRef strongRcIsZero(
+//    GlobalState* globalState,
+//    KindStructs* structs,
+//    LLVMBuilderRef builder,
+//    Reference* refM,
+//    ControlBlockPtrLE exprLE);
 
 
 void buildAssertV(

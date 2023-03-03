@@ -404,11 +404,13 @@ public:
   virtual LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Reference* refMT,
       Ref regionInstanceRef,
       Ref ref) = 0;
   virtual LLVMValueRef getStringLen(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Reference* refMT,
       Ref regionInstanceRef,
       Ref ref) = 0;
   // TODO:

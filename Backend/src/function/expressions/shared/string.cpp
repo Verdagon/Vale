@@ -50,7 +50,7 @@ Ref buildConstantVStr(
   auto lengthLE = constI32LE(globalState, contents.length());
 
   auto strRef =
-      globalState->getRegion(globalState->metalCache->strRef)
+      globalState->getRegion(globalState->metalCache->mutStrRef)
           ->mallocStr(
               makeVoidRef(globalState),
               functionState, builder, lengthLE,

@@ -58,7 +58,7 @@ Ref translateExpressionInner(
     auto resultLE = makeConstIntExpr(functionState, builder, LLVMIntTypeInContext(globalState->context, constantInt->bits), constantInt->value);
     auto intRef =
         globalState->metalCache->getReference(
-            Ownership::SHARE,
+            Ownership::MUTABLE_SHARE,
             Location::INLINE,
             globalState->metalCache->getInt(globalState->metalCache->rcImmRegionId, constantInt->bits));
     return wrap(globalState->getRegion(intRef), intRef, resultLE);
@@ -335,7 +335,7 @@ Ref translateExpressionInner(
     if (arrayType->ownership == Ownership::OWN) {
       globalState->getRegion(arrayType)
           ->discardOwningRef(FL(), functionState, blockState, builder, arrayType, arrayRef);
-    } else if (arrayType->ownership == Ownership::SHARE) {
+    } else if (arrayType->ownership == Ownership::MUTABLE_SHARE || arrayType->ownership == Ownership::IMMUTABLE_SHARE) {
       // We dont decrement anything here, we're only here because we already hit zero.
 
       globalState->getRegion(arrayType)
@@ -486,7 +486,7 @@ Ref translateExpressionInner(
     if (arrayType->ownership == Ownership::OWN) {
       globalState->getRegion(arrayType)
           ->discardOwningRef(FL(), functionState, blockState, builder, arrayType, arrayRef);
-    } else if (arrayType->ownership == Ownership::SHARE) {
+    } else if (arrayType->ownership == Ownership::MUTABLE_SHARE || arrayType->ownership == Ownership::IMMUTABLE_SHARE) {
       // We dont decrement anything here, we're only here because we already hit zero.
 
       // Free it!
@@ -558,7 +558,7 @@ Ref translateExpressionInner(
     if (arrayType->ownership == Ownership::OWN) {
       globalState->getRegion(arrayType)
           ->discardOwningRef(FL(), functionState, blockState, builder, arrayType, arrayRef);
-    } else if (arrayType->ownership == Ownership::SHARE) {
+    } else if (arrayType->ownership == Ownership::MUTABLE_SHARE || arrayType->ownership == Ownership::IMMUTABLE_SHARE) {
       // We dont decrement anything here, we're only here because we already hit zero.
 
       // Free it!
@@ -582,7 +582,8 @@ Ref translateExpressionInner(
     auto arrayKind = staticSizedArrayLoad->arrayKind;
     auto elementType = staticSizedArrayLoad->arrayElementType;
     auto targetOwnership = staticSizedArrayLoad->targetOwnership;
-    auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
+    auto targetLocation =
+        targetOwnership == Ownership::MUTABLE_SHARE ? elementType->location : Location::YONDER;
     auto resultType =
         globalState->metalCache->getReference(
             targetOwnership, targetLocation, elementType->kind);
@@ -632,7 +633,7 @@ Ref translateExpressionInner(
     auto arrayKind = runtimeSizedArrayLoad->arrayKind;
     auto elementType = runtimeSizedArrayLoad->arrayElementType;
     auto targetOwnership = runtimeSizedArrayLoad->targetOwnership;
-    auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
+    auto targetLocation = targetOwnership == Ownership::MUTABLE_SHARE ? elementType->location : Location::YONDER;
     auto resultType = globalState->metalCache->getReference(targetOwnership, targetLocation, elementType->kind);
     bool arrayKnownLive = runtimeSizedArrayLoad->arrayKnownLive || globalState->opt->overrideKnownLiveTrue;
 
@@ -900,9 +901,12 @@ Ref translateExpressionInner(
     globalState->getRegion(sourceType)
         ->checkValidReference(FL(), functionState, builder, false, sourceType, sourceLE);
 
+    // The below MUTABLE_BORROW used to be BORROW, just put MUTABLE_BORROW in temporarily until we
+    // figure out weaks.
+    assert(false);
     auto sourceTypeAsConstraintRefM =
         globalState->metalCache->getReference(
-            Ownership::BORROW,
+            Ownership::MUTABLE_BORROW,
             sourceType->location,
             sourceType->kind);
 

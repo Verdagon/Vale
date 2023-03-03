@@ -71,8 +71,8 @@ Ref buildCallOrSideCall(
   for (int i = 0; i < valeArgRefs.size(); i++) {
     auto valeArgRefMT = prototype->params[i];
     auto hostArgRefMT =
-        (valeArgRefMT->ownership == Ownership::SHARE ?
-         globalState->linearRegion->linearizeReference(valeArgRefMT) :
+        ((valeArgRefMT->ownership == Ownership::MUTABLE_SHARE || valeArgRefMT->ownership == Ownership::IMMUTABLE_SHARE) ?
+         globalState->linearRegion->linearizeReference(valeArgRefMT, true) :
          valeArgRefMT);
 
     auto valeRegionInstanceRef =
@@ -152,8 +152,8 @@ Ref buildCallOrSideCall(
 
   auto valeReturnRefMT = prototype->returnType;
   auto hostReturnMT =
-      (valeReturnRefMT->ownership == Ownership::SHARE ?
-       globalState->linearRegion->linearizeReference(valeReturnRefMT) :
+      ((valeReturnRefMT->ownership == Ownership::MUTABLE_SHARE || valeReturnRefMT->ownership == Ownership::IMMUTABLE_SHARE) ?
+       globalState->linearRegion->linearizeReference(valeReturnRefMT, true) :
        valeReturnRefMT);
 
   auto valeRegionInstanceRef =
@@ -232,7 +232,7 @@ Ref replayReturnOrCallAndOrRecord(
                   auto argLE =
                       globalState->getRegion(prototype->params[i])
                           ->checkValidReference(FL(), functionState, builder, false, prototype->params[i], args[i]);
-                  if (valeArgRefMT->ownership == Ownership::SHARE) {
+                  if (valeArgRefMT->ownership == Ownership::MUTABLE_SHARE || valeArgRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
                     // Don't need to:
                     //   globalState->determinism->buildWriteValueToFile(builder, argLE);
                     // because we dont need these values in the recording.
@@ -246,7 +246,7 @@ Ref replayReturnOrCallAndOrRecord(
                 // Signal that we're ending the call, rather than having some exports call into us.
                 globalState->determinism->buildRecordCallEnd(builder, prototype);
                 // write to the file what we received from C
-                if (valeReturnRefMT->ownership == Ownership::SHARE) {
+                if (valeReturnRefMT->ownership == Ownership::MUTABLE_SHARE || valeReturnRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
                   globalState->determinism->buildWriteValueToFile(
                       functionState, builder, prototype->returnType, valeReturnRef);
                 } else {
@@ -268,7 +268,7 @@ Ref replayReturnOrCallAndOrRecord(
 
                 for (int i = 0; i < args.size(); i++) {
                   auto valeArgRefMT = prototype->params[i];
-                  if (valeArgRefMT->ownership == Ownership::SHARE) {
+                  if (valeArgRefMT->ownership == Ownership::MUTABLE_SHARE || valeArgRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
                     globalState->getRegion(valeArgRefMT)->dealias(FL(), functionState, builder, valeArgRefMT, args[i]);
                   } else {
                     // read from the file, add mapping to the hash map
@@ -287,7 +287,7 @@ Ref replayReturnOrCallAndOrRecord(
                 // above, we consumed a marker that said we're ending this current extern call.
 
                 Ref valeReturnRef =
-                    (valeReturnRefMT->ownership == Ownership::SHARE ?
+                    ((valeReturnRefMT->ownership == Ownership::MUTABLE_SHARE || valeReturnRefMT->ownership == Ownership::IMMUTABLE_SHARE) ?
                      globalState->determinism->buildReadValueFromFile(functionState, builder, valeReturnRefMT) :
                      globalState->determinism->buildMapRefFromRecordingFile(builder, valeReturnRefMT));
 //                Ref valeReturnRef =
@@ -472,12 +472,15 @@ Ref buildExternCall(
 
     auto strRegionInstanceRef =
         // At some point, look up the actual region instance, perhaps from the FunctionState?
-        globalState->getRegion(globalState->metalCache->strRef)
+        globalState->getRegion(globalState->metalCache->mutStrRef)
             ->createRegionInstanceLocal(functionState, builder);
 
-    auto resultLenLE = globalState->getRegion(globalState->metalCache->strRef)->getStringLen(functionState, builder, strRegionInstanceRef, args[0]);
-    globalState->getRegion(globalState->metalCache->strRef)
-        ->dealias(FL(), functionState, builder, globalState->metalCache->strRef, args[0]);
+    auto resultLenLE =
+        globalState->getRegion(globalState->metalCache->mutStrRef)
+        ->getStringLen(
+            functionState, builder, globalState->metalCache->mutStrRef, strRegionInstanceRef, args[0]);
+    globalState->getRegion(globalState->metalCache->mutStrRef)
+        ->dealias(FL(), functionState, builder, globalState->metalCache->mutStrRef, args[0]);
     return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultLenLE);
   } else if (prototype->name->name == "__vbi_addFloatFloat") {
     assert(args.size() == 2);

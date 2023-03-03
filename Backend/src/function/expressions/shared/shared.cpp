@@ -75,10 +75,13 @@ LLVMValueRef adjustStrongRc(
     case RegionOverride::NAIVE_RC:
       break;
     case RegionOverride::FAST:
-      assert(refM->ownership == Ownership::SHARE);
+      assert(refM->ownership == Ownership::MUTABLE_SHARE);
+      // Shouldnt increment IMMUTABLE_SHARE's RC
       break;
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
-      assert(refM->ownership == Ownership::SHARE);
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_V4:
+      assert(refM->ownership == Ownership::MUTABLE_SHARE);
+      // Shouldnt increment IMMUTABLE_SHARE's RC
       break;
     default:
       assert(false);
@@ -93,29 +96,29 @@ LLVMValueRef adjustStrongRc(
   return newRc;
 }
 
-LLVMValueRef strongRcIsZero(
-    GlobalState* globalState,
-    KindStructs* structs,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    ControlBlockPtrLE controlBlockPtrLE) {
-
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-      break;
-    case RegionOverride::FAST:
-      assert(refM->ownership == Ownership::SHARE);
-      break;
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
-      assert(refM->ownership == Ownership::SHARE);
-      break;
-    default:
-      assert(false);
-  }
-
-  return isZeroLE(builder, structs->getStrongRcFromControlBlockPtr(builder, refM, controlBlockPtrLE));
-}
+//LLVMValueRef strongRcIsZero(
+//    GlobalState* globalState,
+//    KindStructs* structs,
+//    LLVMBuilderRef builder,
+//    Reference* refM,
+//    ControlBlockPtrLE controlBlockPtrLE) {
+//
+//  switch (globalState->opt->regionOverride) {
+//    case RegionOverride::ASSIST:
+//    case RegionOverride::NAIVE_RC:
+//      break;
+//    case RegionOverride::FAST:
+//      assert(refM->ownership == Ownership::SHARE);
+//      break;
+//    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
+//      assert(refM->ownership == Ownership::SHARE);
+//      break;
+//    default:
+//      assert(false);
+//  }
+//
+//  return isZeroLE(builder, structs->getStrongRcFromControlBlockPtr(builder, refM, controlBlockPtrLE));
+//}
 
 
 void buildPrint(

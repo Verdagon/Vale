@@ -121,8 +121,8 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
 
     auto valeParamMT = functionM->prototype->params[logicalParamIndex];
     auto hostParamMT =
-        (valeParamMT->ownership == Ownership::SHARE ?
-         globalState->linearRegion->linearizeReference(valeParamMT) :
+        ((valeParamMT->ownership == Ownership::MUTABLE_SHARE || valeParamMT->ownership == Ownership::IMMUTABLE_SHARE) ?
+         globalState->linearRegion->linearizeReference(valeParamMT, true) :
          valeParamMT);
     auto cArgLE = LLVMGetParam(exportFunctionL, cParamIndex);;
     LLVMValueRef hostArgRefLE = nullptr;
@@ -163,8 +163,8 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
 
     auto valeReturnMT = functionM->prototype->returnType;
     auto hostReturnMT =
-        (valeReturnMT->ownership == Ownership::SHARE ?
-         globalState->linearRegion->linearizeReference(valeReturnMT) :
+        ((valeReturnMT->ownership == Ownership::MUTABLE_SHARE || valeReturnMT->ownership == Ownership::IMMUTABLE_SHARE) ?
+         globalState->linearRegion->linearizeReference(valeReturnMT, true) :
          valeReturnMT);
 
     auto valeRegionInstanceRef =

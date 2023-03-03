@@ -91,9 +91,7 @@ add_executable(backend
 		src/region/common/wrcweaks/wrcweaks.cpp
 		src/region/common/hgm/hgm.cpp
 		src/region/common/fatweaks/fatweaks.cpp
-		src/region/assist/assist.cpp
 		src/region/resilientv3/resilientv3.cpp
-		src/region/resilientv4/resilientv4.cpp
 		src/region/naiverc/naiverc.cpp
 		src/region/unsafe/unsafe.cpp
 		src/region/linear/linear.cpp

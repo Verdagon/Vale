@@ -31,13 +31,19 @@ LLVMValueRef upcastThinPtr(
     case RegionOverride::ASSIST:
     case RegionOverride::NAIVE_RC:
     case RegionOverride::FAST: {
-      assert(sourceStructTypeM->ownership == Ownership::SHARE ||
+      assert(
+          sourceStructTypeM->ownership == Ownership::MUTABLE_SHARE ||
+          sourceStructTypeM->ownership == Ownership::IMMUTABLE_SHARE ||
           sourceStructTypeM->ownership == Ownership::OWN ||
-          sourceStructTypeM->ownership == Ownership::BORROW);
+          sourceStructTypeM->ownership == Ownership::MUTABLE_BORROW ||
+          sourceStructTypeM->ownership == Ownership::IMMUTABLE_BORROW);
       break;
     }
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4: {
-      assert(sourceStructTypeM->ownership == Ownership::SHARE ||
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_V4: {
+      assert(
+          sourceStructTypeM->ownership == Ownership::MUTABLE_SHARE ||
+          sourceStructTypeM->ownership == Ownership::IMMUTABLE_SHARE ||
           sourceStructTypeM->ownership == Ownership::OWN);
       break;
     }
@@ -351,7 +357,9 @@ void innerDeallocate(
     Reference* refMT,
     Ref ref) {
   buildFlare(FL(), globalState, functionState, builder);
-  if (refMT->ownership == Ownership::SHARE) {
+  assert(refMT->ownership != Ownership::IMMUTABLE_BORROW);
+  assert(refMT->ownership != Ownership::IMMUTABLE_SHARE);
+  if (refMT->ownership == Ownership::MUTABLE_SHARE) {
     if (refMT->location == Location::INLINE) {
       // Do nothing, it's inline!
     } else {
@@ -492,7 +500,7 @@ WrapperPtrLE mallocStr(
 
   auto newStrWrapperPtrLE =
       kindStructs->makeWrapperPtr(
-          FL(), functionState, builder, globalState->metalCache->strRef,
+          FL(), functionState, builder, globalState->metalCache->mutStrRef,
           LLVMBuildBitCast(
               builder,
               destCharPtrLE,
@@ -501,7 +509,8 @@ WrapperPtrLE mallocStr(
 
   fillControlBlock(
       builder,
-      kindStructs->getConcreteControlBlockPtr(FL(), functionState, builder, globalState->metalCache->strRef, newStrWrapperPtrLE));
+      kindStructs->getConcreteControlBlockPtr(
+          FL(), functionState, builder, globalState->metalCache->mutStrRef, newStrWrapperPtrLE));
   assert(LLVMTypeOf(lenI32LE) == LLVMInt32TypeInContext(globalState->context));
   LLVMBuildStore(
       builder,
@@ -1048,7 +1057,8 @@ Ref resilientDowncast(
                 resultStructRef = wrap(globalState->getRegion(resultStructRefMT), resultStructRefMT, resultStructRefLE);
             return buildThen(thenBuilder, resultStructRef);
           }
-          case Ownership::BORROW:
+          case Ownership::MUTABLE_BORROW:
+          case Ownership::IMMUTABLE_BORROW:
           case Ownership::WEAK: {
             auto resultStructRefLE =
                 weakRefStructs->downcastWeakFatPtr(
@@ -1228,7 +1238,8 @@ LoadResult resilientLoadElementFromRSAWithoutUpgrade(
     bool arrayKnownLive,
     Ref indexRef) {
   switch (rsaRefMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
     case Ownership::OWN: {
       auto rsaRefLE =
           globalState->getRegion(rsaRefMT)
@@ -1241,7 +1252,8 @@ LoadResult resilientLoadElementFromRSAWithoutUpgrade(
       return loadElement(
           globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
     }
-    case Ownership::BORROW: {
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW: {
       auto wrapperPtrLE =
           globalState->getRegion(rsaRefMT)->lockWeakRef(
               FL(), functionState, builder, rsaRefMT, arrayRef, arrayKnownLive);
@@ -1382,8 +1394,10 @@ LoadResult regularLoadMember(
   } else {
     switch (structRefMT->ownership) {
       case Ownership::OWN:
-      case Ownership::SHARE:
-      case Ownership::BORROW: {
+      case Ownership::IMMUTABLE_SHARE:
+      case Ownership::MUTABLE_SHARE:
+      case Ownership::IMMUTABLE_BORROW:
+      case Ownership::MUTABLE_BORROW: {
         return regularLoadStrongMember(
             globalState, functionState, builder, kindStructs, structRefMT, structRef, memberIndex, expectedMemberType, targetType, memberName);
       }
@@ -1502,7 +1516,8 @@ LoadResult resilientloadElementFromSSA(
     Ref indexRef,
     KindStructs* kindStructs) {
   switch (ssaRefMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
     case Ownership::OWN: {
       LLVMValueRef arrayElementsPtrLE =
           getStaticSizedArrayContentsPtr(
@@ -1514,7 +1529,8 @@ LoadResult resilientloadElementFromSSA(
       return loadElementFromSSAInner(
           globalState, functionState, builder, ssaRefMT, ssaMT, size, elementType, indexRef, arrayElementsPtrLE);
     }
-    case Ownership::BORROW: {
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW: {
       LLVMValueRef arrayElementsPtrLE =
           getStaticSizedArrayContentsPtr(
               builder, globalState->getRegion(ssaRefMT)->lockWeakRef(FL(), functionState, builder, ssaRefMT, arrayRef, arrayKnownLive));
@@ -1991,10 +2007,12 @@ Ref resilientReceiveAndDecryptFamiliarReference(
     Reference *sourceRefMT,
     LLVMValueRef sourceRefLE) {
   switch (sourceRefMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
     case Ownership::OWN:
       return regularReceiveAndDecryptFamiliarReference(globalState, functionState, builder, kindStructs, sourceRefMT, sourceRefLE);
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK:
       if (auto kindStruct = dynamic_cast<StructKind*>(sourceRefMT->kind)) {
         auto urefMembersLE =
@@ -2106,11 +2124,13 @@ LLVMValueRef resilientEncryptAndSendFamiliarReference(
 
   switch (sourceRefMT->ownership) {
     case Ownership::OWN:
-    case Ownership::SHARE: {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE: {
       return regularEncryptAndSendFamiliarReference(
           globalState, functionState, builder, kindStructs, sourceRefMT, sourceRef);
     }
-    case Ownership::BORROW:
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::MUTABLE_BORROW:
     case Ownership::WEAK: {
       // Dealias when sending to the outside world, see DEPAR.
       globalState->getRegion(sourceRefMT)

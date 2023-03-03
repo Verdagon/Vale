@@ -19,7 +19,7 @@ Ref translateLocalLoad(
   auto localName = localLoad->localName;
   auto localType = local->type;
   auto targetOwnership = localLoad->targetOwnership;
-  auto targetLocation = targetOwnership == Ownership::SHARE ? localType->location : Location::YONDER;
+  auto targetLocation = targetOwnership == Ownership::MUTABLE_SHARE ? localType->location : Location::YONDER;
   auto resultType =
       globalState->metalCache->getReference(
           targetOwnership, targetLocation, localType->kind);

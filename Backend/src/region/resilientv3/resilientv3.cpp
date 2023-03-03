@@ -49,7 +49,7 @@ ResilientV3::ResilientV3(GlobalState *globalState_, RegionId *regionId_) :
               globalState->metalCache->builtinPackageCoord, namePrefix + "_Region"));
   regionRefMT =
       globalState->metalCache->getReference(
-          Ownership::BORROW, Location::YONDER, regionKind);
+          Ownership::MUTABLE_BORROW, Location::YONDER, regionKind);
   globalState->regionIdByKind.emplace(regionKind, globalState->metalCache->mutRegionId);
   kindStructs.declareStruct(regionKind, Weakability::NON_WEAKABLE);
   kindStructs.defineStruct(regionKind, {
@@ -150,10 +150,14 @@ void ResilientV3::alias(
     if (sourceRef->ownership == Ownership::OWN) {
       // We might be loading a member as an own if we're destructuring.
       // Don't adjust the RC, since we're only moving it.
-    } else if (sourceRef->ownership == Ownership::BORROW ||
-               sourceRef->ownership == Ownership::WEAK) {
+    } else if (
+        sourceRef->ownership == Ownership::MUTABLE_BORROW ||
+        sourceRef->ownership == Ownership::IMMUTABLE_BORROW ||
+        sourceRef->ownership == Ownership::WEAK) {
       aliasWeakRef(from, functionState, builder, sourceRef, expr);
-    } else if (sourceRef->ownership == Ownership::SHARE) {
+    } else if (
+        sourceRef->ownership == Ownership::MUTABLE_SHARE ||
+        sourceRef->ownership == Ownership::IMMUTABLE_SHARE) {
       if (sourceRef->location == Location::INLINE) {
         // Do nothing, we can just let inline structs disappear
       } else {
@@ -177,12 +181,16 @@ void ResilientV3::dealias(
     Ref sourceRef) {
   auto sourceRnd = sourceMT->kind;
 
-  if (sourceMT->ownership == Ownership::SHARE) {
+  if (
+      sourceMT->ownership == Ownership::MUTABLE_SHARE ||
+      sourceMT->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
   } else {
     if (sourceMT->ownership == Ownership::OWN) {
       // This can happen if we're sending an owning reference to the outside world, see DEPAR.
-    } else if (sourceMT->ownership == Ownership::BORROW) {
+    } else if (
+        sourceMT->ownership == Ownership::MUTABLE_BORROW ||
+        sourceMT->ownership == Ownership::IMMUTABLE_BORROW) {
       discardWeakRef(from, functionState, builder, sourceMT, sourceRef);
     } else if (sourceMT->ownership == Ownership::WEAK) {
       discardWeakRef(from, functionState, builder, sourceMT, sourceRef);
@@ -193,7 +201,9 @@ void ResilientV3::dealias(
 
 Ref ResilientV3::weakAlias(FunctionState *functionState, LLVMBuilderRef builder, Reference *sourceRefMT,
                            Reference *targetRefMT, Ref sourceRef) {
-  assert(sourceRefMT->ownership == Ownership::BORROW);
+  assert(
+      sourceRefMT->ownership == Ownership::MUTABLE_BORROW ||
+      sourceRefMT->ownership == Ownership::IMMUTABLE_BORROW);
   return transmuteWeakRef(
       globalState, functionState, builder, sourceRefMT, targetRefMT, &kindStructs, sourceRef);
 }
@@ -208,14 +218,16 @@ WrapperPtrLE ResilientV3::lockWeakRef(
     bool weakRefKnownLive) {
   switch (refM->ownership) {
     case Ownership::OWN:
-    case Ownership::SHARE: {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE: {
       auto objPtrLE = weakRefLE;
       auto weakFatPtrLE =
           checkValidReference(
               FL(), functionState, builder, false, refM, weakRefLE);
       return kindStructs.makeWrapperPtr(FL(), functionState, builder, refM, weakFatPtrLE);
     }
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       return kindStructs.makeWrapperPtr(
           FL(), functionState, builder, refM,
@@ -241,8 +253,10 @@ Ref ResilientV3::lockWeak(
     std::function<Ref(LLVMBuilderRef, Ref)> buildThen,
     std::function<Ref(LLVMBuilderRef)> buildElse) {
 
-  assert(sourceWeakRefMT->ownership == Ownership::BORROW ||
-         sourceWeakRefMT->ownership == Ownership::WEAK);
+  assert(
+      sourceWeakRefMT->ownership == Ownership::MUTABLE_BORROW ||
+      sourceWeakRefMT->ownership == Ownership::IMMUTABLE_BORROW ||
+      sourceWeakRefMT->ownership == Ownership::WEAK);
   auto isAliveLE =
       getIsAliveFromWeakRef(
           functionState, builder, sourceWeakRefMT, sourceWeakRefLE, weakRefKnownLive);
@@ -279,12 +293,14 @@ LLVMTypeRef ResilientV3::translateType(Reference *referenceM) {
     return LLVMPointerType(kindStructs.getStructInnerStruct(regionKind), 0);
   }
   switch (referenceM->ownership) {
-    case Ownership::SHARE:
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
       assert(false);
     case Ownership::OWN:
       assert(referenceM->location != Location::INLINE);
       return translateReferenceSimple(globalState, &kindStructs, referenceM->kind);
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK:
       assert(referenceM->location != Location::INLINE);
       return translateWeakReference(globalState, &kindStructs, referenceM->kind);
@@ -407,7 +423,7 @@ void ResilientV3::noteWeakableDestroyed(
     LLVMBuilderRef builder,
     Reference *refM,
     ControlBlockPtrLE controlBlockPtrLE) {
-  if (refM->ownership == Ownership::SHARE) {
+  if (refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
 //    auto rcIsZeroLE = strongRcIsZero(globalState, &kindStructs, builder, refM, controlBlockPtrLE);
 //    buildAssertV(globalState, functionState, builder, rcIsZeroLE,
@@ -436,12 +452,14 @@ void ResilientV3::storeMember(
           FL(), functionState, builder, false, newMemberRefMT, newMemberRef);
   switch (structRefMT->ownership) {
     case Ownership::OWN:
-    case Ownership::SHARE: {
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE: {
       return storeMemberStrong(
           globalState, functionState, builder, &kindStructs, structRefMT, structRef,
           structKnownLive, memberIndex, memberName, newMemberLE);
     }
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       storeMemberWeak(
           globalState, functionState, builder, &kindStructs, structRefMT, structRef,
@@ -462,11 +480,13 @@ std::tuple<LLVMValueRef, LLVMValueRef> ResilientV3::explodeInterfaceRef(
     Ref virtualArgRef) {
   switch (virtualParamMT->ownership) {
     case Ownership::OWN:
-    case Ownership::SHARE: {
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE: {
       return explodeStrongInterfaceRef(
           globalState, functionState, builder, &kindStructs, virtualParamMT, virtualArgRef);
     }
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       return explodeWeakInterfaceRef(
           globalState, functionState, builder, &kindStructs, &fatWeaks, &kindStructs,
@@ -489,11 +509,13 @@ Ref ResilientV3::getRuntimeSizedArrayLength(
     Ref arrayRef,
     bool arrayKnownLive) {
   switch (rsaRefMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
     case Ownership::OWN: {
       return getRuntimeSizedArrayLengthStrong(globalState, functionState, builder, &kindStructs, rsaRefMT, arrayRef);
     }
-    case Ownership::BORROW: {
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW: {
       auto wrapperPtrLE =
           lockWeakRef(
               FL(), functionState, builder, rsaRefMT, arrayRef, arrayKnownLive);
@@ -512,11 +534,13 @@ Ref ResilientV3::getRuntimeSizedArrayCapacity(
     Ref arrayRef,
     bool arrayKnownLive) {
   switch (rsaRefMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
     case Ownership::OWN: {
       return getRuntimeSizedArrayCapacityStrong(globalState, functionState, builder, &kindStructs, rsaRefMT, arrayRef);
     }
-    case Ownership::BORROW: {
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::MUTABLE_BORROW: {
       auto wrapperPtrLE =
           lockWeakRef(
               FL(), functionState, builder, rsaRefMT, arrayRef, arrayKnownLive);
@@ -544,7 +568,7 @@ LLVMValueRef ResilientV3::checkValidReference(
   if (globalState->opt->census) {
     if (refM->ownership == Ownership::OWN) {
       regularCheckValidReference(checkerAFL, globalState, functionState, builder, &kindStructs, refM, refLE);
-    } else if (refM->ownership == Ownership::SHARE) {
+    } else if (refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE) {
       assert(false);
     } else {
       hgmWeaks.buildCheckWeakRef(checkerAFL, functionState, builder, expectLive, refM, ref);
@@ -572,7 +596,7 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
   auto targetLocation = targetType->location;
 //  assert(sourceLocation == targetLocation); // unimplemented
 
-  if (sourceOwnership == Ownership::SHARE) {
+  if (sourceOwnership == Ownership::MUTABLE_SHARE || sourceOwnership == Ownership::IMMUTABLE_SHARE) {
     if (sourceLocation == Location::INLINE) {
       return sourceRef;
     } else {
@@ -589,15 +613,23 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
       // - Swapping from an element
       // - Swapping from a member
       return sourceRef;
-    } else if (targetOwnership == Ownership::BORROW
-               || targetOwnership == Ownership::WEAK) {
+    } else if (
+        targetOwnership == Ownership::MUTABLE_BORROW ||
+        targetOwnership == Ownership::IMMUTABLE_BORROW ||
+        targetOwnership == Ownership::WEAK) {
       // Now we need to package it up into a weak ref.
       return hgmWeaks.assembleWeakRef(functionState, builder, sourceType, targetType, sourceRef);
     } else {
       assert(false);
     }
-  } else if (sourceOwnership == Ownership::BORROW || sourceOwnership == Ownership::WEAK) {
-    assert(targetOwnership == Ownership::BORROW || targetOwnership == Ownership::WEAK);
+  } else if (
+      sourceOwnership == Ownership::MUTABLE_BORROW ||
+      sourceOwnership == Ownership::IMMUTABLE_BORROW ||
+      sourceOwnership == Ownership::WEAK) {
+    assert(
+        targetOwnership == Ownership::MUTABLE_BORROW ||
+        targetOwnership == Ownership::IMMUTABLE_BORROW ||
+        targetOwnership == Ownership::WEAK);
 
     return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
   } else {
@@ -719,12 +751,14 @@ Ref ResilientV3::upcast(
     InterfaceKind *targetInterfaceKindM) {
 
   switch (sourceStructMT->ownership) {
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
     case Ownership::OWN: {
       return upcastStrong(globalState, functionState, builder, &kindStructs, sourceStructMT, sourceStructKindM,
           sourceRefLE, targetInterfaceTypeM, targetInterfaceKindM);
     }
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       return ::upcastWeak(globalState, functionState, builder, &kindStructs, sourceStructMT, sourceStructKindM,
           sourceRefLE, targetInterfaceTypeM, targetInterfaceKindM);
@@ -784,7 +818,7 @@ Ref ResilientV3::loadMember(
     Reference *targetType,
     const std::string &memberName) {
 
-  if (structRefMT->ownership == Ownership::SHARE) {
+  if (structRefMT->ownership == Ownership::MUTABLE_SHARE || structRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
   } else {
     if (structRefMT->location == Location::INLINE) {
@@ -796,7 +830,8 @@ Ref ResilientV3::loadMember(
     } else {
       switch (structRefMT->ownership) {
         case Ownership::OWN:
-        case Ownership::SHARE: {
+        case Ownership::IMMUTABLE_SHARE:
+        case Ownership::MUTABLE_SHARE: {
           globalState->getRegion(structRefMT)
               ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
           auto unupgradedMemberLE =
@@ -806,7 +841,8 @@ Ref ResilientV3::loadMember(
           return upgradeLoadResultToRefWithTargetOwnership(
               functionState, builder, expectedMemberType, targetType, unupgradedMemberLE);
         }
-        case Ownership::BORROW:
+        case Ownership::MUTABLE_BORROW:
+        case Ownership::IMMUTABLE_BORROW:
         case Ownership::WEAK: {
           auto memberLE =
               resilientLoadWeakMember(
@@ -880,7 +916,9 @@ Ref ResilientV3::receiveAndDecryptFamiliarReference(
     LLVMBuilderRef builder,
     Reference *sourceRefMT,
     LLVMValueRef sourceRefLE) {
-  assert(sourceRefMT->ownership != Ownership::SHARE);
+  assert(
+      sourceRefMT->ownership != Ownership::MUTABLE_SHARE ||
+      sourceRefMT->ownership != Ownership::IMMUTABLE_SHARE);
   return resilientReceiveAndDecryptFamiliarReference(
       globalState, functionState, builder, &kindStructs, &kindStructs, &hgmWeaks, sourceRefMT, sourceRefLE);
 }
@@ -888,9 +926,11 @@ Ref ResilientV3::receiveAndDecryptFamiliarReference(
 LLVMTypeRef ResilientV3::getInterfaceMethodVirtualParamAnyType(Reference *reference) {
   switch (reference->ownership) {
     case Ownership::OWN:
-    case Ownership::SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_SHARE:
       return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-    case Ownership::BORROW:
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK:
       return kindStructs.getWeakVoidRefStruct(reference->kind);
   }
@@ -913,7 +953,9 @@ LLVMValueRef ResilientV3::encryptAndSendFamiliarReference(
     LLVMBuilderRef builder,
     Reference *sourceRefMT,
     Ref sourceRef) {
-  assert(sourceRefMT->ownership != Ownership::SHARE);
+  assert(
+      sourceRefMT->ownership != Ownership::MUTABLE_SHARE ||
+      sourceRefMT->ownership != Ownership::IMMUTABLE_SHARE);
   return resilientEncryptAndSendFamiliarReference(
       globalState, functionState, builder, &kindStructs, &hgmWeaks, sourceRefMT, sourceRef);
 }
