@@ -492,6 +492,23 @@ public:
   Ref createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) override;
 
 protected:
+
+  WrapperPtrLE getWrapperPtrNotLive(
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refM,
+      Ref weakRefLE,
+      bool weakRefKnownLive);
+
+  WrapperPtrLE getWrapperPtrLive(
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LiveRef ref);
+
   GlobalState* globalState = nullptr;
 
   RegionId* regionId;

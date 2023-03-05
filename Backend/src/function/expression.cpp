@@ -206,6 +206,7 @@ Ref translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " arg ", argument->argumentIndex);
     auto resultLE = LLVMGetParam(functionState->containingFuncL, argument->argumentIndex);
     auto resultRef = wrap(globalState->getRegion(argument->resultType), argument->resultType, resultLE);
+    auto resultLT = globalState->getRegion(argument->resultType)->translateType(argument->resultType);
     globalState->getRegion(argument->resultType)->checkValidReference(FL(), functionState, builder, false, argument->resultType, resultRef);
 //    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
     return resultRef;
@@ -365,10 +366,10 @@ Ref translateExpressionInner(
     auto arrayType = pushRuntimeSizedArray->arrayType;
     auto arrayMT = dynamic_cast<RuntimeSizedArrayT*>(arrayType->kind);
     assert(arrayMT);
-    bool arrayKnownLive = true;
+    bool arrayKnownLive = false;
     auto newcomerExpr = pushRuntimeSizedArray->newcomerExpr;
     auto newcomerType = pushRuntimeSizedArray->newcomerType;
-    bool newcomerKnownLive = true;
+    bool newcomerKnownLive = false;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     globalState->getRegion(arrayType)
@@ -425,11 +426,12 @@ Ref translateExpressionInner(
     auto rsaRefMT = popRuntimeSizedArray->arrayType;
     auto rsaMT = dynamic_cast<RuntimeSizedArrayT*>(rsaRefMT->kind);
     assert(rsaMT);
-    bool arrayKnownLive = true;
+    bool arrayKnownLive = false;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, rsaME);
     globalState->getRegion(rsaRefMT)
         ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef);
+    auto rsaLT = globalState->getRegion(rsaRefMT)->translateType(rsaRefMT);
 
     auto arrayRegionInstanceRef =
         // At some point, look up the actual region instance, perhaps from the FunctionState?

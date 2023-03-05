@@ -516,7 +516,7 @@ private:
       LLVMValueRef structRefLE,
       LLVMValueRef edgeNumberLE);
 
-  Ref innerConstructRuntimeSizedArray(
+  LiveRef innerConstructRuntimeSizedArray(
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -547,7 +547,7 @@ private:
 
   InterfaceMethod* getSerializeInterfaceMethod(Kind* valeKind);
 
-  Ref callSerialize(
+  LiveRef callSerialize(
       FunctionState *functionState,
       LLVMBuilderRef builder,
       Kind* valeKind,
@@ -559,7 +559,7 @@ private:
   // Does the entire serialization process: measuring the length, allocating a buffer, and
   // serializing into it.
   // Returns the pointer to it and the size.
-  std::pair<Ref, Ref> topLevelSerialize(
+  std::pair<LiveRef, Ref> topLevelSerialize(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Ref regionInstanceRef,

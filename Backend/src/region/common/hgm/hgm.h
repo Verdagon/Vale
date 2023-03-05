@@ -97,13 +97,20 @@ public:
       LLVMValueRef currentGenLE,
       WrapperPtrLE objPtrLE);
 
-  LLVMValueRef lockGenFatPtr(
+  WrapperPtrLE lockGenFatPtr(
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
       Ref ref,
       bool weakRefKnownLive);
+
+  WrapperPtrLE getWrapperPtr(
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LiveRef ref);
 
   void innerNoteWeakableDestroyed(
       FunctionState* functionState,

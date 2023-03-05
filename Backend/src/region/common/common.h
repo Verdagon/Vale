@@ -329,18 +329,18 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
     LiveRef arrayRef,
     Ref indexRef);
 
-LoadResult resilientLoadElementFromRSAWithoutUpgrade(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    bool capacityExists,
-    Reference* rsaRefMT,
-    Mutability mutability,
-    Reference* elementType,
-    RuntimeSizedArrayT* rsaMT,
-    LiveRef arrayRef,
-    Ref indexRef);
+//LoadResult resilientLoadElementFromRSAWithoutUpgrade(
+//    GlobalState* globalState,
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    KindStructs* kindStructs,
+//    bool capacityExists,
+//    Reference* rsaRefMT,
+//    Mutability mutability,
+//    Reference* elementType,
+//    RuntimeSizedArrayT* rsaMT,
+//    LiveRef arrayRef,
+//    Ref indexRef);
 
 
 void regularInitializeElementInSSA(
@@ -590,7 +590,7 @@ void initializeElementInRSA(
     bool incrementSize,
     RuntimeSizedArrayT* rsaMT,
     Reference* rsaRefMT,
-    LiveRef rsaRef,
+    WrapperPtrLE rsaWPtrLE,
     Ref indexRef,
     Ref elementRef);
 

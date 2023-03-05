@@ -258,27 +258,15 @@ WeakFatPtrLE HybridGenerationalMemory::assembleRuntimeSizedArrayWeakRef(
       functionState, builder, targetTypeM, weakRefStructLT, headerLE, objPtrLE.refLE);
 }
 
-LLVMValueRef HybridGenerationalMemory::lockGenFatPtr(
+WrapperPtrLE HybridGenerationalMemory::lockGenFatPtr(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refM,
     Ref ref,
     bool knownLive) {
-//
-//  auto weakFatPtrLE =
-//      kindStructs.makeWeakFatPtr(
-//          refM,
-//          checkValidReference(
-//              FL(), functionState, builder, false, refM, weakRefLE));
-//
   auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
   auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
-//  auto innerRefLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
-//  auto wrapperPtrLE = kindStructs.makeWrapperPtr(FL(), functionState, builder, refM, innerRefLE);
-
-//  auto fatPtrLE = weakRefLE;
-  auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
 
   if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && elideChecksForKnownLive) {
     globalState->getRegion(refM)
@@ -295,9 +283,24 @@ LLVMValueRef HybridGenerationalMemory::lockGenFatPtr(
           fastPanic(globalState, from, thenBuilder);
         });
   }
+  auto liveRef = LiveRef(ref); // Because we just checked
+  return getWrapperPtr(FL(), functionState, builder, refM, liveRef);
+}
+
+WrapperPtrLE HybridGenerationalMemory::getWrapperPtr(
+    AreaAndFileAndLine from,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LiveRef ref) {
+  auto refLE =
+      globalState->getRegion(refM)->checkValidReference(
+          FL(), functionState, builder, false, refM, ref.inner);
+  auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
+  auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
   globalState->getRegion(refM)
-      ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-  return innerLE;
+      ->checkValidReference(FL(), functionState, builder, true, refM, ref.inner);
+  return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
 }
 
 void HybridGenerationalMemory::innerNoteWeakableDestroyed(

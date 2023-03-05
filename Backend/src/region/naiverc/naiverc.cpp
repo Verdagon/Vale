@@ -374,7 +374,7 @@ void NaiveRC::discardOwningRef(
   auto rcLE =
       adjustStrongRc(
           AFL("Destroy decrementing the owning ref"),
-          globalState, functionState, &kindStructs, builder, sourceRef, sourceMT, -1);
+          globalState, functionState, &kindStructs, builder, sourceRef.inner, sourceMT, -1);
   buildIfV(
       globalState, functionState, builder, isZeroLE(builder, rcLE),
       [this, functionState, blockState, sourceRef, sourceMT](LLVMBuilderRef thenBuilder) {
@@ -918,7 +918,7 @@ void NaiveRC::pushRuntimeSizedArrayNoBoundsCheck(
           FL(), functionState, builder, rsaRefMT,
           globalState->getRegion(rsaRefMT)->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
   ::initializeElementInRSA(
-      globalState, functionState, builder, &kindStructs, true, true, rsaMT, rsaRefMT, rsaRef, indexRef, elementRef);
+      globalState, functionState, builder, &kindStructs, true, true, rsaMT, rsaRefMT, arrayWrapperPtrLE, indexRef, elementRef);
 }
 
 Ref NaiveRC::popRuntimeSizedArrayNoBoundsCheck(
