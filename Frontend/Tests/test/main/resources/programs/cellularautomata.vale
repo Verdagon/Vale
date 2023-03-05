@@ -1,15 +1,104 @@
 import v.builtins.arith.*;
+import v.builtins.str.*;
 import v.builtins.print.*;
 import v.builtins.runtime_sized_array_mut_new.*;
 import v.builtins.runtime_sized_array_push.*;
 import v.builtins.runtime_sized_array_pop.*;
 import v.builtins.runtime_sized_array_len.*;
+//import math.*;
+
+
+func min(a int, b int) int {
+  return if (a <= b) { a } else { b };
+}
+
+func max(a int, b int) int {
+  return if (a >= b) { a } else { b };
+}
+
+
+// How will we eliminate gen checks on the rand instance?
+// Live ref will do it nicely probably.
+func MakeBoard(rand_seed int) [][]bool {
+  rows = [][]bool(10);
+  row_i = 0;
+  while row_i < 10 {
+    row = []bool(10);
+    col_i = 0;
+    while col_i < 10 {
+      random_bool = true;
+      // Implicit & causes a gen check in push. Inlining will fix.
+      row.push(random_bool);
+      set col_i = col_i + 1;
+    }
+    rows.push(row); // Same here.
+    set row_i = row_i + 1;
+  }
+  return rows;
+}
+
+pure func DisplayAreas<r' imm>(map &r'[][]bool) {
+  row_i = 0;
+  while row_i < 10 {
+    neighbor_row_start = max(0, row_i - 2);
+    neighbor_row_end = min(10, row_i + 2);
+
+    col_i = 0;
+    while col_i < 10 {
+      neighbor_col_start = max(0, col_i - 2);
+      neighbor_col_end = min(10, col_i + 2);
+
+      num_walkable_neighbors = 0;
+
+      neighbor_row_i = neighbor_row_start;
+      while neighbor_row_i < neighbor_row_end {
+        neighbor_col_i = neighbor_col_start;
+        while neighbor_col_i < neighbor_col_end {
+          neighbor_walkable = map[neighbor_row_i][neighbor_col_i];
+          if neighbor_walkable {
+            set num_walkable_neighbors = num_walkable_neighbors + 1;
+          }
+          set neighbor_col_i = neighbor_col_i + 1;
+        }
+        set neighbor_row_i = neighbor_row_i + 1;
+      }
+
+      if num_walkable_neighbors < 10 {
+        print(str(num_walkable_neighbors));
+      } else if num_walkable_neighbors == 10 {
+        print("A");
+      } else if num_walkable_neighbors == 11 {
+        print("B");
+      } else if num_walkable_neighbors == 12 {
+        print("C");
+      } else if num_walkable_neighbors == 13 {
+        print("D");
+      } else if num_walkable_neighbors == 14 {
+        print("E");
+      } else if num_walkable_neighbors == 15 {
+        print("F");
+      } else {
+        print("Z");
+      }
+
+      set col_i = col_i + 1;
+    }
+    print("\n");
+    set row_i = row_i + 1;
+  }
+}
 
 exported func main() int {
   random_seed = 1337;
-  board_0 = []bool(1);
-  board_0.push(true);
-  board_0.pop();
+  board_0 = MakeBoard(random_seed);
+  DisplayAreas(&board_0);
+  while board_0.len() > 0 {
+    row = board_0.pop();
+    while row.len() > 0 {
+      row.pop();
+    }
+    [] = row;
+  }
   [] = board_0;
   return 0;
 }

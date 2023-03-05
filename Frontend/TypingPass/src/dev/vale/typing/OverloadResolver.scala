@@ -412,13 +412,13 @@ class OverloadResolver(
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
+                            checkRegions(ft, maybeLatestPureBlockLocation, conclusions) match {
+                              case Err(e) => return Err(e)
+                              case Ok(()) =>
+                            }
+                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype))
                           }
                         }
-                        checkRegions(ft, maybeLatestPureBlockLocation, conclusions) match {
-                          case Err(e) => return Err(e)
-                          case Ok(()) =>
-                        }
-                        Ok(ast.ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype))
                       }
                     }
                   }
@@ -594,21 +594,27 @@ class OverloadResolver(
     argTypes: Vector[CoordT]):
   (Option[Vector[Boolean]]) = {
     val initial: Option[Vector[Boolean]] = Some(Vector())
-    candidate.paramTypes.zip(argTypes)
-      .foldLeft(initial)({
-        case (None, _) => None
-        case (Some(previous), (paramType, argType)) => {
-          if (argType == paramType) {
-            Some(previous :+ false)
-          } else {
-            if (templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, argType, paramType)) {
-              Some(previous :+ true)
+    val result =
+      candidate.paramTypes.zip(argTypes)
+        .foldLeft(initial)({
+          case (None, _) => None
+          case (Some(previous), (paramType, argType)) => {
+            if (argType == paramType) {
+              Some(previous :+ false)
             } else {
-              None
+              if (templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, argType, paramType)) {
+                Some(previous :+ true)
+              } else {
+                None
+              }
             }
           }
-        }
-      })
+        })
+    result match {
+      case Some(a) => vassert(a.length == argTypes.length)
+      case None =>
+    }
+    result
   }
 
   private def narrowDownCallableOverloads(
@@ -670,7 +676,10 @@ class OverloadResolver(
       argTypes.indices.map(paramIndex => {
         val bannerIndexToRequiresConversion =
           bannerIndexToScore.zipWithIndex.map({
-            case (paramIndexToScore, bannerIndex) => paramIndexToScore(paramIndex)
+            case (paramIndexToScore, bannerIndex) => {
+              vassert(paramIndex < paramIndexToScore.length)
+              paramIndexToScore(paramIndex)
+            }
           })
         if (bannerIndexToRequiresConversion.forall(_ == true)) {
           // vfail("All candidates require conversion for param " + paramIndex)
