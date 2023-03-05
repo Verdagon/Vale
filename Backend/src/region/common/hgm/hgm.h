@@ -124,7 +124,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref ref);
+      LiveRef ref);
 
   void discardWeakRef(
       AreaAndFileAndLine from,

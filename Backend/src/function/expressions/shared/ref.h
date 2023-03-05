@@ -50,7 +50,6 @@ struct WeakFatPtrLE {
       : refM(refM_), refLE(refLE_) { }
 };
 
-
 // An LLVM register, which contains a reference.
 struct Ref {
   Ref(Reference* refM_, LLVMValueRef refLE_) : refM(refM_), refLE(refLE_) {}
@@ -75,6 +74,13 @@ private:
       GlobalState* globalState,
       LLVMBuilderRef builder,
       Ref ref);
+};
+
+// A Ref that we're sure is alive right now.
+struct LiveRef {
+  Ref inner;
+
+  explicit LiveRef(Ref inner_) : inner(inner_) { }
 };
 
 Ref wrap(IRegion* region, Reference* refM, LLVMValueRef exprLE);

@@ -17,9 +17,16 @@ Ref translateDestructure(
   buildFlare(FL(), globalState, functionState, builder);
   auto mutability = ownershipToMutability(destructureM->structType->ownership);
 
+  auto structRegionInstanceRef =
+      // At some point, look up the actual region instance, perhaps from the FunctionState?
+      globalState->getRegion(destructureM->structType)->createRegionInstanceLocal(functionState, builder);
+
   auto structRef =
       translateExpression(
           globalState, functionState, blockState, builder, destructureM->structExpr);
+  auto structLiveRef =
+      globalState->getRegion(destructureM->structType)->checkRefLive(FL(),
+          functionState, builder, structRegionInstanceRef, destructureM->structType, structRef, false);
   globalState->getRegion(destructureM->structType)->checkValidReference(FL(),
       functionState, builder, true, destructureM->structType, structRef);
 
@@ -31,17 +38,13 @@ Ref translateDestructure(
 
   auto structM = globalState->program->getStruct(structKind);
 
-  auto structRegionInstanceRef =
-      // At some point, look up the actual region instance, perhaps from the FunctionState?
-      globalState->getRegion(destructureM->structType)->createRegionInstanceLocal(functionState, builder);
-
   for (int i = 0; i < structM->members.size(); i++) {
     buildFlare(FL(), globalState, functionState, builder);
     auto memberName = structM->members[i]->name;
     auto memberType = structM->members[i]->type;
     auto memberLE =
         globalState->getRegion(destructureM->structType)->loadMember(
-            functionState, builder, structRegionInstanceRef, destructureM->structType, structRef, true, i, memberType, memberType, memberName);
+            functionState, builder, structRegionInstanceRef, destructureM->structType, structLiveRef, i, memberType, memberType, memberName);
     makeHammerLocal(
         globalState, functionState, blockState, builder, destructureM->localIndices[i], memberLE, destructureM->localsKnownLives[i]);
     buildFlare(FL(), globalState, functionState, builder);
@@ -50,14 +53,15 @@ Ref translateDestructure(
 
   if (destructureM->structType->ownership == Ownership::OWN) {
     buildFlare(FL(), globalState, functionState, builder);
-    globalState->getRegion(destructureM->structType)->discardOwningRef(FL(), functionState, blockState, builder, destructureM->structType, structRef);
+    globalState->getRegion(destructureM->structType)
+        ->discardOwningRef(FL(), functionState, blockState, builder, destructureM->structType, structLiveRef);
   } else if (destructureM->structType->ownership == Ownership::MUTABLE_SHARE || destructureM->structType->ownership == Ownership::IMMUTABLE_SHARE) {
     buildFlare(FL(), globalState, functionState, builder);
     // We dont decrement anything here, we're only here because we already hit zero.
 
     globalState->getRegion(destructureM->structType)->deallocate(
         AFL("Destroy freeing"), functionState, builder,
-        destructureM->structType, structRef);
+        destructureM->structType, structLiveRef);
   } else {
     assert(false);
   }

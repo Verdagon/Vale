@@ -615,11 +615,11 @@ void HybridGenerationalMemory::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
-    Ref sourceRef) {
+    LiveRef sourceRef) {
   // Increment the generation since we're freeing it.
   auto sourceRefLE =
       globalState->getRegion(sourceRefMT)
-          ->checkValidReference(FL(), functionState, builder, true, sourceRefMT, sourceRef);
+          ->checkValidReference(FL(), functionState, builder, true, sourceRefMT, sourceRef.inner);
   auto controlBlockPtr =
       kindStructs->getConcreteControlBlockPtr(
           FL(), functionState, builder, sourceRefMT,

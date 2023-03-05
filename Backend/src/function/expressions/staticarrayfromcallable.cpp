@@ -34,7 +34,7 @@ Ref translateStaticArrayFromCallable(
   globalState->getRegion(generatorType)
       ->checkValidReference(FL(), functionState, builder, true, generatorType, generatorRef);
 
-  std::unique_ptr<Ref> result;
+  std::unique_ptr<LiveRef> result;
   if (staticArrayFromCallable->arrayRefType->location == Location::INLINE) {
 //        auto valStructL =
 //            globalState->getInnerStruct(structKind->fullName);
@@ -68,11 +68,11 @@ Ref translateStaticArrayFromCallable(
     buildFlare(FL(), globalState, functionState, builder);
 
     globalState->getRegion(staticArrayFromCallable->arrayRefType)
-        ->checkValidReference(FL(), functionState, builder, true, staticArrayFromCallable->arrayRefType, ssaRef);
-    result.reset(new Ref(ssaRef));
+        ->checkValidReference(FL(), functionState, builder, true, staticArrayFromCallable->arrayRefType, ssaRef.inner);
+    result.reset(new LiveRef(ssaRef));
   }
 
   globalState->getRegion(generatorType)->dealias(AFL("ConstructRSA"), functionState, builder, generatorType, generatorRef);
 
-  return std::move(*result);
+  return std::move(*result).inner;
 }
