@@ -631,6 +631,9 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
         targetOwnership == Ownership::WEAK) {
       // Now we need to package it up into a weak ref.
       return hgmWeaks.assembleWeakRef(functionState, builder, sourceType, targetType, sourceRef);
+    } else if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
+      // Now we need to package it up into a weak ref.
+      return hgmWeaks.assembleWeakRef(functionState, builder, sourceType, targetType, sourceRef);
     } else {
       assert(false);
     }
