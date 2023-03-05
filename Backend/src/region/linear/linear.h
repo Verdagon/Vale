@@ -104,7 +104,7 @@ public:
       BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* sourceMT,
-      Ref sourceRef) override;
+      LiveRef sourceRef) override;
 
 
   void noteWeakableDestroyed(
@@ -118,8 +118,7 @@ public:
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* structRefMT,
-      Ref structRef,
-      bool structKnownLive,
+      LiveRef structRef,
       int memberIndex,
       Reference* expectedMemberType,
       Reference* targetMemberType,
@@ -130,8 +129,7 @@ public:
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* structRefMT,
-      Ref structRef,
-      bool structKnownLive,
+      LiveRef structRef,
       int memberIndex,
       const std::string& memberName,
       Reference* newMemberRefMT,
@@ -170,7 +168,7 @@ public:
       LLVMBuilderRef builder,
       Reference* refMT,
       Ref regionInstanceRef,
-      Ref ref) override;
+      LiveRef ref) override;
 
   Ref allocate(
       Ref regionInstanceRef,
@@ -199,9 +197,18 @@ public:
       Ref weakRefLE,
       bool weakRefKnownLive) override;
 
+  LiveRef checkRefLive(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      bool refKnownLive);
+
   // Returns a LLVMValueRef for a ref to the string object.
   // The caller should then use getStringBytesPtr to then fill the string's contents.
-  Ref constructStaticSizedArray(
+  LiveRef constructStaticSizedArray(
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -221,16 +228,14 @@ public:
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* rsaRefMT,
-      Ref arrayRef,
-      bool arrayKnownLive) override;
+      LiveRef arrayRef) override;
 
   Ref getRuntimeSizedArrayCapacity(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* rsaRefMT,
-      Ref arrayRef,
-      bool arrayKnownLive) override;
+      LiveRef arrayRef) override;
 
   LLVMValueRef checkValidReference(
       AreaAndFileAndLine checkerAFL,
@@ -266,8 +271,7 @@ public:
       Ref regionInstanceRef,
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
-      Ref arrayRef,
-      bool arrayKnownLive,
+      LiveRef arrayRef,
       Ref indexRef) override;
   LoadResult loadElementFromRSA(
       FunctionState* functionState,
@@ -275,8 +279,7 @@ public:
       Ref regionInstanceRef,
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
-      Ref arrayRef,
-      bool arrayKnownLive,
+      LiveRef arrayRef,
       Ref indexRef) override;
 
 
@@ -285,8 +288,7 @@ public:
       LLVMBuilderRef builder,
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
-      Ref arrayRef,
-      bool arrayKnownLive,
+      LiveRef arrayRef,
       Ref indexRef,
       Ref elementRef) override;
 
@@ -296,10 +298,10 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref ref) override;
+      LiveRef ref) override;
 
 
-  Ref constructRuntimeSizedArray(
+  LiveRef constructRuntimeSizedArray(
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -314,8 +316,7 @@ public:
       Ref regionInstanceRef,
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
+      LiveRef arrayRef,
       Ref indexRef,
       Ref elementRef) override;
 
@@ -325,8 +326,7 @@ public:
       Ref regionInstanceRef,
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
+      LiveRef arrayRef,
       Ref indexRef) override;
 
   void initializeElementInSSA(
@@ -335,8 +335,7 @@ public:
       Ref regionInstanceRef,
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
+      LiveRef arrayRef,
       Ref indexRef,
       Ref elementRef) override;
 
@@ -345,8 +344,7 @@ public:
       LLVMBuilderRef builder,
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
+      LiveRef arrayRef,
       Ref indexRef) override;
 
   Ref mallocStr(
@@ -364,7 +362,7 @@ public:
       LLVMValueRef sourceCharsPtrLE,
       Ref dryRunBoolRef);
 
-  Ref innerConstructStaticSizedArray(
+  LiveRef innerConstructStaticSizedArray(
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -377,7 +375,7 @@ public:
       LLVMBuilderRef builder,
       Reference* refMT,
       Ref regionInstanceRef,
-      Ref ref) override;
+      LiveRef ref) override;
 
   std::string getExportName(Package* currentPackage, Reference* refMT, bool includeProjectName) override;
 
@@ -419,12 +417,12 @@ public:
       Reference* sourceRefMT,
       Ref sourceRef) override;
 
-  LoadResult loadMember(
+  LoadResult loadMember2(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* structRefMT,
-      Ref structRef,
+      LiveRef structRef,
       int memberIndex,
       Reference* expectedMemberType,
       Reference* targetType,

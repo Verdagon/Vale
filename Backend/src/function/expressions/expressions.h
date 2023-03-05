@@ -84,7 +84,7 @@ Ref translateDiscard(
     LLVMBuilderRef builder,
     Discard* discardM);
 
-Ref translateNewArrayFromValues(
+LiveRef translateNewArrayFromValues(
     GlobalState* globalState,
     FunctionState* functionState,
     BlockState* blockState,

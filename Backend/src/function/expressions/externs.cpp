@@ -475,10 +475,14 @@ Ref buildExternCall(
         globalState->getRegion(globalState->metalCache->mutStrRef)
             ->createRegionInstanceLocal(functionState, builder);
 
+    auto strLiveRef =
+        globalState->getRegion(globalState->metalCache->mutStrRef)
+        ->checkRefLive(FL(), functionState, builder, strRegionInstanceRef, globalState->metalCache->mutStrRef, args[0], false);
+
     auto resultLenLE =
         globalState->getRegion(globalState->metalCache->mutStrRef)
         ->getStringLen(
-            functionState, builder, globalState->metalCache->mutStrRef, strRegionInstanceRef, args[0]);
+            functionState, builder, globalState->metalCache->mutStrRef, strRegionInstanceRef, strLiveRef);
     globalState->getRegion(globalState->metalCache->mutStrRef)
         ->dealias(FL(), functionState, builder, globalState->metalCache->mutStrRef, args[0]);
     return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultLenLE);

@@ -121,7 +121,7 @@ void innerDeallocate(
     KindStructs* kindStrutsSource,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref ref);
+    LiveRef ref);
 
 void fillRuntimeSizedArray(
     GlobalState* globalState,
@@ -135,7 +135,7 @@ void fillRuntimeSizedArray(
     Prototype* generatorMethod,
     Ref generatorLE,
     Ref sizeLE,
-    Ref rsaRef);
+    LiveRef rsaRef);
 
 void fillStaticSizedArrayFromCallable(
     GlobalState* globalState,
@@ -149,7 +149,7 @@ void fillStaticSizedArrayFromCallable(
     Prototype* generatorMethod,
     Ref generatorLE,
     Ref sizeLE,
-    Ref ssaRef);
+    LiveRef ssaRef);
 
 std::tuple<Reference*, LLVMValueRef> megaGetRefInnardsForChecking(Ref ref);
 
@@ -292,12 +292,12 @@ void fillStaticSizedArray(
     Ref arrayRegionInstanceRef,
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
-    Ref ssaRef,
+    LiveRef ssaRef,
     const std::vector<Ref>& elementRefs);
 
 // Returns a LLVMValueRef for a ref to the string object.
 // The caller should then use getStringBytesPtr to then fill the string's contents.
-Ref constructStaticSizedArray(
+LiveRef constructStaticSizedArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -326,8 +326,7 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
     RuntimeSizedArrayT* rsaMT,
     Mutability mutability,
     Reference* elementType,
-    Ref arrayRef,
-    bool arrayKnownLive,
+    LiveRef arrayRef,
     Ref indexRef);
 
 LoadResult resilientLoadElementFromRSAWithoutUpgrade(
@@ -340,21 +339,9 @@ LoadResult resilientLoadElementFromRSAWithoutUpgrade(
     Mutability mutability,
     Reference* elementType,
     RuntimeSizedArrayT* rsaMT,
-    Ref arrayRef,
-    bool arrayKnownLive,
+    LiveRef arrayRef,
     Ref indexRef);
 
-Ref regularStoreElementInSSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    Reference* rsaRefMT,
-    Reference* elementType,
-    int size,
-    Ref arrayRef,
-    Ref indexRef,
-    Ref elementRef);
 
 void regularInitializeElementInSSA(
     GlobalState* globalState,
@@ -364,11 +351,11 @@ void regularInitializeElementInSSA(
     Reference* ssaRefMT,
     Reference* elementType,
     int size,
-    Ref arrayRef,
+    LiveRef arrayRef,
     Ref indexRef,
     Ref elementRef);
 
-Ref constructRuntimeSizedArray(
+LiveRef constructRuntimeSizedArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -390,7 +377,7 @@ LoadResult regularLoadStrongMember(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* structRefMT,
-    Ref structRef,
+    LiveRef structRef,
     int memberIndex,
     Reference* expectedMemberType,
     Reference* targetType,
@@ -402,7 +389,7 @@ LoadResult regularLoadMember(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* structRefMT,
-    Ref structRef,
+    LiveRef structRef,
     int memberIndex,
     Reference* expectedMemberType,
     Reference* targetType,
@@ -453,8 +440,7 @@ LoadResult regularloadElementFromSSA(
     Reference* elementType,
     int arraySize,
     Mutability mutability,
-    Ref arrayRef,
-    bool arrayKnownLive,
+    LiveRef arrayRef,
     Ref indexRef,
     KindStructs* kindStructs);
 
@@ -467,8 +453,7 @@ LoadResult resilientloadElementFromSSA(
     int size,
     Mutability mutability,
     Reference* elementType,
-    Ref arrayRef,
-    bool arrayKnownLive,
+    LiveRef arrayRef,
     Ref indexRef,
     KindStructs* kindStructs);
 
@@ -501,7 +486,7 @@ Ref getRuntimeSizedArrayLengthStrong(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* rsaRefMT,
-    Ref arrayRef);
+    LiveRef arrayRef);
 
 Ref getRuntimeSizedArrayCapacityStrong(
     GlobalState* globalState,
@@ -509,7 +494,7 @@ Ref getRuntimeSizedArrayCapacityStrong(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* rsaRefMT,
-    Ref arrayRef);
+    LiveRef arrayRef);
 
 std::tuple<LLVMValueRef, LLVMValueRef> explodeStrongInterfaceRef(
     GlobalState* globalState,
@@ -537,8 +522,7 @@ void storeMemberStrong(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* structRefMT,
-    Ref structRef,
-    bool structKnownLive,
+    LiveRef structRef,
     int memberIndex,
     const std::string& memberName,
     LLVMValueRef newValueLE);
@@ -549,8 +533,7 @@ void storeMemberWeak(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* structRefMT,
-    Ref structRef,
-    bool structKnownLive,
+    LiveRef structRef,
     int memberIndex,
     const std::string& memberName,
     LLVMValueRef newValueLE);
@@ -607,8 +590,7 @@ void initializeElementInRSA(
     bool incrementSize,
     RuntimeSizedArrayT* rsaMT,
     Reference* rsaRefMT,
-    WrapperPtrLE arrayWrapperPtrLE,
-    Ref rsaRef,
+    LiveRef rsaRef,
     Ref indexRef,
     Ref elementRef);
 

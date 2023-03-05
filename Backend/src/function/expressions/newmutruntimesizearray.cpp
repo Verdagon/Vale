@@ -39,9 +39,9 @@ Ref translateNewMutRuntimeSizedArray(
           runtimeSizedArrayMT->name->name);
   buildFlare(FL(), globalState, functionState, builder);
   globalState->getRegion(arrayRefType)
-      ->checkValidReference(FL(), functionState, builder, true, arrayRefType, rsaRef);
+      ->checkValidReference(FL(), functionState, builder, true, arrayRefType, rsaRef.inner);
 
   globalState->getRegion(sizeType)->dealias(AFL("ConstructRSA"), functionState, builder, sizeType, capacityRef);
 
-  return rsaRef;
+  return rsaRef.inner;
 }
