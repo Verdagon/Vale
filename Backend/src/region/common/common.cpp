@@ -1223,56 +1223,63 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
       globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
 }
 
-LoadResult resilientLoadElementFromRSAWithoutUpgrade(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    bool capacityExists,
-    Reference* rsaRefMT,
-    Mutability mutability,
-    Reference* elementType,
-    RuntimeSizedArrayT* rsaMT,
-    LiveRef arrayRef,
-    Ref indexRef) {
-  switch (rsaRefMT->ownership) {
-    case Ownership::IMMUTABLE_BORROW:
-    case Ownership::MUTABLE_SHARE:
-    case Ownership::IMMUTABLE_SHARE:
-    case Ownership::MUTABLE_BORROW:
-    case Ownership::OWN: {
-      auto rsaRefLE =
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner);
-      auto wrapperPtrLE =
-          kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaRefMT, rsaRefLE);
-      auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
-      auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, capacityExists, wrapperPtrLE);
-      buildFlare(FL(), globalState, functionState, builder);
-      return loadElement(
-          globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
-    }
-//    case Ownership::IMMUTABLE_BORROW: {
-//      auto rsaWrapperPtrLE =
-//          kindStructs->makeWrapperPtr(
-//              FL(), functionState, builder, rsaRefMT,
-//              globalState->getRegion(rsaRefMT)
-//                  ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
-//      auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWrapperPtrLE);
-//      auto arrayElementsPtrLE =
-//          getRuntimeSizedArrayContentsPtr(
-//              builder, capacityExists, rsaWrapperPtrLE);
+//LoadResult resilientLoadElementFromRSAWithoutUpgrade(
+//    GlobalState* globalState,
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    KindStructs* kindStructs,
+//    bool capacityExists,
+//    Reference* rsaRefMT,
+//    Mutability mutability,
+//    Reference* elementType,
+//    RuntimeSizedArrayT* rsaMT,
+//    LiveRef arrayRef,
+//    Ref indexRef) {
+//  switch (rsaRefMT->ownership) {
+//    case Ownership::MUTABLE_SHARE:
+//    case Ownership::IMMUTABLE_SHARE:
+//    case Ownership::OWN: {
+//      auto rsaRefLE =
+//          globalState->getRegion(rsaRefMT)
+//              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner);
+//      auto wrapperPtrLE =
+//          kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaRefMT, rsaRefLE);
+//      auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
+//      auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, capacityExists, wrapperPtrLE);
 //      buildFlare(FL(), globalState, functionState, builder);
 //      return loadElement(
-//          globalState, functionState, builder, arrayElementsPtrLE, elementType,
-//          sizeRef, indexRef);
+//          globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
 //    }
-    case Ownership::WEAK:
-      assert(false); // VIR never loads from a weak ref
-    default:
-      assert(false);
-  }
-}
+//    case Ownership::MUTABLE_BORROW:
+//    case Ownership::IMMUTABLE_BORROW: {
+//      auto wrapperPtrLE =
+//          kindStructs.makeWrapperPtr(
+//              FL(), functionState, builder, rsaRefMT,
+//              hgmWeaks.lockGenFatPtr(
+//                  FL(), functionState, builder, rsaRefMT, arrayRef.inner, true));
+//      return ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
+//    }
+////    case Ownership::IMMUTABLE_BORROW: {
+////      auto rsaWrapperPtrLE =
+////          kindStructs->makeWrapperPtr(
+////              FL(), functionState, builder, rsaRefMT,
+////              globalState->getRegion(rsaRefMT)
+////                  ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+////      auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWrapperPtrLE);
+////      auto arrayElementsPtrLE =
+////          getRuntimeSizedArrayContentsPtr(
+////              builder, capacityExists, rsaWrapperPtrLE);
+////      buildFlare(FL(), globalState, functionState, builder);
+////      return loadElement(
+////          globalState, functionState, builder, arrayElementsPtrLE, elementType,
+////          sizeRef, indexRef);
+////    }
+//    case Ownership::WEAK:
+//      assert(false); // VIR never loads from a weak ref
+//    default:
+//      assert(false);
+//  }
+//}
 
 void regularInitializeElementInSSA(
     GlobalState* globalState,
@@ -1580,11 +1587,10 @@ Ref getRuntimeSizedArrayLengthStrong(
     KindStructs* kindStructs,
     Reference* rsaRefMT,
     LiveRef arrayRef) {
-  auto wrapperPtrLE =
-      kindStructs->makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto refLE =
+      globalState->getRegion(rsaRefMT)
+          ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner);
+  auto wrapperPtrLE = kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaRefMT, refLE);
   return ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
 }
 
@@ -1842,23 +1848,23 @@ void initializeElementInRSA(
     bool incrementSize,
     RuntimeSizedArrayT* rsaMT,
     Reference* rsaRefMT,
-    LiveRef rsaRef,
+    WrapperPtrLE rsaWPtrLE,
     Ref indexRef,
     Ref elementRef) {
-  auto rsaWrapperPtrLE =
-      kindStructs->makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
+//  auto rsaWrapperPtrLE =
+//      kindStructs->makeWrapperPtr(
+//          FL(), functionState, builder, rsaRefMT,
+//          globalState->getRegion(rsaRefMT)
+//              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, capacityExists, rsaWrapperPtrLE);
+  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, capacityExists, rsaWPtrLE);
   if (incrementSize) {
-    auto sizePtrLE = ::getRuntimeSizedArrayLengthPtr(globalState, builder, rsaWrapperPtrLE);
+    auto sizePtrLE = ::getRuntimeSizedArrayLengthPtr(globalState, builder, rsaWPtrLE);
     ::initializeElementAndIncrementSize(
         globalState, functionState, builder, rsaRefMT->location,
         rsaDef->elementType, sizePtrLE, arrayElementsPtrLE, indexRef, elementRef);
   } else {
-    auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWrapperPtrLE);
+    auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWPtrLE);
     ::initializeElementWithoutIncrementSize(
         globalState, functionState, builder, rsaRefMT->location,
         rsaDef->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);

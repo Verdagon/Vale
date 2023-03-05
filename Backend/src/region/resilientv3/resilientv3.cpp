@@ -513,7 +513,31 @@ LiveRef ResilientV3::checkRefLive(
     Reference* refMT,
     Ref ref,
     bool refKnownLive) {
-  lockWeakRef(checkerAFL, functionState, builder, refMT, ref, refKnownLive);
+  switch (refMT->ownership) {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
+      assert(false); // curious
+    case Ownership::OWN: {
+      return LiveRef(ref);
+//      auto weakFatPtrLE =
+//          checkValidReference(
+//              FL(), functionState, builder, false, refMT, ref);
+//      return kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, weakFatPtrLE);
+    }
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW: {
+      hgmWeaks.lockGenFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive);
+      return LiveRef(ref);
+      break;
+    }
+    case Ownership::WEAK: {
+      assert(false);
+      break;
+    }
+    default:
+      assert(false);
+      break;
+  }
   return LiveRef(ref);
 }
 
@@ -524,25 +548,8 @@ Ref ResilientV3::getRuntimeSizedArrayLength(
     Ref regionInstanceRef,
     Reference *rsaRefMT,
     LiveRef arrayRef) {
-  switch (rsaRefMT->ownership) {
-    case Ownership::MUTABLE_BORROW:
-    case Ownership::IMMUTABLE_BORROW:
-    case Ownership::MUTABLE_SHARE:
-    case Ownership::IMMUTABLE_SHARE:
-    case Ownership::OWN: {
-      return getRuntimeSizedArrayLengthStrong(
-          globalState, functionState, builder, &kindStructs, rsaRefMT, arrayRef);
-    }
-//    case Ownership::MUTABLE_BORROW:
-//    case Ownership::IMMUTABLE_BORROW: {
-//      auto wrapperPtrLE =
-//          lockWeakRef(
-//              FL(), functionState, builder, rsaRefMT, arrayRef, arrayKnownLive);
-//      return ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
-//    }
-    case Ownership::WEAK:
-      assert(false); // VIR never loads from a weak ref
-  }
+  auto arrayWPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, arrayRef);
+  return ::getRuntimeSizedArrayLength(globalState, functionState, builder, arrayWPtrLE);
 }
 
 Ref ResilientV3::getRuntimeSizedArrayCapacity(
@@ -551,24 +558,9 @@ Ref ResilientV3::getRuntimeSizedArrayCapacity(
     Ref regionInstanceRef,
     Reference *rsaRefMT,
     LiveRef arrayRef) {
-  switch (rsaRefMT->ownership) {
-    case Ownership::IMMUTABLE_BORROW:
-    case Ownership::MUTABLE_BORROW:
-    case Ownership::MUTABLE_SHARE:
-    case Ownership::IMMUTABLE_SHARE:
-    case Ownership::OWN: {
-      return getRuntimeSizedArrayCapacityStrong(globalState, functionState, builder, &kindStructs, rsaRefMT, arrayRef);
-    }
-//    case Ownership::IMMUTABLE_BORROW:
-//    case Ownership::MUTABLE_BORROW: {
-//      auto wrapperPtrLE =
-//          lockWeakRef(
-//              FL(), functionState, builder, rsaRefMT, arrayRef, arrayKnownLive);
-//      return ::getRuntimeSizedArrayCapacity(globalState, functionState, builder, wrapperPtrLE);
-//    }
-    case Ownership::WEAK:
-      assert(false); // VIR never loads from a weak ref
-  }
+  auto wrapperPtrLE =
+      getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, arrayRef);
+  return ::getRuntimeSizedArrayCapacity(globalState, functionState, builder, wrapperPtrLE);
 }
 
 LLVMValueRef ResilientV3::checkValidReference(
@@ -732,9 +724,13 @@ LoadResult ResilientV3::loadElementFromRSA(
     LiveRef arrayRef,
     Ref indexRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  return resilientLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaDef->mutability,
-      rsaDef->elementType, rsaMT, arrayRef, indexRef);
+
+  auto wrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, arrayRef);
+
+  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
+  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, wrapperPtrLE);
+  return loadElement(
+      globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, sizeRef, indexRef);
 }
 
 Ref ResilientV3::storeElementInRSA(
@@ -742,15 +738,11 @@ Ref ResilientV3::storeElementInRSA(
     LLVMBuilderRef builder,
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
-    LiveRef arrayRef,
+    LiveRef rsaRef,
     Ref indexRef,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto arrayWrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, rsaRef);
 
   auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
@@ -993,10 +985,11 @@ void ResilientV3::pushRuntimeSizedArrayNoBoundsCheck(
     LiveRef rsaRef,
     Ref indexRef,
     Ref elementRef) {
+  auto arrayWPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, rsaRef);
 //  auto arrayWrapperPtrLE =
 //      lockWeakRef(FL(), functionState, builder, rsaRefMT, rsaRef);
   ::initializeElementInRSA(
-      globalState, functionState, builder, &kindStructs, true, true, rsaMT, rsaRefMT, rsaRef, indexRef, elementRef);
+      globalState, functionState, builder, &kindStructs, true, true, rsaMT, rsaRefMT, arrayWPtrLE, indexRef, elementRef);
 }
 
 Ref ResilientV3::popRuntimeSizedArrayNoBoundsCheck(
@@ -1005,21 +998,19 @@ Ref ResilientV3::popRuntimeSizedArrayNoBoundsCheck(
     Ref arrayRegionInstanceRef,
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
-    LiveRef arrayRef,
+    LiveRef rsaRef,
     Ref indexRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto elementLE = resilientLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaDef->mutability,
-      rsaDef->elementType, rsaMT, arrayRef, indexRef).move();
+  auto rsaWrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, rsaRef);
 
-  auto rsaWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
-
+  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWrapperPtrLE);
+  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, rsaWrapperPtrLE);
+  buildFlare(FL(), globalState, functionState, builder);
+  auto elementLE =
+      loadElement(
+          globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, sizeRef, indexRef);
   decrementRSASize(globalState, functionState, &kindStructs, builder, rsaRefMT, rsaWrapperPtrLE);
-  return elementLE;
+  return elementLE.move();
 }
 
 void ResilientV3::initializeElementInSSA(
@@ -1111,4 +1102,47 @@ Ref ResilientV3::createRegionInstanceLocal(FunctionState* functionState, LLVMBui
       makeBackendLocal(functionState, builder, regionLT, "region", LLVMGetUndef(regionLT));
   auto regionInstanceRef = wrap(this, regionRefMT, regionInstancePtrLE);
   return regionInstanceRef;
+}
+
+// Doesn't return a constraint ref, returns a raw ref to the wrapper struct.
+WrapperPtrLE ResilientV3::getWrapperPtrLive(
+    AreaAndFileAndLine from,
+    FunctionState *functionState,
+    LLVMBuilderRef builder,
+    Reference *refM,
+    LiveRef liveRef) {
+  switch (refM->ownership) {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
+      assert(false); // curious
+    case Ownership::OWN: {
+      auto weakFatPtrLE =
+          checkValidReference(
+              FL(), functionState, builder, false, refM, liveRef.inner);
+      return kindStructs.makeWrapperPtr(FL(), functionState, builder, refM, weakFatPtrLE);
+    }
+    case Ownership::MUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::WEAK: {
+      return hgmWeaks.getWrapperPtr(
+          from, functionState, builder, refM, liveRef);
+    }
+    default:
+      assert(false);
+      break;
+  }
+}
+
+// Doesn't return a constraint ref, returns a raw ref to the wrapper struct.
+WrapperPtrLE ResilientV3::getWrapperPtrNotLive(
+    AreaAndFileAndLine from,
+    FunctionState *functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference *refMT,
+    Ref ref,
+    bool refKnownLive) {
+  auto liveRef =
+      checkRefLive(FL(), functionState, builder, regionInstanceRef, refMT, ref, refKnownLive);
+  return getWrapperPtrLive(FL(), functionState, builder, refMT, liveRef);
 }

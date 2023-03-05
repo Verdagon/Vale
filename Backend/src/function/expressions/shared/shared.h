@@ -47,7 +47,7 @@ LLVMValueRef adjustStrongRc(
     FunctionState* functionState,
     KindStructs* kindStructsSource,
     LLVMBuilderRef builder,
-    Ref exprLE,
+    Ref ref,
     Reference* refM,
     int amount);
 
