@@ -388,7 +388,7 @@ Ref buildCallV(
     buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
     buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
-    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
+    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtrLE);
   } else {
     buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
     buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
@@ -407,7 +407,7 @@ LLVMValueRef buildMaybeNeverCall(
   auto returnLT = LLVMTypeOf(resultLE);
   if (returnLT == makeNeverType(globalState)) {
     LLVMBuildRet(builder, LLVMGetUndef(returnLT));
-    return globalState->neverPtr;
+    return globalState->neverPtrLE;
   } else {
     return resultLE;
   }

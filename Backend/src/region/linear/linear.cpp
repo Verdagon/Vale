@@ -203,7 +203,7 @@ LLVMTypeRef Linear::translateType(Reference* referenceM) {
     return interfaceRefStructL;
   } else if (dynamic_cast<Never*>(referenceM->kind)) {
     auto result = LLVMPointerType(makeNeverType(globalState), 0);
-    assert(LLVMTypeOf(globalState->neverPtr) == result);
+    assert(LLVMTypeOf(globalState->neverPtrLE) == result);
     return result;
   } else if (dynamic_cast<Void*>(referenceM->kind)) {
     return LLVMVoidTypeInContext(globalState->context);
@@ -477,7 +477,7 @@ Ref Linear::loadMember(
           targetMemberType, memberName);
   auto resultRef =
       upgradeLoadResultToRefWithTargetOwnership(
-          functionState, builder, expectedMemberType, targetMemberType, memberLE);
+          functionState, builder, expectedMemberType, targetMemberType, memberLE, false);
   return resultRef;
 }
 
@@ -723,7 +723,8 @@ Ref Linear::upgradeLoadResultToRefWithTargetOwnership(
     LLVMBuilderRef builder,
     Reference* sourceType,
     Reference* targetType,
-    LoadResult sourceLoad) {
+    LoadResult sourceLoad,
+    bool resultKnownLive) {
   auto sourceRef = sourceLoad.extractForAliasingInternals();
   auto sourceOwnership = sourceType->ownership;
   auto sourceLocation = sourceType->location;

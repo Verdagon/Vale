@@ -241,7 +241,8 @@ public:
       LLVMBuilderRef builder,
       Reference* sourceType,
       Reference* targetType,
-      LoadResult sourceRef) override;
+      LoadResult sourceRef,
+      bool resultKnownLive) override;
 
   void checkInlineStructType(
       FunctionState* functionState,

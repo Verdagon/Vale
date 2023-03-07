@@ -495,7 +495,7 @@ WrapperPtrLE KindStructs::makeWrapperPtr(
   assert(ptrLE != nullptr);
   Kind* kind = referenceM->kind;
 
-  WrapperPtrLE wrapperPtrLE = makeWrapperPtrWithoutChecking(checkerAFL, functionState, builder, referenceM, ptrLE);
+  WrapperPtrLE wrapperPtrLE = makeWrapperPtrWithoutChecking(referenceM, ptrLE);
 
   if (dynamic_cast<StructKind*>(kind)) {
     auto controlBlockPtrLE = getConcreteControlBlockPtr(checkerAFL, functionState, builder, referenceM, wrapperPtrLE);
@@ -707,16 +707,16 @@ ControlBlockPtrLE KindStructs::getControlBlockPtrWithoutChecking(
     auto referenceLE = makeInterfaceFatPtrWithoutChecking(from, functionState, builder, referenceM, ref);
     return getControlBlockPtrWithoutChecking(from, functionState, builder, kindM, referenceLE);
   } else if (dynamic_cast<StructKind*>(kindM)) {
-    auto referenceLE = makeWrapperPtrWithoutChecking(from, functionState, builder, referenceM, ref);
+    auto referenceLE = makeWrapperPtrWithoutChecking(referenceM, ref);
     return getConcreteControlBlockPtrWithoutChecking(from, functionState, builder, referenceM, referenceLE);
   } else if (dynamic_cast<StaticSizedArrayT*>(kindM)) {
-    auto referenceLE = makeWrapperPtrWithoutChecking(from, functionState, builder, referenceM, ref);
+    auto referenceLE = makeWrapperPtrWithoutChecking(referenceM, ref);
     return getConcreteControlBlockPtrWithoutChecking(from, functionState, builder, referenceM, referenceLE);
   } else if (dynamic_cast<RuntimeSizedArrayT*>(kindM)) {
-    auto referenceLE = makeWrapperPtrWithoutChecking(from, functionState, builder, referenceM, ref);
+    auto referenceLE = makeWrapperPtrWithoutChecking(referenceM, ref);
     return getConcreteControlBlockPtrWithoutChecking(from, functionState, builder, referenceM, referenceLE);
   } else if (dynamic_cast<Str*>(kindM)) {
-    auto referenceLE = makeWrapperPtrWithoutChecking(from, functionState, builder, referenceM, ref);
+    auto referenceLE = makeWrapperPtrWithoutChecking(referenceM, ref);
     return getConcreteControlBlockPtrWithoutChecking(from, functionState, builder, referenceM, referenceLE);
   } else {
     assert(false);
@@ -819,9 +819,6 @@ LLVMValueRef KindStructs::getStrongRcPtrFromControlBlockPtr(
 }
 
 WrapperPtrLE KindStructs::makeWrapperPtrWithoutChecking(
-    AreaAndFileAndLine checkerAFL,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
     Reference* referenceM,
     LLVMValueRef ptrLE) {
   assert(ptrLE != nullptr);

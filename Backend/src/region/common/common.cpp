@@ -153,7 +153,7 @@ LLVMValueRef fillControlBlockCensusFields(
     LLVMValueRef newControlBlockLE,
     const std::string& typeName) {
   if (globalState->opt->census) {
-    auto objIdLE = adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->objIdCounter, 1);
+    auto objIdLE = adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->objIdCounterLE, 1);
     newControlBlockLE =
         LLVMBuildInsertValue(
             builder,
@@ -344,7 +344,7 @@ void innerDeallocateYonder(
   callFree(globalState, functionState, builder, controlBlockPtrLE.refLE);
 
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounter, -1);
+    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, -1);
   }
 }
 
@@ -490,7 +490,7 @@ WrapperPtrLE mallocStr(
   auto destCharPtrLE =callMalloc(globalState, builder, sizeBytesLE);
 
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounter, 1);
+    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
 
     LLVMValueRef resultAsVoidPtrLE =
         LLVMBuildBitCast(
@@ -539,7 +539,7 @@ LLVMValueRef mallocKnownSize(
     Location location,
     LLVMTypeRef kindLT) {
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounter, 1);
+    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
   }
 
   LLVMValueRef resultPtrLE = nullptr;
@@ -750,7 +750,7 @@ LLVMValueRef mallocRuntimeSizedArray(
   auto newWrapperPtrLE = callMalloc(globalState, builder, sizeBytesLE);
 
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounter, 1);
+    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
   }
 
   if (globalState->opt->census) {
@@ -2155,8 +2155,8 @@ std::string generateUniversalRefStructDefC(Package* currentPackage, const std::s
 
 void fastPanic(GlobalState* globalState, AreaAndFileAndLine from, LLVMBuilderRef builder) {
   if (globalState->opt->fastCrash) {
-    auto ptrToWriteToLE = LLVMBuildLoad(builder, globalState->crashGlobal,
-        "crashGlobal");
+    auto ptrToWriteToLE = LLVMBuildLoad(builder, globalState->crashGlobalLE,
+        "crashGlobalLE");
     LLVMBuildStore(builder, constI64LE(globalState, 0), ptrToWriteToLE);
   } else {
     buildPrintAreaAndFileAndLine(globalState, builder, from);

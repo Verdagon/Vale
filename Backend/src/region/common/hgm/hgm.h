@@ -105,6 +105,14 @@ public:
       Ref ref,
       bool weakRefKnownLive);
 
+  WrapperPtrLE preCheckFatPtr(
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      Ref ref,
+      bool weakRefKnownLive);
+
   WrapperPtrLE getWrapperPtr(
       AreaAndFileAndLine from,
       FunctionState* functionState,

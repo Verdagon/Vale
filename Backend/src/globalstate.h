@@ -51,16 +51,17 @@ public:
 
   Program* program = nullptr;
 
-  LLVMValueRef numMainArgs = nullptr;
-  LLVMValueRef mainArgs = nullptr;
+  LLVMValueRef numMainArgsLE = nullptr;
+  LLVMValueRef mainArgsLE = nullptr;
 
-  LLVMValueRef objIdCounter = nullptr;
-  LLVMValueRef liveHeapObjCounter = nullptr;
-  LLVMValueRef derefCounter = nullptr;
-  LLVMValueRef mutRcAdjustCounter = nullptr;
-  LLVMValueRef livenessCheckCounter = nullptr;
-  LLVMValueRef writeOnlyGlobal = nullptr;
-  LLVMValueRef crashGlobal = nullptr;
+  LLVMValueRef objIdCounterLE = nullptr;
+  LLVMValueRef liveHeapObjCounterLE = nullptr;
+  LLVMValueRef derefCounterLE = nullptr;
+  LLVMValueRef mutRcAdjustCounterLE = nullptr;
+  LLVMValueRef livenessCheckCounterLE = nullptr;
+  LLVMValueRef writeOnlyGlobalLE = nullptr;
+  LLVMValueRef crashGlobalLE = nullptr;
+//  LLVMValueRef nullLE = nullptr;
 
   LLVMTypeRef wrcTableStructLT = nullptr;
   LLVMValueRef expandWrcTable = nullptr, checkWrci = nullptr, getNumWrcs = nullptr;
@@ -80,13 +81,13 @@ public:
 
   // This is a global, we can return this when we want to return never. It should never actually be
   // used as an input to any expression in any function though.
-  LLVMValueRef neverPtr = nullptr;
+  LLVMValueRef neverPtrLE = nullptr;
 
 //  LLVMValueRef coroutineEntryFunc = nullptr;
 
   // These should eventually be moved into thread local storage when we do multithreading.
   // Initialized at the beginning of main, used for C FFI.
-  LLVMValueRef sideStack = nullptr;
+  LLVMValueRef sideStackLE = nullptr;
   // Used for passing arguments to wrapper functions across stack switches.
   // At some point we should just pass a pointer to a struct containing all of these.
   // We should make sure that these don't get destroyed before the coroutine wants them.
