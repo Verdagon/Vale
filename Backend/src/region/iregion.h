@@ -359,7 +359,8 @@ public:
       LLVMBuilderRef builder,
       Reference* sourceType,
       Reference* targetType,
-      LoadResult sourceRef) = 0;
+      LoadResult sourceRef,
+      bool resultKnownLive) = 0;
 
   // For instance regions, this will return the handle's type.
   // For value regions, we'll just be returning linear's translateType.

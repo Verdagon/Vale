@@ -536,7 +536,8 @@ Ref NaiveRC::upgradeLoadResultToRefWithTargetOwnership(
     LLVMBuilderRef builder,
     Reference* sourceType,
     Reference* targetType,
-    LoadResult sourceLoadResult) {
+    LoadResult sourceLoadResult,
+    bool resultKnownLive) {
   auto sourceRef = sourceLoadResult.extractForAliasingInternals();
   auto sourceOwnership = sourceType->ownership;
   auto sourceLocation = sourceType->location;
@@ -775,7 +776,7 @@ Ref NaiveRC::loadMember(
             globalState, functionState, builder, &kindStructs, structRefMT, structRef,
             memberIndex, expectedMemberType, targetType, memberName);
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE);
+        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
   }
 }
 

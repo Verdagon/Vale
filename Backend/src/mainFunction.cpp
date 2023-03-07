@@ -57,7 +57,7 @@ Prototype* makeValeMainFunction(
 //                entryBuilder,
 //                LLVMBuildPointerCast(
 //                    entryBuilder,
-//                    globalState->writeOnlyGlobal,
+//                    globalState->writeOnlyGlobalLE,
 //                    LLVMInt64TypeInContext(globalState->context),
 //                    "ptrAsIntToWriteOnlyGlobal"),
 //                constI64LE(globalState, 8),
@@ -97,7 +97,7 @@ Prototype* makeValeMainFunction(
           buildPrint(globalState, entryBuilder, "\nLiveness checks: ");
           buildPrint(
               globalState, entryBuilder,
-              LLVMBuildLoad(entryBuilder, globalState->livenessCheckCounter, "livenessCheckCounter"));
+              LLVMBuildLoad(entryBuilder, globalState->livenessCheckCounterLE, "livenessCheckCounterLE"));
           buildPrint(globalState, entryBuilder, "\n");
         }
         buildFlare(FL(), globalState, functionState, entryBuilder);
@@ -116,7 +116,7 @@ Prototype* makeValeMainFunction(
 
           LLVMValueRef numLiveObjAssertArgs[3] = {
               LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false),
-              LLVMBuildLoad(entryBuilder, globalState->liveHeapObjCounter, "numLiveObjs"),
+              LLVMBuildLoad(entryBuilder, globalState->liveHeapObjCounterLE, "numLiveObjs"),
               globalState->getOrMakeStringConstant("Memory leaks!"),
           };
           LLVMBuildCall(entryBuilder, globalState->externs->assertI64Eq, numLiveObjAssertArgs, 3, "");
@@ -222,8 +222,8 @@ LLVMValueRef makeEntryFunction(
 
   auto numMainArgsLE = LLVMGetParam(entryFunctionL, 0);
   auto mainArgsLE = LLVMGetParam(entryFunctionL, 1);
-  LLVMBuildStore(entryBuilder, numMainArgsLE, globalState->numMainArgs);
-  LLVMBuildStore(entryBuilder, mainArgsLE, globalState->mainArgs);
+  LLVMBuildStore(entryBuilder, numMainArgsLE, globalState->numMainArgsLE);
+  LLVMBuildStore(entryBuilder, mainArgsLE, globalState->mainArgsLE);
 
   if (globalState->opt->enableReplaying) {
     auto numConsumedArgsLE =
@@ -247,7 +247,7 @@ LLVMValueRef makeEntryFunction(
         buildMaybeNeverCall(
             globalState, entryBuilder, globalState->externs->malloc,
             { constI64LE(globalState, STACK_SIZE) }),
-        globalState->sideStack);
+        globalState->sideStackLE);
   }
 
   auto calleeUserFunction = globalState->lookupFunction(valeMainPrototype);
@@ -256,7 +256,7 @@ LLVMValueRef makeEntryFunction(
   if (globalState->opt->enableSideCalling) {
     buildMaybeNeverCall(
         globalState, entryBuilder, globalState->externs->free,
-        { LLVMBuildLoad(entryBuilder, globalState->sideStack, "") });
+        { LLVMBuildLoad(entryBuilder, globalState->sideStackLE, "") });
   }
 
   if (globalState->opt->enableReplaying) {

@@ -762,44 +762,44 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
 
   LLVMValueRef empty[1] = {};
 
-  globalState->numMainArgs =
+  globalState->numMainArgsLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__main_num_args");
-  LLVMSetLinkage(globalState->numMainArgs, LLVMExternalLinkage);
-  LLVMSetInitializer(globalState->numMainArgs, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+  LLVMSetLinkage(globalState->numMainArgsLE, LLVMExternalLinkage);
+  LLVMSetInitializer(globalState->numMainArgsLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
   auto mainArgsLT =
       LLVMPointerType(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), 0);
-  globalState->mainArgs =
+  globalState->mainArgsLE =
       LLVMAddGlobal(globalState->mod, mainArgsLT, "__main_args");
-  LLVMSetLinkage(globalState->mainArgs, LLVMExternalLinkage);
-  LLVMSetInitializer(globalState->mainArgs, LLVMConstNull(mainArgsLT));
+  LLVMSetLinkage(globalState->mainArgsLE, LLVMExternalLinkage);
+  LLVMSetInitializer(globalState->mainArgsLE, LLVMConstNull(mainArgsLT));
 
-  globalState->liveHeapObjCounter =
+  globalState->liveHeapObjCounterLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__liveHeapObjCounter");
-  LLVMSetLinkage(globalState->mainArgs, LLVMExternalLinkage);
-  LLVMSetInitializer(globalState->liveHeapObjCounter, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+  LLVMSetLinkage(globalState->mainArgsLE, LLVMExternalLinkage);
+  LLVMSetInitializer(globalState->liveHeapObjCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
-  globalState->writeOnlyGlobal =
+  globalState->writeOnlyGlobalLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__writeOnlyGlobal");
-  LLVMSetInitializer(globalState->writeOnlyGlobal, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+  LLVMSetInitializer(globalState->writeOnlyGlobalLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
-  globalState->crashGlobal =
+  globalState->crashGlobalLE =
       LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0), "__crashGlobal");
-  LLVMSetInitializer(globalState->crashGlobal, LLVMConstNull(LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0)));
+  LLVMSetInitializer(globalState->crashGlobalLE, LLVMConstNull(LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0)));
 
-  globalState->objIdCounter =
+  globalState->objIdCounterLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__objIdCounter");
-  LLVMSetInitializer(globalState->objIdCounter, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 501, false));
+  LLVMSetInitializer(globalState->objIdCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 501, false));
 
-  globalState->derefCounter =
-      LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "derefCounter");
-  LLVMSetInitializer(globalState->derefCounter, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+  globalState->derefCounterLE =
+      LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "derefCounterLE");
+  LLVMSetInitializer(globalState->derefCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
-  globalState->neverPtr = LLVMAddGlobal(globalState->mod, makeNeverType(globalState), "__never");
-  LLVMSetInitializer(globalState->neverPtr, LLVMConstArray(LLVMIntTypeInContext(globalState->context, NEVER_INT_BITS), empty, 0));
+  globalState->neverPtrLE = LLVMAddGlobal(globalState->mod, makeNeverType(globalState), "__never");
+  LLVMSetInitializer(globalState->neverPtrLE, LLVMConstArray(LLVMIntTypeInContext(globalState->context, NEVER_INT_BITS), empty, 0));
 
-  globalState->sideStack = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "__sideStack");
-  LLVMSetInitializer(globalState->sideStack, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
+  globalState->sideStackLE = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "__sideStack");
+  LLVMSetInitializer(globalState->sideStackLE, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
 
 //  globalState->sideStackArgCalleeFuncPtrPtr = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "sideStackArgCalleeFuncPtrPtr");
 //  LLVMSetInitializer(globalState->sideStackArgCalleeFuncPtrPtr, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
@@ -807,13 +807,13 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
 //  globalState->sideStackArgReturnDestPtr = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "sideStackArgReturnDestPtr");
 //  LLVMSetInitializer(globalState->sideStackArgReturnDestPtr, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
 
-  globalState->mutRcAdjustCounter =
+  globalState->mutRcAdjustCounterLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__mutRcAdjustCounter");
-  LLVMSetInitializer(globalState->mutRcAdjustCounter, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+  LLVMSetInitializer(globalState->mutRcAdjustCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
-  globalState->livenessCheckCounter =
+  globalState->livenessCheckCounterLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__livenessCheckCounter");
-  LLVMSetInitializer(globalState->livenessCheckCounter, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+  LLVMSetInitializer(globalState->livenessCheckCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
   initInternalExterns(globalState);
 
@@ -851,7 +851,7 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
   globalState->determinism = &determinism;
 
 
-  assert(LLVMTypeOf(globalState->neverPtr) == globalState->getRegion(globalState->metalCache->neverRef)->translateType(globalState->metalCache->neverRef));
+  assert(LLVMTypeOf(globalState->neverPtrLE) == globalState->getRegion(globalState->metalCache->neverRef)->translateType(globalState->metalCache->neverRef));
 
   auto mainSetupFuncName = globalState->metalCache->getName(globalState->metalCache->builtinPackageCoord, "__Vale_mainSetup");
   auto mainSetupFuncProto =

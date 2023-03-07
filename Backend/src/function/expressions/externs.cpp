@@ -21,7 +21,7 @@ Ref buildResultOrEarlyReturnOfNever(
     Ref resultRef) {
   if (prototype->returnType->kind == globalState->metalCache->never) {
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
-    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
+    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtrLE);
   } else {
     if (prototype->returnType == globalState->metalCache->voidRef) {
       return makeVoidRef(globalState);
@@ -120,7 +120,7 @@ Ref buildCallOrSideCall(
     hostArgsLE.insert(hostArgsLE.begin(), localPtrLE);
 
     if (globalState->opt->enableSideCalling) {
-      auto sideStackI8PtrLE = LLVMBuildLoad(builder, globalState->sideStack, "sideStack");
+      auto sideStackI8PtrLE = LLVMBuildLoad(builder, globalState->sideStackLE, "sideStackLE");
       auto resultLE =
           buildSideCall(
               globalState, LLVMVoidTypeInContext(globalState->context), builder, sideStackI8PtrLE, externFuncL,
@@ -135,7 +135,7 @@ Ref buildCallOrSideCall(
         LLVMABISizeOfType(globalState->dataLayout, LLVMTypeOf(hostReturnLE)));
   } else {
     if (globalState->opt->enableSideCalling) {
-      auto sideStackI8PtrLE = LLVMBuildLoad(builder, globalState->sideStack, "sideStack");
+      auto sideStackI8PtrLE = LLVMBuildLoad(builder, globalState->sideStackLE, "sideStackLE");
       hostReturnLE =
           buildSideCall(globalState, hostReturnRefLT, builder, sideStackI8PtrLE, externFuncL, hostArgsLE);
     } else {
@@ -498,7 +498,7 @@ Ref buildExternCall(
     auto exitCodeLE = makeConstIntExpr(functionState, builder, LLVMInt64TypeInContext(globalState->context), 1);
     LLVMBuildCall(builder, globalState->externs->exit, &exitCodeLE, 1, "");
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
-    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
+    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtrLE);
   } else if (prototype->name->name == "__vbi_getch") {
     auto resultIntLE = LLVMBuildCall(builder, globalState->externs->getch, nullptr, 0, "");
     return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultIntLE);

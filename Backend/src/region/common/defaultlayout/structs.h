@@ -183,6 +183,10 @@ public:
     return stringWrapperStructL;
   }
 
+  WrapperPtrLE makeWrapperPtrWithoutChecking(
+      Reference* referenceM,
+      LLVMValueRef ptrLE);
+
 private:
   ControlBlockPtrLE makeControlBlockPtr(
       AreaAndFileAndLine checkerAFL,
@@ -197,13 +201,6 @@ private:
       LLVMBuilderRef builder,
       Kind* kindM,
       LLVMValueRef controlBlockPtrLE);
-
-  WrapperPtrLE makeWrapperPtrWithoutChecking(
-      AreaAndFileAndLine checkerAFL,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* referenceM,
-      LLVMValueRef ptrLE);
 
   ControlBlockPtrLE getConcreteControlBlockPtrWithoutChecking(
       AreaAndFileAndLine from,

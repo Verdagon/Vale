@@ -100,7 +100,7 @@ Ref translateExpressionInner(
           globalState->getRegion(ret->sourceType)
               ->checkValidReference(FL(), functionState, builder, false, ret->sourceType, sourceRef);
       LLVMBuildRet(builder, toReturnLE);
-      return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
+      return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtrLE);
     }
   } else if (auto breeak = dynamic_cast<Break*>(expr)) {
     if (auto nearestLoopBlockStateAndEnd = blockState->getNearestLoopEnd()) {
@@ -110,7 +110,7 @@ Ref translateExpressionInner(
 
       return wrap(
         globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef,
-        globalState->neverPtr);
+        globalState->neverPtrLE);
 
 //      buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
 //      auto sourceRef = translateExpression(globalState, functionState, blockState, builder, ret->sourceExpr);
@@ -123,7 +123,7 @@ Ref translateExpressionInner(
 //        LLVMBuildRet(builder, toReturnLE);
 //        return wrap(
 //            globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef,
-//            globalState->neverPtr);
+//            globalState->neverPtrLE);
 //      }
     } else {
       std::cerr << "Error: found a break not inside a loop!" << std::endl;
@@ -649,7 +649,7 @@ Ref translateExpressionInner(
     auto resultRef =
         globalState->getRegion(staticSizedArrayLoad->resultType)
             ->upgradeLoadResultToRefWithTargetOwnership(
-                functionState, builder, elementType, staticSizedArrayLoad->resultType, loadResult);
+                functionState, builder, elementType, staticSizedArrayLoad->resultType, loadResult, false);
     globalState->getRegion(resultType)
         ->checkValidReference(FL(), functionState, builder, false, staticSizedArrayLoad->resultType, resultRef);
     globalState->getRegion(elementType)
@@ -692,7 +692,7 @@ Ref translateExpressionInner(
     auto resultRef =
         globalState->getRegion(elementType)
             ->upgradeLoadResultToRefWithTargetOwnership(
-                functionState, builder, elementType, resultType, loadResult);
+                functionState, builder, elementType, resultType, loadResult, false);
 
     globalState->getRegion(resultType)
         ->alias(FL(), functionState, builder, resultType, resultRef);
@@ -840,9 +840,6 @@ Ref translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     return translateStaticArrayFromCallable(globalState, functionState, blockState, builder, staticArrayFromCallable);
   } else if (auto call = dynamic_cast<Call*>(expr)) {
-    if (call->function->name->name == "len_1" || call->function->name->name == "len_2") {
-      std::cout << "calling length!" << std::endl; // DO NOT SUBMIT
-    }
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", call->function->name->name);
     auto resultLE = translateCall(globalState, functionState, blockState, builder, call);
 //    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name(), " ", call->function->name->name);

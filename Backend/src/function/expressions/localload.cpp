@@ -32,7 +32,7 @@ Ref translateLocalLoad(
 
   auto resultRef =
       globalState->getRegion(localType)->upgradeLoadResultToRefWithTargetOwnership(
-          functionState, builder, localType, resultType, LoadResult{sourceRef});
+          functionState, builder, localType, resultType, LoadResult{sourceRef}, false);
   globalState->getRegion(resultType)->alias(FL(), functionState, builder, resultType, resultRef);
 
   return resultRef;

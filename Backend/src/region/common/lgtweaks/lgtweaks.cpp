@@ -336,8 +336,8 @@ LLVMValueRef LgtWeaks::lockLgtiFatPtr(
           //        LLVMBuildCall(thenBuilder, globalState->exit, &exitCodeIntLE, 1, "");
 
           auto ptrToWriteToLE = LLVMBuildLoad(
-              thenBuilder, globalState->crashGlobal,
-              "crashGlobal");// LLVMConstNull(LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0));
+              thenBuilder, globalState->crashGlobalLE,
+              "crashGlobalLE");// LLVMConstNull(LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0));
           LLVMBuildStore(thenBuilder, constI64LE(globalState, 0), ptrToWriteToLE);
         });
   }
