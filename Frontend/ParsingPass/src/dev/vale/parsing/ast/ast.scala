@@ -178,6 +178,7 @@ case object VaryingP extends VariabilityP { override def toString: String = "var
 sealed trait OwnershipP
 case object OwnP extends OwnershipP { override def toString: String = "own" }
 case object BorrowP extends OwnershipP { override def toString: String = "borrow" }
+case object LiveP extends OwnershipP { override def toString: String = "live" }
 case object WeakP extends OwnershipP { override def toString: String = "weak" }
 case object ShareP extends OwnershipP { override def toString: String = "share" }
 

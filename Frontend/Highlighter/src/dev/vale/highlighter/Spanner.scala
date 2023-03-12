@@ -408,11 +408,11 @@ object Spanner {
   }
 
   def forPattern(p: PatternPP): Span = {
-    val PatternPP(range, maybePreBorrow, capture, templex, maybeDestructure, virtuality) = p
+    val PatternPP(range, maybeselfBorrow, capture, pre, templex, maybeDestructure, virtuality) = p
     makeSpan(
       Pat,
       range,
-      maybePreBorrow.toVector.map(b => makeSpan(Point, b, Vector.empty)) ++
+      maybeselfBorrow.toVector.map(b => makeSpan(Point, b, Vector.empty)) ++
       capture.toVector.map(forCapture) ++
       templex.toVector.map(forTemplex) ++
       maybeDestructure.toVector.map(forDestructure))

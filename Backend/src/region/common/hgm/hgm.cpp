@@ -294,7 +294,9 @@ WrapperPtrLE HybridGenerationalMemory::preCheckFatPtr(
     Reference* refM,
     Ref ref,
     bool knownLive) {
-  auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
+  auto maybeAliveRefLE =
+      globalState->getRegion(refM)->checkValidReference(
+          FL(), functionState, builder, false, refM, ref);
   auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
   if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && elideChecksForKnownLive) {

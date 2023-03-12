@@ -40,9 +40,9 @@ object U {
   def mapRange[R](start: Int, until: Int, func: scala.Function1[Int, R])(implicit m: ClassTag[R]): Vector[R] = {
 //    (start until until).map(func).toVector
     val result = new Array[R](until - start)
-    var i = start
-    while (i < until) {
-      result(i) = func(i)
+    var i = 0
+    while (i < until - start) {
+      result(i) = func(start + i)
       i = i + 1
     }
     result.toVector

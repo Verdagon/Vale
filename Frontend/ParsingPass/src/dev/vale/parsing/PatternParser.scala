@@ -107,7 +107,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
         case Some(_) => None
       }
 
-    val maybePreBorrow =
+    val maybeselfBorrow =
       iter.peek() match {
         case None => return Err(EmptyParameter(patternRange.begin))
         case Some(SymbolLE(range, '&')) => {
@@ -189,24 +189,36 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
           true
         }
       }
-    val maybeType =
+    val (maybePre, maybeType) =
       if (nextIsType) {
-        templexParser.parseTemplex(iter) match {
-          case Err(e) => return Err(e)
-          case Ok(x) => Some(x)
-        }
+        val maybePre =
+          iter.peek(2) match {
+            case Vector(Some(WordLE(preRange, x)), Some(SymbolLE(_, '&'))) if x == keywords.pre => {
+              iter.advance()
+              Some(preRange)
+            }
+            case _ => None
+          }
+
+        val maybeType =
+          templexParser.parseTemplex(iter) match {
+            case Err(e) => return Err(e)
+            case Ok(x) => Some(x)
+          }
+
+        (maybePre, maybeType)
       } else {
         if (isInLambda) {
           // Allow it, lambdas can figure out their type from the callee.
-          None
+          (None, None)
         } else if (isInCitizen) {
           // Allow it, just assume it's the containing struct.
-          None
+          (None, None)
         } else if (isInFunction) {
           return Err(LightFunctionMustHaveParamTypes(patternRange.end, index))
         } else {
           // Allow it, just a regular pattern
-          None
+          (None, None)
         }
       }
 
@@ -234,7 +246,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       Ok(
         PatternPP(
           RangeL(patternBegin, iter.getPrevEndPos()),
-          maybePreBorrow, maybeName, maybeType, maybeDestructure, maybeVirtual))
+          maybeselfBorrow, maybeName, maybePre, maybeType, maybeDestructure, maybeVirtual))
   }
 
   //    pos ~
@@ -258,12 +270,12 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
   //        // Yes capture, no type, no destructure:
   //        underscoreOr(patternCapture) ^^ { case capture => (None, capture, None, None) } |
   //        // Hacked in for highlighting, still need to incorporate into the above
-  //        existsMW("*") ~ existsMW("!") ~ underscoreOr(patternCapture) ^^ { case preBorrow ~ readwrite ~ capture => (preBorrow, capture, None, None) }
+  //        existsMW("*") ~ existsMW("!") ~ underscoreOr(patternCapture) ^^ { case selfBorrow ~ readwrite ~ capture => (selfBorrow, capture, None, None) }
   //    ) ~
   //    opt(white ~> "impl" ~> white ~> templex) ~
   //    pos ^^ {
-  //      case begin ~ maybeVirtual ~ maybePreBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure ~ maybeInterface ~ end => {
-  //        val (maybePreBorrow, maybeCapture, maybeType, maybeDestructure) = maybePreBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure
+  //      case begin ~ maybeVirtual ~ maybeselfBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure ~ maybeInterface ~ end => {
+  //        val (maybeselfBorrow, maybeCapture, maybeType, maybeDestructure) = maybeselfBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure
   //        val maybeVirtuality =
   //          (maybeVirtual, maybeInterface) match {
   //            case (None, None) => None
@@ -271,7 +283,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
   //            case (None, Some(interface)) => Some(OverrideP(ast.RangeP(begin, end), interface))
   //            case (Some(_), Some(_)) => vfail()
   //          }
-  //        ast.PatternPP(ast.RangeP(begin, end), maybePreBorrow, maybeCapture, maybeType, maybeDestructure, maybeVirtuality)
+  //        ast.PatternPP(ast.RangeP(begin, end), maybeselfBorrow, maybeCapture, maybeType, maybeDestructure, maybeVirtuality)
   //      }
   //    }
 }
