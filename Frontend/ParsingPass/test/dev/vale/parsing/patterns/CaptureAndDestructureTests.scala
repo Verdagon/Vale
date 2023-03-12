@@ -18,6 +18,7 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector w
       case PatternPP(_,_,
           Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
           None,
+          None,
           Some(
           DestructureP(_,
             Vector(
@@ -33,18 +34,19 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector w
   }
   test("empty destructure") {
     compilePattern("[]") shouldHave
-      { case PatternPP(_,None,None,None,Some(DestructureP(_,Vector())),None) => }
+      { case PatternPP(_,None,None,None,None,Some(DestructureP(_,Vector())),None) => }
   }
   test("capture with empty destructure") {
     // Needs the space between the braces, see https://github.com/ValeLang/Vale/issues/434
     compile("a [ ]") shouldHave {
-      case PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,Some(DestructureP(_,Vector())),None) =>
+      case PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,None,Some(DestructureP(_,Vector())),None) =>
     }
   }
   test("Destructure with nested atom") {
     compile("a [b int]") shouldHave {
       case PatternPP(_,_,
           Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+          None,
           None,
           Some(
           DestructureP(_,

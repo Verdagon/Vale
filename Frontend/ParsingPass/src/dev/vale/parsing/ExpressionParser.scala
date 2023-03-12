@@ -119,6 +119,16 @@ class ScrambleIterator(
     peek().filter(f.isDefinedAt)
   }
 
+  def trySkipAll[R](f: Array[PartialFunction[INodeLE, Unit]]): Boolean = {
+    vassert(index + f.length < scramble.elements.length)
+    U.loop(f.length, i => {
+      if (!f(i).isDefinedAt(scramble.elements(index + i))) {
+        return false
+      }
+    })
+    true
+  }
+
   def trySkipSymbol(symbol: Char): Boolean = {
     peek() match {
       case Some(SymbolLE(_, s)) if s == symbol => {
@@ -1580,7 +1590,9 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           iter.advance()
           iter.advance()
           iter.advance()
-          val param = PatternPP(paramRange, None, Some(LocalNameDeclarationP(NameP(paramRange, paramName))), None, None, None)
+          val param =
+            PatternPP(
+              paramRange, None, Some(LocalNameDeclarationP(NameP(paramRange, paramName))), None, None, None, None)
           val params = ParamsP(paramRange, Vector(param))
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None)
           val range = RangeL(begin, iter.getPrevEndPos())

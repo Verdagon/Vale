@@ -225,8 +225,9 @@ class ParsedLoader(interner: Interner) {
   def loadPattern(jobj: JObject): PatternPP = {
     ast.PatternPP(
       loadRange(getObjectField(jobj, "range")),
-      loadOptionalObject(getObjectField(jobj, "preBorrow"), loadRange),
+      loadOptionalObject(getObjectField(jobj, "selfBorrow"), loadRange),
       loadOptionalObject(getObjectField(jobj, "capture"), loadNameDeclaration),
+      loadOptionalObject(getObjectField(jobj, "pre"), loadRange),
       loadOptionalObject(getObjectField(jobj, "templex"), loadTemplex),
       loadOptionalObject(getObjectField(jobj, "destructure"), loadDestructure),
       loadOptionalObject(getObjectField(jobj, "virtuality"), loadVirtuality))
