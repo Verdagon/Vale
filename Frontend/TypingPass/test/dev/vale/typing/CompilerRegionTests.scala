@@ -52,24 +52,27 @@ class CompilerRegionTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(
         PrototypeT(
-          IdT(_,_,FunctionNameT(
-            FunctionTemplateNameT(StrI("myFunc"),_),_,
-            Vector(
-              CoordT(
-                BorrowT,
-                PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),None)),RegionTemplataType()),
-                StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),None)),RegionTemplataType()))))))))),
-          CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),None)),RegionTemplataType()),VoidT())),
+          IdT(_,_,FunctionNameT(FunctionTemplateNameT(StrI("myFunc"),_),_, params)), returnType),
         Vector(arg)) => {
+        returnType match {
+          case CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()),VoidT()) =>
+        }
+        params match {
+          case Vector(
+            CoordT(
+              BorrowT,
+              PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()),
+              StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()))))))) =>
+        }
         arg.result.coord.region match {
-          case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),None)),RegionTemplataType()) =>
+          case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()) =>
         }
       }
     })
 
     val myFunc = coutputs.lookupFunction("myFunc")
     myFunc.header.params.head.tyype.region match {
-      case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),None)),RegionTemplataType()) =>
+      case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),Some(0))),RegionTemplataType()) =>
     }
   }
 
@@ -193,7 +196,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
   test("Access field of immutable object") {
     val compile = CompilerTestCompilation.test(
       """struct Ship { hp int; }
-        |func GetHp<r', x' rw>(map &r'Ship) int x'{ map.hp }
+        |func GetHp<r', x' rw>(map &r'Ship) r'int x'{ map.hp }
         |exported func main() int {
         |  ship = Ship(42);
         |  return GetHp(&ship);
@@ -203,4 +206,56 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val func = coutputs.lookupFunction("main")
   }
+
+  test("Tests nondestructive") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct Ship { hp int; }
+        |nondestructive func bork<i' nondestructive, f' rw>(x &i'Ship) i'int f'{
+        |  x.hp
+        |}
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  x = bork(&ship);
+        |  [_] = ship;
+        |  return x;
+        |}
+        """.stripMargin)
+    val bork = compile.expectCompilerOutputs().lookupFunction("bork")
+    val genArg =
+      bork.header.id.localName match {
+        case FunctionNameT(_, genArgs, _) => {
+          genArgs match {
+            case Vector(x, y) => x
+          }
+        }
+      }
+    genArg match {
+      case null =>
+    }
+  }
+
+  test("Tests detect nondestructive violation") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct Engine { fuel int; }
+        |#!DeriveStructDrop
+        |struct Ship { engine! Engine; }
+        |nondestructive func bork(x &Ship) Engine {
+        |  return set x.engine = Engine(73);
+        |}
+        |exported func main() int {
+        |  ship = Ship(Engine(42));
+        |  [z] = bork(&ship);
+        |  [[_]] = ship;
+        |  return z;
+        |}
+        """.stripMargin)
+    compile.getCompilerOutputs().expectErr() match {
+      case null =>
+    }
+  }
+
 }

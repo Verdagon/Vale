@@ -343,7 +343,7 @@ object CompilerErrorHumanizer {
           " can't be given to expected parameter " + humanizeTemplata(codeMap, CoordTemplataT(param))
       }
       case SpecificParamRegionDoesntMatch(rune, suppliedMutable, expectedMutable) => {
-        " Generic param " + humanizeRune(rune) + " expected a " + (if (expectedMutable) "mutable" else "immutable") + " region, but received a " + (if (suppliedMutable) "mutable" else "immutable") + " region."
+        " Generic param " + humanizeRune(rune) + " expected a " + expectedMutable + " region, but received a " + suppliedMutable + " region."
       }
       case SpecificParamVirtualityDoesntMatch(index) => {
         "Virtualities don't match at index " + index

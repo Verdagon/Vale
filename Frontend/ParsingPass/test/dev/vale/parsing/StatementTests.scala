@@ -11,7 +11,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
 
   test("Simple let") {
     compileBlockContentsExpect( "x = 4;") shouldHave {
-      case LetPE(_, PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))), None, None, None, None), ConstantIntPE(_, 4, _)) =>
+      case LetPE(_, PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))), None, None, None), ConstantIntPE(_, 4, _)) =>
     }
   }
 
@@ -43,12 +43,11 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
           PatternPP(_,_,
             None,
             None,
-            None,
             Some(
               DestructureP(_,
                 Vector(
-                  PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))),None, None,None,None),
-                  PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("y")))),None, None,None,None)))),
+                  PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))),None,None,None),
+                  PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("y")))),None,None,None)))),
             None),
           TuplePE(_,Vector(ConstantIntPE(_, 4, _), ConstantIntPE(_, 5, _)))) =>
     }
@@ -68,7 +67,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
 
   test("Test simple let") {
     compileStatementExpect("x = 3;") shouldHave {
-      case LetPE(_,PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))),None,None,None,None),ConstantIntPE(_, 3, _)) =>
+      case LetPE(_,PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))),None,None,None),ConstantIntPE(_, 3, _)) =>
     }
   }
 
@@ -92,7 +91,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     compileStatementExpect(
       "oldArray = set list.array = newArray;") shouldHave {
       case LetPE(_,
-        PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("oldArray")))),None,None,None,None),
+        PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("oldArray")))),None,None,None),
         MutatePE(_,
           DotPE(_,LookupPE(LookupNameP(NameP(_, StrI("list"))),None),_,NameP(_, StrI("array"))),
           LookupPE(LookupNameP(NameP(_, StrI("newArray"))),None))) =>
@@ -143,7 +142,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
   test("Let with simple pattern") {
     compileStatementExpect("a Moo = m;") shouldHave {
       case LetPE(_,
-        PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,Some(NameOrRunePT(NameP(_, StrI("Moo")))),None,None),
+        PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),Some(NameOrRunePT(NameP(_, StrI("Moo")))),None,None),
         LookupPE(LookupNameP(NameP(_, StrI("m"))), None)) =>
     }
   }
@@ -154,8 +153,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
           PatternPP(_,_,
             None,
             None,
-            None,
-            Some(DestructureP(_,Vector(PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,Some(NameOrRunePT(NameP(_, StrI("Moo")))),None,None)))),
+            Some(DestructureP(_,Vector(PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),Some(NameOrRunePT(NameP(_, StrI("Moo")))),None,None)))),
             None),
           LookupPE(LookupNameP(NameP(_, StrI("m"))), None)) =>
     }
@@ -163,7 +161,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
 
   test("Let with destructuring pattern") {
     compileStatementExpect("Muta[ ] = m;") shouldHave {
-      case LetPE(_,PatternPP(_,_,None,None,Some(NameOrRunePT(NameP(_, StrI("Muta")))),Some(DestructureP(_,Vector())),None),LookupPE(LookupNameP(NameP(_, StrI("m"))), None)) =>
+      case LetPE(_,PatternPP(_,_,None,Some(NameOrRunePT(NameP(_, StrI("Muta")))),Some(DestructureP(_,Vector())),None),LookupPE(LookupNameP(NameP(_, StrI("m"))), None)) =>
     }
   }
 
@@ -177,7 +175,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     compileStatementExpect("foreach i in myList { }") shouldHave {
       case EachPE(_,
       None,
-      PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None,None),
+      PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None),
       _,
       LookupPE(LookupNameP(NameP(_, StrI("myList"))),None),
       BlockPE(_,None,None,_)) =>
@@ -188,7 +186,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     compileStatementExpect("foreach i in &myList { }") shouldHave {
       case EachPE(_,
       None,
-      PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None,None),
+      PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None),
       _,
       AugmentPE(_, BorrowP, LookupPE(LookupNameP(NameP(_, StrI("myList"))),None)),
       BlockPE(_,None,None,_)) =>
@@ -200,12 +198,12 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
       case EachPE(_,
         None,
         PatternPP(_,
-          None,None,None,None,
+          None,None,None,
           Some(
             DestructureP(_,
               Vector(
-                PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,None,None,None),
-                PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("b")))),None,None,None,None)))),
+                PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,None,None),
+                PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("b")))),None,None,None)))),
           None),
         _,
         LookupPE(LookupNameP(NameP(_, StrI("myList"))),None),
@@ -217,11 +215,11 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     compileStatementExpect("foreach i in myList = 3; myList { }") shouldHave {
       case EachPE(_,
         None,
-        PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None,None),
+        PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None),
         _,
         ConsecutorPE(
           Vector(
-            LetPE(_,PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("myList")))),None,None,None,None),ConstantIntPE(_,3,_)),
+            LetPE(_,PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("myList")))),None,None,None),ConstantIntPE(_,3,_)),
             LookupPE(LookupNameP(NameP(_, StrI("myList"))),None))),
         BlockPE(_,None,None,VoidPE(_))) =>
     }
@@ -282,7 +280,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
         |doThings(a)
       """.stripMargin) shouldHave {
       case Vector(
-        LetPE(_, PatternPP(_, _,Some(LocalNameDeclarationP(NameP(_, StrI("a")))), None,None, None, None), ConstantIntPE(_, 2, _)),
+        LetPE(_, PatternPP(_, _,Some(LocalNameDeclarationP(NameP(_, StrI("a")))), None, None, None), ConstantIntPE(_, 2, _)),
         FunctionCallPE(_, _, LookupPE(LookupNameP(NameP(_, StrI("doThings"))), None), Vector(LookupPE(LookupNameP(NameP(_, StrI("a"))), None)))) =>
     }
   }
@@ -352,7 +350,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     programS shouldHave {
       case EachPE(_,
         None,
-        PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None,None),
+        PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_, StrI("i")))),None,None,None),
         _,
         LookupPE(LookupNameP(NameP(_, StrI("a"))),None),
         BlockPE(_,None,None,
@@ -369,7 +367,7 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     programS shouldHave {
       case ConsecutorPE(Vector(
         LetPE(_,
-          PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,a))),None,None,None,None),
+          PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,a))),None,None,None),
           EachPE(_,_,_,_,_,_)),
         VoidPE(_))) =>
     }

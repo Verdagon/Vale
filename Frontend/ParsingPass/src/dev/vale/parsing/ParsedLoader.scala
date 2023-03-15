@@ -227,7 +227,6 @@ class ParsedLoader(interner: Interner) {
       loadRange(getObjectField(jobj, "range")),
       loadOptionalObject(getObjectField(jobj, "selfBorrow"), loadRange),
       loadOptionalObject(getObjectField(jobj, "capture"), loadNameDeclaration),
-      loadOptionalObject(getObjectField(jobj, "pre"), loadRange),
       loadOptionalObject(getObjectField(jobj, "templex"), loadTemplex),
       loadOptionalObject(getObjectField(jobj, "destructure"), loadDestructure),
       loadOptionalObject(getObjectField(jobj, "virtuality"), loadVirtuality))
@@ -694,6 +693,7 @@ class ParsedLoader(interner: Interner) {
     getType(jobj) match {
       case "AbstractAttribute" => AbstractAttributeP(loadRange(getObjectField(jobj, "range")))
       case "PureAttribute" => PureAttributeP(loadRange(getObjectField(jobj, "range")))
+      case "NonDestructiveAttribute" => NonDestructiveAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ExportAttribute" => ExportAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ExternAttribute" => ExternAttributeP(loadRange(getObjectField(jobj, "range")))
       case "BuiltinAttribute" => {
