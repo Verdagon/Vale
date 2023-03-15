@@ -525,6 +525,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
       }
       case ExportAttributeL(range) => Ok(ExportAttributeP(range))
       case PureAttributeL(range) => Ok(PureAttributeP(range))
+      case NonDestructiveAttributeL(range) => Ok(NonDestructiveAttributeP(range))
       case WeakableAttributeL(range) => Ok(WeakableAttributeP(range))
       case SealedAttributeL(range) => Ok(SealedAttributeP(range))
       case MacroCallL(range, inclusion, name) => {

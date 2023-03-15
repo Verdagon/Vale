@@ -27,26 +27,6 @@ class HgmTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
-  test("Tests pre borrow") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arith.*;
-        |#!DeriveStructDrop
-        |struct Ship { hp int; }
-        |func bork(x pre&Ship) int {
-        |  x.hp + x.hp
-        |}
-        |exported func main() int {
-        |  ship = Ship(42);
-        |  x = bork(&ship);
-        |  [_] = ship;
-        |  return x;
-        |}
-        """.stripMargin)
-    val main = compile.expectCompilerOutputs().lookupFunction("main")
-    vimpl()
-  }
-
   test("Tests live borrow") {
     val compile = CompilerTestCompilation.test(
       """

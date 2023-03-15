@@ -77,6 +77,9 @@ class Lexer(interner: Interner, keywords: Keywords) {
     } else if (iter.trySkipCompleteWord("pure")) {
       val end = iter.getPos()
       Ok(Some(PureAttributeL(RangeL(attributeBegin, end))))
+    } else if (iter.trySkipCompleteWord("nondestructive")) {
+      val end = iter.getPos()
+      Ok(Some(NonDestructiveAttributeL(RangeL(attributeBegin, end))))
     } else if (iter.trySkipCompleteWord("extern")) {
       val maybeCustomName =
         if (iter.peek() == '(') {

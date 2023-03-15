@@ -100,6 +100,7 @@ object TemplataCompiler {
       case RegionGenericParameterTypeS(mutability) => {
         mutability match {
           case ReadWriteRegionS => Some(0)
+          case NonDestructiveRegionS => Some(0)
           case ImmutableRegionS => None
           case ReadOnlyRegionS => None
         }
@@ -1280,22 +1281,25 @@ class TemplataCompiler(
     originallyIntroducedLocation: LocationInDenizen,
   ):
   ITemplataT[ITemplataType] = {
-    // Note: this immutable is used for both coords and regions.
-    val immutable =
-      genericParam.tyype match {
-        case CoordGenericParameterTypeS(coordRegion, mutable) => !mutable
-        case RegionGenericParameterTypeS(mutability) => mutability == ImmutableRegionS
-        case _ => false
-      }
     val runeType = vassertSome(runeToType.get(genericParam.rune.rune))
     val rune = genericParam.rune.rune
 
     runeType match {
       case KindTemplataType() => {
+        val immutable =
+          genericParam.tyype match {
+            case CoordGenericParameterTypeS(coordRegion, mutable) => !mutable
+            case _ => false
+          }
         createKindPlaceholderInner(
           coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
       }
       case CoordTemplataType() => {
+        val (kindImmutable, regionImmutable) =
+          genericParam.tyype match {
+            case CoordGenericParameterTypeS(coordRegion, mutable) => (!mutable, !mutable)
+            case _ => (false, false)
+          }
         createCoordPlaceholderInner(
           coutputs,
           env,
@@ -1303,15 +1307,16 @@ class TemplataCompiler(
           index,
           rune,
           pureHeight,
-          immutable,
+//          if (regionImmutable) ImmutableRegionS else ReadWriteRegionS,
+          kindImmutable,
           registerWithCompilerOutputs)
       }
       case RegionTemplataType() => {
-        createRegionPlaceholderInner(
-          namePrefix,
-          index,
-          rune,
-          pureHeight)
+//        val mutability =
+//          genericParam.tyype match {
+//            case RegionGenericParameterTypeS(mutability) => mutability
+//          }
+        createRegionPlaceholderInner(namePrefix, index, rune, pureHeight)
       }
       case otherType => {
         createNonKindNonRegionPlaceholderInner(namePrefix, index, rune, otherType)
@@ -1353,14 +1358,15 @@ class TemplataCompiler(
     index: Int,
     rune: IRuneS,
     pureHeight: Option[Int],
+//    regionMutability: IRegionMutabilityS,
     immutable: Boolean,
     registerWithCompilerOutputs: Boolean
-  ) = {
+  ): CoordTemplataT = {
     // Not sure this really matters, because we can't mutate a generic argument. We can only
     // mutate a struct or array, and a generic argument isn't seen as either.
     val regionPlaceholderTemplata =
       createRegionPlaceholderInner(
-        namePrefix, index, rune,  pureHeight)
+        namePrefix, index, rune, pureHeight)
     val kindPlaceholderT =
       createKindPlaceholderInner(
         coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
@@ -1418,8 +1424,7 @@ class TemplataCompiler(
     val idT =
       namePrefix.addStep(
         interner.intern(RegionPlaceholderNameT(
-          index, rune,
-          pureHeight)))
+          index, rune, /*mutability,*/ pureHeight)))
     PlaceholderTemplataT(idT, RegionTemplataType())
   }
 }

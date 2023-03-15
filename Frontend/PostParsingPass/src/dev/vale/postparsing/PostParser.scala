@@ -248,6 +248,7 @@ object PostParser {
       // for generic params' default values.
       contextRegion: IRuneS,
       isPure: Boolean,
+      isNonDestructive: Boolean,
       genericParamP: GenericParameterP,
       paramRuneS: RuneUsage):
   // Returns a possible implicit region generic param (see MNRFGC), and the translated original
@@ -307,7 +308,7 @@ object PostParser {
             if (immutable) { ImmutableRegionS }
             else if (readwrite) { ReadWriteRegionS }
             else {
-                if (isPure) ImmutableRegionS else ReadOnlyRegionS
+              if (isPure) ImmutableRegionS else if (isNonDestructive) NonDestructiveRegionS else ReadOnlyRegionS
             }
           RegionGenericParameterTypeS(mutability)
         }
@@ -457,7 +458,7 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, implEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, false, g, r)
+            templexScout, implEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, false, false, g, r)
         })
 //    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
@@ -626,7 +627,7 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, structEnv, lidb.child(), headerRuneToExplicitType, headerRuleBuilder, defaultRegionRuneS, false, g, r)
+            templexScout, structEnv, lidb.child(), headerRuneToExplicitType, headerRuleBuilder, defaultRegionRuneS, false, false, g, r)
         })
 //    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
@@ -831,7 +832,7 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, false, g, r)
+            templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, false, false, g, r)
         })
 
     val genericParametersS =

@@ -51,7 +51,7 @@ object OverloadResolver {
     override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
     vpass()
   }
-  case class SpecificParamRegionDoesntMatch(rune: IRuneS, suppliedMutable: Boolean, expectedMutable: Boolean) extends IFindFunctionFailureReason {
+  case class SpecificParamRegionDoesntMatch(rune: IRuneS, suppliedMutability: IRegionMutabilityS, calleeMutability: IRegionMutabilityS) extends IFindFunctionFailureReason {
     override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
     vpass()
   }
@@ -382,6 +382,7 @@ class OverloadResolver(
                     }
                   } else {
                     val isPure = ft.function.attributes.collectFirst({ case PureS => }).nonEmpty
+//                    val isNonDestructive = ft.function.attributes.collectFirst({ case NonDestructiveS => }).nonEmpty
                     val (maybeNewRegion, maybeLatestPureBlockLocation) =
                       if (isPure) {
                         val newPureHeight = callingEnv.pureHeight + 1
@@ -392,6 +393,7 @@ class OverloadResolver(
                                 interner.intern(RegionPlaceholderNameT(
                                   -1,
                                   PureCallRegionRuneS(callLocation),
+//                                  isNonDestructive,
                                   Some(newPureHeight)
 //                                  Some(callLocation),
 //                                  callLocation,
@@ -486,24 +488,47 @@ class OverloadResolver(
     // give for them has the right mutability.
     ft.function.genericParameters.foreach(genericParam => {
       genericParam.tyype match {
-        case RegionGenericParameterTypeS(mutability) => {
-          mutability match {
+        case RegionGenericParameterTypeS(calleeMutability) => {
+          calleeMutability match {
             case ReadOnlyRegionS => {
               // Do nothing, it can receive any region mutability
             }
-            case ReadWriteRegionS | ImmutableRegionS => {
-              val expectedMutable = (mutability == ReadWriteRegionS)
+            case ReadWriteRegionS | NonDestructiveRegionS | ImmutableRegionS => {
               conclusions.get(genericParam.rune.rune) match {
-                case Some(PlaceholderTemplataT(IdT(_, _, RegionPlaceholderNameT(index, rune, regionPureHeight)), RegionTemplataType())) => {
+                case Some(PlaceholderTemplataT(IdT(_, _, RegionPlaceholderNameT(index, rune/*, regionNonDestructive*/, regionPureHeight)), RegionTemplataType())) => {
                   // Someday we'll also want to check if there were any pure blocks since the
                   // region was created.
                   // Until then, it's only mutable if it originally was and this isn't a pure call.
                   // See RGPPHASZ, this assumes that mutable region generic params are Some(0).
-                  val actuallyMutable = Some(callSitePureHeight) == regionPureHeight
+                  val argMutability =
+                    if (Some(callSitePureHeight) == regionPureHeight) {
+                      /*if (regionNonDestructive) NonDestructiveRegionS else*/ ReadWriteRegionS
+                    } else {
+                      ImmutableRegionS
+                    }
 
-                  if (actuallyMutable != expectedMutable) {
+                  val compatible =
+                    (argMutability, calleeMutability) match {
+                      case (ReadWriteRegionS, ReadWriteRegionS) => true
+                      case (ReadWriteRegionS, NonDestructiveRegionS) => true
+                      case (ReadWriteRegionS, ReadOnlyRegionS) => true
+                      case (ReadWriteRegionS, ImmutableRegionS) => false
+                      case (NonDestructiveRegionS, ReadWriteRegionS) => false
+                      case (NonDestructiveRegionS, NonDestructiveRegionS) => true
+                      case (NonDestructiveRegionS, ReadOnlyRegionS) => true
+                      case (NonDestructiveRegionS, ImmutableRegionS) => false
+                      case (ReadOnlyRegionS, ReadWriteRegionS) => false
+                      case (ReadOnlyRegionS, NonDestructiveRegionS) => false
+                      case (ReadOnlyRegionS, ReadOnlyRegionS) => true
+                      case (ReadOnlyRegionS, ImmutableRegionS) => false
+                      case (ImmutableRegionS, ReadWriteRegionS) => false
+                      case (ImmutableRegionS, NonDestructiveRegionS) => false
+                      case (ImmutableRegionS, ReadOnlyRegionS) => true
+                      case (ImmutableRegionS, ImmutableRegionS) => true
+                    }
+                  if (!compatible) {
                     // DO NOT SUBMIT test this
-                    return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, actuallyMutable, expectedMutable))
+                    return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, argMutability, calleeMutability))
                   }
                 }
                 case other => vwat(other)

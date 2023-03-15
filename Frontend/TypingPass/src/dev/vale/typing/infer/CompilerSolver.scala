@@ -231,9 +231,9 @@ class CompilerSolver(
       // This means we can solve this puzzle and dont need anything to do it.
       case MaybeCoercingLookupSR(range, _, _, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => Vector(Vector())
-      case MaybeCoercingCallSR(range, resultRune, _, templateRune, args) => {
+      case MaybeCoercingCallSR(range, resultRune, contextRegionRune, templateRune, args) => {
         Vector(
-          Vector(templateRune.rune) ++ args.map(_.rune),
+          Vector(templateRune.rune, contextRegionRune.rune) ++ args.map(_.rune),
           // Do we really need to do
           //   Vector(resultRune.rune, templateRune.rune),
           // Because if we have X = T<A> and we know that X is a Moo<int>
@@ -1266,15 +1266,17 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
               }
               case it @ StructDefinitionTemplataT(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
                 // See SFWPRL for why we're calling predictStruct instead of resolveStruct
-                val kind = delegate.predictStruct(env, state, it, args.toVector, env.contextRegion)
+                val kind = delegate.predictStruct(env, state, it, args.toVector, contextRegion)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplataT(kind))
                 Ok(())
               }
               case it @ InterfaceDefinitionTemplataT(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
                 // See SFWPRL for why we're calling predictInterface instead of resolveInterface
-                val kind = delegate.predictInterface(env, state, it, args.toVector, env.contextRegion)
+                val kind = delegate.predictInterface(env, state, it, args.toVector, contextRegion)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplataT(kind))
                 Ok(())
               }

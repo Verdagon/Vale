@@ -198,14 +198,19 @@ class FunctionScout(
       }
     }
 
-    val isPure = functionP.header.attributes.exists({ case PureAttributeP(_) => true case _ => false })
+    val isPure =
+      functionP.header.attributes
+        .exists({ case PureAttributeP(_) => true case _ => false })
+    val isNonDestructive =
+      functionP.header.attributes
+        .exists({ case NonDestructiveAttributeP(_) => true case _ => false })
 
     // We'll add the implicit runes to the end, see IRRAE.
     val functionUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, isPure, g, r)
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, isPure, isNonDestructive, g, r)
         })
 
     val myStackFrameWithoutParams =
@@ -459,17 +464,19 @@ class FunctionScout(
     val unfilteredAttrsP = attrsP
 
     val filteredAttrs =
-      maybeParent match {
+      (maybeParent match {
         case FunctionNoParent() => {
           unfilteredAttrsP.filter({ case AbstractAttributeP(_) => false case _ => true })
         }
         case ParentInterface(_, _, _, _) => unfilteredAttrsP
         case ParentFunction(_) => unfilteredAttrsP
-      }
+      })
+        //.filter({ case NonDestructiveAttributeP(_) => false case _ => true })
 
     val funcAttrsS =
       filteredAttrs.map({
         case AbstractAttributeP(_) => vwat() // Should have been filtered out, typingpass cares about abstract directly
+        case NonDestructiveAttributeP(_) => NonDestructiveS
         case ExportAttributeP(_) => ExportS(file.packageCoordinate, ExportDefaultRegionRuneS(funcName))
         case ExternAttributeP(_) => ExternS(file.packageCoordinate, ExternDefaultRegionRuneS(funcName))
         case PureAttributeP(_) => PureS

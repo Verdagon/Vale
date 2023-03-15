@@ -548,7 +548,7 @@ class InferCompiler(
   // like in the case of an incomplete solve.
   def checkTemplateCall(
     callingEnv: IInDenizenEnvironment,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType], // DO NOT SUBMIT remove this
     state: CompilerOutputs,
     ranges: List[RangeS],
     callLocation: LocationInDenizen,
@@ -590,6 +590,7 @@ class InferCompiler(
         Ok(())
       }
       case it @ StructDefinitionTemplataT(_, _) => {
+        val contextRegion = expectRegion(vassertSome(conclusions.get(regionRune.rune)))
         delegate.resolveStruct(callingEnv, state, range :: ranges, callLocation, it, args.toVector, contextRegion, true) match {
           case ResolveSuccess(kind) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
@@ -597,6 +598,7 @@ class InferCompiler(
         Ok(())
       }
       case it @ InterfaceDefinitionTemplataT(_, _) => {
+        val contextRegion = expectRegion(vassertSome(conclusions.get(regionRune.rune)))
         delegate.resolveInterface(callingEnv, state, range :: ranges, callLocation, it, args.toVector, contextRegion, true) match {
           case ResolveSuccess(kind) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)

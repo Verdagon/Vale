@@ -189,36 +189,24 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
           true
         }
       }
-    val (maybePre, maybeType) =
+    val maybeType =
       if (nextIsType) {
-        val maybePre =
-          iter.peek(2) match {
-            case Vector(Some(WordLE(preRange, x)), Some(SymbolLE(_, '&'))) if x == keywords.pre => {
-              iter.advance()
-              Some(preRange)
-            }
-            case _ => None
-          }
-
-        val maybeType =
-          templexParser.parseTemplex(iter) match {
-            case Err(e) => return Err(e)
-            case Ok(x) => Some(x)
-          }
-
-        (maybePre, maybeType)
+        templexParser.parseTemplex(iter) match {
+          case Err(e) => return Err(e)
+          case Ok(x) => Some(x)
+        }
       } else {
         if (isInLambda) {
           // Allow it, lambdas can figure out their type from the callee.
-          (None, None)
+          None
         } else if (isInCitizen) {
           // Allow it, just assume it's the containing struct.
-          (None, None)
+          None
         } else if (isInFunction) {
           return Err(LightFunctionMustHaveParamTypes(patternRange.end, index))
         } else {
           // Allow it, just a regular pattern
-          (None, None)
+          None
         }
       }
 
@@ -246,7 +234,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       Ok(
         PatternPP(
           RangeL(patternBegin, iter.getPrevEndPos()),
-          maybeselfBorrow, maybeName, maybePre, maybeType, maybeDestructure, maybeVirtual))
+          maybeselfBorrow, maybeName, maybeType, maybeDestructure, maybeVirtual))
   }
 
   //    pos ~
