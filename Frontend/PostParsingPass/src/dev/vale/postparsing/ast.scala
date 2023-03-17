@@ -219,7 +219,7 @@ object structSName {
 // Also remember, if a parameter has no name, it can't be varying.
 
 case class ParameterS(
-    // Note the lack of a VariabilityP here. The only way to get a variability is with a Capture.
+  preChecked: Boolean,
     pattern: AtomSP) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 

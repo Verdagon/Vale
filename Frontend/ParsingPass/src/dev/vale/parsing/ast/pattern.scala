@@ -8,22 +8,24 @@ case class AbstractP(range: RangeL)// extends IVirtualityP
 //case class OverrideP(range: RangeP, tyype: ITemplexPT) extends IVirtualityP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
 case class PatternPP(
-    range: RangeL,
-    selfBorrow: Option[RangeL],
-    capture: Option[INameDeclarationP],
+  range: RangeL,
+  selfBorrow: Option[RangeL],
+  capture: Option[INameDeclarationP],
 
-    // If they just have a destructure, this will probably be a ManualSequence(None).
-    // If they have just parens, this will probably be a Pack(None).
-    // Let's be careful to not allow destructuring packs without Pack here, see MEDP.
-    templex: Option[ITemplexPT],
+  maybePreChecked: Option[RangeL],
 
-    // Eventually, add an ellipsis: Boolean field here... except we also have
-    // to account for the difference between a: T... and a...: T (in one, T is a
-    // single type and in the other, T is a pack of types). And we might also want
-    // to account for nested parens, like struct Fn:((#Params...), (#Rets...))
+  // If they just have a destructure, this will probably be a ManualSequence(None).
+  // If they have just parens, this will probably be a Pack(None).
+  // Let's be careful to not allow destructuring packs without Pack here, see MEDP.
+  templex: Option[ITemplexPT],
 
-    destructure: Option[DestructureP],
-    virtuality: Option[AbstractP])
+  // Eventually, add an ellipsis: Boolean field here... except we also have
+  // to account for the difference between a: T... and a...: T (in one, T is a
+  // single type and in the other, T is a pack of types). And we might also want
+  // to account for nested parens, like struct Fn:((#Params...), (#Rets...))
+
+  destructure: Option[DestructureP],
+  virtuality: Option[AbstractP])
 
 case class DestructureP(
   range: RangeL,
@@ -46,7 +48,7 @@ object Patterns {
   object capturedWithTypeRune {
     def unapply(arg: PatternPP): Option[(String, String)] = {
       arg match {
-        case PatternPP(_, _, Some(LocalNameDeclarationP(NameP(_, name))), Some(NameOrRunePT(NameP(_, kindRune))), None, None) => Some((name.str, kindRune.str))
+        case PatternPP(_, _, Some(LocalNameDeclarationP(NameP(_, name))), _, Some(NameOrRunePT(NameP(_, kindRune))), None, None) => Some((name.str, kindRune.str))
         case _ => None
       }
     }
@@ -59,7 +61,7 @@ object Patterns {
   object capture {
     def unapply(arg: PatternPP): Option[String] = {
       arg match {
-        case PatternPP(_, _, Some(LocalNameDeclarationP(NameP(_, name))), None, None, None) => Some(name.str)
+        case PatternPP(_, _, Some(LocalNameDeclarationP(NameP(_, name))), _, None, None, None) => Some(name.str)
         case _ => None
       }
     }
@@ -67,7 +69,7 @@ object Patterns {
   object fromEnv {
     def unapply(arg: PatternPP): Option[String] = {
       arg match {
-        case PatternPP(_, _, None | Some(IgnoredLocalNameDeclarationP(_)), Some(NameOrRunePT(NameP(_, kindName))), None, None) => Some(kindName.str)
+        case PatternPP(_, _, None | Some(IgnoredLocalNameDeclarationP(_)), _, Some(NameOrRunePT(NameP(_, kindName))), None, None) => Some(kindName.str)
         case _ => None
       }
     }
@@ -83,7 +85,7 @@ object Patterns {
   object capturedWithType {
     def unapply(arg: PatternPP): Option[(String, ITemplexPT)] = {
       arg match {
-        case PatternPP(_, _, Some(LocalNameDeclarationP(NameP(_, name))), Some(templex), None, None) => Some((name.str, templex))
+        case PatternPP(_, _, Some(LocalNameDeclarationP(NameP(_, name))), _, Some(templex), None, None) => Some((name.str, templex))
         case _ => None
       }
     }

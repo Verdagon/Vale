@@ -307,7 +307,7 @@ class FunctionCompilerMiddleLayer(
             case None => interner.intern(TypingIgnoredParamNameT(index))
             case Some(x) => nameTranslator.translateVarNameStep(x.name)
           }
-        ParameterT(nameT, maybeVirtuality, coord)
+        ParameterT(nameT, maybeVirtuality, param1.preChecked, coord)
       })
   }
 //

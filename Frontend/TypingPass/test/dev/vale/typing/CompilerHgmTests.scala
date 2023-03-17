@@ -18,7 +18,7 @@ import org.scalatest.{FunSuite, Matchers}
 import scala.collection.immutable.List
 import scala.io.Source
 
-class HgmTests extends FunSuite with Matchers {
+class CompilerHgmTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
   def readCodeFromResource(resourceFilename: String): String = {
@@ -45,6 +45,28 @@ class HgmTests extends FunSuite with Matchers {
         """.stripMargin)
     val main = compile.expectCompilerOutputs().lookupFunction("main")
     vimpl()
+  }
+
+  test("Tests pre borrow") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arith.*;
+        |#!DeriveStructDrop
+        |struct Ship { hp int; }
+        |func bork(x pre&Ship) int {
+        |  x.hp
+        |}
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  x = bork(&ship);
+        |  [_] = ship;
+        |  return x;
+        |}
+        """.stripMargin)
+    val main = compile.expectCompilerOutputs().lookupFunction("main")
+
+    val bork = compile.expectCompilerOutputs().lookupFunction("bork")
+    bork.header.params.head.preChecked shouldEqual true
   }
 
 }

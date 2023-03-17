@@ -104,6 +104,7 @@ class StructDropMacro(
         runeToType.toMap,
         Vector(
           ParameterS(
+            false,
             AtomSP(
               range(-1340),
               Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)))),
@@ -138,6 +139,7 @@ class StructDropMacro(
         CodeRuneS(keywords.DropV) -> CoordTemplataType()),
       Vector(
         ParameterS(
+          false,
           AtomSP(
             RangeS.internal(interner, -1342),
             Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))),

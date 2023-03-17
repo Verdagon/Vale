@@ -484,8 +484,9 @@ class AnonymousInterfaceMacro(
 
     val newParams =
       originalParams.map({
-        case ParameterS(AtomSP(_, _, Some(_), Some(_), _)) => {
+        case ParameterS(preChecked, AtomSP(_, _, Some(_), Some(_), _)) => {
           ParameterS(
+            preChecked,
             AtomSP(
               abstractParamRange,
               Some(CaptureS(interner.intern(SelfNameS()))),
@@ -493,9 +494,9 @@ class AnonymousInterfaceMacro(
               Some(RuneUsage(abstractParamCoordRune.range, selfCoordRune)),
               None))
         }
-        case ParameterS(a @ AtomSP(_, _, None, Some(RuneUsage(runeRange, oldRune)), _)) => {
+        case ParameterS(preChecked, a @ AtomSP(_, _, None, Some(RuneUsage(runeRange, oldRune)), _)) => {
           val rune = RuneUsage(runeRange, inheritedMethodRune(interface, method, oldRune))
-          ParameterS(a.copy(coordRune = Some(rune)))
+          ParameterS(preChecked, a.copy(coordRune = Some(rune)))
         }
       })
 
