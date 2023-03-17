@@ -922,7 +922,7 @@ class Compiler(
                     // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
                     val regionPlaceholder =
                       templataCompiler.createRegionPlaceholderInner(
-                        templateId, 0, defaultRegionRune, Some(0))
+                        templateId, 0, defaultRegionRune, Some(0), ReadWriteRegionS)
 
                     val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                     val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -998,7 +998,7 @@ class Compiler(
                       // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
                       val regionPlaceholder =
                         templataCompiler.createRegionPlaceholderInner(
-                          templateId, 0, defaultRegionRune, Some(0))
+                          templateId, 0, defaultRegionRune, Some(0), ReadWriteRegionS)
 
                       val placeholderedExternName = interner.intern(ExternNameT(templateName, regionPlaceholder))
                       val placeholderedExternId = templateId.copy(localName = placeholderedExternName)
@@ -1088,7 +1088,7 @@ class Compiler(
                       // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
                       val regionPlaceholder =
                         templataCompiler.createRegionPlaceholderInner(
-                          templateId, 0, defaultRegionRune, Some(0))
+                          templateId, 0, defaultRegionRune, Some(0), ReadWriteRegionS)
 
                       val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                       val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -1141,7 +1141,7 @@ class Compiler(
             // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
             val regionPlaceholder =
               templataCompiler.createRegionPlaceholderInner(
-                templateId, 0, defaultRegionRune, Some(0))
+                templateId, 0, defaultRegionRune, Some(0), ReadWriteRegionS)
 
             val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
             val placeholderedExportId = templateId.copy(localName = placeholderedExportName)

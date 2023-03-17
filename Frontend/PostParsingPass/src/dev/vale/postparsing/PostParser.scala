@@ -24,7 +24,7 @@ case class CompileErrorExceptionS(err: ICompileErrorS) extends RuntimeException 
 sealed trait ICompileErrorS { def range: RangeS }
 case class UnknownRuleFunctionS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class BadRuneAttributeErrorS(range: RangeS, attr: IRuneAttributeP) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class CantBeBothImmAndReadwriteS(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class CantHaveMultipleMutabilitiesS(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class UnimplementedExpression(range: RangeS, expressionName: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindVarToMutateS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindRuneS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
@@ -247,8 +247,6 @@ object PostParser {
       // mentioned at the end of the header too. But indeed we need it for knowing the region to use
       // for generic params' default values.
       contextRegion: IRuneS,
-      isPure: Boolean,
-      isNonDestructive: Boolean,
       genericParamP: GenericParameterP,
       paramRuneS: RuneUsage):
   // Returns a possible implicit region generic param (see MNRFGC), and the translated original
@@ -293,23 +291,19 @@ object PostParser {
           val (mutabilityAttrsS, remainingAttributesP) =
             U.extract[IRuneAttributeP, IRegionMutabilityS](originalAttributesP, {
               case ImmutableRegionRuneAttributeP(_) => ImmutableRegionS
+              case AdditiveRegionRuneAttributeP(_) => AdditiveRegionS
               case ReadWriteRegionRuneAttributeP(_) => ReadWriteRegionS
+              case ReadOnlyRegionRuneAttributeP(_) => ReadOnlyRegionS
             })
           if (remainingAttributesP.nonEmpty) {
             val first = remainingAttributesP.head
             throw CompileErrorExceptionS(BadRuneAttributeErrorS(evalRange(env.file, first.range), first))
           }
-          val immutable = mutabilityAttrsS.contains(ImmutableRegionS)
-          val readwrite = mutabilityAttrsS.contains(ReadWriteRegionS)
-          if (immutable && readwrite) {
-            throw CompileErrorExceptionS(CantBeBothImmAndReadwriteS(evalRange(env.file, genericParamRangeP)))
+
+          if (mutabilityAttrsS.size > 1) {
+            throw CompileErrorExceptionS(CantHaveMultipleMutabilitiesS(evalRange(env.file, genericParamRangeP)))
           }
-          val mutability =
-            if (immutable) { ImmutableRegionS }
-            else if (readwrite) { ReadWriteRegionS }
-            else {
-              if (isPure) ImmutableRegionS else if (isNonDestructive) NonDestructiveRegionS else ReadOnlyRegionS
-            }
+          val mutability = mutabilityAttrsS.headOption.getOrElse(ReadOnlyRegionS)
           RegionGenericParameterTypeS(mutability)
         }
         case other => {
@@ -458,7 +452,7 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, implEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, false, false, g, r)
+            templexScout, implEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
 //    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
@@ -627,7 +621,7 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, structEnv, lidb.child(), headerRuneToExplicitType, headerRuleBuilder, defaultRegionRuneS, false, false, g, r)
+            templexScout, structEnv, lidb.child(), headerRuneToExplicitType, headerRuleBuilder, defaultRegionRuneS, g, r)
         })
 //    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
@@ -832,7 +826,7 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, false, false, g, r)
+            templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
 
     val genericParametersS =

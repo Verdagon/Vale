@@ -682,6 +682,7 @@ class ParsedLoader(interner: Interner) {
       case "ReadOnlyRuneAttribute" => ReadOnlyRegionRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ReadWriteRuneAttribute" => ReadWriteRegionRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ImmutableRuneAttribute" => ImmutableRegionRuneAttributeP(loadRange(getObjectField(jobj, "range")))
+      case "AdditiveRuneAttribute" => AdditiveRegionRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "PoolRuneAttribute" => PoolRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ArenaRuneAttribute" => ArenaRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "BumpRuneAttribute" => BumpRuneAttributeP(loadRange(getObjectField(jobj, "range")))
@@ -693,7 +694,7 @@ class ParsedLoader(interner: Interner) {
     getType(jobj) match {
       case "AbstractAttribute" => AbstractAttributeP(loadRange(getObjectField(jobj, "range")))
       case "PureAttribute" => PureAttributeP(loadRange(getObjectField(jobj, "range")))
-      case "NonDestructiveAttribute" => NonDestructiveAttributeP(loadRange(getObjectField(jobj, "range")))
+      case "AdditiveAttribute" => AdditiveAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ExportAttribute" => ExportAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ExternAttribute" => ExternAttributeP(loadRange(getObjectField(jobj, "range")))
       case "BuiltinAttribute" => {

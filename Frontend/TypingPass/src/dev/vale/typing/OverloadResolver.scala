@@ -381,30 +381,36 @@ class OverloadResolver(
                       }
                     }
                   } else {
-                    val isPure = ft.function.attributes.collectFirst({ case PureS => }).nonEmpty
-//                    val isNonDestructive = ft.function.attributes.collectFirst({ case NonDestructiveS => }).nonEmpty
-                    val (maybeNewRegion, maybeLatestPureBlockLocation) =
-                      if (isPure) {
-                        val newPureHeight = callingEnv.pureHeight + 1
-                        val calleeContextRegion =
-                          PlaceholderTemplataT(
-                            callingEnv.denizenId
-                              .addStep(
-                                interner.intern(RegionPlaceholderNameT(
-                                  -1,
-                                  PureCallRegionRuneS(callLocation),
-//                                  isNonDestructive,
-                                  Some(newPureHeight)
-//                                  Some(callLocation),
-//                                  callLocation,
-//                                  true
-                                ))),
-                            RegionTemplataType())
-                        (Some(calleeContextRegion), newPureHeight)
+                    def makeNewDefaultRegion(newHeight: Int): PlaceholderTemplataT[RegionTemplataType] = {
+                      // The callee is going to reinterpret everything as additive/pure, so we
+                      // need to make a new region for it to use as its default region.
+                      PlaceholderTemplataT(
+                        callingEnv.denizenId
+                          .addStep(
+                            interner.intern(RegionPlaceholderNameT(
+                              -1,
+                              CallRegionRuneS(callLocation),
+                              Some(newHeight),
+                              // All context regions are readwrite
+                              ReadWriteRegionS))),
+                        RegionTemplataType())
+                    }
+
+                    val (calleeContextRegion, newMaybeNearestPureHeight, newMaybeNearestAdditiveHeight) =
+                      if (ft.function.attributes.collectFirst({ case PureS => }).nonEmpty) {
+                        val newHeight = callingEnv.currentHeight + 1
+                        // The callee is going to reinterpret everything as pure, so we
+                        // need to make a new region for it to use as its default region.
+                        (makeNewDefaultRegion(newHeight), Some(newHeight), callingEnv.additiveHeight)
+                      } else if (ft.function.attributes.collectFirst({ case AdditiveS => }).nonEmpty) {
+                        val newHeight = callingEnv.currentHeight + 1
+                        // The callee is going to reinterpret everything as pure, so we
+                        // need to make a new region for it to use as its default region.
+                        (makeNewDefaultRegion(newHeight), callingEnv.pureHeight, Some(newHeight))
                       } else {
-                        (None, callingEnv.pureHeight)
+                        (contextRegion, callingEnv.pureHeight, callingEnv.additiveHeight)
                       }
-                    val calleeContextRegion = maybeNewRegion.getOrElse(contextRegion)
+
                     // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                     functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
                       coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, calleeContextRegion, args) match {
@@ -414,11 +420,11 @@ class OverloadResolver(
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
-                            checkRegions(ft, maybeLatestPureBlockLocation, conclusions) match {
+                            checkRegions(ft, newMaybeNearestPureHeight, newMaybeNearestAdditiveHeight, conclusions) match {
                               case Err(e) => return Err(e)
                               case Ok(()) =>
                             }
-                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype))
+                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(Some(calleeContextRegion), prototype))
                           }
                         }
                       }
@@ -477,9 +483,75 @@ class OverloadResolver(
     }
   }
 
+  private def getRegionMutability(
+    maybeNearestPureHeight: Option[Int],
+    maybeNearestAdditiveHeight: Option[Int],
+    region: RegionPlaceholderNameT):
+  IRegionMutabilityS = {
+    (region.height, maybeNearestPureHeight) match {
+      case (None, None) => {
+        // region height None means it was handed in and has an unknown height, see RGPPHASZ.
+        // maybeNearestPureHeight means there was no pure block, and the function isn't pure.
+        // Continue on.
+      }
+      case (Some(height), None) => {
+        // This region was introduced during the function.
+        // However, there's no pure block, so we can't yet conclude its immutable.
+        // Continue on.
+      }
+      case (None, Some(nearestPureHeight)) => {
+        // region height None means it was handed in and has an unknown height, see RGPPHASZ.
+        // There was a pure block since then (or the function is pure) so we know it's immutable.
+        return ImmutableRegionS
+      }
+      case (Some(height), Some(nearestPureHeight)) => {
+        // This region was introduced during the function.
+        // There was a pure block since then (or the function is pure).
+        // If the region was introduced before the pure, then it's immutable.
+        if (height < nearestPureHeight) {
+          return ImmutableRegionS
+        } else {
+          // Otherwise, we can't conclude it's immutable yet.
+        }
+      }
+    }
+
+    (region.height, maybeNearestAdditiveHeight) match {
+      case (None, None) => {
+        // region height None means it was handed in and has an unknown height, see RGPPHASZ.
+        // maybeNearestAdditiveHeight means there was no additive block, and the function isn't additive.
+        // Continue on.
+      }
+      case (Some(height), None) => {
+        // This region was introduced during the function.
+        // However, there's no additive block, so we can't yet conclude its additive.
+        // Continue on.
+      }
+      case (None, Some(nearestAdditiveHeight)) => {
+        // region height None means it was handed in and has an unknown height, see RGPPHASZ.
+        // There was a additive block since then (or the function is additive) so we know it's additive.
+        return AdditiveRegionS
+      }
+      case (Some(height), Some(nearestAdditiveHeight)) => {
+        // This region was introduced during the function.
+        // There was a additive block since then (or the function is additive).
+        // If the region was introduced before the additive, then it's additive.
+        if (height < nearestAdditiveHeight) {
+          return AdditiveRegionS
+        } else {
+          // Otherwise, we can't conclude it's additive yet.
+        }
+      }
+    }
+
+    // If we get here, then fall back to the region's original mutability.
+    region.originalMutability
+  }
+
   private def checkRegions(
     ft: FunctionTemplataT,
-    callSitePureHeight: Int,
+    maybeNearestPureHeight: Option[Int],
+    maybeNearestAdditiveHeight: Option[Int],
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
   Result[Unit, IFindFunctionFailureReason] = {
     // The only place we can specify a region's mutability in the receiving function
@@ -493,42 +565,35 @@ class OverloadResolver(
             case ReadOnlyRegionS => {
               // Do nothing, it can receive any region mutability
             }
-            case ReadWriteRegionS | NonDestructiveRegionS | ImmutableRegionS => {
+            case ReadWriteRegionS | AdditiveRegionS | ImmutableRegionS => {
               conclusions.get(genericParam.rune.rune) match {
-                case Some(PlaceholderTemplataT(IdT(_, _, RegionPlaceholderNameT(index, rune/*, regionNonDestructive*/, regionPureHeight)), RegionTemplataType())) => {
-                  // Someday we'll also want to check if there were any pure blocks since the
-                  // region was created.
-                  // Until then, it's only mutable if it originally was and this isn't a pure call.
-                  // See RGPPHASZ, this assumes that mutable region generic params are Some(0).
-                  val argMutability =
-                    if (Some(callSitePureHeight) == regionPureHeight) {
-                      /*if (regionNonDestructive) NonDestructiveRegionS else*/ ReadWriteRegionS
-                    } else {
-                      ImmutableRegionS
-                    }
+                case Some(PlaceholderTemplataT(IdT(_, _, argRegion @ RegionPlaceholderNameT(index, rune, maybeArgRegionHeight, argRegionOriginalMutability)), RegionTemplataType())) => {
+                  val argRegionMutability =
+                    getRegionMutability(
+                      maybeNearestPureHeight, maybeNearestAdditiveHeight, argRegion)
 
                   val compatible =
-                    (argMutability, calleeMutability) match {
+                    (argRegionMutability, calleeMutability) match {
                       case (ReadWriteRegionS, ReadWriteRegionS) => true
-                      case (ReadWriteRegionS, NonDestructiveRegionS) => true
+                      case (ReadWriteRegionS, AdditiveRegionS) => true
                       case (ReadWriteRegionS, ReadOnlyRegionS) => true
                       case (ReadWriteRegionS, ImmutableRegionS) => false
-                      case (NonDestructiveRegionS, ReadWriteRegionS) => false
-                      case (NonDestructiveRegionS, NonDestructiveRegionS) => true
-                      case (NonDestructiveRegionS, ReadOnlyRegionS) => true
-                      case (NonDestructiveRegionS, ImmutableRegionS) => false
+                      case (AdditiveRegionS, ReadWriteRegionS) => false
+                      case (AdditiveRegionS, AdditiveRegionS) => true
+                      case (AdditiveRegionS, ReadOnlyRegionS) => true
+                      case (AdditiveRegionS, ImmutableRegionS) => false
                       case (ReadOnlyRegionS, ReadWriteRegionS) => false
-                      case (ReadOnlyRegionS, NonDestructiveRegionS) => false
+                      case (ReadOnlyRegionS, AdditiveRegionS) => false
                       case (ReadOnlyRegionS, ReadOnlyRegionS) => true
                       case (ReadOnlyRegionS, ImmutableRegionS) => false
                       case (ImmutableRegionS, ReadWriteRegionS) => false
-                      case (ImmutableRegionS, NonDestructiveRegionS) => false
+                      case (ImmutableRegionS, AdditiveRegionS) => false
                       case (ImmutableRegionS, ReadOnlyRegionS) => true
                       case (ImmutableRegionS, ImmutableRegionS) => true
                     }
                   if (!compatible) {
                     // DO NOT SUBMIT test this
-                    return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, argMutability, calleeMutability))
+                    return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, argRegionMutability, calleeMutability))
                   }
                 }
                 case other => vwat(other)

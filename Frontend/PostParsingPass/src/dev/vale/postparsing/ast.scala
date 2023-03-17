@@ -52,7 +52,7 @@ case class ExternS(packageCoord: PackageCoordinate, defaultRegionRune: IRuneS) e
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case object PureS extends IFunctionAttributeS
-case object NonDestructiveS extends IFunctionAttributeS
+case object AdditiveS extends IFunctionAttributeS
 case object SealedS extends ICitizenAttributeS
 case class BuiltinS(generatorName: StrI) extends IFunctionAttributeS with ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -248,7 +248,7 @@ sealed trait IRegionMutabilityS
 case object ReadWriteRegionS extends IRegionMutabilityS
 case object ReadOnlyRegionS extends IRegionMutabilityS
 case object ImmutableRegionS extends IRegionMutabilityS
-case object NonDestructiveRegionS extends IRegionMutabilityS
+case object AdditiveRegionS extends IRegionMutabilityS
 
 object IGenericParameterTypeS {
   def expectRegion(x: IGenericParameterTypeS): RegionGenericParameterTypeS = {

@@ -565,13 +565,14 @@ class FunctionCompilerSolvingLayer(
       })
     vassert(defaultRegionGenericParamIndex >= 0)
     val defaultRegionGenericParam = nearEnv.function.genericParameters(defaultRegionGenericParamIndex)
-//    val defaultRegionGenericParamType = IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype)
+    val defaultRegionGenericParamType = IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype)
 //    val defaultRegionMutable = vimpl()//defaultRegionGenericParamType.mutability == ReadWriteRegionS
     vassert(IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype).mutability == ReadWriteRegionS)
     val defaultRegionPlaceholderTemplata =
       templataCompiler.createRegionPlaceholderInner(
         functionTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
-        TemplataCompiler.getRegionPlaceholderPureHeight(defaultRegionGenericParam))
+        Some(0), defaultRegionGenericParamType.mutability)
+        //TemplataCompiler.getRegionPlaceholderPureHeight(defaultRegionGenericParam))
 //        None,
 //        LocationInDenizen(Vector()),
 //        defaultRegionMutable)

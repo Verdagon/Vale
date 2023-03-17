@@ -100,7 +100,7 @@ object TemplataCompiler {
       case RegionGenericParameterTypeS(mutability) => {
         mutability match {
           case ReadWriteRegionS => Some(0)
-          case NonDestructiveRegionS => Some(0)
+          case AdditiveRegionS => None
           case ImmutableRegionS => None
           case ReadOnlyRegionS => None
         }
@@ -784,7 +784,7 @@ object TemplataCompiler {
           templata
         }
       }
-      case PlaceholderTemplataT(id @ IdT(_, _, pn @ RegionPlaceholderNameT(index, rune, _)), _) => {
+      case PlaceholderTemplataT(id @ IdT(_, _, pn @ RegionPlaceholderNameT(index, rune, _, _)), _) => {
         if (id.initFullName(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
@@ -1276,7 +1276,7 @@ class TemplataCompiler(
     genericParam: GenericParameterS,
     index: Int,
     runeToType: Map[IRuneS, ITemplataType],
-    pureHeight: Option[Int],
+    currentHeight: Option[Int],
     registerWithCompilerOutputs: Boolean,
     originallyIntroducedLocation: LocationInDenizen,
   ):
@@ -1295,10 +1295,12 @@ class TemplataCompiler(
           coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
       }
       case CoordTemplataType() => {
-        val (kindImmutable, regionImmutable) =
+        val (kindImmutable, regionMutability) =
           genericParam.tyype match {
-            case CoordGenericParameterTypeS(coordRegion, mutable) => (!mutable, !mutable)
-            case _ => (false, false)
+            case CoordGenericParameterTypeS(coordRegion, mutable) => {
+              (!mutable, if (mutable) ReadWriteRegionS else ReadOnlyRegionS)
+            }
+            case _ => (false, ReadOnlyRegionS)
           }
         createCoordPlaceholderInner(
           coutputs,
@@ -1306,17 +1308,17 @@ class TemplataCompiler(
           namePrefix,
           index,
           rune,
-          pureHeight,
-//          if (regionImmutable) ImmutableRegionS else ReadWriteRegionS,
+          currentHeight,
+          regionMutability,
           kindImmutable,
           registerWithCompilerOutputs)
       }
       case RegionTemplataType() => {
-//        val mutability =
-//          genericParam.tyype match {
-//            case RegionGenericParameterTypeS(mutability) => mutability
-//          }
-        createRegionPlaceholderInner(namePrefix, index, rune, pureHeight)
+        val regionMutability =
+          genericParam.tyype match {
+            case RegionGenericParameterTypeS(mutability) => mutability
+          }
+        createRegionPlaceholderInner(namePrefix, index, rune, currentHeight, regionMutability)
       }
       case otherType => {
         createNonKindNonRegionPlaceholderInner(namePrefix, index, rune, otherType)
@@ -1357,8 +1359,8 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    pureHeight: Option[Int],
-//    regionMutability: IRegionMutabilityS,
+    currentHeight: Option[Int],
+    regionMutability: IRegionMutabilityS,
     immutable: Boolean,
     registerWithCompilerOutputs: Boolean
   ): CoordTemplataT = {
@@ -1366,7 +1368,7 @@ class TemplataCompiler(
     // mutate a struct or array, and a generic argument isn't seen as either.
     val regionPlaceholderTemplata =
       createRegionPlaceholderInner(
-        namePrefix, index, rune, pureHeight)
+        namePrefix, index, rune, currentHeight, regionMutability)
     val kindPlaceholderT =
       createKindPlaceholderInner(
         coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
@@ -1419,12 +1421,13 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    pureHeight: Option[Int]):
+    maybeHeight: Option[Int],
+    regionMutability: IRegionMutabilityS):
   PlaceholderTemplataT[RegionTemplataType] = {
     val idT =
       namePrefix.addStep(
         interner.intern(RegionPlaceholderNameT(
-          index, rune, /*mutability,*/ pureHeight)))
+          index, rune, maybeHeight, regionMutability)))
     PlaceholderTemplataT(idT, RegionTemplataType())
   }
 }

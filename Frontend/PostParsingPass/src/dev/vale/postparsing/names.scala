@@ -139,7 +139,7 @@ case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   }
 }
 case class PureBlockRegionRuneS(lid: LocationInDenizen) extends IRuneS
-case class PureCallRegionRuneS(lid: LocationInDenizen) extends IRuneS {
+case class CallRegionRuneS(lid: LocationInDenizen) extends IRuneS {
   vpass()
 }
 case class ImplicitRegionRuneS(originalRune: IRuneS) extends IRuneS

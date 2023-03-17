@@ -322,11 +322,12 @@ class FunctionCompilerCore(
     header
   }
 
-  def translateAttributes(attributesA: Vector[IFunctionAttributeS]) = {
+  def translateAttributes(attributesA: Vector[IFunctionAttributeS]): Vector[IFunctionAttributeT] = {
     attributesA.map({
       //      case ExportA(packageCoord) => Export2(packageCoord)
       case UserFunctionS => UserFunctionT
       case PureS => PureT
+      case AdditiveS => AdditiveT
     })
   }
 

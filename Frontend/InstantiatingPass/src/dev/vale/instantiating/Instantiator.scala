@@ -153,7 +153,7 @@ class Instantiator(
       functionExportsT.map({ case FunctionExportT(range, prototypeT, exportPlaceholderedIdT, exportedName) =>
         val perspectiveRegionT =
           exportPlaceholderedIdT.localName.templateArgs.last match {
-            case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+            case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
               IdT(packageCoord, initSteps, r)
             }
             case _ => vwat()
@@ -189,7 +189,7 @@ class Instantiator(
       functionExternsT.map({ case FunctionExternT(range, externPlaceholderedIdT, prototypeT, externedName) =>
         val perspectiveRegionT =
           externPlaceholderedIdT.localName.templateArgs.last match {
-            case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+            case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
               IdT(packageCoord, initSteps, r)
             }
             case _ => vwat()
@@ -1021,7 +1021,7 @@ class Instantiator(
       placeholderedName.localName.templateArgs
         .zip(idI.localName.templateArgs)
         .flatMap({
-          case (CoordTemplataT(CoordT(placeholderOwnership, PlaceholderTemplataT(regionPlaceholderId @ IdT(_, _, RegionPlaceholderNameT(_, _, maybeRegionPureHeight)), RegionTemplataType()), KindPlaceholderT(kindPlaceholderId))), c @ CoordTemplataI(_)) => {
+          case (CoordTemplataT(CoordT(placeholderOwnership, PlaceholderTemplataT(regionPlaceholderId @ IdT(_, _, RegionPlaceholderNameT(_, _, maybeRegionHeight, _)), RegionTemplataType()), KindPlaceholderT(kindPlaceholderId))), c @ CoordTemplataI(_)) => {
             vassert(placeholderOwnership == OwnT || placeholderOwnership == ShareT)
             // We might need to do something with placeholderRegion here, but I think we can just
             // assume it correctly matches up with the coord's region. The typing phase should have
@@ -1032,7 +1032,7 @@ class Instantiator(
             // region-less primitives. Perhaps we can assume theyre the same region as their
             // parent template?
             val regionTemplata =
-              maybeRegionPureHeight.map(x => RegionTemplataI[sI](x)).getOrElse(vimpl())
+              maybeRegionHeight.map(x => RegionTemplataI[sI](x)).getOrElse(vimpl())
             List(
               (regionPlaceholderId -> regionTemplata),// vimpl(/*c.coord.region*/)),
               (kindPlaceholderId -> c))
@@ -1400,7 +1400,7 @@ class Instantiator(
 
     val perspectiveRegionT =
       structDefT.instantiatedCitizen.id.localName.templateArgs.last match {
-        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
           IdT(packageCoord, initSteps, r)
         }
         case _ => vwat()
@@ -1558,7 +1558,7 @@ class Instantiator(
 
     val perspectiveRegionT =
       functionT.header.id.localName.templateArgs.last match {
-        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
           IdT(packageCoord, initSteps, r)
         }
         case _ => vwat()
@@ -1880,7 +1880,7 @@ class Instantiator(
           val oldPerspectiveRegionT = perspectiveRegionT
           val newDefaultRegionNameT =
             newDefaultRegionT match {
-              case PlaceholderTemplataT(id @ IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+              case PlaceholderTemplataT(id @ IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
                 IdT(packageCoord, initSteps, r)
               }
               case other => vwat(other)
@@ -1890,7 +1890,7 @@ class Instantiator(
 //          val newDefaultRegionName =
 //            translateRegionFullName(
 //              substitutions, perspectiveRegionT, newDefaultRegionNameT)
-          val newDefaultRegion = RegionTemplataI[sI](vassertSome(newDefaultRegionNameT.localName.pureHeight))
+          val newDefaultRegion = RegionTemplataI[sI](vassertSome(newDefaultRegionNameT.localName.height))
           val oldSubstitutionsForThisDenizenTemplate =
             substitutions.getOrElse(denizenTemplateName, Map())
           val newSubstitutionsForThisDenizenTemplate =
@@ -2740,7 +2740,7 @@ class Instantiator(
     perspectiveRegionT: IdT[RegionPlaceholderNameT],
     region: IdT[RegionPlaceholderNameT]):
   Boolean = {
-    val RegionPlaceholderNameT(_, _, regionPureHeight) = region.localName
+    val RegionPlaceholderNameT(_, _, _, _) = region.localName
 
     val perspectiveActualPureHeight =
       ITemplataI.expectRegionTemplata(
@@ -3145,7 +3145,7 @@ class Instantiator(
 
     val newPerspectiveRegionT =
       ssaRegionT match {
-        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
           IdT(packageCoord, initSteps, r)
         }
         case _ => vwat()
@@ -3192,7 +3192,7 @@ class Instantiator(
 
     val newPerspectiveRegionT =
       rsaRegionT match {
-        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
           IdT(packageCoord, initSteps, r)
         }
         case _ => vwat()
@@ -3295,7 +3295,7 @@ class Instantiator(
           tyype match {
             case RegionTemplataType() => {
               n match {
-                case IdT(_, _, RegionPlaceholderNameT(_, _, maybeLocalPureHeightT)) => {
+                case IdT(_, _, RegionPlaceholderNameT(_, _, maybeLocalPureHeightT, _)) => {
                   RegionTemplataI[sI](
                     maybeLocalPureHeightT match {
                       case Some(n) => n
@@ -3463,7 +3463,7 @@ class Instantiator(
   IStructNameI[sI] = {
     val newPerspectiveRegionT =
       vassertSome(name.templateArgs.lastOption) match {
-        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
           IdT(packageCoord, initSteps, r)
         }
         case _ => vwat()

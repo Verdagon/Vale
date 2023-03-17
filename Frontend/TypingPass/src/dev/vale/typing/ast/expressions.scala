@@ -7,7 +7,7 @@ import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.options.GlobalOptions.test
-import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, PureCallRegionRuneS, RegionTemplataType}
+import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, CallRegionRuneS, RegionTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -284,7 +284,7 @@ case class BreakTE(region: ITemplataT[RegionTemplataType]) extends ReferenceExpr
 
 // when we make a closure, we make a struct full of pointers to all our variables
 // and the first element is our parent closure
-// this can live on the stack, since blocks are limited to this expression
+// this can live on the stack, since blocks are additive to this expression
 // later we can optimize it to only have the things we use
 
 // Block2 is required to unlet all the variables it introduces.

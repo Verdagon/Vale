@@ -109,7 +109,7 @@ case class ExternAttributeP(range: RangeL) extends IAttributeP { override def eq
 case class BuiltinAttributeP(range: RangeL, generatorName: NameP) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExportAttributeP(range: RangeL) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class PureAttributeP(range: RangeL) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class NonDestructiveAttributeP(range: RangeL) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class AdditiveAttributeP(range: RangeL) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 //case class RuleAttributeP(rule: IRulexPR) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
 sealed trait IRuneAttributeP {
@@ -120,6 +120,7 @@ case class ImmutableRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class ReadOnlyRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class ReadWriteRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class ImmutableRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
+case class AdditiveRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class PoolRuneAttributeP(range: RangeL) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ArenaRuneAttributeP(range: RangeL) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class BumpRuneAttributeP(range: RangeL) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
