@@ -1,7 +1,7 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, LocationInDenizen, RegionTemplataType, SealedS}
+import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, LocationInDenizen, ReadWriteRegionS, RegionTemplataType, SealedS}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
@@ -349,7 +349,8 @@ class StructCompilerGenericArgsLayer(
           defaultRegionGenericParamIndex,
           defaultRegionGenericParam.rune.rune,
           // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
-          Some(0))
+          Some(0),
+          ReadWriteRegionS)
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(structA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
@@ -460,7 +461,8 @@ class StructCompilerGenericArgsLayer(
         templataCompiler.createRegionPlaceholderInner(
           interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
           // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
-          Some(0))
+          Some(0),
+          ReadWriteRegionS)
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(interfaceA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)

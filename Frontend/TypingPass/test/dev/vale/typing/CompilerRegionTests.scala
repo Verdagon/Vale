@@ -55,24 +55,24 @@ class CompilerRegionTests extends FunSuite with Matchers {
           IdT(_,_,FunctionNameT(FunctionTemplateNameT(StrI("myFunc"),_),_, params)), returnType),
         Vector(arg)) => {
         returnType match {
-          case CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()),VoidT()) =>
+          case CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()),VoidT()) =>
         }
         params match {
           case Vector(
             CoordT(
               BorrowT,
-              PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()),
-              StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()))))))) =>
+              PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()),
+              StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()))))))) =>
         }
         arg.result.coord.region match {
-          case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0))),RegionTemplataType()) =>
+          case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()) =>
         }
       }
     })
 
     val myFunc = coutputs.lookupFunction("myFunc")
     myFunc.header.params.head.tyype.region match {
-      case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),Some(0))),RegionTemplataType()) =>
+      case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()) =>
     }
   }
 
@@ -98,7 +98,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
           case PlaceholderTemplataT(
             IdT(_,
               Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-              RegionPlaceholderNameT(_,CodeRuneS(StrI("r")), _)),
+              RegionPlaceholderNameT(_,CodeRuneS(StrI("r")), _, _)),
             RegionTemplataType()) => Some(Unit)
           case _ => None
         }
@@ -149,7 +149,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-          RegionPlaceholderNameT(1,DenizenDefaultRegionRuneS(_), _)),RegionTemplataType()) =>
+          RegionPlaceholderNameT(1,DenizenDefaultRegionRuneS(_), _, _)),RegionTemplataType()) =>
     }
   }
 
@@ -169,7 +169,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-          RegionPlaceholderNameT(1,CodeRuneS(StrI("x")), _)),
+          RegionPlaceholderNameT(1,CodeRuneS(StrI("x")), _, _)),
         RegionTemplataType()) =>
     }
   }
@@ -207,12 +207,12 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val func = coutputs.lookupFunction("main")
   }
 
-  test("Tests nondestructive") {
+  test("Tests pure") {
     val compile = CompilerTestCompilation.test(
       """
         |#!DeriveStructDrop
         |struct Ship { hp int; }
-        |nondestructive func bork<i' nondestructive, f' rw>(x &i'Ship) i'int f'{
+        |pure func bork<i' imm, f' rw>(x &i'Ship) i'int f'{
         |  x.hp
         |}
         |exported func main() int {
@@ -232,18 +232,75 @@ class CompilerRegionTests extends FunSuite with Matchers {
         }
       }
     genArg match {
-      case null =>
+      case PlaceholderTemplataT(
+      IdT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),RegionPlaceholderNameT(0,CodeRuneS(StrI("i")),None,ImmutableRegionS)),
+      RegionTemplataType()) =>
     }
   }
 
-  test("Tests detect nondestructive violation") {
+  test("Tests detect pure violation") {
     val compile = CompilerTestCompilation.test(
       """
         |#!DeriveStructDrop
         |struct Engine { fuel int; }
         |#!DeriveStructDrop
         |struct Ship { engine! Engine; }
-        |nondestructive func bork(x &Ship) Engine {
+        |pure func bork<r' imm>(x &r'Ship) Engine {
+        |  return set x.engine = Engine(73);
+        |}
+        |exported func main() int {
+        |  ship = Ship(Engine(42));
+        |  [z] = bork(&ship);
+        |  [[_]] = ship;
+        |  return z;
+        |}
+        """.stripMargin)
+    compile.expectCompilerOutputs()
+//    compile.getCompilerOutputs().expectErr() match {
+//      case null =>
+//    }
+    vimpl()
+  }
+
+  test("Tests additive") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct Ship { hp int; }
+        |additive func bork<i' additive, f' rw>(x &i'Ship) i'int f'{
+        |  x.hp
+        |}
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  x = bork(&ship);
+        |  [_] = ship;
+        |  return x;
+        |}
+        """.stripMargin)
+    val bork = compile.expectCompilerOutputs().lookupFunction("bork")
+    val genArg =
+      bork.header.id.localName match {
+        case FunctionNameT(_, genArgs, _) => {
+          genArgs match {
+            case Vector(x, y) => x
+          }
+        }
+      }
+    genArg match {
+      case PlaceholderTemplataT(
+        IdT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),RegionPlaceholderNameT(0,CodeRuneS(StrI("i")),None,AdditiveRegionS)),
+        RegionTemplataType()) =>
+    }
+  }
+
+  test("Tests detect additive violation") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct Engine { fuel int; }
+        |#!DeriveStructDrop
+        |struct Ship { engine! Engine; }
+        |additive func bork(x &Ship) Engine {
         |  return set x.engine = Engine(73);
         |}
         |exported func main() int {

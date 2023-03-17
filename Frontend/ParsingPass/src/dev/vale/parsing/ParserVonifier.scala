@@ -54,6 +54,7 @@ object ParserVonifier {
     thing match {
       case ReadOnlyRegionRuneAttributeP(range) => VonObject("ReadOnlyRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case ReadWriteRegionRuneAttributeP(range) => VonObject("ReadWriteRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
+      case AdditiveRegionRuneAttributeP(range) => VonObject("AdditiveRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case ImmutableRegionRuneAttributeP(range) => VonObject("ImmutableRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case PoolRuneAttributeP(range) => VonObject("PoolRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case ArenaRuneAttributeP(range) => VonObject("ArenaRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
@@ -373,7 +374,7 @@ object ParserVonifier {
       case AbstractAttributeP(range) => VonObject("AbstractAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case ExternAttributeP(range) => VonObject("ExternAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case PureAttributeP(range) => VonObject("PureAttribute", None, Vector(VonMember("range", vonifyRange(range))))
-      case NonDestructiveAttributeP(range) => VonObject("NonDestructiveAttribute", None, Vector(VonMember("range", vonifyRange(range))))
+      case AdditiveAttributeP(range) => VonObject("AdditiveAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case BuiltinAttributeP(range, generatorName) => {
         VonObject(
           "BuiltinAttribute",

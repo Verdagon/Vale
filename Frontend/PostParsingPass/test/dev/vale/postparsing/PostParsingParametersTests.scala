@@ -108,13 +108,13 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     main.genericParams.size shouldEqual 2
   }
 
-  test("Regioned nondestructive function") {
-    val bork = compile("nondestructive func main<r', t'>(ship &r'Spaceship) t'{ }")
+  test("Regioned additive function") {
+    val bork = compile("additive func main<r', t'>(ship &r'Spaceship) t'{ }")
 
     val main = bork.lookupFunction("main")
     main.genericParams.size shouldEqual 2
     main.genericParams(0) match {
-      case GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),RegionGenericParameterTypeS(NonDestructiveRegionS),None) =>
+      case GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),RegionGenericParameterTypeS(AdditiveRegionS),None) =>
     }
   }
 

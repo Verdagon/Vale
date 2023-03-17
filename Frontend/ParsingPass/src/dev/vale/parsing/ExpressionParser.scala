@@ -43,6 +43,10 @@ class ScrambleIterator(
 
   assert(end <= scramble.elements.length)
 
+  def atEnd: Boolean = {
+    index == end
+  }
+
   def range: RangeL = {
     vassert(index < end)
     RangeL(

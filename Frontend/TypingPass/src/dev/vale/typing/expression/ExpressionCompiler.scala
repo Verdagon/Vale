@@ -511,6 +511,7 @@ class ExpressionCompiler(
   // - all the types that are returned from inside the body via return
   private def evaluate(
     coutputs: CompilerOutputs,
+    // This NodeEnvironment contains the current pure height
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
@@ -1211,7 +1212,7 @@ class ExpressionCompiler(
 
           val thenFate =
             NodeEnvironmentBox(
-              nenv.makeChild(thenBodySE, None, None))
+              nenv.makeChild(thenBodySE, None, Some(nenv.snapshot.currentHeight + 1), None, None))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1235,7 +1236,7 @@ class ExpressionCompiler(
 
           val elseFate =
             NodeEnvironmentBox(
-              nenv.makeChild(elseBodySE, None, None))
+              nenv.makeChild(elseBodySE, None, Some(nenv.snapshot.currentHeight + 1), None, None))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1370,11 +1371,11 @@ class ExpressionCompiler(
           // and the body block, so they can access any locals declared by the condition.
 
           // See BEAFB for why we make a new environment for the While
-          val loopNenv = nenv.makeChild(w, None, None)
+          val loopNenv = nenv.makeChild(w, None, Some(nenv.snapshot.currentHeight + 1), None, None)
 
           val loopBlockFate =
             NodeEnvironmentBox(
-              loopNenv.makeChild(bodySE, None, None))
+              loopNenv.makeChild(bodySE, None, Some(nenv.snapshot.currentHeight + 1), None, None))
           val (bodyExpressionsWithResult, bodyReturnsFromExprs) =
             evaluateBlockStatements(
               coutputs,
@@ -1410,8 +1411,9 @@ class ExpressionCompiler(
           // the temporary list.
           val elementRefT = {
             // See BEAFB for why we make a new environment for the While
-            val loopNenv = nenv.makeChild(m, vimpl(), vimpl())
-            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl()))
+            val loopNenv = nenv.makeChild(m, vimpl(), vimpl(), vimpl(), vimpl())
+            val loopBlockFate =
+              NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl(), vimpl(), vimpl()))
             val (bodyExpressionsWithResult, _) =
               evaluateBlockStatements(
                 coutputs,
@@ -1457,9 +1459,9 @@ class ExpressionCompiler(
 
           val (loopTE, returnsFromLoop) = {
             // See BEAFB for why we make a new environment for the While
-            val loopNenv = nenv.makeChild(m, vimpl(), vimpl())
+            val loopNenv = nenv.makeChild(m, vimpl(), vimpl(), vimpl(), vimpl())
 
-            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl()))
+            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), Some(nenv.snapshot.currentHeight + 1), vimpl(), vimpl()))
             val (userBodyTE, bodyReturnsFromExprs) =
               evaluateBlockStatements(
                 coutputs,
@@ -1553,12 +1555,13 @@ class ExpressionCompiler(
               lastReturns).toSet)
         }
         case p@PureSE(range, location, inner) => {
-          val newPureHeight = nenv.snapshot.pureHeight + 1
+          val oldHeight = nenv.snapshot.currentHeight
+          val newHeight = nenv.snapshot.currentHeight + 1
           val newRegionId =
             TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
               .addStep(
                 interner.intern(RegionPlaceholderNameT(
-                  -1, PureBlockRegionRuneS(location), Some(newPureHeight))))
+                  -1, PureBlockRegionRuneS(location), Some(newHeight), ImmutableRegionS)))
           val newRegion = PlaceholderTemplataT(newRegionId, RegionTemplataType())
 
           // We'll restore these things at the end. We're reusing the same nenv because any locals
@@ -1569,7 +1572,8 @@ class ExpressionCompiler(
             nenv.nodeEnvironment
               .copy(
                 defaultRegion = newRegion,
-                pureHeight = newPureHeight)
+                currentHeight = newHeight,
+                pureHeight = Some(newHeight))
 
           val (innerExpr, returnsFromExprs) =
             evaluateAndCoerceToReferenceExpression(
@@ -1588,6 +1592,7 @@ class ExpressionCompiler(
             nenv.nodeEnvironment
               .copy(
                 defaultRegion = oldDefaultRegion,
+                currentHeight = oldHeight,
                 pureHeight = oldLatestPureBlockLocation)
 
           val resultCoord =
@@ -1598,7 +1603,7 @@ class ExpressionCompiler(
           (pureTE, returnsFromExprs)
         }
         case b@BlockSE(range, locals, _) => {
-          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, None))
+          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, Some(nenv.snapshot.currentHeight + 1), None, None))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(

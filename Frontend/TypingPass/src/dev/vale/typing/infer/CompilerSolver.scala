@@ -1188,9 +1188,10 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
                         // corresponding generic arg with the default here.
                         val genericParam = st.originStruct.genericParameters(index)
                         if (genericParam.rune.rune == st.originStruct.regionRune) {
-                          // The default value for the default region is the caller's context region
+                          // The default value for the default region is the context region
                           // so match it against that.
-                          if (templateArg != env.contextRegion) {
+                          val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
+                          if (templateArg != contextRegion) {
                             return Err(CallResultWasntExpectedType(st, result))
                           }
                         } else {

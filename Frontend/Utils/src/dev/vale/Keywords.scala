@@ -11,7 +11,7 @@ class Keywords(interner: Interner) {
   val weak: StrI = interner.intern(StrI("weak"))
   val share: StrI = interner.intern(StrI("share"))
   val where: StrI = interner.intern(StrI("where"))
-  val nondestructive: StrI = interner.intern(StrI("nondestructive"))
+  val additive: StrI = interner.intern(StrI("additive"))
   val inl: StrI = interner.intern(StrI("inl"))
   val heap: StrI = interner.intern(StrI("heap"))
   val imm: StrI = interner.intern(StrI("imm"))

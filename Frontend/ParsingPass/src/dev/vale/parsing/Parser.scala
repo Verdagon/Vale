@@ -67,9 +67,14 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
                   iter.trySkipWord(keywords.rw) match {
                     case Some(range) => Vector(ReadWriteRegionRuneAttributeP(range))
                     case None => {
-                      iter.trySkipWord(keywords.imm) match {
-                        case Some(range) => Vector(ImmutableRegionRuneAttributeP(range))
-                        case None => Vector()
+                      iter.trySkipWord(keywords.additive) match {
+                        case Some(range) => Vector(AdditiveRegionRuneAttributeP(range))
+                        case None => {
+                          iter.trySkipWord(keywords.imm) match {
+                            case Some(range) => Vector(ImmutableRegionRuneAttributeP(range))
+                            case None => Vector()
+                          }
+                        }
                       }
                     }
                   }
@@ -98,6 +103,8 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
       } else {
         None
       }
+
+    vassert(iter.atEnd)
 
     Ok(GenericParameterP(range, NameP(name.range, name.str), maybeType, maybeCoordRegion, attributes, maybeDefaultPT))
   }
@@ -525,7 +532,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
       }
       case ExportAttributeL(range) => Ok(ExportAttributeP(range))
       case PureAttributeL(range) => Ok(PureAttributeP(range))
-      case NonDestructiveAttributeL(range) => Ok(NonDestructiveAttributeP(range))
+      case AdditiveAttributeL(range) => Ok(AdditiveAttributeP(range))
       case WeakableAttributeL(range) => Ok(WeakableAttributeP(range))
       case SealedAttributeL(range) => Ok(SealedAttributeP(range))
       case MacroCallL(range, inclusion, name) => {
