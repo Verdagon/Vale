@@ -2026,8 +2026,14 @@ class Instantiator(
               prototypeT)
           val inners =
             args.map(argTE => {
-              translateRefExpr(
-                denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)._2
+              val (argIT, argCE) =
+                translateRefExpr(
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)
+              if (argIT.ownership == MutableBorrowI) {
+                PreCheckBorrowIE(argCE)
+              } else {
+                argCE
+              }
             })
           val resultIT = prototypeI.returnType
           val resultIE = FunctionCallIE(prototypeC, inners, collapseCoord(RegionCounter.countCoord(resultIT), resultIT))
@@ -3269,7 +3275,7 @@ class Instantiator(
     perspectiveRegionT: IdT[RegionPlaceholderNameT],
     param: ParameterT):
   ParameterI = {
-    val ParameterT(name, virtuality, tyype) = param
+    val ParameterT(name, virtuality, preChecked, tyype) = param
     val typeIT =
       translateCoord(
         denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, tyype)
@@ -3277,6 +3283,7 @@ class Instantiator(
     ParameterI(
       RegionCollapser.collapseVarName(RegionCounter.countVarName(nameI), nameI),
       virtuality.map({ case AbstractT() => AbstractI() }),
+      preChecked,
       collapseCoord(RegionCounter.countCoord(typeIT), typeIT))
   }
 

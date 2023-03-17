@@ -214,6 +214,7 @@ case class AbstractT()
 case class ParameterT(
   name: IVarNameT,
   virtuality: Option[AbstractT],
+  preChecked: Boolean,
   tyype: CoordT)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -394,7 +395,7 @@ case class FunctionHeaderT(
                   }
                 }
               }
-              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, _)) => {
+              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, _, _)) => {
                 id.localName.templateArgs(index) match {
                   case PlaceholderTemplataT(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)
@@ -460,7 +461,7 @@ case class FunctionHeaderT(
   def getAbstractInterface: Option[InterfaceTT] = {
     val abstractInterfaces =
       params.collect({
-        case ParameterT(_, Some(AbstractT()), CoordT(_, _, ir @ InterfaceTT(_))) => ir
+        case ParameterT(_, Some(AbstractT()), _, CoordT(_, _, ir @ InterfaceTT(_))) => ir
       })
     vassert(abstractInterfaces.size <= 1)
     abstractInterfaces.headOption
@@ -469,7 +470,7 @@ case class FunctionHeaderT(
   def getVirtualIndex: Option[Int] = {
     val indices =
       params.zipWithIndex.collect({
-        case (ParameterT(_, Some(AbstractT()), _), index) => index
+        case (ParameterT(_, Some(AbstractT()), _, _), index) => index
       })
     vassert(indices.size <= 1)
     indices.headOption

@@ -264,7 +264,7 @@ object ParserVonifier {
   }
 
   def vonifyPattern(thing: PatternPP): VonObject = {
-    val PatternPP(range, selfBorrow, capture, templex, destructure, virtuality) = thing
+    val PatternPP(range, selfBorrow, capture, maybePreChecked, templex, destructure, virtuality) = thing
     VonObject(
       "IdentifyingRunes",
       None,
@@ -272,6 +272,7 @@ object ParserVonifier {
         VonMember("range", vonifyRange(range)),
         VonMember("selfBorrow", vonifyOptional(selfBorrow, vonifyRange)),
         VonMember("capture", vonifyOptional(capture, vonifyNameDeclaration)),
+        VonMember("maybePreChecked", vonifyOptional(maybePreChecked, vonifyRange)),
         VonMember("templex", vonifyOptional(templex, vonifyTemplex)),
         VonMember("destructure", vonifyOptional(destructure, vonifyDestructure)),
         VonMember("virtuality", vonifyOptional(virtuality, vonifyVirtuality))))

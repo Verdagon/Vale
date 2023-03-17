@@ -960,6 +960,14 @@ case class DiscardH(sourceExpression: ExpressionH[KindHT]) extends ExpressionH[V
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
+case class PreCheckBorrowH(innerExpression: ExpressionH[KindHT]) extends ExpressionH[KindHT] {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+  innerExpression.resultType.ownership match {
+    case MutableBorrowH =>
+  }
+  override def resultType: CoordH[KindHT] = innerExpression.resultType
+}
+
 trait IExpressionH {
   def expectReferenceExpression(): ReferenceExpressionH = {
     this match {

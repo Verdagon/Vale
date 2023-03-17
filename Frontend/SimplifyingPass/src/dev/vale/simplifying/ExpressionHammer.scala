@@ -104,7 +104,11 @@ class ExpressionHammer(
             hinputs, hamuts, currentFunctionHeader, locals, callableExpr, args, call2.result)
         (access, Vector.empty)
       }
-
+      case PreCheckBorrowIE(inner) => {
+        val (innerHE, deferreds) =
+          translate(hinputs, hamuts, currentFunctionHeader, locals, inner)
+        (PreCheckBorrowH(innerHE), deferreds)
+      }
       case InterfaceFunctionCallIE(superFunctionPrototype, virtualParamIndex, argsExprs2, resultType2) => {
         val access =
           translateInterfaceFunctionCall(

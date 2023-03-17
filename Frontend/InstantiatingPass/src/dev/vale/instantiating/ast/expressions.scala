@@ -273,7 +273,7 @@ case class BlockIE(
 }
 
 // A pure block will:
-// 1. CreaIE a new region (someday possibly with an allocator)
+// 1. Create a new region (someday possibly with an allocator)
 // 2. Freeze the existing region
 // 3. Run the inner code
 // 4. Un-freeze the existing region
@@ -285,6 +285,16 @@ case class MutabilifyIE(
 ) extends ReferenceExpressionIE {
   vpass()
 
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+}
+
+case class PreCheckBorrowIE(
+  inner: ReferenceExpressionIE
+) extends ReferenceExpressionIE {
+  vpass()
+  vassert(inner.result.ownership == MutableBorrowI)
+
+  override def result: CoordI[cI] = inner.result
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 

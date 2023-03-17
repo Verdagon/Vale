@@ -205,7 +205,9 @@ case class AbstractI()
 case class ParameterI(
   name: IVarNameI[cI],
   virtuality: Option[AbstractI],
-  tyype: CoordI[cI])  {
+  preChecked: Boolean,
+  tyype: CoordI[cI]) {
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   // Use same instead, see EHCFBD for why we dont like equals.
@@ -305,7 +307,7 @@ case class FunctionHeaderI(
   def getAbstractInterface: Option[InterfaceIT[cI]] = {
     val abstractInterfaces =
       params.collect({
-        case ParameterI(_, Some(AbstractI()), CoordI(_, ir @ InterfaceIT(_))) => ir
+        case ParameterI(_, Some(AbstractI()), _, CoordI(_, ir @ InterfaceIT(_))) => ir
       })
     vassert(abstractInterfaces.size <= 1)
     abstractInterfaces.headOption
@@ -314,7 +316,7 @@ case class FunctionHeaderI(
   def getVirtualIndex: Option[Int] = {
     val indices =
       params.zipWithIndex.collect({
-        case (ParameterI(_, Some(AbstractI()), _), index) => index
+        case (ParameterI(_, Some(AbstractI()), _, _), index) => index
       })
     vassert(indices.size <= 1)
     indices.headOption

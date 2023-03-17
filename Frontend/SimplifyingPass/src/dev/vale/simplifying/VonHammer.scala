@@ -470,6 +470,14 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
             VonMember("sourceExpr", vonifyExpression(sourceExpr)),
             VonMember("sourceResultType", vonifyCoord(sourceExpr.resultType))))
       }
+      case PreCheckBorrowH(sourceExpr) => {
+        VonObject(
+          "PreCheckBorrow",
+          None,
+          Vector(
+            VonMember("sourceExpr", vonifyExpression(sourceExpr)),
+            VonMember("sourceResultType", vonifyCoord(sourceExpr.resultType))))
+      }
       case ArgumentH(resultReference, argumentIndex) => {
         VonObject(
           "Argument",

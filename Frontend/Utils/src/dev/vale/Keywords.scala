@@ -34,6 +34,7 @@ class Keywords(interner: Interner) {
   val unlet: StrI = interner.intern(StrI("unlet"))
   val block: StrI = interner.intern(StrI("block"))
   val pure: StrI = interner.intern(StrI("pure"))
+  val pre: StrI = interner.intern(StrI("pre"))
   val unsafe: StrI = interner.intern(StrI("unsafe"))
   val and: StrI = interner.intern(StrI("and"))
   val or: StrI = interner.intern(StrI("or"))

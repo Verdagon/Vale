@@ -200,7 +200,7 @@ object TemplataCompiler {
     kind: KindT):
   KindT = {
     kind match {
-      case VoidT() | IntT(_) => kind
+      case VoidT() | IntT(_) | BoolT() | FloatT() | StrT() | NeverT(_) => kind
       case StructTT(id @ IdT(packageCoord, initSteps, StructNameT(template, templateArgs))) => {
 
         val newStruct =

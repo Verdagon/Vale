@@ -107,7 +107,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
         case Some(_) => None
       }
 
-    val maybeselfBorrow =
+    val maybeSelfBorrow =
       iter.peek() match {
         case None => return Err(EmptyParameter(patternRange.begin))
         case Some(SymbolLE(range, '&')) => {
@@ -189,6 +189,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
           true
         }
       }
+    val maybePreChecked = iter.trySkipWord(keywords.pre)
     val maybeType =
       if (nextIsType) {
         templexParser.parseTemplex(iter) match {
@@ -234,7 +235,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       Ok(
         PatternPP(
           RangeL(patternBegin, iter.getPrevEndPos()),
-          maybeselfBorrow, maybeName, maybeType, maybeDestructure, maybeVirtual))
+          maybeSelfBorrow, maybeName, maybePreChecked, maybeType, maybeDestructure, maybeVirtual))
   }
 
   //    pos ~

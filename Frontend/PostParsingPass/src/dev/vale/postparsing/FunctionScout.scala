@@ -241,16 +241,18 @@ class FunctionScout(
 
 //    val explicitParamPatternsAndIdentifyingRunes =
     val explicitParamsS =
-      explicitParamPatternsPerhapsTypelessS.map({
-        case a @ AtomSP(_, _, _, Some(_), _) => a //(a, None)
-        case AtomSP(range, name, virtuality, None, destructure) => {
-          val rune = rules.RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
-          runeToExplicitType += ((rune.rune, CoordTemplataType()))
-          val newParam = patterns.AtomSP(range, name, virtuality, Some(rune), destructure)
-          newParam
-//          (newParam, Some(rune))
-        }
-      }).map(ParameterS)
+      explicitParamPatternsPerhapsTypelessS
+        .zip(paramPatternsP.map(_.maybePreChecked.nonEmpty))
+        .map({
+          case (a @ AtomSP(_, _, _, Some(_), _), preChecked) => ParameterS(preChecked, a)
+          case (AtomSP(range, name, virtuality, None, destructure), preChecked) => {
+            val rune = rules.RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
+            runeToExplicitType += ((rune.rune, CoordTemplataType()))
+            val newParam = patterns.AtomSP(range, name, virtuality, Some(rune), destructure)
+            ParameterS(preChecked, newParam)
+  //          (newParam, Some(rune))
+          }
+        })
 //    val explicitParamsS = explicitParamPatternsAndIdentifyingRunes.map(_._1).map(ParameterS)
 //    val identifyingRunesFromExplicitParams = explicitParamPatternsAndIdentifyingRunes.flatMap(_._2)
 
@@ -574,7 +576,7 @@ class FunctionScout(
     val capture = CaptureS(closureParamName)
     val closurePattern =
       AtomSP(closureParamRange, Some(capture), None, Some(closureParamTypeRune), None)
-    ParameterS(closurePattern)
+    ParameterS(false, closurePattern)
   }
 
   private def createMagicParameters(
@@ -590,6 +592,7 @@ class FunctionScout(
         runeToExplicitType += ((magicParamRune.rune, CoordTemplataType()))
         val paramS =
           ParameterS(
+            false,
             AtomSP(
               magicParamRange,
               Some(patterns.CaptureS(mpn)), None, Some(magicParamRune), None))

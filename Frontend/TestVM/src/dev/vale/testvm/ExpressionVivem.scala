@@ -69,6 +69,14 @@ object ExpressionVivem {
     val callId = expressionId.callId
 
     node match {
+      case PreCheckBorrowH(innerExpr) => {
+        val innerRef =
+          executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), innerExpr) match {
+            case r @ (NodeReturn(_) | NodeBreak()) => return r
+            case NodeContinue(r) => r
+          }
+        return NodeContinue(innerRef)
+      }
       case DiscardH(sourceExpr) => {
         sourceExpr.resultType.ownership match {
           case MutableShareH =>
