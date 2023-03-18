@@ -408,7 +408,7 @@ object Spanner {
   }
 
   def forPattern(p: PatternPP): Span = {
-    val PatternPP(range, maybeselfBorrow, capture, templex, maybeDestructure, virtuality) = p
+    val PatternPP(range, maybeselfBorrow, capture, maybePreChecked, templex, maybeDestructure, virtuality) = p
     makeSpan(
       Pat,
       range,

@@ -52,7 +52,7 @@ class PatternScout(
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
     patternPP: PatternPP):
   AtomSP = {
-    val PatternPP(range,_,maybeCaptureP, maybeTypeP, maybeDestructureP, maybeAbstractP) = patternPP
+    val PatternPP(range,_,maybeCaptureP, maybePreCheckedP, maybeTypeP, maybeDestructureP, maybeAbstractP) = patternPP
 
     val maybeAbstractS =
       maybeAbstractP match {

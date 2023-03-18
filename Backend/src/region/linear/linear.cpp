@@ -2323,3 +2323,16 @@ LiveRef Linear::checkRefLive(
   assert(refMT->ownership == Ownership::MUTABLE_SHARE);
   return LiveRef(ref);
 }
+
+LiveRef Linear::preCheckBorrow(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    bool refKnownLive) {
+  // I think this is all we really need?
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  return LiveRef(ref);
+}

@@ -59,6 +59,7 @@ public:
   LLVMValueRef derefCounterLE = nullptr;
   LLVMValueRef mutRcAdjustCounterLE = nullptr;
   LLVMValueRef livenessCheckCounterLE = nullptr;
+  LLVMValueRef livenessPreCheckCounterLE = nullptr;
   LLVMValueRef writeOnlyGlobalLE = nullptr;
   LLVMValueRef crashGlobalLE = nullptr;
 //  LLVMValueRef nullLE = nullptr;

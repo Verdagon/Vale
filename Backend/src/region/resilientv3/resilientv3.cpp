@@ -545,6 +545,35 @@ LiveRef ResilientV3::checkRefLive(
   return LiveRef(ref);
 }
 
+LiveRef ResilientV3::preCheckBorrow(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    bool refKnownLive) {
+  switch (refMT->ownership) {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::OWN: {
+      assert(false); // curious
+    }
+    case Ownership::MUTABLE_BORROW: {
+      return hgmWeaks.preCheckFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive);
+    }
+    case Ownership::WEAK: {
+      assert(false);
+      break;
+    }
+    default:
+      assert(false);
+      break;
+  }
+  return LiveRef(ref);
+}
+
 
 Ref ResilientV3::getRuntimeSizedArrayLength(
     FunctionState *functionState,
@@ -649,10 +678,10 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
       sourceOwnership == Ownership::MUTABLE_BORROW ||
       sourceOwnership == Ownership::WEAK) {
     if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
-      return wrap(
-          globalState->getRegion(sourceType),
-          sourceType,
-          hgmWeaks.preCheckFatPtr(FL(), functionState, builder, sourceType, sourceRef, resultKnownLive));
+      auto prechecked =
+          hgmWeaks.preCheckFatPtr(
+              FL(), functionState, builder, sourceType, sourceRef, resultKnownLive);
+      return prechecked.inner;
     } else {
       assert(
           targetOwnership == Ownership::MUTABLE_BORROW ||

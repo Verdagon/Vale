@@ -1021,3 +1021,15 @@ LiveRef Unsafe::checkRefLive(
   // The whole point of unsafe is to get around such notions of liveness, so just return a LiveRef.
   return LiveRef(ref);
 }
+
+LiveRef Unsafe::preCheckBorrow(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    bool refKnownLive) {
+  // The whole point of unsafe is to get around such notions of liveness, so just return a LiveRef.
+  return LiveRef(ref);
+}

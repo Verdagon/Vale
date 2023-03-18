@@ -515,7 +515,6 @@ std::tuple<LLVMValueRef, LLVMValueRef> explodeWeakInterfaceRef(
     Ref virtualArgRef,
     std::function<WeakFatPtrLE(WeakFatPtrLE weakInterfaceFatPtrLE)> weakInterfaceRefToWeakStructRef);
 
-
 void storeMemberStrong(
     GlobalState* globalState,
     FunctionState* functionState,

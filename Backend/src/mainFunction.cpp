@@ -98,6 +98,11 @@ Prototype* makeValeMainFunction(
           buildPrint(
               globalState, entryBuilder,
               LLVMBuildLoad(entryBuilder, globalState->livenessCheckCounterLE, "livenessCheckCounterLE"));
+          buildFlare(FL(), globalState, functionState, entryBuilder);
+          buildPrint(globalState, entryBuilder, "\nLiveness pre-checks: ");
+          buildPrint(
+              globalState, entryBuilder,
+              LLVMBuildLoad(entryBuilder, globalState->livenessPreCheckCounterLE, "livenessPreCheckCounterLE"));
           buildPrint(globalState, entryBuilder, "\n");
         }
         buildFlare(FL(), globalState, functionState, entryBuilder);

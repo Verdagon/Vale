@@ -75,6 +75,7 @@ class TypeTests extends FunSuite with Matchers with Collector with TestParseUtil
     compile("_ &[#3]MutableStruct") shouldHave {
       case PatternPP(_,_,
         Some(IgnoredLocalNameDeclarationP(_)),
+        None,
         Some(
           InterpretedPT(_,
             Some(OwnershipPT(_, BorrowP)),
@@ -92,6 +93,7 @@ class TypeTests extends FunSuite with Matchers with Collector with TestParseUtil
     compile("_ &&[#3]<_, _>MutableStruct") shouldHave {
       case PatternPP(_,_,
         Some(IgnoredLocalNameDeclarationP(_)),
+        None,
         Some(
           InterpretedPT(_,
             Some(OwnershipPT(_, WeakP)),
@@ -109,6 +111,7 @@ class TypeTests extends FunSuite with Matchers with Collector with TestParseUtil
     compile("_ MyOption<MyList<int>>") shouldHave {
       case PatternPP(_,_,
         Some(IgnoredLocalNameDeclarationP(_)),
+        None,
         Some(
           CallPT(
             _,

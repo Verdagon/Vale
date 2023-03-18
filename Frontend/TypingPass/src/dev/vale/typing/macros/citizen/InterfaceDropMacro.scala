@@ -93,6 +93,7 @@ class InterfaceDropMacro(
         runeToType.toMap,
         Vector(
           ParameterS(
+            false,
             AtomSP(
               range(-1340),
               Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)))),

@@ -826,6 +826,15 @@ public:
       sourceExpr(sourceExpr_), sourceResultType(sourceResultType_) {}
 };
 
+class PreCheckBorrow : public Expression {
+public:
+  Expression* sourceExpr;
+  Reference* sourceResultType;
+
+  PreCheckBorrow(Expression* sourceExpr_, Reference* sourceResultType_) :
+      sourceExpr(sourceExpr_), sourceResultType(sourceResultType_) {}
+};
+
 
 class LockWeak : public Expression {
 public:

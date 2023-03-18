@@ -90,6 +90,19 @@ Ref translateExpressionInner(
     Ref result = translateDiscard(globalState, functionState, blockState, builder, discardM);
 //    buildFlare(FL(), globalState, functionState, builder, std::string("/") + typeid(*expr).name());
     return result;
+  } else if (auto preCheckBorrowM = dynamic_cast<PreCheckBorrow*>(expr)) {
+    auto sourceResultType = preCheckBorrowM->sourceResultType;
+    auto structRegionInstanceRef =
+        // At some point, look up the actual region instance, perhaps from the FunctionState?
+        globalState->getRegion(preCheckBorrowM->sourceResultType)->createRegionInstanceLocal(functionState, builder);
+
+    buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
+    Ref result = translateExpression(globalState, functionState, blockState, builder, preCheckBorrowM->sourceExpr);
+    globalState->getRegion(sourceResultType)
+        ->preCheckBorrow(
+            FL(), functionState, builder, structRegionInstanceRef, sourceResultType, result, false);
+
+    return result;
   } else if (auto ret = dynamic_cast<Return*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto sourceRef = translateExpression(globalState, functionState, blockState, builder, ret->sourceExpr);

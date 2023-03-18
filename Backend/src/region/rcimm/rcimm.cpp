@@ -1674,3 +1674,15 @@ LiveRef RCImm::checkRefLive(
   // Everything is always known live in an RC world.
   return LiveRef(ref);
 }
+
+LiveRef RCImm::preCheckBorrow(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    bool refKnownLive) {
+  // Everything is always known live in an RC world.
+  return LiveRef(ref);
+}
