@@ -33,7 +33,7 @@ object ITemplataT {
 
   def expectRegionPlaceholder(templata: ITemplataT[RegionTemplataType]): IdT[RegionPlaceholderNameT] = {
     templata match {
-      case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+      case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
         IdT(packageCoord, initSteps, r)
       }
       case other => vfail(other)

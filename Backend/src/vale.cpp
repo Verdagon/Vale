@@ -815,6 +815,10 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__livenessCheckCounter");
   LLVMSetInitializer(globalState->livenessCheckCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
 
+  globalState->livenessPreCheckCounterLE =
+      LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__livenessPreCheckCounter");
+  LLVMSetInitializer(globalState->livenessPreCheckCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+
   initInternalExterns(globalState);
 
   RCImm rcImm(globalState);

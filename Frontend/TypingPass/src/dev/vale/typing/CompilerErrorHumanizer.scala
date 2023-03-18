@@ -519,7 +519,7 @@ object CompilerErrorHumanizer {
         "(" + coords.map(CoordTemplataT).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case StringTemplataT(value) => "\"" + value + "\""
-      case PlaceholderTemplataT(id@IdT(_, _, RegionPlaceholderNameT(index, rune, _)), tyype) => {
+      case PlaceholderTemplataT(id@IdT(_, _, RegionPlaceholderNameT(index, rune, _, _)), tyype) => {
         rune match {
           case DenizenDefaultRegionRuneS(denizenName) => {
             PostParserErrorHumanizer.humanizeName(denizenName) + "'"
@@ -636,7 +636,7 @@ object CompilerErrorHumanizer {
       case KindPlaceholderNameT(template) => humanizeName(codeMap, template)
       case KindPlaceholderTemplateNameT(index, rune) => humanizeRune(rune)
       case NonKindNonRegionPlaceholderNameT(index, rune) => humanizeRune(rune)
-      case RegionPlaceholderNameT(index, rune, _) => humanizeRune(rune)
+      case RegionPlaceholderNameT(index, rune, _, _) => humanizeRune(rune)
       case CodeVarNameT(name) => name.str
       case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
       case FunctionTemplateNameT(humanName, codeLoc) => humanName.str

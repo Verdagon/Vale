@@ -79,7 +79,16 @@ public:
       Ref regionInstanceRef,
       Reference* refMT,
       Ref ref,
-      bool refKnownLive);
+      bool refKnownLive) override;
+
+  LiveRef preCheckBorrow(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      bool refKnownLive) override;
 
   WrapperPtrLE lockWeakRef(
       AreaAndFileAndLine from,

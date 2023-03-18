@@ -221,10 +221,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val BlockSE(_, _, ConsecutorSE(things)) = block
     val lambdas = Collector.all(things, { case f @ FunctionSE(_) => f }).toList
     lambdas.head.function.params match {
-      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(MagicParamNameS(_))), None, Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
+      case Vector(_, ParameterS(false, AtomSP(_, Some(CaptureS(MagicParamNameS(_))), None, Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
     }
     lambdas.last.function.params match {
-      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")))), None, Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
+      case Vector(_, ParameterS(false, AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")))), None, Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
     }
   }
 

@@ -67,6 +67,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val tCoordRuneFromParams =
       param match {
         case ParameterS(
+          false,
           AtomSP(_,
             Some(CaptureS(CodeVarNameS(StrI("moo")))),
             None,
@@ -89,6 +90,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val paramRune =
       param match {
         case ParameterS(
+          false,
           AtomSP(_,
           None,
             None,

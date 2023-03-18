@@ -37,8 +37,8 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
   test("Two-element destructure with ignore") {
     compile("[_, b]") shouldHave {
       case PatternPP(_,_,
-          None,None,
-          Some(DestructureP(_,Vector(PatternPP(_,_,Some(IgnoredLocalNameDeclarationP(_)), None, None, None), capture("b")))),
+          None,None,None,
+          Some(DestructureP(_,Vector(PatternPP(_,_,Some(IgnoredLocalNameDeclarationP(_)), None, None, None, None), capture("b")))),
           None) =>
     }
   }
@@ -47,6 +47,7 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
       case PatternPP(_,_,
         Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
         None,
+        None,
         Some(DestructureP(_,Vector(capture("x"), capture("y")))),
         None) =>
     }
@@ -54,6 +55,7 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
   test("Type with destructure") {
     compile("A[a, b]") shouldHave {
       case PatternPP(_,_,
+        None,
         None,
         Some(NameOrRunePT(NameP(_, StrI("A")))),
         Some(DestructureP(_,Vector(capture("a"), capture("b")))),
@@ -64,6 +66,7 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
     compile("a A[x, y]") shouldHave {
       case PatternPP(_,_,
         Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+        None,
         Some(NameOrRunePT(NameP(_, StrI("A")))),
         Some(DestructureP(_,Vector(capture("x"), capture("y")))),
         None) =>
@@ -73,6 +76,7 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
     compile("a [_ int, _ bool]") shouldHave {
       case PatternPP(_,_,
           Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+          None,
           None,
           Some(DestructureP(_,Vector(fromEnv("int"), fromEnv("bool")))),
           None) =>

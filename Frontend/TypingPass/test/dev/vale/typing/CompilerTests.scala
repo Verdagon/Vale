@@ -75,7 +75,7 @@ class CompilerTests extends FunSuite with Matchers {
         |func main(a int) int { return a; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ParameterT(_, _, CoordT(ShareT, _, IntT.i32)) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ParameterT(_, _, _, CoordT(ShareT, _, IntT.i32)) => })
     val lookup = Collector.onlyOf(coutputs.lookupFunction("main"), classOf[LocalLookupTE]);
     lookup.localVariable.name match { case CodeVarNameT(StrI("a")) => }
     lookup.localVariable.coord match { case CoordT(ShareT, _, IntT.i32) => }
@@ -288,7 +288,7 @@ class CompilerTests extends FunSuite with Matchers {
       case FunctionHeaderT(
         simpleNameT("MyStruct"),
         _,
-        Vector(ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, _, IntT.i32))),
+        Vector(ParameterT(CodeVarNameT(StrI("a")), None, false, CoordT(ShareT, _, IntT.i32))),
         CoordT(OwnT, _,StructTT(simpleNameT("MyStruct"))),
         _) =>
     })
@@ -586,6 +586,7 @@ class CompilerTests extends FunSuite with Matchers {
           ParameterT(
             CodeVarNameT(StrI("value")),
             None,
+            false,
             CoordT(OwnT,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _))))))),
         CoordT(
           OwnT,

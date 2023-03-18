@@ -204,7 +204,16 @@ public:
       Ref regionInstanceRef,
       Reference* refMT,
       Ref ref,
-      bool refKnownLive);
+      bool refKnownLive) override;
+
+  LiveRef preCheckBorrow(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      bool refKnownLive) override;
 
   // Returns a LLVMValueRef for a ref to the string object.
   // The caller should then use getStringBytesPtr to then fill the string's contents.

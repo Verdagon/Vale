@@ -241,10 +241,10 @@ object TemplataCompiler {
               template,
               expectInteger(mergeTemplataRegions(interner, coutputs, oldToNewRegion, size)),
               expectVariability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, variability)),
-              RawArrayNameT(
+              interner.intern(RawArrayNameT(
                 expectMutability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, mutability)),
                 mergeCoordRegions(interner, coutputs, oldToNewRegion, elementType),
-                mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, selfRegion)))))))
+                mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, selfRegion))))))))
       }
       case RuntimeSizedArrayTT(IdT(packageCoord, initSteps, RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType, selfRegion)))) => {
         // DO NOT SUBMIT
@@ -256,10 +256,10 @@ object TemplataCompiler {
             initSteps.map(mergeNameRegions(interner, coutputs, oldToNewRegion, _)),
             interner.intern(RuntimeSizedArrayNameT(
               template,
-              RawArrayNameT(
+              interner.intern(RawArrayNameT(
                 expectMutability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, mutability)),
                 mergeCoordRegions(interner, coutputs, oldToNewRegion, elementType),
-                mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, selfRegion)))))))
+                mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, selfRegion))))))))
       }
       case other => vimpl(other)
     }

@@ -22,6 +22,12 @@ public:
       Reference* targetType,
       Ref sourceRef);
 
+  Ref crashifyReference(
+      FunctionState *functionState,
+      LLVMBuilderRef builder,
+      Reference *sourceType,
+      WeakFatPtrLE weakFarPtrLE);
+
   WeakFatPtrLE weakStructPtrToGenWeakInterfacePtr(
       GlobalState *globalState,
       FunctionState *functionState,
@@ -105,7 +111,7 @@ public:
       Ref ref,
       bool weakRefKnownLive);
 
-  WrapperPtrLE preCheckFatPtr(
+  LiveRef preCheckFatPtr(
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,

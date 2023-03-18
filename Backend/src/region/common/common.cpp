@@ -1673,13 +1673,13 @@ std::tuple<LLVMValueRef, LLVMValueRef> explodeWeakInterfaceRef(
     Reference* virtualParamMT,
     Ref virtualArgRef,
     std::function<WeakFatPtrLE(WeakFatPtrLE weakInterfaceFatPtrLE)> weakInterfaceRefToWeakStructRef) {
-  LLVMValueRef itablePtrLE = nullptr;
-  LLVMValueRef objPtrLE = nullptr;
   auto virtualArgLE =
       globalState->getRegion(virtualParamMT)
           ->checkValidReference(FL(), functionState, builder, false, virtualParamMT, virtualArgRef);
   auto weakFatPtrLE = weakRefStructs->makeWeakFatPtr(virtualParamMT, virtualArgLE);
   // Disassemble the weak interface ref.
+  LLVMValueRef itablePtrLE = nullptr;
+  LLVMValueRef objPtrLE = nullptr;
   auto interfaceRefLE =
       kindStructs->makeInterfaceFatPtrWithoutChecking(
           FL(), functionState, builder, virtualParamMT,

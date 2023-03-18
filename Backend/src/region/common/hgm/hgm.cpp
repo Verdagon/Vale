@@ -287,7 +287,7 @@ WrapperPtrLE HybridGenerationalMemory::lockGenFatPtr(
   return getWrapperPtr(FL(), functionState, builder, refM, liveRef);
 }
 
-WrapperPtrLE HybridGenerationalMemory::preCheckFatPtr(
+LiveRef HybridGenerationalMemory::preCheckFatPtr(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -299,31 +299,28 @@ WrapperPtrLE HybridGenerationalMemory::preCheckFatPtr(
           FL(), functionState, builder, false, refM, ref);
   auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
-  if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && elideChecksForKnownLive) {
+  assert(refM->ownership == Ownership::MUTABLE_BORROW);
+
+  if (knownLive && elideChecksForKnownLive) {
     // Do nothing, just wrap it and return it.
-    auto resultLE =
-        globalState->getRegion(refM)
-            ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-    return kindStructs->makeWrapperPtrWithoutChecking(refM, resultLE);
+    return LiveRef(ref);
   } else {
     if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
+      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, refM, weakFatPtrLE, knownLive);
-    auto typeLT = globalState->getRegion(refM)->translateType(refM);
-    auto resultLE =
-        buildIfElse(
-            globalState, functionState, builder, typeLT, isZeroLE(builder, isAliveLE),
-            [this, from, typeLT](LLVMBuilderRef thenBuilder) {
-              auto nullPtrLE = LLVMBuildLoad(thenBuilder, globalState->crashGlobalLE, "nullPtr");
-              return LLVMBuildPointerCast(thenBuilder, nullPtrLE, typeLT, "nullAsType");
+    auto resultRef =
+        buildIfElseV(
+            globalState, functionState, builder,
+            wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isZeroLE(builder, isAliveLE)),
+            refM, refM,
+            [this, from, functionState, refM, weakFatPtrLE](LLVMBuilderRef thenBuilder) -> Ref {
+              return crashifyReference(functionState, thenBuilder, refM, weakFatPtrLE);
             },
-            [this, from, functionState, refM, knownLive, ref](LLVMBuilderRef elseBuilder) {
-              return globalState->getRegion(refM)
-                ->checkValidReference(FL(), functionState, elseBuilder, knownLive, refM, ref);
+            [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
+              return ref;
             });
-
-    return kindStructs->makeWrapperPtrWithoutChecking(refM, resultLE);
+    return LiveRef(resultRef);
   }
 }
 
@@ -569,6 +566,65 @@ Ref HybridGenerationalMemory::assembleWeakRef(
         assembleRuntimeSizedArrayWeakRef(
             functionState, builder, sourceType, runtimeSizedArray, targetType, sourceWrapperPtrLE);
     return wrap(globalState->getRegion(targetType), targetType, resultLE);
+  } else assert(false);
+}
+
+Ref HybridGenerationalMemory::crashifyReference(
+    FunctionState *functionState,
+    LLVMBuilderRef builder,
+    Reference *refMT,
+    WeakFatPtrLE weakFatPtrLE) {
+  auto genLE = constI64LE(globalState, 13371337UL);
+  auto crashPtrLE = LLVMBuildLoad(builder, globalState->crashGlobalLE, "crashVoidPtrLE");
+
+  auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refMT, weakFatPtrLE);
+
+  if (auto structKind = dynamic_cast<StructKind*>(refMT->kind)) {
+    auto oldStructPtrLE = innerLE;
+    auto newStructPtrLE =
+        LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldStructPtrLE), "crashPtrLE");
+    auto newStructWrapperPtrLE = WrapperPtrLE(refMT, newStructPtrLE);
+    auto resultLE =
+        assembleStructWeakRef(
+            functionState, builder, refMT, structKind, genLE, newStructWrapperPtrLE);
+    return wrap(globalState->getRegion(refMT), refMT, resultLE);
+  } else if (auto interfaceKindM = dynamic_cast<InterfaceKind*>(refMT->kind)) {
+    auto oldInterfaceFatPtrLE =
+        kindStructs->makeInterfaceFatPtr(FL(), functionState, builder, refMT, innerLE);
+    // Preserve the old itable ptr, I'd think we still want function calls on it to go through.
+    // Not super important though.
+    auto itablePtrLE =
+        getItablePtrFromInterfacePtr(
+            globalState, functionState, builder, refMT, oldInterfaceFatPtrLE);
+    // Now package it up with the crash pointer and the new generation.
+    auto newInterfaceFatPtrRawLE =
+        makeInterfaceRefStruct(
+            globalState, functionState, builder, kindStructs, interfaceKindM, crashPtrLE, itablePtrLE);
+    auto newInterfaceFatPtrLE =
+        kindStructs->makeInterfaceFatPtrWithoutChecking(
+            FL(), functionState, builder, refMT, newInterfaceFatPtrRawLE);
+    auto newInterfaceWeakFatPtrLE =
+        assembleInterfaceWeakRef(
+            functionState, builder, refMT, interfaceKindM, genLE, newInterfaceFatPtrLE);
+    return wrap(globalState->getRegion(refMT), refMT, newInterfaceWeakFatPtrLE);
+  } else if (auto staticSizedArray = dynamic_cast<StaticSizedArrayT*>(refMT->kind)) {
+    auto oldSsaPtrLE = innerLE;
+    auto newSsaPtrLE =
+        LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldSsaPtrLE), "crashPtrLE");
+    auto newSsaWrapperPtrLE = WrapperPtrLE(refMT, newSsaPtrLE);
+    auto resultLE =
+        assembleStaticSizedArrayWeakRef(
+            functionState, builder, refMT, staticSizedArray, genLE, newSsaWrapperPtrLE);
+    return wrap(globalState->getRegion(refMT), refMT, resultLE);
+  } else if (auto runtimeSizedArray = dynamic_cast<RuntimeSizedArrayT*>(refMT->kind)) {
+    auto oldRsaPtrLE = innerLE;
+    auto newRsaPtrLE =
+        LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldRsaPtrLE), "crashPtrLE");
+    auto newRsaWrapperPtrLE = WrapperPtrLE(refMT, newRsaPtrLE);
+    auto resultLE =
+        assembleRuntimeSizedArrayWeakRef(
+            functionState, builder, refMT, runtimeSizedArray, genLE, newRsaWrapperPtrLE);
+    return wrap(globalState->getRegion(refMT), refMT, resultLE);
   } else assert(false);
 }
 

@@ -67,7 +67,7 @@ object HigherTypedPrinter {
 
     val newParams =
       params.map(param => {
-        val ParameterS(AtomSP(_, maybeName, maybeVirtuality, maybeCoordRune, maybeDestructure)) = param
+        val ParameterS(maybePreChecked, AtomSP(_, maybeName, maybeVirtuality, maybeCoordRune, maybeDestructure)) = param
 
         val paramBegin = printer.pos
 
@@ -93,7 +93,7 @@ object HigherTypedPrinter {
 
         val paramEnd = printer.pos
 
-        ParameterS(AtomSP(RangeS(paramBegin, paramEnd), maybeName, newMaybeVirtuality, newMaybeCoordRune, newDestructure))
+        ParameterS(maybePreChecked, AtomSP(RangeS(paramBegin, paramEnd), maybeName, newMaybeVirtuality, newMaybeCoordRune, newDestructure))
       })
 
     vimpl()

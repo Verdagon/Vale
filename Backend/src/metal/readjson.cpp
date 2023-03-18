@@ -335,6 +335,10 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
     return new Discard(
         readExpression(cache, expression["sourceExpr"]),
         readReference(cache, expression["sourceResultType"]));
+  } else if (type == "PreCheckBorrow") {
+    return new PreCheckBorrow(
+        readExpression(cache, expression["sourceExpr"]),
+        readReference(cache, expression["sourceResultType"]));
   } else if (type == "Argument") {
     return new Argument(
         readReference(cache, expression["resultType"]),
