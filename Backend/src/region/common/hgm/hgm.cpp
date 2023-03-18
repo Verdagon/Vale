@@ -574,7 +574,10 @@ Ref HybridGenerationalMemory::crashifyReference(
     LLVMBuilderRef builder,
     Reference *refMT,
     WeakFatPtrLE weakFatPtrLE) {
-  auto genLE = constI64LE(globalState, 13371337UL);
+  // Tried doing constI64LE(globalState, 13371337UL) here but it caused a LLVM crash ("Cannot emit
+  // physreg copy instruction"). Perhaps LLVM has trouble with inline constants for insertvalue
+  // instructions or something.
+  auto genLE = getTargetGenFromWeakRef(builder, kindStructs, refMT->kind, weakFatPtrLE);
   auto crashPtrLE = LLVMBuildLoad(builder, globalState->crashGlobalLE, "crashVoidPtrLE");
 
   auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refMT, weakFatPtrLE);

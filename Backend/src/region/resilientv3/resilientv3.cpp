@@ -559,6 +559,7 @@ LiveRef ResilientV3::preCheckBorrow(
     case Ownership::IMMUTABLE_BORROW:
     case Ownership::OWN: {
       assert(false); // curious
+      break;
     }
     case Ownership::MUTABLE_BORROW: {
       return hgmWeaks.preCheckFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive);
