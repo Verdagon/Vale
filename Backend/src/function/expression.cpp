@@ -20,6 +20,13 @@ Ref translateExpressionInner(
     LLVMBuilderRef builder,
     Expression* expr);
 
+Ref translatePreCheckBorrow(
+    GlobalState *globalState,
+    FunctionState *functionState,
+    BlockState *blockState,
+    LLVMBuilderRef builder,
+    PreCheckBorrow *preCheckBorrowM);
+
 std::vector<Ref> translateExpressions(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -91,18 +98,9 @@ Ref translateExpressionInner(
 //    buildFlare(FL(), globalState, functionState, builder, std::string("/") + typeid(*expr).name());
     return result;
   } else if (auto preCheckBorrowM = dynamic_cast<PreCheckBorrow*>(expr)) {
-    auto sourceResultType = preCheckBorrowM->sourceResultType;
-    auto structRegionInstanceRef =
-        // At some point, look up the actual region instance, perhaps from the FunctionState?
-        globalState->getRegion(preCheckBorrowM->sourceResultType)->createRegionInstanceLocal(functionState, builder);
-
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
-    Ref result = translateExpression(globalState, functionState, blockState, builder, preCheckBorrowM->sourceExpr);
-    globalState->getRegion(sourceResultType)
-        ->preCheckBorrow(
-            FL(), functionState, builder, structRegionInstanceRef, sourceResultType, result, false);
-
-    return result;
+    return translatePreCheckBorrow(
+        globalState, functionState, blockState, builder, preCheckBorrowM);
   } else if (auto ret = dynamic_cast<Return*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto sourceRef = translateExpression(globalState, functionState, blockState, builder, ret->sourceExpr);
@@ -379,7 +377,7 @@ Ref translateExpressionInner(
     auto arrayType = pushRuntimeSizedArray->arrayType;
     auto arrayMT = dynamic_cast<RuntimeSizedArrayT*>(arrayType->kind);
     assert(arrayMT);
-    bool arrayKnownLive = false;
+    bool arrayKnownLive = true; // DO NOT SUBMIT get this from catalyst
     auto newcomerExpr = pushRuntimeSizedArray->newcomerExpr;
     auto newcomerType = pushRuntimeSizedArray->newcomerType;
     bool newcomerKnownLive = false;
@@ -439,7 +437,7 @@ Ref translateExpressionInner(
     auto rsaRefMT = popRuntimeSizedArray->arrayType;
     auto rsaMT = dynamic_cast<RuntimeSizedArrayT*>(rsaRefMT->kind);
     assert(rsaMT);
-    bool arrayKnownLive = false;
+    bool arrayKnownLive = true; // DO NOT SUBMIT get this from catalyst
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, rsaME);
     globalState->getRegion(rsaRefMT)
@@ -785,7 +783,8 @@ Ref translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = arrayLength->sourceType;
     auto arrayExpr = arrayLength->sourceExpr;
-    bool arrayKnownLive = arrayLength->sourceKnownLive || globalState->opt->overrideKnownLiveTrue;
+    // DO NOT SUBMIT get actual knownLive from catalyst
+    bool arrayKnownLive = true;//arrayLength->sourceKnownLive || globalState->opt->overrideKnownLiveTrue;
 //    auto indexExpr = arrayLength->indexExpr;
 
     auto arrayRegionInstanceRef =

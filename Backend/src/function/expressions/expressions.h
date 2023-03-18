@@ -126,4 +126,11 @@ Ref translateLocalLoad(
     LLVMBuilderRef builder,
     LocalLoad* localLoad);
 
+Ref translatePreCheckBorrow(
+    GlobalState *globalState,
+    FunctionState *functionState,
+    BlockState *blockState,
+    LLVMBuilderRef builder,
+    PreCheckBorrow *preCheckBorrowM);
+
 #endif
