@@ -927,8 +927,8 @@ Ref Determinism::buildReadValueFromFile(
   auto hostRefMT = globalState->linearRegion->linearizeReference(targetRefMT, true);
 
   buildFlare(FL(), globalState, functionState, builder);
-  if (dynamic_cast<Int*>(targetRefMT->kind)) {
-    auto intLE = LLVMBuildTrunc(builder, readI64FromFile(functionState, builder), int32LT, "intFromRecording");
+  if (auto innt = dynamic_cast<Int*>(targetRefMT->kind)) {
+    auto intLE = LLVMBuildTrunc(builder, readI64FromFile(functionState, builder), LLVMIntTypeInContext(globalState->context, innt->bits), "intFromRecording");
     return wrap(globalState->getRegion(targetRefMT), targetRefMT, intLE);
   } else if (dynamic_cast<Void*>(targetRefMT->kind)) {
     return makeVoidRef(globalState);

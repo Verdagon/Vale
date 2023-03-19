@@ -1257,11 +1257,17 @@ class Instantiator(
     desiredPrototypeT.id match {
       case IdT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)) => {
         val funcBoundName = IdT(packageCoord, initSteps, name)
-        val result = vassertSome(denizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc.get(funcBoundName))
+        val prototypeI = vassertSome(denizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc.get(funcBoundName))
         //        if (opts.sanityCheck) {
         //          vassert(Collector.all(result, { case PlaceholderTemplateNameT(_) => }).isEmpty)
         //        }
-        (result, vimpl())
+
+        val collapsedPrototypeI =
+          RegionCollapser.collapsePrototype(
+            RegionCounter.countPrototype(prototypeI),
+            prototypeI)
+
+        (prototypeI, collapsedPrototypeI)
       }
       case IdT(_, _, ExternFunctionNameT(_, _)) => {
         if (opts.sanityCheck) {
@@ -1344,7 +1350,7 @@ class Instantiator(
             case _ => {
               val (prototypeI, prototypeC) =
                 translatePrototype(
-                  denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, vimpl(), suppliedPrototypeUnsubstituted)
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, suppliedPrototypeUnsubstituted)
               prototypeI
             }
           })
@@ -2297,13 +2303,13 @@ class Instantiator(
           val (elseIT, elseCE) =
             translateRefExpr(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, elseCall)
-          (thenIT, elseIT) match {
-            case (a, b) if a == b =>
-            case (_, CoordI(_, NeverIT(_))) =>
-            case (CoordI(_, NeverIT(_)), _) =>
-            case other => vwat(other)
-          }
-          val resultIT = thenIT
+          val resultIT =
+            (thenIT, elseIT) match {
+              case (a, b) if a == b => a
+              case (a, CoordI(_, NeverIT(_))) => a
+              case (CoordI(_, NeverIT(_)), b) => b
+              case other => vwat(other)
+            }
 
           val resultCE = IfIE(conditionCE, thenCE, elseCE, collapseCoord(RegionCounter.countCoord(resultIT), resultIT))
           (resultIT, resultCE)
@@ -2942,7 +2948,7 @@ class Instantiator(
             val combinedOwnership =
               ((outerOwnership, innerOwnership) match {
                 case (OwnT, OwnI) => OwnI
-                case (OwnT, MutableShareI) => {
+                case (OwnT | BorrowT, MutableShareI) => {
                   if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
                     MutableShareI
                   } else {

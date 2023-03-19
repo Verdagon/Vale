@@ -533,6 +533,11 @@ Ref buildExternCall(
     assert(args.size() == 2);
     auto result = LLVMBuildOr( builder, leftLE, rightLE, "");
     return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, result);
+  } else if (prototype->name->name == "__vbi_ExtendI32ToI64") {
+    auto intLE = checkValidInternalReference(FL(), globalState, functionState, builder, true, prototype->params[0], args[0]);
+    assert(args.size() == 1);
+    auto result = LLVMBuildSExt(builder, intLE, LLVMInt64TypeInContext(globalState->context), "");
+    return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, result);
   } else {
     return replayReturnOrCallAndOrRecord(
         globalState, functionState, builder, prototype, args,
