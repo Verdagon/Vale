@@ -729,7 +729,7 @@ class ExpressionCompiler(
                     range :: parentRanges,
                     "Can't move from globals. Name: " + name))
                 }
-                newGlobalFunctionGroupExpression(nenv.snapshot, coutputs, vimpl(), name)
+                newGlobalFunctionGroupExpression(nenv.snapshot, coutputs, region, name)
               }
               case things if things.size > 1 => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(
