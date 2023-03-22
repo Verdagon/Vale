@@ -36,6 +36,7 @@
 #include "region/unsafe/unsafe.h"
 #include "function/expressions/shared/string.h"
 #include <sstream>
+#include <region/safe/safe.h>
 #include "region/linear/linear.h"
 #include "function/expressions/shared/members.h"
 #include "function/expressions/expressions.h"
@@ -674,8 +675,8 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     case RegionOverride::RESILIENT_V3:
       std::cout << "Region override: resilient-v3" << std::endl;
       break;
-    case RegionOverride::RESILIENT_V4:
-      std::cout << "Region override: resilient-v4" << std::endl;
+    case RegionOverride::SAFE:
+      std::cout << "Region override: safe" << std::endl;
       break;
     default:
       assert(false);
@@ -842,9 +843,9 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     case RegionOverride::RESILIENT_V3:
       globalState->mutRegion = new ResilientV3(globalState, globalState->metalCache->mutRegionId);
       break;
-//    case RegionOverride::RESILIENT_V4:
-//      globalState->mutRegion = new ResilientV4(globalState, globalState->metalCache->mutRegionId);
-//      break;
+    case RegionOverride::SAFE:
+      globalState->mutRegion = new Safe(globalState);
+      break;
     default:
       assert(false);
       break;

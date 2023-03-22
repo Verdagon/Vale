@@ -17,7 +17,7 @@ LLVMValueRef LgtWeaks::getTargetGenFromWeakRef(
     Kind* kind,
     WeakFatPtrLE weakRefLE) {
   assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
-         globalState->opt->regionOverride == RegionOverride::RESILIENT_V4);
+         globalState->opt->regionOverride == RegionOverride::SAFE);
   auto headerLE = fatWeaks_.getHeaderFromWeakRef(builder, weakRefLE);
   assert(LLVMTypeOf(headerLE) == weakRefStructsSource->getWeakRefHeaderStruct(kind));
   return LLVMBuildExtractValue(builder, headerLE, WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN, "actualGeni");
@@ -183,7 +183,7 @@ WeakFatPtrLE LgtWeaks::weakStructPtrToLgtiWeakInterfacePtr(
     case RegionOverride::FAST:
     case RegionOverride::NAIVE_RC:
     case RegionOverride::ASSIST:
-    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
+    case RegionOverride::RESILIENT_V3: case RegionOverride::SAFE:
       assert(false);
       break;
     default:

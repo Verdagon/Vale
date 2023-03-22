@@ -780,7 +780,7 @@ LLVMValueRef KindStructs::downcastPtr(LLVMBuilderRef builder, Reference* resultS
 //    case RegionOverride::FAST:
 //      assert(refM->ownership == Ownership::SHARE);
 //      break;
-//    case RegionOverride::RESILIENT_V3: case RegionOverride::RESILIENT_V4:
+//    case RegionOverride::RESILIENT_V3: case RegionOverride::SAFE:
 //      assert(refM->ownership == Ownership::SHARE);
 //      break;
 //    default:
@@ -804,7 +804,7 @@ LLVMValueRef KindStructs::getStrongRcPtrFromControlBlockPtr(
       assert(refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE);
       break;
     case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_V4:
+    case RegionOverride::SAFE:
       assert(refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE);
       break;
     default:

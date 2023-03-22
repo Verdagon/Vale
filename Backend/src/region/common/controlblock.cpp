@@ -43,6 +43,10 @@ void ControlBlock::build() {
         assert(membersL.empty()); // Generation should be at the top of the object
         membersL.push_back(int32LT);
         break;
+      case ControlBlockMember::GENERATION_64B:
+        assert(membersL.empty()); // Generation should be at the top of the object
+        membersL.push_back(int64LT);
+        break;
       case ControlBlockMember::LGTI_32B:
         membersL.push_back(int32LT);
         break;

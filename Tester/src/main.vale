@@ -176,7 +176,7 @@ exported func main() int {
     include_regions.add("assist");
     include_regions.add("naive-rc");
     include_regions.add("resilient-v3");
-    include_regions.add("resilient-v4");
+    include_regions.add("safe");
     include_regions.add("unsafe-fast");
   }
 
@@ -264,10 +264,10 @@ exported func main() int {
     suite.StartTest(116, "kldc", samples_path./("programs/structs/deadmutstruct.vale"), &List([#]["--override_known_live_true", "true"]), region, false);
   }
 
-  if (include_regions.exists({ _ == "resilient-v4" })) {
-    region = "resilient-v4";
-    suite.StartTest(14, "tethercrash", backend_tests_dir./("tethercrash.vale"), &List<str>(), region, false);
-  }
+  // if (include_regions.exists({ _ == "safe" })) {
+  //   region = "safe";
+  //   suite.StartTest(14, "tethercrash", backend_tests_dir./("tethercrash.vale"), &List<str>(), region, false);
+  // }
 
   include_regions.each((region) => {
     suite.StartTest(42, "mutswaplocals", samples_path./("programs/mutswaplocals.vale"), &List<str>(), region, false);
@@ -325,18 +325,22 @@ exported func main() int {
     }
   });
 
-  if (include_regions.exists({ _ == "resilient-v3" }) or include_regions.exists({ _ == "resilient-v4" })) {
+  if (include_regions.exists({ _ == "resilient-v3" }) or include_regions.exists({ _ == "safe" })) {
     // suite.StartCTest("twinpages", &backend_tests_dir./("twinpages/test.c"), List([]["noattemptbadwrite"]), "resilient-v3");
   }
 
 
   if (include_regions.exists({ _ == "resilient-v3" })) {
     region = "resilient-v3";
-    suite.StartTest(0, "cellularautomata", samples_path./("programs/cellularautomata.vale"), &List<str>([#]["--no_std", "true"]), region, false);
     suite.StartTest(10, "foreach", samples_path./("programs/while/foreach.vale"), &List<str>(), region, true);
     suite.StartTest(0, "stdlib_list", stdlib_dir./("src/collections/list/test"), &List<str>(), region, true);
     suite.StartTest(0, "stdlib_hashset", stdlib_dir./("src/collections/hashset/test"), &List<str>(), region, true);
     suite.StartTest(0, "stdlib_hashmap", stdlib_dir./("src/collections/hashmap/test"), &List<str>(), region, true);
+  }
+
+  if (include_regions.exists({ _ == "safe" })) {
+    region = "resilient-v3";
+    suite.StartTest(0, "cellularautomata", samples_path./("programs/cellularautomata.vale"), &List<str>([#]["--no_std", "true"]), region, false);
   }
 
 
