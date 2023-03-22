@@ -40,7 +40,7 @@ LLVMValueRef upcastThinPtr(
       break;
     }
     case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_V4: {
+    case RegionOverride::SAFE: {
       assert(
           sourceStructTypeM->ownership == Ownership::MUTABLE_SHARE ||
           sourceStructTypeM->ownership == Ownership::IMMUTABLE_SHARE ||
@@ -330,8 +330,8 @@ void innerDeallocateYonder(
   auto controlBlockPtrLE =
       kindStructsSource->getControlBlockPtr(from, functionState, builder, ref.inner, refMT);
 
-  globalState->getRegion(refMT)
-      ->noteWeakableDestroyed(functionState, builder, refMT, controlBlockPtrLE);
+//  globalState->getRegion(refMT)
+//      ->noteWeakableDestroyed(functionState, builder, refMT, controlBlockPtrLE);
 
   if (globalState->opt->census) {
     LLVMValueRef resultAsVoidPtrLE =

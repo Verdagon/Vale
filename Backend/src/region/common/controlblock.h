@@ -16,6 +16,7 @@ enum class ControlBlockMember {
   UNUSED_32B,
   LGTI_32B,
   GENERATION_32B,
+  GENERATION_64B,
   WRCI_32B,
   STRONG_RC_32B,
   CENSUS_TYPE_STR,

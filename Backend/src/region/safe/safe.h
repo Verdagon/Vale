@@ -1,5 +1,5 @@
-#ifndef REGION_UNSAFE_UNSAFE_H_
-#define REGION_UNSAFE_UNSAFE_H_
+#ifndef REGION_SAFE_SAFE_H_
+#define REGION_SAFE_SAFE_H_
 
 #include <llvm-c/Core.h>
 #include "../../function/expressions/shared/afl.h"
@@ -12,10 +12,10 @@
 #include "../../function/function.h"
 #include "../iregion.h"
 
-class Unsafe : public IRegion {
+class Safe : public IRegion {
 public:
-  Unsafe(GlobalState* globalState);
-  ~Unsafe() override = default;
+  Safe(GlobalState* globalState);
+  ~Safe() override = default;
 
   Ref allocate(
       Ref regionInstanceRef,
@@ -445,16 +445,16 @@ public:
 
   std::string getExportName(Package* currentPackage, Reference* refMT, bool includeProjectName) override;
   std::string generateStructDefsC(
-    Package* currentPackage,
+      Package* currentPackage,
       StructDefinition* refMT) override;
   std::string generateInterfaceDefsC(
-    Package* currentPackage,
+      Package* currentPackage,
       InterfaceDefinition* refMT) override;
   std::string generateStaticSizedArrayDefsC(
-    Package* currentPackage,
+      Package* currentPackage,
       StaticSizedArrayDefinitionT* ssaDefM) override;
   std::string generateRuntimeSizedArrayDefsC(
-    Package* currentPackage,
+      Package* currentPackage,
       RuntimeSizedArrayDefinitionT* rsaDefM) override;
 
   LLVMTypeRef getExternalType(Reference* refMT) override;
@@ -538,7 +538,7 @@ protected:
   FatWeaks fatWeaks;
 //  WrcWeaks wrcWeaks;
 
-  std::string namePrefix = "__Unsafe";
+  std::string namePrefix = "__Safe";
 
   StructKind* regionKind = nullptr;
   Reference* regionRefMT = nullptr;
