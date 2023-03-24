@@ -219,7 +219,8 @@ Ref translateExpressionInner(
     auto resultLE = LLVMGetParam(functionState->containingFuncL, argument->argumentIndex);
     auto resultRef = wrap(globalState->getRegion(argument->resultType), argument->resultType, resultLE);
     auto resultLT = globalState->getRegion(argument->resultType)->translateType(argument->resultType);
-    globalState->getRegion(argument->resultType)->checkValidReference(FL(), functionState, builder, false, argument->resultType, resultRef);
+    globalState->getRegion(argument->resultType)
+        ->checkValidReference(FL(), functionState, builder, false, argument->resultType, resultRef);
 //    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
     return resultRef;
   } else if (auto constantStr = dynamic_cast<ConstantStr*>(expr)) {
