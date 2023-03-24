@@ -37,6 +37,7 @@
 #include "function/expressions/shared/string.h"
 #include <sstream>
 #include <region/safe/safe.h>
+#include <region/safe-baseline/safe.h>
 #include "region/linear/linear.h"
 #include "function/expressions/shared/members.h"
 #include "function/expressions/expressions.h"
@@ -678,6 +679,9 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     case RegionOverride::SAFE:
       std::cout << "Region override: safe" << std::endl;
       break;
+    case RegionOverride::SAFE_BASELINE:
+      std::cout << "Region override: safe-baseline" << std::endl;
+      break;
     default:
       assert(false);
       break;
@@ -845,6 +849,9 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       break;
     case RegionOverride::SAFE:
       globalState->mutRegion = new Safe(globalState);
+      break;
+    case RegionOverride::SAFE_BASELINE:
+      globalState->mutRegion = new SafeBaseline(globalState);
       break;
     default:
       assert(false);
@@ -1279,6 +1286,7 @@ void generateOutput(
   LLVMDisposeMessage(layout);
 
   if (!asmPath.empty()) {
+    std::cout << "Printing file " << asmPath << std::endl;
     // Generate assembly file if requested
     if (LLVMTargetMachineEmitToFile(machine, mod, const_cast<char*>(asmPath.c_str()),
         LLVMAssemblyFile, &err) != 0) {
@@ -1341,12 +1349,49 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
   LLVMPassManagerRef passmgr = LLVMCreatePassManager();
 
   if (globalState->opt->release) {
+    std::cout << "Running optimization passes..." << std::endl;
+
     LLVMAddPromoteMemoryToRegisterPass(passmgr);     // Demote allocas to registers.
     LLVMAddInstructionCombiningPass(passmgr);        // Do simple "peephole" and bit-twiddling optimizations
     LLVMAddReassociatePass(passmgr);                 // Reassociate expressions.
     LLVMAddGVNPass(passmgr);                         // Eliminate common subexpressions.
     LLVMAddCFGSimplificationPass(passmgr);           // Simplify the control flow graph
-    LLVMAddFunctionInliningPass(passmgr);        // Function inlining
+    LLVMAddFunctionInliningPass(passmgr);            // Function inlining
+
+    LLVMAddVerifierPass(passmgr);
+    // Annotation2MetadataPass?
+    // ForceFunctionAttrsPass?
+    // InferFunctionAttrsPass?
+    LLVMAddFunctionAttrsPass(passmgr);
+    // CoroEarlyPass?
+    // OpenMPOptPass?
+    LLVMAddIPSCCPPass(passmgr); // IPSCCPPass
+    LLVMAddCalledValuePropagationPass(passmgr); // CalledValuePropagationPass
+    LLVMAddGlobalOptimizerPass(passmgr); // GlobalOptPass
+    LLVMAddDeadArgEliminationPass(passmgr); // DeadArgumentEliminationPass
+    // ModuleInlinerWrapperPass?
+    // InlineAdvisorAnalysis?
+    // GlobalsAA?
+    // CallGraphAnalysis?
+    // CoroCleanupPass?
+    LLVMAddGlobalOptimizerPass(passmgr);
+    LLVMAddGlobalDCEPass(passmgr);
+    // EliminateAvailableExternallyPass?
+    // ReversePostOrderFunctionAttrsPass?
+    // RecomputeGlobalsAAPass?
+    LLVMAddGlobalDCEPass(passmgr);
+    LLVMAddConstantMergePass(passmgr);
+    // CGProfilePass?
+    // RelLookupTableConverterPass?
+    // VerifierPass?
+    LLVMAddVerifierPass(passmgr);
+
+    LLVMAddPromoteMemoryToRegisterPass(passmgr);     // Demote allocas to registers.
+    LLVMAddInstructionCombiningPass(passmgr);        // Do simple "peephole" and bit-twiddling optimizations
+    LLVMAddReassociatePass(passmgr);                 // Reassociate expressions.
+    LLVMAddGVNPass(passmgr);                         // Eliminate common subexpressions.
+    LLVMAddCFGSimplificationPass(passmgr);           // Simplify the control flow graph
+    LLVMAddFunctionInliningPass(passmgr);            // Function inlining
   }
 
   LLVMRunPassManager(passmgr, globalState->mod);

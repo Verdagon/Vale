@@ -1,5 +1,5 @@
-#ifndef REGION_SAFE_SAFE_H_
-#define REGION_SAFE_SAFE_H_
+#ifndef REGION_SAFE_BASELINE_SAFE_BASELINE_H_
+#define REGION_SAFE_BASELINE_SAFE_BASELINE_H_
 
 #include <llvm-c/Core.h>
 #include "../../function/expressions/shared/afl.h"
@@ -12,10 +12,10 @@
 #include "../../function/function.h"
 #include "../iregion.h"
 
-class Safe : public IRegion {
+class SafeBaseline : public IRegion {
 public:
-  Safe(GlobalState* globalState);
-  ~Safe() override = default;
+  SafeBaseline(GlobalState* globalState);
+  ~SafeBaseline() override = default;
 
   Ref allocate(
       Ref regionInstanceRef,
@@ -526,13 +526,6 @@ public:
   // Soon it'll be non-virtual, and parameters will differ by region.
   Ref createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) override;
 
-  WrapperPtrLE getWrapperPtrLive(
-      AreaAndFileAndLine from,
-      FunctionState *functionState,
-      LLVMBuilderRef builder,
-      Reference *refM,
-      LiveRef liveRef);
-
 protected:
   LLVMValueRef fillControlBlockGeneration(LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);
 
@@ -550,7 +543,7 @@ protected:
 
   LLVMValueRef nextGenThreadGlobalI64LE = nullptr;
 
-  std::string namePrefix = "__Safe";
+  std::string namePrefix = "__SafeBaseline";
 
   StructKind* regionKind = nullptr;
   Reference* regionRefMT = nullptr;
