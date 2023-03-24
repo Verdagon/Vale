@@ -188,26 +188,6 @@ LLVMValueRef insertStrongRc(
       "controlBlockWithRc");
 }
 
-LoadResult loadElementFromSSAInner(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* ssaRefMT,
-    StaticSizedArrayT* ssaMT,
-    int size,
-    Reference* elementType,
-    Ref indexRef,
-    LLVMValueRef arrayElementsPtrLE) {
-  auto sizeRef =
-      wrap(
-          globalState->getRegion(globalState->metalCache->i32Ref),
-          globalState->metalCache->i32Ref,
-          LLVMConstInt(LLVMInt32TypeInContext(globalState->context), size, false));
-  buildFlare(FL(), globalState, functionState, builder);
-  return loadElement(
-      globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
-}
-
 // Checks that the generation is <= to the actual one.
 void buildCheckGen(
     GlobalState* globalState,
@@ -385,8 +365,10 @@ void fillStaticSizedArray(
     const std::vector<Ref>& elementRefs) {
 
   for (int i = 0; i < elementRefs.size(); i++) {
+    // Making an InBoundsLE because the bound of the containing loop is the size of the array.
+    auto indexInBoundsLE = InBoundsLE{constI64LE(globalState, i)};
     globalState->getRegion(ssaRefMT)->initializeElementInSSA(
-        functionState, builder, arrayRegionInstanceRef, ssaRefMT, ssaMT, ssaRef, globalState->constI32(i), elementRefs[i]);
+        functionState, builder, arrayRegionInstanceRef, ssaRefMT, ssaMT, ssaRef, indexInBoundsLE, elementRefs[i]);
   }
 }
 
@@ -403,7 +385,6 @@ void fillRuntimeSizedArray(
     Ref generatorLE,
     Ref sizeLE,
     LiveRef rsaRef) {
-
   intRangeLoopV(
       globalState, functionState, builder, sizeLE,
       [globalState, functionState, arrayRegionInstanceRef, rsaRefMT, rsaMT, generatorMethod, generatorType, rsaRef, generatorLE](
@@ -413,11 +394,17 @@ void fillRuntimeSizedArray(
             functionState, bodyBuilder, generatorType, generatorLE);
         std::vector<Ref> argExprsLE = {generatorLE, indexRef};
 
+        auto indexLE =
+            globalState->getRegion(globalState->metalCache->i32Ref)
+                ->checkValidReference(FL(), functionState, bodyBuilder, false, globalState->metalCache->i32Ref, indexRef);
+        // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+        auto indexInBoundsLE = InBoundsLE{indexLE};
+
         auto elementRef =
             buildCallV(
                 globalState, functionState, bodyBuilder, generatorMethod, argExprsLE);
         globalState->getRegion(rsaMT)->pushRuntimeSizedArrayNoBoundsCheck(
-            functionState, bodyBuilder, arrayRegionInstanceRef, rsaRefMT, rsaMT, rsaRef, indexRef, elementRef);
+            functionState, bodyBuilder, arrayRegionInstanceRef, rsaRefMT, rsaMT, rsaRef, indexInBoundsLE, elementRef);
       });
 }
 
@@ -444,11 +431,17 @@ void fillStaticSizedArrayFromCallable(
             functionState, bodyBuilder, generatorType, generatorLE);
         std::vector<Ref> argExprsLE = {generatorLE, indexRef};
 
+        auto indexLE =
+            globalState->getRegion(globalState->metalCache->i32Ref)
+                ->checkValidReference(FL(), functionState, bodyBuilder, false, globalState->metalCache->i32Ref, indexRef);
+        // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+        auto indexInBoundsLE = InBoundsLE{indexLE};
+
         auto elementRef =
             buildCallV(
                 globalState, functionState, bodyBuilder, generatorMethod, argExprsLE);
         globalState->getRegion(ssaMT)->initializeElementInSSA(
-            functionState, bodyBuilder, arrayRegionInstanceRef, ssaRefMT, ssaMT, ssaRef, indexRef, elementRef);
+            functionState, bodyBuilder, arrayRegionInstanceRef, ssaRefMT, ssaMT, ssaRef, indexInBoundsLE, elementRef);
       });
 }
 
@@ -784,16 +777,6 @@ Ref transmutePtr(
   return targetWeakRef;
 }
 
-
-Ref getRuntimeSizedArrayLength(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    WrapperPtrLE arrayRefLE) {
-  auto lengthPtrLE = getRuntimeSizedArrayLengthPtr(globalState, builder, arrayRefLE);
-  auto intLE = LLVMBuildLoad(builder, lengthPtrLE, "rsaLen");
-  return wrap(globalState->getRegion(globalState->metalCache->i32Ref), globalState->metalCache->i32Ref, intLE);
-}
 
 Ref getRuntimeSizedArrayCapacity(
     GlobalState* globalState,
@@ -1192,37 +1175,6 @@ void regularCheckValidReference(
     assert(false);
 }
 
-LoadResult regularLoadElementFromRSAWithoutUpgrade(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    bool capacityExists,
-    Reference* rsaRefMT,
-    RuntimeSizedArrayT* rsaMT,
-    Mutability mutability,
-    Reference* elementType,
-    LiveRef arrayRef,
-    Ref indexRef) {
-  auto wrapperPtrLE =
-      kindStructs->makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
-  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
-  auto arrayElementsPtrLE =
-      getRuntimeSizedArrayContentsPtr(
-          builder,
-          capacityExists,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, rsaRefMT,
-              globalState->getRegion(rsaRefMT)
-                  ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner)));
-  buildFlare(FL(), globalState, functionState, builder);
-  return loadElement(
-      globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
-}
-
 //LoadResult resilientLoadElementFromRSAWithoutUpgrade(
 //    GlobalState* globalState,
 //    FunctionState* functionState,
@@ -1280,30 +1232,6 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
 //      assert(false);
 //  }
 //}
-
-void regularInitializeElementInSSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    Reference* ssaRefMT,
-    Reference* elementType,
-    int size,
-    LiveRef arrayRef,
-    Ref indexRef,
-    Ref elementRef) {
-  auto arrayElementsPtrLE =
-      getStaticSizedArrayContentsPtr(
-          builder,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, ssaRefMT,
-              globalState->getRegion(ssaRefMT)
-                  ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner)));
-  buildFlare(FL(), globalState, functionState, builder);
-  initializeElementWithoutIncrementSize(
-      globalState, functionState, builder, ssaRefMT->location,
-      elementType, globalState->constI32(size), arrayElementsPtrLE, indexRef, elementRef);
-}
 
 LiveRef constructRuntimeSizedArray(
     GlobalState* globalState,
@@ -1460,29 +1388,6 @@ Ref upcastWeak(
       targetInterfaceTypeM);
 }
 
-LoadResult regularloadElementFromSSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* ssaRefMT,
-    StaticSizedArrayT* ssaMT,
-    Reference* elementType,
-    int arraySize,
-    Mutability mutability,
-    LiveRef arrayRef,
-    Ref indexRef,
-    KindStructs* kindStructs) {
-  LLVMValueRef arrayElementsPtrLE =
-      getStaticSizedArrayContentsPtr(
-          builder,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, ssaRefMT,
-              globalState->getRegion(ssaRefMT)
-                  ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner)));
-  return loadElementFromSSAInner(
-      globalState, functionState, builder, ssaRefMT, ssaMT, arraySize, elementType, indexRef, arrayElementsPtrLE);
-}
-
 LoadResult resilientloadElementFromSSA(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -1493,7 +1398,7 @@ LoadResult resilientloadElementFromSSA(
     Mutability mutability,
     Reference* elementType,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexLE,
     KindStructs* kindStructs) {
   switch (ssaRefMT->ownership) {
     case Ownership::MUTABLE_BORROW:
@@ -1509,7 +1414,7 @@ LoadResult resilientloadElementFromSSA(
                   globalState->getRegion(ssaRefMT)
                       ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner)));
       return loadElementFromSSAInner(
-          globalState, functionState, builder, ssaRefMT, ssaMT, size, elementType, indexRef, arrayElementsPtrLE);
+          globalState, functionState, builder, elementType, indexLE, arrayElementsPtrLE);
     }
 //    case Ownership::MUTABLE_BORROW:
 //    case Ownership::IMMUTABLE_BORROW: {
@@ -1838,38 +1743,6 @@ LLVMValueRef getInterfaceMethodFunctionPtrFromItable(
   return resultLE;
 }
 
-
-void initializeElementInRSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    bool capacityExists,
-    bool incrementSize,
-    RuntimeSizedArrayT* rsaMT,
-    Reference* rsaRefMT,
-    WrapperPtrLE rsaWPtrLE,
-    Ref indexRef,
-    Ref elementRef) {
-//  auto rsaWrapperPtrLE =
-//      kindStructs->makeWrapperPtr(
-//          FL(), functionState, builder, rsaRefMT,
-//          globalState->getRegion(rsaRefMT)
-//              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
-  auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, capacityExists, rsaWPtrLE);
-  if (incrementSize) {
-    auto sizePtrLE = ::getRuntimeSizedArrayLengthPtr(globalState, builder, rsaWPtrLE);
-    ::initializeElementAndIncrementSize(
-        globalState, functionState, builder, rsaRefMT->location,
-        rsaDef->elementType, sizePtrLE, arrayElementsPtrLE, indexRef, elementRef);
-  } else {
-    auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWPtrLE);
-    ::initializeElementWithoutIncrementSize(
-        globalState, functionState, builder, rsaRefMT->location,
-        rsaDef->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
-  }
-}
 
 Ref normalLocalLoad(GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr) {
   auto region = globalState->getRegion(local->type);

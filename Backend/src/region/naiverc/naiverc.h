@@ -288,7 +288,7 @@ public:
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
       LiveRef arrayRef,
-      Ref indexRef) override;
+      InBoundsLE indexLE) override;
   LoadResult loadElementFromRSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -296,7 +296,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef arrayRef,
-      Ref indexRef) override;
+      InBoundsLE indexLE) override;
 
 
   Ref storeElementInRSA(
@@ -305,7 +305,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef arrayRef,
-      Ref indexRef,
+      InBoundsLE indexLE,
       Ref elementRef) override;
 
 
@@ -333,7 +333,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef arrayRef,
-      Ref indexRef,
+      InBoundsLE sizeLE,
       Ref elementRef) override;
 
   Ref popRuntimeSizedArrayNoBoundsCheck(
@@ -343,7 +343,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef arrayRef,
-      Ref indexRef) override;
+      InBoundsLE indexLE) override;
 
   void initializeElementInSSA(
       FunctionState* functionState,
@@ -352,7 +352,7 @@ public:
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
       LiveRef arrayRef,
-      Ref indexRef,
+      InBoundsLE indexLE,
       Ref elementRef) override;
 
   Ref deinitializeElementFromSSA(
@@ -361,7 +361,7 @@ public:
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
       LiveRef arrayRef,
-      Ref indexRef) override;
+      InBoundsLE indexLE) override;
 
 
   Ref mallocStr(

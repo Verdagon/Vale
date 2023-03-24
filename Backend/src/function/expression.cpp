@@ -1,6 +1,7 @@
 #include <iostream>
 #include "../region/common/common.h"
 #include "../utils/branch.h"
+#include "../utils/call.h"
 #include "expressions/shared/elements.h"
 #include "../region/common/controlblock.h"
 #include "expressions/shared/members.h"
@@ -311,11 +312,12 @@ Ref translateExpressionInner(
     int arraySize = destroyStaticSizedArrayIntoFunction->arraySize;
     bool arrayKnownLive = true;
 
+    auto sizeLE = LLVMConstInt(LLVMInt32TypeInContext(globalState->context), arraySize, false);
     auto sizeRef =
         wrap(
             globalState->getRegion(globalState->metalCache->i32Ref),
             globalState->metalCache->i32Ref,
-            LLVMConstInt(LLVMInt32TypeInContext(globalState->context), arraySize, false));
+            sizeLE);
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
 
@@ -331,18 +333,22 @@ Ref translateExpressionInner(
         globalState->getRegion(arrayType)
             ->checkRefLive(FL(), functionState, builder, arrayRegionInstanceRef, arrayType, arrayRef, arrayKnownLive);
 
-    intRangeLoopReverseV(
-        globalState, functionState, builder, globalState->metalCache->i32, sizeRef,
+    intRangeLoopReverse(
+        globalState, functionState, builder, globalState->metalCache->i32Ref, sizeLE,
         [globalState, functionState, arrayRegionInstanceRef, elementType, consumerType, consumerMethod, arrayType, arrayKind, consumerRef, arrayLiveRef](
-            Ref indexRef, LLVMBuilderRef bodyBuilder) {
+            LLVMValueRef indexLE, LLVMBuilderRef bodyBuilder) {
+          // We know it's in bounds because we used size as a bound for the loop.
+          auto inBoundsIndexLE = InBoundsLE{indexLE};
+
           globalState->getRegion(consumerType)->alias(
               AFL("DestroySSAIntoF consume iteration"),
               functionState, bodyBuilder, consumerType, consumerRef);
 
           auto elementLoadResult =
               globalState->getRegion(arrayType)->loadElementFromSSA(
-                  functionState, bodyBuilder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef,
-                  indexRef);
+                  functionState, bodyBuilder, arrayRegionInstanceRef, arrayType, arrayKind,
+                  arrayLiveRef,
+                  inBoundsIndexLE);
           auto elementRef = elementLoadResult.move();
 
           globalState->getRegion(elementType)
@@ -407,16 +413,8 @@ Ref translateExpressionInner(
         globalState->getRegion(arrayType)
             ->getRuntimeSizedArrayCapacity(
                 functionState, builder, arrayRegionInstanceRef, arrayType, arrayLiveRef);
-    auto arrayCapacityLE =
-        globalState->getRegion(globalState->metalCache->i32Ref)
-            ->checkValidReference(FL(),
-                functionState, builder, true, globalState->metalCache->i32Ref, arrayCapacityRef);
 
-    auto arrayIsFullLE = LLVMBuildICmp(builder, LLVMIntUGE, arrayLenLE, arrayCapacityLE, "hasSpace");
-    buildIfV(
-        globalState, functionState, builder, arrayIsFullLE, [globalState](LLVMBuilderRef bodyBuilder) {
-          buildPrint(globalState, bodyBuilder, "Error: Runtime-sized array has no room for new element!");
-        });
+    auto sizeInBoundsLE = checkIndexInBounds(globalState, functionState, builder, globalState->metalCache->i32Ref, arrayCapacityRef, arrayLenLE, "Error: Array has no room for new element!");
 
     auto newcomerRef = translateExpression(globalState, functionState, blockState, builder, newcomerExpr);
     globalState->getRegion(newcomerType)
@@ -424,7 +422,7 @@ Ref translateExpressionInner(
 
     globalState->getRegion(arrayType)
         ->pushRuntimeSizedArrayNoBoundsCheck(
-            functionState, builder, arrayRegionInstanceRef, arrayType, arrayMT, arrayLiveRef, arrayLenRef, newcomerRef);
+            functionState, builder, arrayRegionInstanceRef, arrayType, arrayMT, arrayLiveRef, sizeInBoundsLE, newcomerRef);
 
     globalState->getRegion(arrayType)
         ->dealias(
@@ -460,24 +458,20 @@ Ref translateExpressionInner(
         globalState->getRegion(globalState->metalCache->i32Ref)
             ->checkValidReference(FL(),
                 functionState, builder, true, globalState->metalCache->i32Ref, arrayLenRef);
-    globalState->getRegion(globalState->metalCache->i32Ref)
-        ->checkValidReference(FL(),
-            functionState, builder, true, globalState->metalCache->i32Ref, arrayLenRef);
 
     auto indexLE = LLVMBuildSub(builder, arrayLenLE, constI32LE(globalState, 1), "index");
     auto indexRef =
         wrap(globalState->getRegion(globalState->metalCache->i32Ref), globalState->metalCache->i32Ref, indexLE);
 
-    auto arrayIsEmptyLE = LLVMBuildICmp(builder, LLVMIntEQ, arrayLenLE, constI32LE(globalState, 0), "hasElements");
-    buildIfV(
-        globalState, functionState, builder, arrayIsEmptyLE, [globalState](LLVMBuilderRef bodyBuilder) {
-          buildPrint(globalState, bodyBuilder, "Error: Cannot pop element from empty runtime-sized array!");
-        });
+    auto indexInBoundsLE =
+        checkLastElementExists(
+            globalState, functionState, builder, arrayLenRef,
+            "Error: Cannot pop element from empty array!");
 
     auto resultRef =
         globalState->getRegion(rsaRefMT)
             ->popRuntimeSizedArrayNoBoundsCheck(
-                functionState, builder, arrayRegionInstanceRef, rsaRefMT, rsaMT, arrayLiveRef, indexRef);
+                functionState, builder, arrayRegionInstanceRef, rsaRefMT, rsaMT, arrayLiveRef, indexInBoundsLE);
 
     globalState->getRegion(rsaRefMT)
         ->dealias(
@@ -507,16 +501,8 @@ Ref translateExpressionInner(
         globalState->getRegion(arrayType)
             ->getRuntimeSizedArrayLength(
                 functionState, builder, arrayRegionInstanceRef, arrayType, arrayLiveRef);
-    auto arrayLenLE =
-        globalState->getRegion(globalState->metalCache->i32Ref)
-            ->checkValidReference(FL(),
-                functionState, builder, true, globalState->metalCache->i32Ref, arrayLenRef);
 
-    auto hasElementsLE = LLVMBuildICmp(builder, LLVMIntNE, arrayLenLE, constI32LE(globalState, 0), "hasElements");
-    buildIfV(
-        globalState, functionState, builder, hasElementsLE, [globalState](LLVMBuilderRef bodyBuilder) {
-          buildPrint(globalState, bodyBuilder, "Error: Destroying non-empty array!");
-        });
+    checkArrayEmpty(globalState, functionState, builder, arrayLenRef, "Error: Destroying non-empty array!");
 
     if (arrayType->ownership == Ownership::OWN) {
       globalState->getRegion(arrayType)
@@ -569,18 +555,22 @@ Ref translateExpressionInner(
         ->checkValidReference(FL(), functionState, builder, true, consumerType, consumerRef);
 
     intRangeLoopReverseV(
-        globalState, functionState, builder, globalState->metalCache->i32, arrayLenRef,
+        globalState, functionState, builder, globalState->metalCache->i32Ref, arrayLenRef,
         [globalState, functionState, arrayRegionInstanceRef, consumerType, consumerMethod, arrayKind, arrayType, arrayLiveRef, consumerRef](
             Ref indexRef, LLVMBuilderRef bodyBuilder) {
           globalState->getRegion(consumerType)
               ->alias(
                   AFL("DestroyRSAIntoF consume iteration"),
                   functionState, bodyBuilder, consumerType, consumerRef);
+          auto indexLE =
+              globalState->getRegion(globalState->metalCache->i32)
+                  ->checkValidReference(FL(), functionState, bodyBuilder, true, globalState->metalCache->i32Ref, indexRef);
+          auto indexInBoundsLE = InBoundsLE{indexLE};
 
           auto elementRef =
               globalState->getRegion(arrayType)
                   ->popRuntimeSizedArrayNoBoundsCheck(
-                      functionState, bodyBuilder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexRef);
+                      functionState, bodyBuilder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexInBoundsLE);
           std::vector<Ref> argExprRefs = {consumerRef, elementRef};
 
           buildCallV(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs);
@@ -640,7 +630,7 @@ Ref translateExpressionInner(
             globalState->getRegion(globalState->metalCache->i32Ref),
             globalState->metalCache->i32Ref,
             constI32LE(globalState, arraySize));
-    auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
+    auto indexRef = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
     globalState->getRegion(arrayType)
         ->dealias(AFL("SSALoad"), functionState, builder, arrayType, arrayRef);
@@ -653,10 +643,22 @@ Ref translateExpressionInner(
         globalState->getRegion(arrayType)
             ->checkRefLive(FL(), functionState, builder, arrayRegionInstanceRef, arrayType, arrayRef, arrayKnownLive);
 
+    auto indexLE =
+        globalState->getRegion(resultType)
+            ->checkValidReference(
+                FL(), functionState, builder, false, staticSizedArrayLoad->resultType, indexRef);
+
+    auto intMT = globalState->metalCache->i32Ref;
+    auto indexInBoundsLE =
+        checkIndexInBounds(
+            globalState, functionState, builder, intMT, sizeLE, indexLE,
+            "Error: Array index out of bounds!");
+
     auto loadResult =
         globalState->getRegion(arrayType)
             ->loadElementFromSSA(
-                functionState, builder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexLE);
+                functionState, builder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef,
+                indexInBoundsLE);
     auto resultRef =
         globalState->getRegion(staticSizedArrayLoad->resultType)
             ->upgradeLoadResultToRefWithTargetOwnership(
@@ -680,26 +682,36 @@ Ref translateExpressionInner(
     auto resultType = globalState->metalCache->getReference(targetOwnership, targetLocation, elementType->kind);
     bool arrayKnownLive = runtimeSizedArrayLoad->arrayKnownLive || globalState->opt->overrideKnownLiveTrue;
 
-    auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-
-    globalState->getRegion(arrayType)
-        ->checkValidReference(FL(), functionState, builder, true, arrayType, arrayRef);
-
-//    auto sizeLE = getRuntimeSizedArrayLength(globalState, functionState, builder, arrayType, arrayRef);
-    auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
-    auto mutability = ownershipToMutability(arrayType->ownership);
-
     auto arrayRegionInstanceRef =
         // At some point, look up the actual region instance, perhaps from the FunctionState?
         globalState->getRegion(arrayType)->createRegionInstanceLocal(functionState, builder);
+
+    auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
 
     auto arrayLiveRef =
         globalState->getRegion(arrayType)
             ->checkRefLive(FL(), functionState, builder, arrayRegionInstanceRef, arrayType, arrayRef, arrayKnownLive);
 
+    globalState->getRegion(arrayType)
+        ->checkValidReference(FL(), functionState, builder, true, arrayType, arrayRef);
+
+    auto sizeRef =
+        globalState->getRegion(arrayType)->getRuntimeSizedArrayLength(
+            functionState, builder, arrayRegionInstanceRef, arrayType, arrayLiveRef);
+    auto indexRef = translateExpression(globalState, functionState, blockState, builder, indexExpr);
+    auto indexLE =
+        globalState->getRegion(globalState->metalCache->i32Ref)
+            ->checkValidReference(FL(), functionState, builder, false, globalState->metalCache->i32Ref, indexRef);
+    auto indexInBoundsLE =
+        checkIndexInBounds(
+            globalState, functionState, builder, globalState->metalCache->i32Ref, sizeRef, indexLE,
+            "Error: Array index out of bounds!");
+
+    auto mutability = ownershipToMutability(arrayType->ownership);
+
     auto loadResult =
         globalState->getRegion(arrayType)->loadElementFromRSA(
-            functionState, builder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexLE);
+            functionState, builder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexInBoundsLE);
     auto resultRef =
         globalState->getRegion(elementType)
             ->upgradeLoadResultToRefWithTargetOwnership(
@@ -741,15 +753,23 @@ Ref translateExpressionInner(
         globalState->getRegion(arrayType)
             ->getRuntimeSizedArrayLength(
                 functionState, builder, arrayRegionInstanceRef, arrayType, arrayLiveRef);
-    globalState->getRegion(globalState->metalCache->i32Ref)
-        ->checkValidReference(FL(), functionState, builder, true, globalState->metalCache->i32Ref, sizeRef);
+    auto sizeLE =
+        globalState->getRegion(globalState->metalCache->i32Ref)
+            ->checkValidReference(FL(), functionState, builder, true, globalState->metalCache->i32Ref, sizeRef);
 
 
     auto indexRef =
         translateExpression(globalState, functionState, blockState, builder, indexExpr);
+    auto indexLE =
+        globalState->getRegion(globalState->metalCache->i32Ref)
+            ->checkValidReference(FL(), functionState, builder, true, globalState->metalCache->i32Ref, indexRef);
+
     auto mutability = ownershipToMutability(arrayType->ownership);
 
-
+    auto indexInBoundsLE =
+        checkIndexInBounds(
+            globalState, functionState, builder, globalState->metalCache->i32Ref, sizeRef, indexLE,
+            "Error: Array index out of bounds!");
 
     // The purpose of RuntimeSizedArrayStore is to put a swap value into a spot, and give
     // what was in it.
@@ -764,7 +784,7 @@ Ref translateExpressionInner(
     auto loadResult =
         globalState->getRegion(arrayType)->
             loadElementFromRSA(
-                functionState, builder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexRef);
+                functionState, builder, arrayRegionInstanceRef, arrayType, arrayKind, arrayLiveRef, indexInBoundsLE);
     auto oldValueLE = loadResult.move();
     globalState->getRegion(elementType)
         ->checkValidReference(FL(), functionState, builder, false, elementType, oldValueLE);
@@ -773,7 +793,7 @@ Ref translateExpressionInner(
     globalState->getRegion(arrayType)
         ->storeElementInRSA(
             functionState, builder,
-            arrayType, arrayKind, arrayLiveRef, indexRef, valueToStoreLE);
+            arrayType, arrayKind, arrayLiveRef, indexInBoundsLE, valueToStoreLE);
 
     globalState->getRegion(arrayType)
         ->dealias(AFL("RSAStore"), functionState, builder, arrayType, arrayRef);

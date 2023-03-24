@@ -580,10 +580,10 @@ LoadResult RCImm::loadElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexLE) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   return regularloadElementFromSSA(
-      globalState, functionState, builder, ssaRefMT, ssaMT, ssaDef->elementType, ssaDef->size, ssaDef->mutability, arrayRef, indexRef, &kindStructs);
+      globalState, functionState, builder, ssaRefMT, ssaDef->elementType, arrayRef, indexLE, &kindStructs);
 }
 
 LoadResult RCImm::loadElementFromRSA(
@@ -593,10 +593,18 @@ LoadResult RCImm::loadElementFromRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   return regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, false, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef);
+      globalState,
+      functionState,
+      builder,
+      &kindStructs,
+      false,
+      rsaRefMT,
+      rsaDef->elementType,
+      arrayRef,
+      indexInBoundsLE);
 }
 
 Ref RCImm::popRuntimeSizedArrayNoBoundsCheck(
@@ -606,11 +614,11 @@ Ref RCImm::popRuntimeSizedArrayNoBoundsCheck(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   return regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, false, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef,
-      indexRef).move();
+      globalState, functionState, builder, &kindStructs, false, rsaRefMT, rsaDef->elementType, arrayRef,
+      indexInBoundsLE).move();
 }
 
 
@@ -620,7 +628,7 @@ Ref RCImm::storeElementInRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   assert(false);
   exit(1);
@@ -633,7 +641,7 @@ void RCImm::pushRuntimeSizedArrayNoBoundsCheck(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto elementType = globalState->program->getRuntimeSizedArray(rsaMT)->elementType;
   buildFlare(FL(), globalState, functionState, builder);
@@ -643,11 +651,12 @@ void RCImm::pushRuntimeSizedArrayNoBoundsCheck(
           FL(), functionState, builder, rsaRefMT,
           globalState->getRegion(rsaRefMT)
               ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
-  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, false, arrayWrapperPtrLE);
+  auto incrementedSize =
+      incrementRSASize(globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
       globalState, functionState, builder, rsaRefMT->location,
-      elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
+      elementType, arrayElementsPtrLE, indexInBoundsLE, elementRef, incrementedSize);
 }
 
 void RCImm::deallocate(
@@ -1063,14 +1072,14 @@ void RCImm::initializeElementInSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef ssaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDefM = globalState->program->getStaticSizedArray(ssaMT);
   auto elementType = ssaDefM->elementType;
   buildFlare(FL(), globalState, functionState, builder);
   regularInitializeElementInSSA(
       globalState, functionState, builder, &kindStructs, ssaRefMT,
-      elementType, ssaDefM->size, ssaRef, indexRef, elementRef);
+      elementType, ssaRef, indexInBoundsLE, elementRef);
 }
 
 Ref RCImm::deinitializeElementFromSSA(
@@ -1079,7 +1088,7 @@ Ref RCImm::deinitializeElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }
@@ -1355,15 +1364,21 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
           auto hostMemberRefMT = globalState->linearRegion->linearizeReference(valeMemberRefMT, true);
 
           intRangeLoopReverseV(
-              globalState, functionState, builder, globalState->metalCache->i32, lengthRef,
+              globalState, functionState, builder, globalState->metalCache->i32Ref, lengthRef,
 
               [this, functionState, regionInstanceRef, hostRegionInstanceRef, hostObjectRefMT, valeRsaRef, hostMemberRefMT, valeObjectRefMT, hostRsaMT, valeRsaMT, hostObjectRef, valeMemberRefMT, unserializeMemberOrElement](
                   Ref indexRef, LLVMBuilderRef bodyBuilder) {
+                auto indexLE =
+                    globalState->getRegion(globalState->metalCache->i32)
+                        ->checkValidReference(FL(), functionState, bodyBuilder, true, globalState->metalCache->i32Ref, indexRef);
+                // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+                auto indexInBoundsLE = InBoundsLE{indexLE};
+
                 auto hostMemberRef =
                     globalState->getRegion(hostObjectRefMT)
                         ->loadElementFromRSA(
                             functionState, bodyBuilder, hostRegionInstanceRef, hostObjectRefMT, hostRsaMT,
-                            hostObjectRef, indexRef)
+                            hostObjectRef, indexInBoundsLE)
                         .move();
                 auto valeElementRef =
                     unserializeMemberOrElement(
@@ -1371,7 +1386,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
                         hostMemberRef);
                 pushRuntimeSizedArrayNoBoundsCheck(
                     functionState, bodyBuilder, regionInstanceRef, valeObjectRefMT, valeRsaMT, valeRsaRef,
-                    indexRef, valeElementRef);
+                    indexInBoundsLE, valeElementRef);
               });
 
           LLVMBuildRet(builder, checkValidReference(FL(), functionState, builder, true, valeRsaRefMT, valeRsaRef.inner));
@@ -1390,15 +1405,21 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
           auto valeMemberRefMT = valeSsaDefM->elementType;
 
           intRangeLoopReverseV(
-              globalState, functionState, builder, globalState->metalCache->i32, globalState->constI32(length),
+              globalState, functionState, builder, globalState->metalCache->i32Ref, globalState->constI32(length),
               [this, functionState, regionInstanceRef, hostRegionInstanceRef, hostObjectRefMT, valeSsaRef, valeObjectRefMT, hostSsaMT, valeSsaMT, hostObjectRef, valeMemberRefMT, unserializeMemberOrElement](
                   Ref indexRef, LLVMBuilderRef bodyBuilder) {
+                auto indexLE =
+                    globalState->getRegion(globalState->metalCache->i32Ref)
+                        ->checkValidReference(FL(), functionState, bodyBuilder, true, globalState->metalCache->i32Ref, indexRef);
+                // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+                auto indexInBoundsLE = InBoundsLE{indexLE};
 
                 auto hostMemberRef =
                     globalState->getRegion(hostObjectRefMT)
                         ->loadElementFromSSA(
-                            functionState, bodyBuilder, hostRegionInstanceRef, hostObjectRefMT, hostSsaMT,
-                            hostObjectRef, indexRef)
+                            functionState, bodyBuilder, hostRegionInstanceRef, hostObjectRefMT,
+                            hostSsaMT,
+                            hostObjectRef, indexInBoundsLE)
                         .move();
                 auto hostMemberRefMT = globalState->linearRegion->linearizeReference(valeMemberRefMT, true);
                 auto valeElementRef =
@@ -1407,7 +1428,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
                         hostMemberRef);
                 initializeElementInSSA(
                     functionState, bodyBuilder, regionInstanceRef, valeObjectRefMT, valeSsaMT, valeSsaRef,
-                    indexRef, valeElementRef);
+                    indexInBoundsLE, valeElementRef);
               });
 
 
@@ -1530,15 +1551,21 @@ void RCImm::defineConcreteFreeFunction(Kind* valeKind) {
           auto memberRefMT = globalState->program->getRuntimeSizedArray(rsaMT)->elementType;
 
           intRangeLoopReverseV(
-              globalState, functionState, builder, globalState->metalCache->i32, lengthRef,
+              globalState, functionState, builder, globalState->metalCache->i32Ref, lengthRef,
 
               [this, functionState, regionInstanceRef, objectRefMT, rsaMT, objectRef, memberRefMT](
                   Ref indexRef, LLVMBuilderRef bodyBuilder) {
+                auto indexLE =
+                    globalState->getRegion(globalState->metalCache->i32Ref)
+                        ->checkValidReference(FL(), functionState, bodyBuilder, false, globalState->metalCache->i32Ref, indexRef);
+                // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+                auto indexInBoundsLE = InBoundsLE{indexLE};
+
                 auto memberRef =
                     globalState->getRegion(objectRefMT)
                         ->loadElementFromRSA(
                             functionState, bodyBuilder, regionInstanceRef, objectRefMT, rsaMT,
-                            objectRef, indexRef)
+                            objectRef, indexInBoundsLE)
                         .move();
                 discard(FL(), globalState, functionState, bodyBuilder, memberRefMT, memberRef);
               });
@@ -1554,15 +1581,21 @@ void RCImm::defineConcreteFreeFunction(Kind* valeKind) {
           auto memberRefMT = ssaDefM->elementType;
 
           intRangeLoopReverseV(
-              globalState, functionState, builder, globalState->metalCache->i32, globalState->constI32(length),
+              globalState, functionState, builder, globalState->metalCache->i32Ref, globalState->constI32(length),
               [this, functionState, regionInstanceRef, objectRefMT, hostSsaMT, objectRef, memberRefMT](
                   Ref indexRef, LLVMBuilderRef bodyBuilder) {
+
+                auto indexLE =
+                    globalState->getRegion(globalState->metalCache->i32Ref)
+                        ->checkValidReference(FL(), functionState, bodyBuilder, false, globalState->metalCache->i32Ref, indexRef);
+                // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+                auto indexInBoundsLE = InBoundsLE{indexLE};
 
                 auto memberRef =
                     globalState->getRegion(objectRefMT)
                         ->loadElementFromSSA(
                             functionState, bodyBuilder, regionInstanceRef, objectRefMT, hostSsaMT,
-                            objectRef, indexRef)
+                            objectRef, indexInBoundsLE)
                         .move();
                 discard(FL(), globalState, functionState, bodyBuilder, memberRefMT, memberRef);
               });

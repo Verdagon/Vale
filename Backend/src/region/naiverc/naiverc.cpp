@@ -651,10 +651,10 @@ LoadResult NaiveRC::loadElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   return regularloadElementFromSSA(
-      globalState, functionState, builder, ssaRefMT, ssaMT, ssaDef->elementType, ssaDef->size, ssaDef->mutability, arrayRef, indexRef, &kindStructs);
+      globalState, functionState, builder, ssaRefMT, ssaDef->elementType, arrayRef, indexInBoundsLE, &kindStructs);
 }
 
 LoadResult NaiveRC::loadElementFromRSA(
@@ -664,10 +664,10 @@ LoadResult NaiveRC::loadElementFromRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   return regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef);
+      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaDef->elementType, arrayRef, indexInBoundsLE);
 }
 
 Ref NaiveRC::storeElementInRSA(
@@ -676,7 +676,7 @@ Ref NaiveRC::storeElementInRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto arrayWrapperPtrLE =
@@ -688,7 +688,7 @@ Ref NaiveRC::storeElementInRSA(
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return ::swapElement(
-      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
+      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, arrayElementsPtrLE, indexInBoundsLE, elementRef);
 }
 
 Ref NaiveRC::upcast(
@@ -912,14 +912,27 @@ void NaiveRC::pushRuntimeSizedArrayNoBoundsCheck(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto arrayWrapperPtrLE =
       kindStructs.makeWrapperPtr(
           FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
-  ::initializeElementInRSA(
-      globalState, functionState, builder, &kindStructs, true, true, rsaMT, rsaRefMT, arrayWrapperPtrLE, indexRef, elementRef);
+          globalState->getRegion(rsaRefMT)->checkValidReference(
+              FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
+  auto incrementedSize =
+      incrementRSASize(
+          globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
+  ::initializeElementInRSAWithoutIncrementSize(
+      globalState,
+      functionState,
+      builder,
+      true,
+      rsaMT,
+      rsaRefMT,
+      arrayWrapperPtrLE,
+      indexInBoundsLE,
+      elementRef,
+      incrementedSize);
 }
 
 Ref NaiveRC::popRuntimeSizedArrayNoBoundsCheck(
@@ -929,11 +942,20 @@ Ref NaiveRC::popRuntimeSizedArrayNoBoundsCheck(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto elementLE =
       regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef).move();
+          globalState,
+          functionState,
+          builder,
+          &kindStructs,
+          true,
+          rsaRefMT,
+          rsaDef->elementType,
+          arrayRef,
+          indexLE)
+          .move();
   auto rsaWrapperPtrLE =
       kindStructs.makeWrapperPtr(
           FL(), functionState, builder, rsaRefMT,
@@ -950,7 +972,7 @@ void NaiveRC::initializeElementInSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   auto arrayWrapperPtrLE =
@@ -958,11 +980,12 @@ void NaiveRC::initializeElementInSSA(
           FL(), functionState, builder, ssaRefMT,
           globalState->getRegion(ssaRefMT)
               ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner));
-  auto sizeRef = globalState->constI32(ssaDef->size);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
-      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, sizeRef, arrayElementsPtrLE,
-      indexRef, elementRef);
+      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, arrayElementsPtrLE,
+      indexInBoundsLE, elementRef,
+      // Manually making an IncrementedSize because it's an SSA.
+      IncrementedSize{});
 }
 
 Ref NaiveRC::deinitializeElementFromSSA(
@@ -971,7 +994,7 @@ Ref NaiveRC::deinitializeElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }

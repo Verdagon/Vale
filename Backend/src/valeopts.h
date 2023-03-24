@@ -46,6 +46,7 @@ struct ValeOptions {
     bool flares = false;    // Enable flare output
     bool fastCrash = false;    // Enable single-instruction crash, a bit faster
     bool elideChecksForKnownLive = false;    // Enables generational heap
+    bool includeBoundsChecks = true;
     bool overrideKnownLiveTrue = false;    // Enables generational heap
     bool printMemOverhead = false;    // Enables generational heap
     bool enableReplaying = false;    // Enables deterministic replaying

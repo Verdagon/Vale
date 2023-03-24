@@ -753,11 +753,11 @@ LoadResult ResilientV3::loadElementFromSSA(
     Reference *ssaRefMT,
     StaticSizedArrayT *ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   return resilientloadElementFromSSA(
       globalState, functionState, builder, ssaRefMT, ssaMT, ssaDef->size, ssaDef->mutability,
-      ssaDef->elementType, arrayRef, indexRef, &kindStructs);
+      ssaDef->elementType, arrayRef, indexInBoundsLE, &kindStructs);
 }
 
 LoadResult ResilientV3::loadElementFromRSA(
@@ -767,15 +767,12 @@ LoadResult ResilientV3::loadElementFromRSA(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-
   auto wrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, arrayRef);
-
-  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, wrapperPtrLE);
   return loadElement(
-      globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, sizeRef, indexRef);
+      globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, indexInBoundsLE);
 }
 
 Ref ResilientV3::storeElementInRSA(
@@ -784,7 +781,7 @@ Ref ResilientV3::storeElementInRSA(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto arrayWrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, rsaRef);
@@ -793,9 +790,8 @@ Ref ResilientV3::storeElementInRSA(
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return ::swapElement(
-      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, sizeRef,
-      arrayElementsPtrLE,
-      indexRef, elementRef);
+      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType,
+      arrayElementsPtrLE, indexInBoundsLE, elementRef);
 }
 
 Ref ResilientV3::upcast(
@@ -1028,13 +1024,13 @@ void ResilientV3::pushRuntimeSizedArrayNoBoundsCheck(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto arrayWPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, rsaRef);
-//  auto arrayWrapperPtrLE =
-//      lockWeakRef(FL(), functionState, builder, rsaRefMT, rsaRef);
-  ::initializeElementInRSA(
-      globalState, functionState, builder, &kindStructs, true, true, rsaMT, rsaRefMT, arrayWPtrLE, indexRef, elementRef);
+  auto incrementedSize =
+      incrementRSASize(globalState, functionState, builder, rsaRefMT, arrayWPtrLE);
+  initializeElementInRSAWithoutIncrementSize(
+      globalState, functionState, builder, true, rsaMT, rsaRefMT, arrayWPtrLE, indexInBoundsLE, elementRef, incrementedSize);
 }
 
 Ref ResilientV3::popRuntimeSizedArrayNoBoundsCheck(
@@ -1044,16 +1040,15 @@ Ref ResilientV3::popRuntimeSizedArrayNoBoundsCheck(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto rsaWrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, rsaRef);
 
-  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, rsaWrapperPtrLE);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, rsaWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   auto elementLE =
       loadElement(
-          globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, sizeRef, indexRef);
+          globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, indexInBoundsLE);
   decrementRSASize(globalState, functionState, &kindStructs, builder, rsaRefMT, rsaWrapperPtrLE);
   return elementLE.move();
 }
@@ -1065,7 +1060,7 @@ void ResilientV3::initializeElementInSSA(
     Reference *ssaRefMT,
     StaticSizedArrayT *ssaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   auto arrayWrapperPtrLE =
@@ -1076,8 +1071,10 @@ void ResilientV3::initializeElementInSSA(
   auto sizeRef = globalState->constI32(ssaDef->size);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
-      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, sizeRef, arrayElementsPtrLE,
-      indexRef, elementRef);
+      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, arrayElementsPtrLE,
+      indexInBoundsLE, elementRef,
+      // Manually making an IncrementedSize because it's an SSA.
+      IncrementedSize{});
 }
 
 Ref ResilientV3::deinitializeElementFromSSA(
@@ -1086,7 +1083,7 @@ Ref ResilientV3::deinitializeElementFromSSA(
     Reference *ssaRefMT,
     StaticSizedArrayT *ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }

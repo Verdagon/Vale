@@ -22,7 +22,7 @@ struct Tup_i64_i64 {
 
 // TODO: (perhaps before) Use a pre or live ref here
 func NextRand(x i64) Tup_i64_i64 {
-  set x = x + (x / 500096i64);
+  set x = x + (x / 200096i64);
   set x = x - (x * 33554432i64);
   set x = x + (x / 134217728i64);
   return Tup_i64_i64(x, x * 2685821657736338717i64 / 4294967296i64);
@@ -40,12 +40,12 @@ func max(a int, b int) int {
 // How will we eliminate gen checks on the rand instance?
 // Live ref will do it nicely probably.
 func MakeBoard(rand_seed i64) [][]bool {
-  rows = [][]bool(5000);
+  rows = [][]bool(1000);
   row_i = 0;
-  while row_i < 5000 {
-    row = []bool(5000);
+  while row_i < 1000 {
+    row = []bool(4000);
     col_i = 0;
-    while col_i < 5000 {
+    while col_i < 4000 {
       [new_rand_seed, rand_int] = NextRand(rand_seed);
       set rand_seed = new_rand_seed;
       rand_bool = (rand_int mod 2i64) == 0i64;
@@ -60,21 +60,21 @@ func MakeBoard(rand_seed i64) [][]bool {
 }
 
 pure func CellularAutomata<r' imm>(old_map &r'[][]bool) [][]bool {
-  new_map = [][]bool(5000);
-  /// foreach row_i in 0..5000 {
+  new_map = [][]bool(1000);
+  /// foreach row_i in 0..1000 {
   row_i = 0;
-  while row_i < 5000 {
-    new_row = []bool(5000);
-    /// foreach col_i in 0..5000 {
+  while row_i < 1000 {
+    new_row = []bool(4000);
+    /// foreach col_i in 0..4000 {
     col_i = 0;
-    while col_i < 5000 {
+    while col_i < 4000 {
       num_walkable_neighbors = 0;
-      /// foreach neighbor_row_i in max(0, row_i - 1)..min(5000 - 1, row_i + 1) {
+      /// foreach neighbor_row_i in max(0, row_i - 1)..min(1000 - 1, row_i + 1) {
       neighbor_row_i = max(0, row_i - 1);
-      while neighbor_row_i <= min(5000 - 1, row_i + 1) {
-        /// foreach neighbor_col_i in max(0, col_i - 1)..min(5000 - 1, col_i + 1) {
+      while neighbor_row_i <= min(1000 - 1, row_i + 1) {
+        /// foreach neighbor_col_i in max(0, col_i - 1)..min(4000 - 1, col_i + 1) {
         neighbor_col_i = max(0, col_i - 1);
-        while neighbor_col_i <= min(5000 - 1, col_i + 1) {
+        while neighbor_col_i <= min(4000 - 1, col_i + 1) {
           if row_i != neighbor_row_i or col_i != neighbor_col_i {
             if old_map[neighbor_row_i][neighbor_col_i] {
               set num_walkable_neighbors = num_walkable_neighbors + 1;
@@ -105,10 +105,10 @@ pure func CellularAutomata<r' imm>(old_map &r'[][]bool) [][]bool {
 pure func Display<r' imm>(map &r'[][]bool) {
   /// foreach row in map {
   row_i = 0;
-  while row_i < 5000 {
+  while row_i < 1000 {
     /// foreach cell in row {
     col_i = 0;
-    while col_i < 5000 {
+    while col_i < 4000 {
       if map[row_i][col_i] {
         print("#");
       } else {
