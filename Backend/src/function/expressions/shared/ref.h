@@ -9,6 +9,11 @@ class FunctionState;
 class GlobalState;
 class IRegion;
 
+// A type-system token to assure certain functions that we indeed checked the bounds of an array
+// we're about to access.
+struct InBoundsLE {
+  LLVMValueRef refLE;
+};
 
 struct WrapperPtrLE {
   Reference* const refM;
@@ -74,6 +79,25 @@ private:
       GlobalState* globalState,
       LLVMBuilderRef builder,
       Ref ref);
+};
+
+// When we load something from an array, for example an owning reference,
+// we still need to alias it to a constraint reference. This wrapper serves
+// as a reminder that we need to do that.
+struct LoadResult {
+public:
+  explicit LoadResult(Ref ref) : ref(ref) {}
+
+  // This method is used when we intended to move the result, so no transformation
+  // or aliasing is needed.
+  Ref move() { return ref; }
+
+  // This is just a getter for the ref for the methods that actually implement the
+  // aliasing. It should ONLY be used by them.
+  Ref extractForAliasingInternals() { return ref; }
+
+private:
+  Ref ref;
 };
 
 // A Ref that we're sure is alive right now.

@@ -46,6 +46,7 @@ enum
     OPT_FAST_CRASH,
     OPT_GEN_HEAP,
     OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE,
+    OPT_INCLUDE_BOUNDS_CHECKS,
     OPT_OVERRIDE_KNOWN_LIVE_TRUE,
     OPT_PRINT_MEM_OVERHEAD,
     OPT_ENABLE_REPLAYING,
@@ -93,6 +94,7 @@ static opt_arg_t args[] =
     { "fast_crash", '\0', OPT_ARG_OPTIONAL, OPT_FLARES },
     { "gen_heap", '\0', OPT_ARG_OPTIONAL, OPT_GEN_HEAP },
     { "elide_checks_for_known_live", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE },
+    { "include_bounds_checks", '\0', OPT_ARG_OPTIONAL, OPT_INCLUDE_BOUNDS_CHECKS },
     { "override_known_live_true", '\0', OPT_ARG_NONE, OPT_OVERRIDE_KNOWN_LIVE_TRUE },
     { "print_mem_overhead", '\0', OPT_ARG_OPTIONAL, OPT_PRINT_MEM_OVERHEAD },
     { "enable_replaying", '\0', OPT_ARG_OPTIONAL, OPT_ENABLE_REPLAYING },
@@ -257,6 +259,17 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
               opt->elideChecksForKnownLive = true;
             } else if (s.arg_val == std::string("off")) {
               opt->elideChecksForKnownLive = false;
+            } else assert(false);
+            break;
+          }
+
+          case OPT_INCLUDE_BOUNDS_CHECKS: {
+            if (!s.arg_val) {
+              opt->includeBoundsChecks = true;
+            } else if (s.arg_val == std::string("on") || s.arg_val == std::string("yes") || s.arg_val == std::string("true")) {
+              opt->includeBoundsChecks = true;
+            } else if (s.arg_val == std::string("off") || s.arg_val == std::string("no") || s.arg_val == std::string("false")) {
+              opt->includeBoundsChecks = false;
             } else assert(false);
             break;
           }

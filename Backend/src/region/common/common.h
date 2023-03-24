@@ -77,17 +77,6 @@ void buildCheckGen(
     LLVMValueRef targetGenLE,
     LLVMValueRef actualGenLE);
 
-LoadResult loadElementFromSSAInner(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* ssaRefMT,
-    StaticSizedArrayT* ssaMT,
-    int size,
-    Reference* elementType,
-    Ref indexRef,
-    LLVMValueRef arrayElementsPtrLE);
-
 LLVMValueRef makeInterfaceRefStruct(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -233,12 +222,6 @@ Ref transmutePtr(
     Reference* targetRefMT,
     Ref sourceRef);
 
-Ref getRuntimeSizedArrayLength(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    WrapperPtrLE arrayRefLE);
-
 Ref getRuntimeSizedArrayCapacity(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -316,19 +299,6 @@ void regularCheckValidReference(
     Reference* refM,
     LLVMValueRef refLE);
 
-LoadResult regularLoadElementFromRSAWithoutUpgrade(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    bool capacityExists,
-    Reference* rsaRefMT,
-    RuntimeSizedArrayT* rsaMT,
-    Mutability mutability,
-    Reference* elementType,
-    LiveRef arrayRef,
-    Ref indexRef);
-
 //LoadResult resilientLoadElementFromRSAWithoutUpgrade(
 //    GlobalState* globalState,
 //    FunctionState* functionState,
@@ -342,18 +312,6 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
 //    LiveRef arrayRef,
 //    Ref indexRef);
 
-
-void regularInitializeElementInSSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    Reference* ssaRefMT,
-    Reference* elementType,
-    int size,
-    LiveRef arrayRef,
-    Ref indexRef,
-    Ref elementRef);
 
 LiveRef constructRuntimeSizedArray(
     GlobalState* globalState,
@@ -431,19 +389,6 @@ Ref upcastWeak(
     Reference* targetInterfaceTypeM,
     InterfaceKind* targetInterfaceKindM);
 
-LoadResult regularloadElementFromSSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* ssaRefMT,
-    StaticSizedArrayT* ssaMT,
-    Reference* elementType,
-    int arraySize,
-    Mutability mutability,
-    LiveRef arrayRef,
-    Ref indexRef,
-    KindStructs* kindStructs);
-
 LoadResult resilientloadElementFromSSA(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -454,7 +399,7 @@ LoadResult resilientloadElementFromSSA(
     Mutability mutability,
     Reference* elementType,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexLE,
     KindStructs* kindStructs);
 
 
@@ -579,19 +524,6 @@ LLVMValueRef getInterfaceMethodFunctionPtrFromItable(
     Reference* virtualParamMT,
     Ref virtualArgRef,
     int indexInEdge);
-
-void initializeElementInRSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    KindStructs* kindStructs,
-    bool capacityExists,
-    bool incrementSize,
-    RuntimeSizedArrayT* rsaMT,
-    Reference* rsaRefMT,
-    WrapperPtrLE rsaWPtrLE,
-    Ref indexRef,
-    Ref elementRef);
 
 Ref normalLocalLoad(
     GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr);

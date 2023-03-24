@@ -1340,15 +1340,14 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
   // Optimize the generated LLVM IR
   LLVMPassManagerRef passmgr = LLVMCreatePassManager();
 
-//  LLVMAddPromoteMemoryToRegisterPass(passmgr);     // Demote allocas to registers.
-////  LLVMAddInstructionCombiningPass(passmgr);        // Do simple "peephole" and bit-twiddling optimizations
-//  LLVMAddReassociatePass(passmgr);                 // Reassociate expressions.
-//  LLVMAddGVNPass(passmgr);                         // Eliminate common subexpressions.
-//  LLVMAddCFGSimplificationPass(passmgr);           // Simplify the control flow graph
-
-//  if (globalState->opt->release) {
-//    LLVMAddFunctionInliningPass(passmgr);        // Function inlining
-//  }
+  if (globalState->opt->release) {
+    LLVMAddPromoteMemoryToRegisterPass(passmgr);     // Demote allocas to registers.
+    LLVMAddInstructionCombiningPass(passmgr);        // Do simple "peephole" and bit-twiddling optimizations
+    LLVMAddReassociatePass(passmgr);                 // Reassociate expressions.
+    LLVMAddGVNPass(passmgr);                         // Eliminate common subexpressions.
+    LLVMAddCFGSimplificationPass(passmgr);           // Simplify the control flow graph
+    LLVMAddFunctionInliningPass(passmgr);        // Function inlining
+  }
 
   LLVMRunPassManager(passmgr, globalState->mod);
   LLVMDisposePassManager(passmgr);

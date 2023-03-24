@@ -6,28 +6,10 @@
 #include "../function/expressions/shared/ref.h"
 #include "../metal/types.h"
 #include "../metal/ast.h"
+#include "../function/expressions/shared/elements.h"
 
 class FunctionState;
 class BlockState;
-
-// When we load something from an array, for example an owning reference,
-// we still need to alias it to a constraint reference. This wrapper serves
-// as a reminder that we need to do that.
-struct LoadResult {
-public:
-  explicit LoadResult(Ref ref) : ref(ref) {}
-
-  // This method is used when we intended to move the result, so no transformation
-  // or aliasing is needed.
-  Ref move() { return ref; }
-
-  // This is just a getter for the ref for the methods that actually implement the
-  // aliasing. It should ONLY be used by them.
-  Ref extractForAliasingInternals() { return ref; }
-
-private:
-  Ref ref;
-};
 
 class IRegion {
 public:
@@ -292,7 +274,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef structRef,
-      Ref indexRef) = 0;
+      InBoundsLE indexLE) = 0;
 
   virtual void deallocate(
       AreaAndFileAndLine from,
@@ -318,7 +300,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef arrayRef,
-      Ref indexRef,
+      InBoundsLE sizeLE,
       Ref elementRef) = 0;
 
   virtual Ref popRuntimeSizedArrayNoBoundsCheck(
@@ -328,7 +310,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef arrayRef,
-      Ref indexRef) = 0;
+      InBoundsLE indexLE) = 0;
 
   virtual void initializeElementInSSA(
       FunctionState* functionState,
@@ -337,7 +319,7 @@ public:
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
       LiveRef structRef,
-      Ref indexRef,
+      InBoundsLE indexLE,
       Ref elementRef) = 0;
 
   virtual Ref deinitializeElementFromSSA(
@@ -346,7 +328,7 @@ public:
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
       LiveRef structRef,
-      Ref indexRef) = 0;
+      InBoundsLE indexLE) = 0;
 
   virtual Ref storeElementInRSA(
       FunctionState* functionState,
@@ -354,7 +336,7 @@ public:
       Reference* rsaRefMT,
       RuntimeSizedArrayT* rsaMT,
       LiveRef structRef,
-      Ref indexRef,
+      InBoundsLE indexLE,
       Ref elementRef) = 0;
 
   virtual void checkInlineStructType(
@@ -382,7 +364,7 @@ public:
       Reference* ssaRefMT,
       StaticSizedArrayT* ssaMT,
       LiveRef structRef,
-      Ref indexRef) = 0;
+      InBoundsLE indexRef) = 0;
 
   // Receives a regular reference to an object in another region, so we can move
   // (or copy) it.

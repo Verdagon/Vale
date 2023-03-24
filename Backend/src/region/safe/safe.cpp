@@ -14,6 +14,11 @@
 #include "safe.h"
 #include <sstream>
 
+// This is 0x27100000 in hex.
+// This number was chosen because it ends in zeroes either way, so it should be a bit more
+// recognizable.
+constexpr int FIRST_GEN = 655360000;
+
 ControlBlock makeSafeNonWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
   controlBlock.addMember(ControlBlockMember::GENERATION_64B);
@@ -71,6 +76,10 @@ Safe::Safe(GlobalState* globalState_) :
   kindStructs.defineStruct(regionKind, {
       // This region doesnt need anything
   });
+
+  auto int64LT = LLVMInt64TypeInContext(globalState->context);
+  nextGenThreadGlobalI64LE = LLVMAddGlobal(globalState_->mod, int64LT, "__vale_nextGen");
+  LLVMSetInitializer(nextGenThreadGlobalI64LE, constI64LE(globalState, FIRST_GEN));
 }
 
 Reference* Safe::getRegionRefType() {
@@ -93,21 +102,24 @@ LiveRef Safe::constructStaticSizedArray(
     Ref regionInstanceRef,
     FunctionState *functionState,
     LLVMBuilderRef builder,
-    Reference *referenceM,
-    StaticSizedArrayT *kindM) {
-  auto ssaDef = globalState->program->getStaticSizedArray(kindM);
-  auto resultRef =
-      ::constructStaticSizedArray(
-          globalState, functionState, builder, referenceM, kindM, &kindStructs,
-          [this, functionState, referenceM, kindM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-            fillControlBlock(
-                FL(),
-                functionState,
-                innerBuilder,
-                referenceM->kind,
-                controlBlockPtrLE,
-                kindM->name->name);
-          });
+    Reference *refMT,
+    StaticSizedArrayT *ssaMT) {
+  auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
+
+  auto structLT =
+      kindStructs.getStaticSizedArrayWrapperStruct(ssaMT);
+  auto newStructLE =
+      kindStructs.makeWrapperPtr(
+          FL(), functionState, builder, refMT,
+          mallocKnownSize(globalState, functionState, builder, refMT->location, structLT));
+
+  auto controlBlockPtrLE =
+      kindStructs.getConcreteControlBlockPtr(FL(), functionState, builder, refMT, newStructLE);
+
+  fillControlBlock(FL(), functionState, builder, ssaMT, controlBlockPtrLE, ssaMT->name->name);
+
+  auto resultRef = LiveRef(wrap(globalState->getRegion(refMT), refMT, newStructLE.refLE));
+
   return resultRef;
 }
 
@@ -476,6 +488,7 @@ std::tuple<LLVMValueRef, LLVMValueRef> Safe::explodeInterfaceRef(
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
     Ref virtualArgRef) {
+  assert(false);
 //  switch (virtualParamMT->ownership) {
 //    case Ownership::OWN:
 //    case Ownership::MUTABLE_BORROW:
@@ -660,6 +673,24 @@ Ref Safe::getIsAliveFromWeakRef(
 //  return wrcWeaks.getIsAliveFromWeakRef(functionState, builder, weakRefM, weakRef);
 }
 
+LLVMValueRef Safe::fillControlBlockGeneration(
+    LLVMBuilderRef builder,
+    LLVMValueRef controlBlockLE,
+    Kind* kindM) {
+  // The generation was already incremented when we freed it (or malloc'd it for the first time), but
+  // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
+  // to use that, we want to use a random gen.
+  auto newGenLE =
+      adjustCounterReturnOld(globalState, builder, globalState->metalCache->i64, nextGenThreadGlobalI64LE, 1);
+
+  int genMemberIndex =
+      kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B);
+  auto newControlBlockLE =
+      LLVMBuildInsertValue(builder, controlBlockLE, newGenLE, genMemberIndex, "newControlBlock");
+
+  return newControlBlockLE;
+}
+
 // Returns object ID
 void Safe::fillControlBlock(
     AreaAndFileAndLine from,
@@ -669,22 +700,16 @@ void Safe::fillControlBlock(
     ControlBlockPtrLE controlBlockPtrLE,
     const std::string& typeName) {
 
-  LLVMValueRef newControlBlockLE = LLVMGetUndef(kindStructs.getControlBlock(kindM)->getStruct());
+  LLVMValueRef controlBlockLE = LLVMGetUndef(kindStructs.getControlBlock(kindM)->getStruct());
 
-  newControlBlockLE =
+  controlBlockLE =
       fillControlBlockCensusFields(
-          from, globalState, functionState, &kindStructs, builder, kindM, newControlBlockLE, typeName);
+          from, globalState, functionState, &kindStructs, builder, kindM, controlBlockLE, typeName);
 
-  if (globalState->getKindWeakability(kindM) == Weakability::WEAKABLE) {
-    assert(false);
-//    newControlBlockLE = wrcWeaks.fillWeakableControlBlock(functionState, builder, &kindStructs, kindM,
-//        newControlBlockLE);
-  }
+  controlBlockLE =
+    fillControlBlockGeneration(builder, controlBlockLE, kindM);
 
-  LLVMBuildStore(
-      builder,
-      newControlBlockLE,
-      controlBlockPtrLE.refLE);
+  LLVMBuildStore(builder, controlBlockLE, controlBlockPtrLE.refLE);
 }
 
 LoadResult Safe::loadElementFromSSA(
@@ -694,10 +719,10 @@ LoadResult Safe::loadElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   return regularloadElementFromSSA(
-      globalState, functionState, builder, ssaRefMT, ssaMT, ssaDef->elementType, ssaDef->size, ssaDef->mutability, arrayRef, indexRef, &kindStructs);
+      globalState, functionState, builder, ssaRefMT, ssaDef->elementType, arrayRef, indexInBoundsLE, &kindStructs);
 }
 
 LoadResult Safe::loadElementFromRSA(
@@ -707,10 +732,10 @@ LoadResult Safe::loadElementFromRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   return regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef);
+      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaDef->elementType, arrayRef, indexInBoundsLE);
 }
 
 Ref Safe::storeElementInRSA(
@@ -719,7 +744,7 @@ Ref Safe::storeElementInRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto arrayWrapperPtrLE =
@@ -731,7 +756,7 @@ Ref Safe::storeElementInRSA(
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return ::swapElement(
-      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
+      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, arrayElementsPtrLE, indexInBoundsLE, elementRef);
 }
 
 Ref Safe::upcast(
@@ -930,7 +955,7 @@ void Safe::pushRuntimeSizedArrayNoBoundsCheck(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto arrayWrapperPtrLE =
@@ -938,11 +963,20 @@ void Safe::pushRuntimeSizedArrayNoBoundsCheck(
           FL(), functionState, builder, rsaRefMT,
           globalState->getRegion(rsaRefMT)
               ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
-  auto sizePtrLE = ::getRuntimeSizedArrayLengthPtr(globalState, builder, arrayWrapperPtrLE);
-  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
-  ::initializeElementAndIncrementSize(
-      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, sizePtrLE, arrayElementsPtrLE,
-      indexRef, elementRef);
+  auto incrementedSize =
+      incrementRSASize(
+          globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
+  ::initializeElementInRSAWithoutIncrementSize(
+      globalState,
+      functionState,
+      builder,
+      true,
+      rsaDef->kind,
+      rsaRefMT,
+      arrayWrapperPtrLE,
+      indexInBoundsLE,
+      elementRef,
+      incrementedSize);
 }
 
 Ref Safe::popRuntimeSizedArrayNoBoundsCheck(
@@ -952,11 +986,20 @@ Ref Safe::popRuntimeSizedArrayNoBoundsCheck(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto elementLE =
       regularLoadElementFromRSAWithoutUpgrade(
-          globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef).move();
+          globalState,
+          functionState,
+          builder,
+          &kindStructs,
+          true,
+          rsaRefMT,
+          rsaDef->elementType,
+          arrayRef,
+          indexInBoundsLE)
+          .move();
   auto rsaWrapperPtrLE =
       kindStructs.makeWrapperPtr(
           FL(), functionState, builder, rsaRefMT,
@@ -973,7 +1016,7 @@ void Safe::initializeElementInSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   auto arrayWrapperPtrLE =
@@ -981,11 +1024,12 @@ void Safe::initializeElementInSSA(
           FL(), functionState, builder, ssaRefMT,
           globalState->getRegion(ssaRefMT)
               ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner));
-  auto sizeRef = globalState->constI32(ssaDef->size);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
-      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, sizeRef, arrayElementsPtrLE,
-      indexRef, elementRef);
+      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, arrayElementsPtrLE,
+      indexInBoundsLE, elementRef,
+      // Manually making an IncrementedSize because it's an SSA.
+      IncrementedSize{});
 }
 
 Ref Safe::deinitializeElementFromSSA(
@@ -994,7 +1038,7 @@ Ref Safe::deinitializeElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }

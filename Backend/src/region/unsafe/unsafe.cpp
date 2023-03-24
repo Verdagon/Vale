@@ -453,6 +453,7 @@ std::tuple<LLVMValueRef, LLVMValueRef> Unsafe::explodeInterfaceRef(
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
     Ref virtualArgRef) {
+  assert(false);
 //  switch (virtualParamMT->ownership) {
 //    case Ownership::OWN:
 //    case Ownership::MUTABLE_BORROW:
@@ -671,10 +672,10 @@ LoadResult Unsafe::loadElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   return regularloadElementFromSSA(
-      globalState, functionState, builder, ssaRefMT, ssaMT, ssaDef->elementType, ssaDef->size, ssaDef->mutability, arrayRef, indexRef, &kindStructs);
+      globalState, functionState, builder, ssaRefMT, ssaDef->elementType, arrayRef, indexInBoundsLE, &kindStructs);
 }
 
 LoadResult Unsafe::loadElementFromRSA(
@@ -684,10 +685,10 @@ LoadResult Unsafe::loadElementFromRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   return regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef);
+      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaDef->elementType, arrayRef, indexInBoundsLE);
 }
 
 Ref Unsafe::storeElementInRSA(
@@ -696,7 +697,7 @@ Ref Unsafe::storeElementInRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto arrayWrapperPtrLE =
@@ -704,11 +705,10 @@ Ref Unsafe::storeElementInRSA(
           FL(), functionState, builder, rsaRefMT,
           globalState->getRegion(rsaRefMT)
               ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
-  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return ::swapElement(
-      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
+      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, arrayElementsPtrLE, indexInBoundsLE, elementRef);
 }
 
 Ref Unsafe::upcast(
@@ -907,19 +907,19 @@ void Unsafe::pushRuntimeSizedArrayNoBoundsCheck(
     Reference *rsaRefMT,
     RuntimeSizedArrayT *rsaMT,
     LiveRef rsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
-  auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto arrayWrapperPtrLE =
       kindStructs.makeWrapperPtr(
           FL(), functionState, builder, rsaRefMT,
           globalState->getRegion(rsaRefMT)
               ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
-  auto sizePtrLE = ::getRuntimeSizedArrayLengthPtr(globalState, builder, arrayWrapperPtrLE);
-  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
-  ::initializeElementAndIncrementSize(
-      globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, sizePtrLE, arrayElementsPtrLE,
-      indexRef, elementRef);
+  auto incrementedSize =
+      incrementRSASize(
+          globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
+  ::initializeElementInRSAWithoutIncrementSize(
+      globalState, functionState, builder, true, rsaMT, rsaRefMT, arrayWrapperPtrLE, indexInBoundsLE,
+      elementRef, incrementedSize);
 }
 
 Ref Unsafe::popRuntimeSizedArrayNoBoundsCheck(
@@ -929,11 +929,20 @@ Ref Unsafe::popRuntimeSizedArrayNoBoundsCheck(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
   auto elementLE =
       regularLoadElementFromRSAWithoutUpgrade(
-          globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaMT, rsaDef->mutability, rsaDef->elementType, arrayRef, indexRef).move();
+          globalState,
+          functionState,
+          builder,
+          &kindStructs,
+          true,
+          rsaRefMT,
+          rsaDef->elementType,
+          arrayRef,
+          indexInBoundsLE)
+          .move();
   auto rsaWrapperPtrLE =
       kindStructs.makeWrapperPtr(
           FL(), functionState, builder, rsaRefMT,
@@ -950,7 +959,7 @@ void Unsafe::initializeElementInSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
   auto arrayWrapperPtrLE =
@@ -961,8 +970,10 @@ void Unsafe::initializeElementInSSA(
   auto sizeRef = globalState->constI32(ssaDef->size);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
-      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, sizeRef, arrayElementsPtrLE,
-      indexRef, elementRef);
+      globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, arrayElementsPtrLE,
+      indexInBoundsLE, elementRef,
+      // Manually making an IncrementedSize because it's an SSA.
+      IncrementedSize{});
 }
 
 Ref Unsafe::deinitializeElementFromSSA(
@@ -971,7 +982,7 @@ Ref Unsafe::deinitializeElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }

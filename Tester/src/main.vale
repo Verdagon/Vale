@@ -173,7 +173,6 @@ exported func main() int {
 
 
   if (include_regions.len() == 0) {
-    include_regions.add("assist");
     include_regions.add("naive-rc");
     include_regions.add("resilient-v3");
     include_regions.add("safe");
@@ -311,6 +310,7 @@ exported func main() int {
     suite.StartTest(1, "panic", samples_path./("programs/panic.vale"), &List<str>(), region, false);
     suite.StartTest(42, "panicnot", samples_path./("programs/panicnot.vale"), &List<str>(), region, false);
     suite.StartTest(42, "nestedblocks", samples_path./("programs/nestedblocks.vale"), &List<str>(), region, false);
+    suite.StartTest(0, "cellularautomata", samples_path./("programs/cellularautomata.vale"), &List<str>([#]["--no_std", "true"]), region, false);
     
     if (region != "naive-rc") {
       suite.StartTest(42, "interfacemutreturnexport", samples_path./("programs/externs/interfacemutreturnexport"), &List<str>(), region, false);
@@ -337,12 +337,6 @@ exported func main() int {
     suite.StartTest(0, "stdlib_hashset", stdlib_dir./("src/collections/hashset/test"), &List<str>(), region, true);
     suite.StartTest(0, "stdlib_hashmap", stdlib_dir./("src/collections/hashmap/test"), &List<str>(), region, true);
   }
-
-  if (include_regions.exists({ _ == "safe" })) {
-    region = "resilient-v3";
-    suite.StartTest(0, "cellularautomata", samples_path./("programs/cellularautomata.vale"), &List<str>([#]["--no_std", "true"]), region, false);
-  }
-
 
   suite.FinishTests(0);
 
@@ -492,8 +486,8 @@ Subprocess {
   build_args.add(region);
   build_args.add("--llvm_ir");
   build_args.add("true");
-  build_args.add("--flares");
-  build_args.add("true");
+  //build_args.add("--flares");
+  //build_args.add("true");
   //build_args.add("--asan");
   //build_args.add("true");
   //build_args.add("--census");

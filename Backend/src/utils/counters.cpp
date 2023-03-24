@@ -10,7 +10,7 @@ LLVMValueRef adjustCounter(
   auto prevValLE = LLVMBuildLoad(builder, counterPtrLE, "counterPrevVal");
   auto adjustByLE = LLVMConstInt(LLVMIntTypeInContext(globalState->context, innt->bits), adjustAmount, true);
   assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
-  auto newValLE =LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
+  auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
   LLVMBuildStore(builder, newValLE, counterPtrLE);
 
   return newValLE;

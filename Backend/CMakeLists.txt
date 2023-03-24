@@ -30,6 +30,7 @@ set(LLVM_LINK_COMPONENTS
 		Core
 		Support
 		IRReader
+		Passes
 		x86asmparser x86codegen x86desc x86disassembler x86info
 		webassemblyasmparser webassemblycodegen webassemblydesc webassemblydisassembler webassemblyinfo
 )

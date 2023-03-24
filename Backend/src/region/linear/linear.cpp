@@ -757,7 +757,7 @@ LoadResult Linear::loadElementFromSSA(
     Reference* hostSsaRefMT,
     StaticSizedArrayT* hostSsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto unadjustedArrayRefLE = checkValidReference(FL(), functionState, builder, true, hostSsaRefMT, arrayRef.inner);
   auto adjustedArrayRefLE =
       translateBetweenBufferAddressAndPointer(
@@ -771,7 +771,7 @@ LoadResult Linear::loadElementFromSSA(
   auto hostMemberRefMT = linearizeReference(valeMemberRefMT, true);
 
   return loadElementFromSSAInner(
-      globalState, functionState, builder, hostSsaRefMT, hostSsaMT, valeSsaMD->size, hostMemberRefMT, indexRef, elementsPtrLE);
+      globalState, functionState, builder, hostSsaRefMT, indexInBoundsLE, elementsPtrLE);
 }
 
 LoadResult Linear::loadElementFromRSA(
@@ -781,7 +781,7 @@ LoadResult Linear::loadElementFromRSA(
     Reference* hostRsaRefMT,
     RuntimeSizedArrayT* hostRsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   auto unadjustedArrayRefLE = checkValidReference(FL(), functionState, builder, true, hostRsaRefMT, arrayRef.inner);
   auto adjustedArrayRefLE =
       translateBetweenBufferAddressAndPointer(
@@ -802,7 +802,7 @@ LoadResult Linear::loadElementFromRSA(
   buildFlare(FL(), globalState, functionState, builder);
 
   return loadElement(
-      globalState, functionState, builder, elementsPtrLE, hostElementType, sizeRef, indexRef);
+      globalState, functionState, builder, elementsPtrLE, hostElementType, indexInBoundsLE);
 }
 
 
@@ -812,7 +812,7 @@ Ref Linear::storeElementInRSA(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   assert(false);
   exit(1);
@@ -1710,11 +1710,17 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
                   Ref indexRef, LLVMBuilderRef bodyBuilder) {
                 buildFlare(FL(), globalState, functionState, bodyBuilder, "In serialize iteration!");
 
+                auto indexLE =
+                    globalState->getRegion(globalState->metalCache->i32Ref)
+                        ->checkValidReference(FL(), functionState, bodyBuilder, false, globalState->metalCache->i32Ref, indexRef);
+                // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+                auto indexInBoundsLE = InBoundsLE{indexLE};
+
                 auto sourceMemberRef =
                     globalState->getRegion(valeObjectRefMT)
                         ->loadElementFromRSA(
                             functionState, bodyBuilder, sourceRegionInstanceRef, valeObjectRefMT, valeRsaMT,
-                            valeObjectLiveRef, indexRef)
+                            valeObjectLiveRef, indexInBoundsLE)
                         .move();
                 buildFlare(FL(), globalState, functionState, bodyBuilder);
                 auto hostElementLiveRef =
@@ -1727,11 +1733,11 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
                         ->checkValidReference(FL(), functionState, bodyBuilder, true, boolMT, dryRunBoolRef);
                 buildIfV(
                     globalState, functionState, bodyBuilder, LLVMBuildNot(bodyBuilder, dryRunBoolLE, "notDryRun"),
-                    [this, functionState, hostRegionInstanceRef, hostObjectRefMT, hostRsaRef, indexRef, hostElementLiveRef, hostRsaMT](
+                    [this, functionState, hostRegionInstanceRef, hostObjectRefMT, hostRsaRef, indexInBoundsLE, hostElementLiveRef, hostRsaMT](
                         LLVMBuilderRef thenBuilder) mutable {
                       pushRuntimeSizedArrayNoBoundsCheck(
                           functionState, thenBuilder, hostRegionInstanceRef, hostObjectRefMT, hostRsaMT, hostRsaRef,
-                          indexRef,
+                          indexInBoundsLE,
                           hostElementLiveRef.inner);
                       buildFlare(FL(), globalState, functionState, thenBuilder);
                     });
@@ -1770,11 +1776,18 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
                   Ref indexRef, LLVMBuilderRef bodyBuilder) {
                 buildFlare(FL(), globalState, functionState, bodyBuilder, "In serialize iteration!");
 
+                auto indexLE =
+                    globalState->getRegion(globalState->metalCache->i32Ref)
+                        ->checkValidReference(FL(), functionState, bodyBuilder, false, globalState->metalCache->i32Ref, indexRef);
+                // Manually making InBoundsLE because the array's size is the bound of the containing loop.
+                auto indexInBoundsLE = InBoundsLE{indexLE};
+
                 auto sourceMemberRef =
                     globalState->getRegion(valeObjectRefMT)
                         ->loadElementFromSSA(
-                            functionState, bodyBuilder, sourceRegionInstanceRef, valeObjectRefMT, valeSsaMT,
-                            valeObjectLiveRef, indexRef)
+                            functionState, bodyBuilder, sourceRegionInstanceRef, valeObjectRefMT,
+                            valeSsaMT,
+                            valeObjectLiveRef, indexInBoundsLE)
                         .move();
                 buildFlare(FL(), globalState, functionState, bodyBuilder);
                 auto hostElementRef =
@@ -1788,11 +1801,11 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
                 buildFlare(FL(), globalState, functionState, bodyBuilder);
                 buildIfV(
                     globalState, functionState, bodyBuilder, LLVMBuildNot(bodyBuilder, dryRunBoolLE, "notDryRun"),
-                    [this, functionState, hostRegionInstanceRef, hostObjectRefMT, hostSsaRef, indexRef, hostElementRef, hostSsaMT](
+                    [this, functionState, hostRegionInstanceRef, hostObjectRefMT, hostSsaRef, indexInBoundsLE, hostElementRef, hostSsaMT](
                         LLVMBuilderRef thenBuilder) mutable {
                       buildFlare(FL(), globalState, functionState, thenBuilder);
                       initializeElementInSSA(
-                          functionState, thenBuilder, hostRegionInstanceRef, hostObjectRefMT, hostSsaMT, hostSsaRef, indexRef,
+                          functionState, thenBuilder, hostRegionInstanceRef, hostObjectRefMT, hostSsaMT, hostSsaRef, indexInBoundsLE,
                           hostElementRef.inner);
                       buildFlare(FL(), globalState, functionState, thenBuilder);
                     });
@@ -1929,7 +1942,7 @@ void Linear::pushRuntimeSizedArrayNoBoundsCheck(
     Reference *hostRsaRefMT,
     RuntimeSizedArrayT *hostRsaMT,
     LiveRef hostRsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   buildFlare(FL(), globalState, functionState, builder);
   assert(hostRsaRefMT->kind == hostRsaMT);
@@ -1946,7 +1959,7 @@ void Linear::pushRuntimeSizedArrayNoBoundsCheck(
   buildFlare(FL(), globalState, functionState, builder);
   auto i32MT = globalState->metalCache->i32Ref;
 
-  auto indexLE = globalState->getRegion(i32MT)->checkValidReference(FL(), functionState, builder, true, i32MT, indexRef);
+//  auto indexLE = globalState->getRegion(i32MT)->checkValidReference(FL(), functionState, builder, true, i32MT, indexRef);
 
   buildFlare(FL(), globalState, functionState, builder);
   auto unadjustedRsaPtrLE = checkValidReference(FL(), functionState, builder, true, hostRsaRefMT, hostRsaRef.inner);
@@ -1965,7 +1978,7 @@ void Linear::pushRuntimeSizedArrayNoBoundsCheck(
 
   // When we write a pointer, we need to subtract the Serialized Address Adjuster, see PSBCBO.
   storeInnerArrayMember(
-      globalState, functionState, builder, adjustedHostRsaElementsPtrLE, indexLE, elementRefLE);
+      globalState, functionState, builder, adjustedHostRsaElementsPtrLE, indexInBoundsLE, elementRefLE);
   buildFlare(FL(), globalState, functionState, builder);
 }
 
@@ -1976,7 +1989,7 @@ Ref Linear::popRuntimeSizedArrayNoBoundsCheck(
     Reference* rsaRefMT,
     RuntimeSizedArrayT* rsaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }
@@ -1988,7 +2001,7 @@ void Linear::initializeElementInSSA(
     Reference* hostSsaRefMT,
     StaticSizedArrayT* hostSsaMT,
     LiveRef hostSsaRef,
-    Ref indexRef,
+    InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   buildFlare(FL(), globalState, functionState, builder);
 
@@ -2004,7 +2017,7 @@ void Linear::initializeElementInSSA(
 
   auto i32MT = globalState->metalCache->i32Ref;
 
-  auto indexLE = globalState->getRegion(i32MT)->checkValidReference(FL(), functionState, builder, true, i32MT, indexRef);
+//  auto indexLE = globalState->getRegion(i32MT)->checkValidReference(FL(), functionState, builder, true, i32MT, indexRef);
 
   auto ssaPtrLE = checkValidReference(FL(), functionState, builder, true, hostSsaRefMT, hostSsaRef.inner);
 
@@ -2023,7 +2036,7 @@ void Linear::initializeElementInSSA(
   buildFlare(FL(), globalState, functionState, builder);
 
   storeInnerArrayMember(
-      globalState, functionState, builder, adjustedHostSsaElementsPtrLE, indexLE, elementRefLE);
+      globalState, functionState, builder, adjustedHostSsaElementsPtrLE, indexInBoundsLE, elementRefLE);
 
   buildFlare(FL(), globalState, functionState, builder);
 }
@@ -2034,7 +2047,7 @@ Ref Linear::deinitializeElementFromSSA(
     Reference* ssaRefMT,
     StaticSizedArrayT* ssaMT,
     LiveRef arrayRef,
-    Ref indexRef) {
+    InBoundsLE indexInBoundsLE) {
   assert(false);
   exit(1);
 }
