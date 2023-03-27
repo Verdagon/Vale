@@ -326,8 +326,8 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
         case OPT_REGION_OVERRIDE: {
           if (s.arg_val == std::string("unsafe-fast")) {
             opt->regionOverride = RegionOverride::FAST;
-          } else if (s.arg_val == std::string("assist")) {
-            opt->regionOverride = RegionOverride::ASSIST;
+//          } else if (s.arg_val == std::string("assist")) {
+//            opt->regionOverride = RegionOverride::ASSIST;
           } else if (s.arg_val == std::string("naive-rc")) {
             opt->regionOverride = RegionOverride::NAIVE_RC;
 //          } else if (s.arg_val == std::string("resilient-v0")) {

@@ -65,10 +65,10 @@ public:
 //  LLVMValueRef nullLE = nullptr;
 
   LLVMTypeRef wrcTableStructLT = nullptr;
-  LLVMValueRef expandWrcTable = nullptr, checkWrci = nullptr, getNumWrcs = nullptr;
+  FuncPtrLE expandWrcTable, checkWrci, getNumWrcs;
 
-  LLVMTypeRef lgtTableStructLT, lgtEntryStructLT = nullptr; // contains generation and next free
-  LLVMValueRef expandLgt = nullptr, checkLgti = nullptr, getNumLiveLgtEntries = nullptr;
+  LLVMTypeRef lgtTableStructLT = nullptr, lgtEntryStructLT = nullptr; // contains generation and next free
+  FuncPtrLE expandLgt, checkLgti, getNumLiveLgtEntries;
 
 //  LLVMValueRef genMalloc = nullptr, genFree = nullptr;
 
@@ -101,8 +101,8 @@ public:
 
   std::unordered_map<Edge*, LLVMValueRef, AddressHasher<Edge*>> interfaceTablePtrs;
 
-  std::unordered_map<std::string, LLVMValueRef> functions;
-  std::unordered_map<std::string, LLVMValueRef> externFunctions;
+  std::unordered_map<std::string, FuncPtrLE> functions;
+  std::unordered_map<std::string, FuncPtrLE> externFunctions;
 
   // This is temporary, Valestrom should soon embed mutability and region into the kind for us
   // so we won't have to do this.
@@ -111,7 +111,7 @@ public:
   // These contain the extra interface methods that Backend adds to particular interfaces.
   // For example, for every immutable, Backend needs to add a serialize() method that
   // adds it to an outgoing linear buffer.
-  std::unordered_map<Prototype*, LLVMValueRef, AddressHasher<Prototype*>> extraFunctions;
+  std::unordered_map<Prototype*, FuncPtrLE, AddressHasher<Prototype*>> extraFunctions;
   std::unordered_map<
       InterfaceKind*,
       std::vector<InterfaceMethod*>,
@@ -172,7 +172,7 @@ public:
     return program->getInterface(interfaceMT);
   }
 
-  LLVMValueRef lookupFunction(Prototype* prototype) {
+  FuncPtrLE lookupFunction(Prototype* prototype) {
     auto iter = extraFunctions.find(prototype);
     if (iter != extraFunctions.end()) {
       return iter->second;
@@ -240,15 +240,18 @@ public:
   std::unordered_map<RegionId*, IRegion*, AddressHasher<RegionId*>> regions;
 
 
-  std::vector<LLVMValueRef> getEdgeFunctions(Edge* edge);
+  std::vector<FuncPtrLE> getEdgeFunctions(Edge* edge);
 
-  std::vector<LLVMTypeRef> getInterfaceFunctionTypes(InterfaceKind* kind);
+  // Note that this returns a vector of function types, not pointers.
+  // The caller may have to make them pointers.
+  std::vector<LLVMTypeRef> getInterfaceFunctionTypesNonPointer(InterfaceKind* kind);
+  std::vector<LLVMTypeRef> getInterfaceFunctionPointerTypes(InterfaceKind* kind);
 
 
   IRegion* getRegion(Reference* referenceM);
   IRegion* getRegion(Kind* kindM);
   IRegion* getRegion(RegionId* regionId);
-  LLVMValueRef getFunction(Prototype* proto);
+  FuncPtrLE getFunction(Prototype* proto);
   LLVMValueRef getInterfaceTablePtr(Edge* edge);
   LLVMValueRef getOrMakeStringConstant(const std::string& str);
 };

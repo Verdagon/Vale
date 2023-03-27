@@ -9,13 +9,12 @@ if (MSVC)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:4194304")
 endif (MSVC)
 
-find_package(LLVM 14 REQUIRED CONFIG)
+find_package(LLVM 16 REQUIRED CONFIG)
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(
 	${LLVM_INCLUDE_DIRS}
 	"${CMAKE_SOURCE_DIR}/src/"
 )
-
 
 message(STATUS "LLVM VERSION : ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -66,6 +65,7 @@ add_executable(backend
 		src/function/expressions/externs.cpp
 		src/function/expressions/if.cpp
 		src/function/expressions/constantstr.cpp
+		src/function/expressions/precheckborrow.cpp
 		src/function/expressions/localload.cpp
 		src/function/expressions/while.cpp
 		src/function/expressions/newimmruntimesizearray.cpp
@@ -100,7 +100,25 @@ add_executable(backend
 		src/region/regions.cpp
 
 		src/fileio.cpp
-		src/options.cpp src/mainFunction.cpp src/externs.cpp src/determinism/determinism.cpp src/determinism/determinism.h src/utils/definefunction.cpp src/utils/definefunction.h src/utils/flags.cpp src/utils/flags.h src/simplehash/cppsimplehashmap.cpp src/simplehash/cppsimplehashmap.h src/simplehash/llvmsimplehashmap.cpp src/simplehash/llvmsimplehashmap.h src/utils/llvm.cpp src/utils/llvm.h src/utils/structlt.h src/function/expressions/precheckborrow.cpp src/region/safe/safe.cpp  src/region/safe-baseline/safe.cpp src/region/safe/safe.h)
+		src/options.cpp src/mainFunction.cpp
+		src/externs.cpp
+		src/determinism/determinism.cpp
+		src/determinism/determinism.h
+		src/utils/definefunction.cpp
+		src/utils/definefunction.h
+		src/utils/flags.cpp
+		src/utils/flags.h
+		src/simplehash/cppsimplehashmap.cpp
+		src/simplehash/cppsimplehashmap.h
+		src/simplehash/llvmsimplehashmap.cpp
+		src/simplehash/llvmsimplehashmap.h
+		src/utils/llvm.cpp
+		src/utils/llvm.h
+		src/utils/structlt.h
+		src/region/safe/safe.cpp
+		src/region/safe-baseline/safe.cpp
+		src/region/common/migration.h
+		src/region/common/migration.cpp)
 
 target_link_libraries(backend ${llvm_libs})
 

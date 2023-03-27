@@ -21,13 +21,6 @@ Ref translateExpressionInner(
     LLVMBuilderRef builder,
     Expression* expr);
 
-Ref translatePreCheckBorrow(
-    GlobalState *globalState,
-    FunctionState *functionState,
-    BlockState *blockState,
-    LLVMBuilderRef builder,
-    PreCheckBorrow *preCheckBorrowM);
-
 std::vector<Ref> translateExpressions(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -76,17 +69,22 @@ Ref translateExpressionInner(
     auto resultLE =
         globalState->getRegion(globalState->metalCache->voidRef)
             ->checkValidReference(FL(), functionState, builder, true, globalState->metalCache->voidRef, resultRef);
-    auto loadedLE = makeConstExpr(functionState, builder, resultLE);
+    auto resultLT =
+        globalState->getRegion(globalState->metalCache->voidRef)
+            ->translateType(globalState->metalCache->voidRef);
+    auto loadedLE = makeConstExpr(functionState, builder, resultLT, resultLE);
     return wrap(globalState->getRegion(globalState->metalCache->voidRef), globalState->metalCache->voidRef, loadedLE);
   } else if (auto constantFloat = dynamic_cast<ConstantF64*>(expr)) {
     // See ULTMCIE for why we load and store here.
-
+    auto resultLT =
+        globalState->getRegion(globalState->metalCache->floatRef)
+            ->translateType(globalState->metalCache->floatRef);
     auto resultLE =
             makeConstExpr(
                 functionState,
                 builder,
-                LLVMConstReal(LLVMDoubleTypeInContext(globalState->context), constantFloat->value));
-    assert(LLVMTypeOf(resultLE) == LLVMDoubleTypeInContext(globalState->context));
+                resultLT,
+                LLVMConstReal(resultLT, constantFloat->value));
     return wrap(globalState->getRegion(globalState->metalCache->floatRef), globalState->metalCache->floatRef, resultLE);
   } else if (auto constantBool = dynamic_cast<ConstantBool*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
