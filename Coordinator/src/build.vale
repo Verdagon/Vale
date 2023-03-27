@@ -195,6 +195,18 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "false",
           "Whether to always gen-check, even if known live is true."),
         Flag(
+          "--elide_checks_for_known_live",
+          FLAG_BOOL(),
+          "Whether to skip gen-checks for objects we know are live.",
+          "true",
+          "Whether to skip gen-checks for objects we know are live."),
+        Flag(
+          "--include_bounds_checks",
+          FLAG_BOOL(),
+          "Whether to do bounds checks.",
+          "true",
+          "Whether to do bounds checks."),
+        Flag(
           "-o",
           FLAG_STR(),
           "Resulting executablen name",
@@ -273,7 +285,8 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   pic = parsed_flags.get_bool_flag("--pic", true);
   pie = parsed_flags.get_bool_flag("--pie", true);
   print_mem_overhead = parsed_flags.get_bool_flag("--print_mem_overhead", false);
-  elide_checks_for_known_live = parsed_flags.get_bool_flag("--elide_checks_for_known_live", false);
+  elide_checks_for_known_live = parsed_flags.get_bool_flag("--elide_checks_for_known_live", true);
+  include_bounds_checks = parsed_flags.get_bool_flag("--include_bounds_checks", false);
   override_known_live_true = parsed_flags.get_bool_flag("--override_known_live_true", false);
 
   if verbose {
@@ -420,7 +433,8 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           pic,
           print_mem_overhead,
           elide_checks_for_known_live,
-          override_known_live_true);
+          override_known_live_true,
+          include_bounds_checks);
   println("Running:\n" + backend_process.command);
   backend_return_code = (backend_process).print_and_join();
   if backend_return_code != 0 {

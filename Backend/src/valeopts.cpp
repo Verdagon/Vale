@@ -199,7 +199,8 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
     opt->release = 1;
     opt->flares = false;
     opt->fastCrash = false;
-    opt->elideChecksForKnownLive = false;
+    opt->elideChecksForKnownLive = true;
+    opt->includeBoundsChecks = true;
     opt->overrideKnownLiveTrue = false;
     opt->census = false;
 
