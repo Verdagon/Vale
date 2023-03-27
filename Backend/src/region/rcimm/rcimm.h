@@ -449,7 +449,7 @@ public:
 
   Weakability getKindWeakability(Kind* kind) override;
 
-  LLVMValueRef getInterfaceMethodFunctionPtr(
+  FuncPtrLE getInterfaceMethodFunctionPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* virtualParamMT,

@@ -7,6 +7,7 @@
 #include "../../region/common/controlblock.h"
 #include "../../region/common/heap.h"
 #include "../../region/linear/linear.h"
+#include <region/common/migration.h>
 
 #include "../../translatetype.h"
 
@@ -35,21 +36,24 @@ void replayExportCalls(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder) {
+  auto voidLT = LLVMVoidTypeInContext(globalState->context);
   buildBoolyWhile(
       globalState, functionState->containingFuncL, builder,
-      [globalState, functionState](LLVMBuilderRef builder) -> LLVMValueRef {
+      [globalState, functionState, voidLT](LLVMBuilderRef builder) -> LLVMValueRef {
         buildFlare(FL(), globalState, functionState, builder);
         auto replayerFuncPtrLE =
-            globalState->determinism->buildGetMaybeReplayedFuncForNextExportCall(
-                builder);
+            globalState->determinism->buildGetMaybeReplayedFuncForNextExportCall(builder);
+        assert(
+            LLVMTypeOf(replayerFuncPtrLE) ==
+            LLVMPointerType(LLVMFunctionType(voidLT, nullptr, 0, false), 0));
         auto replayerFuncPtrAsI64LE = ptrToIntLE(globalState, builder, replayerFuncPtrLE);
         auto replayerFuncPtrNotNullLE =
             LLVMBuildICmp(
                 builder, LLVMIntNE, replayerFuncPtrAsI64LE, constI64LE(globalState, 0), "");
         buildIf(
             globalState, functionState->containingFuncL, builder, replayerFuncPtrNotNullLE,
-            [replayerFuncPtrLE](LLVMBuilderRef thenBuilder) {
-              buildSimpleCall(thenBuilder, replayerFuncPtrLE, {});
+            [replayerFuncPtrLE, voidLT](LLVMBuilderRef thenBuilder) {
+              buildSimpleCall(thenBuilder, replayerFuncPtrLE, LLVMFunctionType(voidLT, nullptr, 0, false), {});
             });
         return replayerFuncPtrNotNullLE;
       });
@@ -61,6 +65,7 @@ Ref buildCallOrSideCall(
     LLVMBuilderRef builder,
     Prototype* prototype,
     const std::vector<Ref>& valeArgRefs) {
+  auto int8PtrLT = LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
 
   auto hostArgsLE = std::vector<LLVMValueRef>{};
   hostArgsLE.reserve(valeArgRefs.size() + 1);
@@ -120,24 +125,23 @@ Ref buildCallOrSideCall(
     hostArgsLE.insert(hostArgsLE.begin(), localPtrLE);
 
     if (globalState->opt->enableSideCalling) {
-      auto sideStackI8PtrLE = LLVMBuildLoad(builder, globalState->sideStackLE, "sideStackLE");
+      auto sideStackI8PtrLE = LLVMBuildLoad2(builder, int8PtrLT, globalState->sideStackLE, "sideStack");
       auto resultLE =
           buildSideCall(
-              globalState, LLVMVoidTypeInContext(globalState->context), builder, sideStackI8PtrLE, externFuncL,
-              hostArgsLE);
+              globalState, builder, sideStackI8PtrLE, externFuncL, hostArgsLE);
       assert(LLVMTypeOf(resultLE) == LLVMVoidTypeInContext(globalState->context));
     } else {
       auto resultLE = buildMaybeNeverCall(globalState, builder, externFuncL, hostArgsLE);
       assert(LLVMTypeOf(resultLE) == LLVMVoidTypeInContext(globalState->context));
     }
-    hostReturnLE = LLVMBuildLoad(builder, localPtrLE, "hostReturn");
+    hostReturnLE = LLVMBuildLoad2(builder, hostReturnRefLT, localPtrLE, "hostReturn");
     buildFlare(FL(), globalState, functionState, builder, "Loaded the return! ",
         LLVMABISizeOfType(globalState->dataLayout, LLVMTypeOf(hostReturnLE)));
   } else {
     if (globalState->opt->enableSideCalling) {
-      auto sideStackI8PtrLE = LLVMBuildLoad(builder, globalState->sideStackLE, "sideStackLE");
+      auto sideStackI8PtrLE = LLVMBuildLoad2(builder, int8PtrLT, globalState->sideStackLE, "sideStack");
       hostReturnLE =
-          buildSideCall(globalState, hostReturnRefLT, builder, sideStackI8PtrLE, externFuncL, hostArgsLE);
+          buildSideCall(globalState, builder, sideStackI8PtrLE, externFuncL, hostArgsLE);
     } else {
       hostReturnLE =
           buildMaybeNeverCall(globalState, builder, externFuncL, hostArgsLE);
@@ -496,11 +500,11 @@ Ref buildExternCall(
     buildPrint(globalState, builder, "(panic)\n");
     // See MPESC for status codes
     auto exitCodeLE = makeConstIntExpr(functionState, builder, LLVMInt64TypeInContext(globalState->context), 1);
-    LLVMBuildCall(builder, globalState->externs->exit, &exitCodeLE, 1, "");
+    globalState->externs->exit.call(builder, {exitCodeLE}, "");
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
     return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtrLE);
   } else if (prototype->name->name == "__vbi_getch") {
-    auto resultIntLE = LLVMBuildCall(builder, globalState->externs->getch, nullptr, 0, "");
+    auto resultIntLE = globalState->externs->getch.call(builder, {}, "");
     return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultIntLE);
   } else if (prototype->name->name == "__vbi_eqFloatFloat") {
     assert(args.size() == 2);

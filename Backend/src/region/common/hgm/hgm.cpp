@@ -7,6 +7,7 @@
 #include "../../../utils/branch.h"
 #include "../common.h"
 #include "hgm.h"
+#include <region/common/migration.h>
 
 constexpr int WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN = 0;
 
@@ -47,7 +48,9 @@ static LLVMValueRef makeGenHeader(
   assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
          globalState->opt->regionOverride == RegionOverride::SAFE);
   auto headerLE = LLVMGetUndef(kindStructs->getWeakRefHeaderStruct(kind));
-  headerLE = LLVMBuildInsertValue(builder, headerLE, targetGenLE, WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN, "header");
+  headerLE =
+      LLVMBuildInsertValue(
+          builder, headerLE, targetGenLE, WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN, "header");
   return headerLE;
 }
 
@@ -57,17 +60,20 @@ static LLVMValueRef getGenerationFromControlBlockPtr(
     KindStructs* structs,
     Kind* kindM,
     ControlBlockPtrLE controlBlockPtr) {
+  auto int32LT = LLVMInt32TypeInContext(globalState->context);
   assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
              globalState->opt->regionOverride == RegionOverride::SAFE);
+
   assert(LLVMTypeOf(controlBlockPtr.refLE) == LLVMPointerType(structs->getControlBlock(kindM)->getStruct(), 0));
 
   auto genPtrLE =
-      LLVMBuildStructGEP(
+      LLVMBuildStructGEP2(
           builder,
+          structs->getControlBlock(kindM)->getStruct(),
           controlBlockPtr.refLE,
           structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B),
           "genPtr");
-  return LLVMBuildLoad(builder, genPtrLE, "gen");
+  return LLVMBuildLoad2(builder, int32LT, genPtrLE, "gen");
 }
 
 WeakFatPtrLE HybridGenerationalMemory::weakStructPtrToGenWeakInterfacePtr(
@@ -80,12 +86,12 @@ WeakFatPtrLE HybridGenerationalMemory::weakStructPtrToGenWeakInterfacePtr(
     InterfaceKind* targetInterfaceKindM,
     Reference* targetInterfaceTypeM) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::RESILIENT_V3: case RegionOverride::SAFE:
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::SAFE:
       // continue
       break;
     case RegionOverride::FAST:
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::ASSIST:
       assert(false);
       break;
     default:
@@ -578,7 +584,7 @@ Ref HybridGenerationalMemory::crashifyReference(
   // physreg copy instruction"). Perhaps LLVM has trouble with inline constants for insertvalue
   // instructions or something.
   auto genLE = getTargetGenFromWeakRef(builder, kindStructs, refMT->kind, weakFatPtrLE);
-  auto crashPtrLE = LLVMBuildLoad(builder, globalState->crashGlobalLE, "crashVoidPtrLE");
+  auto crashPtrLE = LLVMBuildLoad2(builder,LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0), globalState->crashGlobalLE, "crashVoidPtrLE");
 
   auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refMT, weakFatPtrLE);
 
@@ -586,7 +592,8 @@ Ref HybridGenerationalMemory::crashifyReference(
     auto oldStructPtrLE = innerLE;
     auto newStructPtrLE =
         LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldStructPtrLE), "crashPtrLE");
-    auto newStructWrapperPtrLE = WrapperPtrLE(refMT, newStructPtrLE);
+    auto structLT = kindStructs->getStructWrapperStruct(structKind);
+    auto newStructWrapperPtrLE = WrapperPtrLE(refMT, structLT, newStructPtrLE);
     auto resultLE =
         assembleStructWeakRef(
             functionState, builder, refMT, structKind, genLE, newStructWrapperPtrLE);
@@ -614,7 +621,8 @@ Ref HybridGenerationalMemory::crashifyReference(
     auto oldSsaPtrLE = innerLE;
     auto newSsaPtrLE =
         LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldSsaPtrLE), "crashPtrLE");
-    auto newSsaWrapperPtrLE = WrapperPtrLE(refMT, newSsaPtrLE);
+    auto ssaWrapperStructLT = kindStructs->getStaticSizedArrayWrapperStruct(staticSizedArray);
+    auto newSsaWrapperPtrLE = WrapperPtrLE(refMT, ssaWrapperStructLT, newSsaPtrLE);
     auto resultLE =
         assembleStaticSizedArrayWeakRef(
             functionState, builder, refMT, staticSizedArray, genLE, newSsaWrapperPtrLE);
@@ -623,7 +631,8 @@ Ref HybridGenerationalMemory::crashifyReference(
     auto oldRsaPtrLE = innerLE;
     auto newRsaPtrLE =
         LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldRsaPtrLE), "crashPtrLE");
-    auto newRsaWrapperPtrLE = WrapperPtrLE(refMT, newRsaPtrLE);
+    auto rsaWrapperStructLT = kindStructs->getRuntimeSizedArrayWrapperStruct(runtimeSizedArray);
+    auto newRsaWrapperPtrLE = WrapperPtrLE(refMT, rsaWrapperStructLT, newRsaPtrLE);
     auto resultLE =
         assembleRuntimeSizedArrayWeakRef(
             functionState, builder, refMT, runtimeSizedArray, genLE, newRsaWrapperPtrLE);
@@ -764,7 +773,13 @@ void HybridGenerationalMemory::deallocate(
               FL(), functionState, builder, sourceRefMT, sourceRefLE));
   int genMemberIndex =
       kindStructs->getControlBlock(sourceRefMT->kind)->getMemberIndex(ControlBlockMember::GENERATION_32B);
-  auto genPtrLE = LLVMBuildStructGEP(builder, controlBlockPtr.refLE, genMemberIndex, "genPtr");
+  auto genPtrLE =
+      LLVMBuildStructGEP2(
+          builder,
+          kindStructs->getControlBlock(sourceRefMT->kind)->getStruct(),
+          controlBlockPtr.refLE,
+          genMemberIndex,
+          "genPtr");
   adjustCounter(globalState, builder, globalState->metalCache->i32, genPtrLE, 1);
 
   innerDeallocate(from, globalState, functionState, kindStructs, builder, sourceRefMT, sourceRef);

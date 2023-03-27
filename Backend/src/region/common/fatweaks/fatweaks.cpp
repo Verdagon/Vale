@@ -16,7 +16,7 @@ LLVMValueRef FatWeaks::getInnerRefFromWeakRef(
     WeakFatPtrLE weakFatPtrLE) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::RESILIENT_V3:
-      case RegionOverride::SAFE:
+    case RegionOverride::SAFE:
       assert(
           weakRefM->ownership == Ownership::MUTABLE_BORROW ||
           weakRefM->ownership == Ownership::IMMUTABLE_BORROW ||
@@ -24,7 +24,6 @@ LLVMValueRef FatWeaks::getInnerRefFromWeakRef(
       break;
     case RegionOverride::FAST:
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::ASSIST:
       assert(weakRefM->ownership == Ownership::WEAK);
       break;
     default:
@@ -46,7 +45,8 @@ LLVMValueRef FatWeaks::getInnerRefFromWeakRefWithoutCheck(
     Reference* weakRefM,
     WeakFatPtrLE weakRefLE) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::RESILIENT_V3: case RegionOverride::SAFE:
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::SAFE:
       assert(
           weakRefM->ownership == Ownership::IMMUTABLE_BORROW ||
               weakRefM->ownership == Ownership::MUTABLE_BORROW ||
@@ -54,7 +54,6 @@ LLVMValueRef FatWeaks::getInnerRefFromWeakRefWithoutCheck(
       break;
     case RegionOverride::FAST:
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::ASSIST:
       assert(weakRefM->ownership == Ownership::WEAK);
       break;
     default:

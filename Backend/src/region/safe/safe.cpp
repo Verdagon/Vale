@@ -54,15 +54,17 @@ static LLVMValueRef getGenerationFromControlBlockPtr(
     KindStructs* structs,
     Kind* kindM,
     ControlBlockPtrLE controlBlockPtr) {
+  auto int64LT = LLVMInt64TypeInContext(globalState->context);
   assert(LLVMTypeOf(controlBlockPtr.refLE) == LLVMPointerType(structs->getControlBlock(kindM)->getStruct(), 0));
 
   auto genPtrLE =
-      LLVMBuildStructGEP(
+      LLVMBuildStructGEP2(
           builder,
+          controlBlockPtr.structLT,
           controlBlockPtr.refLE,
           structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B),
           "genPtr");
-  return LLVMBuildLoad(builder, genPtrLE, "gen");
+  return LLVMBuildLoad2(builder, int64LT, genPtrLE, "gen");
 }
 
 static WeakFatPtrLE assembleStructWeakRef(
@@ -405,7 +407,7 @@ Ref crashifyReference(
   // physreg copy instruction"). Perhaps LLVM has trouble with inline constants for insertvalue
   // instructions or something.
   auto genLE = getTargetGenFromWeakRef(globalState, builder, kindStructs, refMT->kind, weakFatPtrLE);
-  auto crashPtrLE = LLVMBuildLoad(builder, globalState->crashGlobalLE, "crashVoidPtrLE");
+  auto crashPtrLE = LLVMBuildLoad2(builder, LLVMPointerType(LLVMInt64TypeInContext(globalState->context), 0), globalState->crashGlobalLE, "crashVoidPtrLE");
 
   auto innerLE = getInnerRefFromWeakRef(functionState, builder, refMT, weakFatPtrLE);
 
@@ -413,7 +415,9 @@ Ref crashifyReference(
     auto oldStructPtrLE = innerLE;
     auto newStructPtrLE =
         LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldStructPtrLE), "crashPtrLE");
-    auto newStructWrapperPtrLE = WrapperPtrLE(refMT, newStructPtrLE);
+
+    auto structWrapperLT = kindStructs->getStructWrapperStruct(structKind);
+    auto newStructWrapperPtrLE = WrapperPtrLE(refMT, structWrapperLT, newStructPtrLE);
     auto resultLE =
         assembleStructWeakRef(
             globalState, functionState, builder, kindStructs, refMT, structKind, genLE, newStructWrapperPtrLE);
@@ -441,7 +445,8 @@ Ref crashifyReference(
     auto oldSsaPtrLE = innerLE;
     auto newSsaPtrLE =
         LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldSsaPtrLE), "crashPtrLE");
-    auto newSsaWrapperPtrLE = WrapperPtrLE(refMT, newSsaPtrLE);
+    auto wrapperStructLT = kindStructs->getStaticSizedArrayWrapperStruct(staticSizedArray);
+    auto newSsaWrapperPtrLE = WrapperPtrLE(refMT, wrapperStructLT, newSsaPtrLE);
     auto resultLE =
         assembleStaticSizedArrayWeakRef(
             globalState, functionState, builder, kindStructs, refMT, staticSizedArray, genLE, newSsaWrapperPtrLE);
@@ -450,7 +455,8 @@ Ref crashifyReference(
     auto oldRsaPtrLE = innerLE;
     auto newRsaPtrLE =
         LLVMBuildPointerCast(builder, crashPtrLE, LLVMTypeOf(oldRsaPtrLE), "crashPtrLE");
-    auto newRsaWrapperPtrLE = WrapperPtrLE(refMT, newRsaPtrLE);
+    auto wrapperStructLT = kindStructs->getRuntimeSizedArrayWrapperStruct(runtimeSizedArray);
+    auto newRsaWrapperPtrLE = WrapperPtrLE(refMT, wrapperStructLT, newRsaPtrLE);
     auto resultLE =
         assembleRuntimeSizedArrayWeakRef(
             globalState, functionState, builder, kindStructs, refMT, runtimeSizedArray, genLE, newRsaWrapperPtrLE);
@@ -823,7 +829,7 @@ void Safe::declareEdge(
 
 void Safe::defineEdge(
     Edge* edge) {
-  auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
+  auto interfaceFunctionsLT = globalState->getInterfaceFunctionPointerTypes(edge->interfaceName);
   auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
   kindStructs.defineEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
@@ -837,7 +843,7 @@ void Safe::declareInterface(
 
 void Safe::defineInterface(
     InterfaceDefinition* interfaceM) {
-  auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->kind);
+  auto interfaceMethodTypesL = globalState->getInterfaceFunctionPointerTypes(interfaceM->kind);
   kindStructs.defineInterface(interfaceM, interfaceMethodTypesL);
 }
 
@@ -1535,14 +1541,14 @@ Weakability Safe::getKindWeakability(Kind* kind) {
   }
 }
 
-LLVMValueRef Safe::getInterfaceMethodFunctionPtr(
+FuncPtrLE Safe::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
     Ref virtualArgRef,
     int indexInEdge) {
   return getInterfaceMethodFunctionPtrFromItable(
-      globalState, functionState, builder, virtualParamMT, virtualArgRef, indexInEdge);
+      globalState, functionState, builder, &kindStructs, virtualParamMT, virtualArgRef, indexInEdge);
 }
 
 LLVMValueRef Safe::stackify(
