@@ -286,7 +286,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   pie = parsed_flags.get_bool_flag("--pie", true);
   print_mem_overhead = parsed_flags.get_bool_flag("--print_mem_overhead", false);
   elide_checks_for_known_live = parsed_flags.get_bool_flag("--elide_checks_for_known_live", true);
-  include_bounds_checks = parsed_flags.get_bool_flag("--include_bounds_checks", false);
+  include_bounds_checks = parsed_flags.get_bool_flag("--include_bounds_checks", true);
   override_known_live_true = parsed_flags.get_bool_flag("--override_known_live_true", false);
 
   if verbose {
