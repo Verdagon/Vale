@@ -111,6 +111,12 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "false",
           "Whether to output VAST, the code's intermediate representation"),
         Flag(
+          "--opt_level",
+          FLAG_STR(),
+          "Optimization level.",
+          "O0",
+          "Optimization level, between O0 and O3."),
+        Flag(
           "-g",
           FLAG_NOTHING(),
           "Include debug symbols.",
@@ -134,6 +140,12 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "Whether to output LLVM IR.",
           "false",
           "Whether to output LLVM IR."),
+        Flag(
+          "--asm",
+          FLAG_BOOL(),
+          "Whether to output assembly.",
+          "false",
+          "Whether to output assembly."),
         Flag(
           "--pic",
           FLAG_BOOL(),
@@ -283,7 +295,9 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   debug_symbols = parsed_flags.get_nothing_flag("-g");
   llvm_ir = parsed_flags.get_bool_flag("--llvm_ir", false);
   pic = parsed_flags.get_bool_flag("--pic", true);
+  opt_level = parsed_flags.get_string_flag("--opt_level", "O0");
   pie = parsed_flags.get_bool_flag("--pie", true);
+  asm = parsed_flags.get_bool_flag("--asm", true);
   print_mem_overhead = parsed_flags.get_bool_flag("--print_mem_overhead", false);
   elide_checks_for_known_live = parsed_flags.get_bool_flag("--elide_checks_for_known_live", true);
   include_bounds_checks = parsed_flags.get_bool_flag("--include_bounds_checks", true);
@@ -427,7 +441,9 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           gen_heap,
           census,
           verify,
+          opt_level,
           llvm_ir,
+          asm,
           enable_replaying,
           enable_side_calling,
           pic,

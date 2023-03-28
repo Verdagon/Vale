@@ -1201,7 +1201,7 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
 
 void createModule(std::vector<std::string>& inputFilepaths, GlobalState *globalState) {
   globalState->mod = LLVMModuleCreateWithNameInContext("build", globalState->context);
-  if (!globalState->opt->release) {
+  if (globalState->opt->debug) {
     globalState->dibuilder = LLVMCreateDIBuilder(globalState->mod);
     globalState->difile = LLVMDIBuilderCreateFile(globalState->dibuilder, "main.vale", 9, ".", 1);
     // If theres a compile error on this line, its some sort of LLVM version issue, try commenting or uncommenting the last four args.
@@ -1212,8 +1212,9 @@ void createModule(std::vector<std::string>& inputFilepaths, GlobalState *globalS
             "isysroothere", strlen("isysroothere"), "sdkhere", strlen("sdkhere"));
   }
   compileValeCode(globalState, inputFilepaths);
-  if (!globalState->opt->release)
+  if (globalState->opt->debug) {
     LLVMDIBuilderFinalize(globalState->dibuilder);
+  }
 }
 
 // Use provided options (triple, etc.) to creation a machine
@@ -1251,7 +1252,14 @@ LLVMTargetMachineRef createMachine(ValeOptions *opt) {
 
   // Create a specific target machine
 
-  LLVMCodeGenOptLevel opt_level = opt->release? LLVMCodeGenLevelAggressive : LLVMCodeGenLevelNone;
+  LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelNone;
+  switch (opt->optLevel) {
+    case 0: opt_level = LLVMCodeGenLevelNone; break;
+    case 1: opt_level = LLVMCodeGenLevelLess; break;
+    case 2: opt_level = LLVMCodeGenLevelDefault; break;
+    case 3: opt_level = LLVMCodeGenLevelAggressive; break;
+    default: assert(false); break;
+  }
 
   LLVMRelocMode reloc = (opt->pic || opt->library)? LLVMRelocPIC : LLVMRelocDefault;
   if (opt->cpu.empty())
@@ -1343,11 +1351,21 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
     }
   }
 
-  if (globalState->opt->release) {
+  if (globalState->opt->optLevel > 0) {
     if (globalState->opt->flares) {
       std::cout << "Warning: Running release optimizations with flares enabled!" << std::endl;
     }
     std::cout << "Running release optimizations..." << std::endl;
+
+
+    llvm::OptimizationLevel opt_level = llvm::OptimizationLevel::O0;
+    switch (globalState->opt->optLevel) {
+      case 0: opt_level = llvm::OptimizationLevel::O0; break;
+      case 1: opt_level = llvm::OptimizationLevel::O1; break;
+      case 2: opt_level = llvm::OptimizationLevel::O2; break;
+      case 3: opt_level = llvm::OptimizationLevel::O3; break;
+      default: assert(false); break;
+    }
 
     // Create the analysis managers.
     llvm::LoopAnalysisManager LAM;
@@ -1370,7 +1388,7 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
 
     // Create the pass manager.
     // This one corresponds to a typical -O3 optimization pipeline.
-    llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
+    llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(opt_level);
 
     // Optimize the IR!
     MPM.run(*llvm::unwrap(globalState->mod), MAM);

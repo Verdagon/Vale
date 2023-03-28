@@ -35,10 +35,11 @@ struct ValeOptions {
 
     // Boolean flags
     bool wasm = false;        // 1=WebAssembly
-    bool release = false;    // 0=debug (no optimizations). 1=release (default)
+    int optLevel = false;   // O0-O3
     bool library = false;    // 1=generate a C-API compatible static library
     bool pic = false;        // Compile using position independent code
     bool verify = false;        // Verify LLVM IR
+    bool debug = false;
     bool print_asm = false;        // Print out assembly file
     bool print_llvmir = false;    // Print out LLVM IR
     bool docs = false;            // Generate code documentation
