@@ -104,7 +104,7 @@ void buildPrint(
   auto voidLT = LLVMVoidTypeInContext(globalState->context);
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
   std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0) };
-  auto s = LLVMBuildGEP2(builder, int8LT, globalState->getOrMakeStringConstant(first), indices.data(), indices.size(), "stringptr");
+  auto s = LLVMBuildInBoundsGEP2(builder, int8LT, globalState->getOrMakeStringConstant(first), indices.data(), indices.size(), "stringptr");
   assert(LLVMTypeOf(s) == LLVMPointerType(int8LT, 0));
   globalState->externs->printCStr.call(builder, {s}, "");
 }
@@ -397,7 +397,7 @@ LLVMValueRef getArgsAreaPtr(
 
   auto offsetIntoNewStackLE = constI64LE(globalState, -argsAreaSize);
   auto sideStackPtrBeforeSwitchAsI8PtrLE =
-      LLVMBuildGEP2(builder, int8LT, sideStackStartPtrAsI8PtrLE, &offsetIntoNewStackLE, 1, "sideStackPtr");
+      LLVMBuildInBoundsGEP2(builder, int8LT, sideStackStartPtrAsI8PtrLE, &offsetIntoNewStackLE, 1, "sideStackPtr");
 
   auto argsAreaPtrBeforeSwitchLE =
       LLVMBuildPointerCast(builder, sideStackPtrBeforeSwitchAsI8PtrLE, argsStructPtrLT, "");

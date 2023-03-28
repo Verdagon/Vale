@@ -70,7 +70,7 @@ LLVMValueRef LgtWeaks::getLGTEntryGenPtr(
   auto genEntriesPtrLE =
       LLVMBuildLoad2(builder, globalState->lgtTableStructLT, getLgtEntriesArrayPtr(builder), "lgtEntriesArrayPtr");
   auto ptrToLGTEntryLE =
-      LLVMBuildGEP2(builder, globalState->lgtEntryStructLT, genEntriesPtrLE, &lgtiLE, 1, "ptrToLGTEntry");
+      LLVMBuildInBoundsGEP2(builder, globalState->lgtEntryStructLT, genEntriesPtrLE, &lgtiLE, 1, "ptrToLGTEntry");
   auto ptrToLGTEntryGenLE =
       LLVMBuildStructGEP2(builder, globalState->lgtEntryStructLT, ptrToLGTEntryLE, LGT_ENTRY_MEMBER_INDEX_FOR_GEN, "ptrToLGTEntryGen");
   return ptrToLGTEntryGenLE;
@@ -82,7 +82,7 @@ LLVMValueRef LgtWeaks::getLGTEntryNextFreePtr(
   auto genEntriesPtrLE =
       LLVMBuildLoad2(builder, globalState->lgtTableStructLT, getLgtEntriesArrayPtr(builder), "lgtEntriesArrayPtr");
   auto ptrToLGTEntryLE =
-      LLVMBuildGEP2(builder, globalState->lgtEntryStructLT, genEntriesPtrLE, &lgtiLE, 1, "ptrToLGTEntry");
+      LLVMBuildInBoundsGEP2(builder, globalState->lgtEntryStructLT, genEntriesPtrLE, &lgtiLE, 1, "ptrToLGTEntry");
   auto ptrToLGTEntryGenLE =
       LLVMBuildStructGEP2(builder, globalState->lgtEntryStructLT, ptrToLGTEntryLE, LGT_ENTRY_MEMBER_INDEX_FOR_NEXT_FREE, "ptrToLGTEntryNextFree");
   return ptrToLGTEntryGenLE;

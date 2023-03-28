@@ -521,7 +521,7 @@ WrapperPtrLE mallocStr(
   std::vector<LLVMValueRef> strncpyArgsLE = { charsBeginPtr, sourceCharsPtrLE, lenI64LE };
   globalState->externs->strncpy.call(builder, strncpyArgsLE, "");
 
-  auto charsEndPtr = LLVMBuildGEP2(builder, int8LT, charsBeginPtr, &lenI32LE, 1, "charsEndPtrZ");
+  auto charsEndPtr = LLVMBuildInBoundsGEP2(builder, int8LT, charsBeginPtr, &lenI32LE, 1, "charsEndPtrZ");
   LLVMBuildStore(builder, constI8LE(globalState, 0), charsEndPtr);
 
   // The caller still needs to initialize the actual chars inside!

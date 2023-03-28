@@ -242,9 +242,9 @@ LLVMValueRef makeEntryFunction(
     LLVMBuildStore(
         entryBuilder,
         LLVMBuildLoad2(entryBuilder, int8PtrPtrLT, mainArgsLE, "zerothArg"),
-        LLVMBuildGEP2(entryBuilder, int8PtrPtrLT, mainArgsLE, &numConsumedArgsLE, 1, "argv+numConsumed"));
+        LLVMBuildInBoundsGEP2(entryBuilder, int8PtrPtrLT, mainArgsLE, &numConsumedArgsLE, 1, "argv+numConsumed"));
     // argv += numConsumed
-    mainArgsLE = LLVMBuildGEP2(entryBuilder, int8PtrPtrLT, mainArgsLE, &numConsumedArgsLE, 1, "newMainArgs");
+    mainArgsLE = LLVMBuildInBoundsGEP2(entryBuilder, int8PtrPtrLT, mainArgsLE, &numConsumedArgsLE, 1, "newMainArgs");
     // argc -= numConsumed
     numMainArgsLE = LLVMBuildSub(entryBuilder, numMainArgsLE, numConsumedArgsLE, "newMainArgsCount");
   }
