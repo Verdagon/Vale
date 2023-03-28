@@ -10,7 +10,9 @@ func invoke_backend(
   gen_heap bool,
   census bool,
   verify bool,
+  opt_level str,
   llvm_ir bool,
+  asm bool,
   enable_replaying bool,
   enable_side_calling bool,
   pic bool,
@@ -51,8 +53,15 @@ Subprocess {
   if (verify) {
     command_line_args.add("--verify");
   }
+  if opt_level != "O0" {
+    command_line_args.add("--opt_level");
+    command_line_args.add(opt_level);
+  }
   if (llvm_ir) {
     command_line_args.add("--llvm_ir");
+  }
+  if (asm) {
+    command_line_args.add("--asm");
   }
   if (enable_replaying) {
     command_line_args.add("--enable_replaying=true");

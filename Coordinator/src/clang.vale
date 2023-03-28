@@ -22,7 +22,6 @@ Subprocess {
   args = List<str>();
 
   args.add("-I" + output_dir./("include").str());
-  args.add("-O3");
 
   if (windows) {
     args.add("/ENTRY:\"main\"");

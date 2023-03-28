@@ -14,6 +14,7 @@ enum
     OPT_VERSION,
     OPT_HELP,
     OPT_DEBUG,
+    OPT_OPT_LEVEL,
     OPT_BUILDFLAG,
     OPT_STRIP,
     OPT_PATHS,
@@ -91,7 +92,8 @@ static opt_arg_t args[] =
 
     { "verbose", 'V', OPT_ARG_REQUIRED, OPT_VERBOSE },
     { "flares", '\0', OPT_ARG_OPTIONAL, OPT_FLARES },
-    { "fast_crash", '\0', OPT_ARG_OPTIONAL, OPT_FLARES },
+    { "opt_level", '\0', OPT_ARG_REQUIRED, OPT_OPT_LEVEL },
+    { "fast_crash", '\0', OPT_ARG_OPTIONAL, OPT_FAST_CRASH },
     { "gen_heap", '\0', OPT_ARG_OPTIONAL, OPT_GEN_HEAP },
     { "elide_checks_for_known_live", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE },
     { "include_bounds_checks", '\0', OPT_ARG_OPTIONAL, OPT_INCLUDE_BOUNDS_CHECKS },
@@ -127,7 +129,8 @@ static void usage()
         "Options:\n"
         "  --version, -v   Print the version of the compiler and exit.\n"
         "  --help, -h      Print this help text and exit.\n"
-        "  --debug, -d     Don't optimise the output.\n"
+        "  --debug, -d     Add debug information.\n"
+        "  --opt_level     Optimization level, between O0 and O3.\n"
         "  --define, -D    Define the specified build flag.\n"
         "    =name\n"
         "  --strip, -s     Strip debug info.\n"
@@ -196,7 +199,7 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
     // options->check.errors = errors_alloc();
 
     optInit(args, &s, argc, argv);
-    opt->release = 1;
+    opt->optLevel = 0;
     opt->flares = false;
     opt->fastCrash = false;
     opt->elideChecksForKnownLive = true;
@@ -215,7 +218,7 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
             usage();
             return 0;
 
-        case OPT_DEBUG: opt->release = 0; break;
+        case OPT_DEBUG: opt->debug = 1; break;
         case OPT_OUTPUT_DIR: opt->outputDir = s.arg_val; break;
         case OPT_LIBRARY: opt->library = 1; break;
         case OPT_PIC: opt->pic = 1; break;
@@ -242,6 +245,18 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
           break;
         }
 
+          case OPT_OPT_LEVEL: {
+            if (s.arg_val == std::string("O0")) {
+              opt->optLevel = 0;
+            } else if (s.arg_val == std::string("O1")) {
+              opt->optLevel = 1;
+            } else if (s.arg_val == std::string("O2")) {
+              opt->optLevel = 2;
+            } else if (s.arg_val == std::string("O3")) {
+              opt->optLevel = 3;
+            } else assert(false);
+            break;
+          }
           case OPT_FAST_CRASH: {
             if (!s.arg_val) {
               opt->fastCrash = true;
