@@ -1052,7 +1052,7 @@ Ref Linear::innerMallocStr(
         globalState->externs->strncpy.call(thenBuilder, argsLE, "");
 
 
-        auto charsEndPtr = LLVMBuildGEP2(thenBuilder, int8LT, charsBeginPtr, &lenI64LE, 1, "charsEndPtr_");
+        auto charsEndPtr = LLVMBuildInBoundsGEP2(thenBuilder, int8LT, charsBeginPtr, &lenI64LE, 1, "charsEndPtr_");
 
 //        buildFlare(FL(), globalState, functionState, thenBuilder, "storing at ", ptrToIntLE(globalState, thenBuilder, charsEndPtr));
 
@@ -1430,7 +1430,7 @@ std::pair<Ref, Ref> Linear::receiveUnencryptedAlienReference(
       auto [liveRef, size] =
         topLevelSerialize(
             functionState, builder, targetRegionInstanceRef, sourceRegionInstanceRef, sourceRefMT->kind, sourceRef);
-      return std::make_tuple(liveRef.inner, size);
+      return std::make_pair(liveRef.inner, size);
     }
   } else assert(false);
 
@@ -2149,13 +2149,13 @@ FuncPtrLE Linear::getInterfaceMethodFunctionPtr(
     auto bitcastedFuncPtrLE = LLVMBuildPointerCast(builder, funcLE.ptrLE, funcPtrLT, "bitcastedFunc");
     // We're using store here because LLVMBuildInsertElement caused LLVM to go into an infinite loop and crash.
     std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0), constI64LE(globalState, i) };
-    auto destPtrLE = LLVMBuildGEP2(builder, fftableLT, fftablePtrLE, indices.data(), indices.size(), "storeMethodPtrPtr");
+    auto destPtrLE = LLVMBuildInBoundsGEP2(builder, fftableLT, fftablePtrLE, indices.data(), indices.size(), "storeMethodPtrPtr");
     assert(LLVMTypeOf(destPtrLE) == LLVMPointerType(funcPtrLT, 0));
     LLVMBuildStore(builder, bitcastedFuncPtrLE, destPtrLE);
   }
 
   std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0), edgeNumLE };
-  auto methodPtrPtrLE = LLVMBuildGEP2(builder, fftableLT, fftablePtrLE, indices.data(), indices.size(), "methodPtrPtr");
+  auto methodPtrPtrLE = LLVMBuildInBoundsGEP2(builder, fftableLT, fftablePtrLE, indices.data(), indices.size(), "methodPtrPtr");
   assert(LLVMTypeOf(methodPtrPtrLE) == LLVMPointerType(funcPtrLT, 0));
   auto methodFuncPtr = LLVMBuildLoad2(builder, funcPtrLT, methodPtrPtrLE, "methodFuncPtr");
   assert(LLVMTypeOf(methodFuncPtr) == funcPtrLT);
@@ -2366,7 +2366,7 @@ LLVMValueRef Linear::getDestinationPtr(
   auto destinationOffsetLE =
       getRegionInstanceDestinationOffset(functionState, builder, regionInstanceRef);
   auto destinationI8PtrLE =
-      LLVMBuildGEP2(builder, int8LT, bufferBeginPtrLE, &destinationOffsetLE, 1, "destinationI8Ptr");
+      LLVMBuildInBoundsGEP2(builder, int8LT, bufferBeginPtrLE, &destinationOffsetLE, 1, "destinationI8Ptr");
   return destinationI8PtrLE;
 }
 

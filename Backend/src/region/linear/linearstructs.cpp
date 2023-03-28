@@ -177,7 +177,7 @@ LLVMValueRef LinearStructs::getStringBytesPtr(
 
   std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0), constI64LE(globalState, 0) };
   auto firstCharPtrLE =
-      LLVMBuildGEP2(
+      LLVMBuildInBoundsGEP2(
           builder, int8ArrayLT, charsArrayPtrLE, indices.data(), indices.size(), "elementPtr");
   assert(LLVMTypeOf(firstCharPtrLE) == LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0));
   return firstCharPtrLE;

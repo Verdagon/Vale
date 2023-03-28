@@ -111,7 +111,7 @@ LLVMValueRef WrcWeaks::getWrcPtr(
   auto wrcEntriesPtrLE =
       LLVMBuildLoad2(builder, int32PtrLT, getWrcEntriesArrayPtr(builder), "wrcEntriesArrayPtr");
   auto ptrToWrcLE =
-      LLVMBuildGEP2(builder, int32LT, wrcEntriesPtrLE, &wrciLE, 1, "ptrToWrc");
+      LLVMBuildInBoundsGEP2(builder, int32LT, wrcEntriesPtrLE, &wrciLE, 1, "ptrToWrc");
   return ptrToWrcLE;
 }
 

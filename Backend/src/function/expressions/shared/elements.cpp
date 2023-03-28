@@ -291,7 +291,7 @@ LoadResult loadElement(
 
   auto elementLT = globalState->getRegion(elementRefM)->translateType(elementRefM);
   auto elementPtrLE =
-      LLVMBuildGEP2(builder, LLVMArrayType(elementLT, 0), elemsPtrLE, indices, 2, "indexPtr");
+      LLVMBuildInBoundsGEP2(builder, LLVMArrayType(elementLT, 0), elemsPtrLE, indices, 2, "indexPtr");
   auto fromArrayLE = LLVMBuildLoad2(builder, elementLT, elementPtrLE, "index");
 
   auto sourceRef = wrap(globalState->getRegion(elementRefM), elementRefM, fromArrayLE);
@@ -314,7 +314,7 @@ void storeInnerArrayMember(
       indexLE.refLE
   };
   auto destPtrLE =
-      LLVMBuildGEP2(builder, LLVMArrayType(elementLT, 0), elemsPtrLE, indices, 2, "destPtr");
+      LLVMBuildInBoundsGEP2(builder, LLVMArrayType(elementLT, 0), elemsPtrLE, indices, 2, "destPtr");
   LLVMBuildStore(builder, sourceLE, destPtrLE);
 }
 
