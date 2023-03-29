@@ -75,6 +75,12 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "../Backend/src/builtins",
           "Alternate path for the temporary C builtin functions."),
         Flag(
+          "--clang_override",
+          FLAG_STR(),
+          "Path to the clang binary to ue for linking.",
+          "clang",
+          "Alternate path for the clang binary to use."),
+        Flag(
           "--benchmark",
           FLAG_BOOL(),
           "Whether to benchmark Frontend.",
@@ -267,6 +273,8 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
       panic("Error: --builtins_dir_override's value ({builtins_dir.str()}) is not a directory.");
     }
   }
+
+  maybe_clang_path_override = parsed_flags.get_string_flag("--clang_override");
 
   output_dir = Path(parsed_flags.get_string_flag("--output_dir", "build"));
 
@@ -548,6 +556,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   clang_process =
       invoke_clang(
           windows,
+          &maybe_clang_path_override,
           &clang_inputs,
           &executable_name,
           asan,

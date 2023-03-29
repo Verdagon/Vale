@@ -35,7 +35,7 @@ struct ValeOptions {
 
     // Boolean flags
     bool wasm = false;        // 1=WebAssembly
-    int optLevel = false;   // O0-O3
+    int optLevel = 0;   // O0-O3
     bool library = false;    // 1=generate a C-API compatible static library
     bool pic = false;        // Compile using position independent code
     bool verify = false;        // Verify LLVM IR
