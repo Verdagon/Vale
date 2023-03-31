@@ -10,7 +10,7 @@
 #include "shared/shared.h"
 #include "../../region/common/heap.h"
 
-LiveRef translateNewArrayFromValues(
+Ref translateNewArrayFromValues(
     GlobalState* globalState,
     FunctionState* functionState,
     BlockState* blockState,
@@ -59,8 +59,6 @@ LiveRef translateNewArrayFromValues(
         staticSizedArrayMT,
         resultRef,
         elementsLE);
-    globalState->getRegion(newArrayFromValues->arrayRefType)
-        ->checkValidReference(FL(), functionState, builder, true, newArrayFromValues->arrayRefType, resultRef.inner);
-    return resultRef;
+    return wrap(globalState, newArrayFromValues->arrayRefType, resultRef);
   }
 }

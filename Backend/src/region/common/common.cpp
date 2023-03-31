@@ -291,16 +291,17 @@ void innerDeallocateYonder(
     KindStructs* kindStructsSource,
     LLVMBuilderRef builder,
     Reference* refMT,
-    LiveRef ref) {
+    LiveRef liveRef) {
   buildFlare(FL(), globalState, functionState, builder);
 
+  auto ref = wrap(globalState, refMT, liveRef);
   if (globalState->opt->census) {
     auto ptrLE =
         globalState->getRegion(refMT)
-            ->checkValidReference(FL(), functionState, builder, true, refMT, ref.inner);
+            ->checkValidReference(FL(), functionState, builder, true, refMT, ref);
     auto objIdLE =
         globalState->getRegion(refMT)
-            ->getCensusObjectId(FL(), functionState, builder, refMT, ref.inner);
+            ->getCensusObjectId(FL(), functionState, builder, refMT, ref);
     if (dynamic_cast<InterfaceKind*>(refMT->kind) == nullptr) {
       buildFlare(FL(), globalState, functionState, builder,
           "Deallocating object &", ptrToIntLE(globalState, builder, ptrLE), " obj id ", objIdLE, "\n");
@@ -308,7 +309,7 @@ void innerDeallocateYonder(
   }
 
   auto controlBlockPtrLE =
-      kindStructsSource->getControlBlockPtr(from, functionState, builder, ref.inner, refMT);
+      kindStructsSource->getControlBlockPtr(from, functionState, builder, ref, refMT);
 
 //  globalState->getRegion(refMT)
 //      ->noteWeakableDestroyed(functionState, builder, refMT, controlBlockPtrLE);
@@ -1157,7 +1158,7 @@ LiveRef constructStaticSizedArray(
   fillControlBlock(
       builder,
       kindStructs->getConcreteControlBlockPtr(FL(), functionState, builder, refM, newStructLE));
-  return LiveRef(wrap(globalState->getRegion(refM), refM, newStructLE.refLE));
+  return toLiveRef(newStructLE);
 }
 
 

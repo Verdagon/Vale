@@ -860,7 +860,7 @@ Ref translateExpressionInner(
     return translateExpression(globalState, functionState, blockState, builder, sourceExpr);
   } else if (auto newArrayFromValues = dynamic_cast<NewArrayFromValues*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
-    return translateNewArrayFromValues(globalState, functionState, blockState, builder, newArrayFromValues).inner;
+    return translateNewArrayFromValues(globalState, functionState, blockState, builder, newArrayFromValues);
   } else if (auto nirsa = dynamic_cast<NewImmRuntimeSizedArray*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     return translateNewImmRuntimeSizedArray(globalState, functionState, blockState, builder, nirsa);

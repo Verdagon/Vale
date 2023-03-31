@@ -271,9 +271,9 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
           case OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE: {
             if (!s.arg_val) {
               opt->elideChecksForKnownLive = true;
-            } else if (s.arg_val == std::string("on")) {
+            } else if (s.arg_val == std::string("true")) {
               opt->elideChecksForKnownLive = true;
-            } else if (s.arg_val == std::string("off")) {
+            } else if (s.arg_val == std::string("false")) {
               opt->elideChecksForKnownLive = false;
             } else assert(false);
             break;
@@ -298,9 +298,9 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
           case OPT_PRINT_MEM_OVERHEAD: {
             if (!s.arg_val) {
               opt->printMemOverhead = true;
-            } else if (s.arg_val == std::string("on")) {
+            } else if (s.arg_val == std::string("true")) {
               opt->printMemOverhead = true;
-            } else if (s.arg_val == std::string("off")) {
+            } else if (s.arg_val == std::string("false")) {
               opt->printMemOverhead = false;
             } else assert(false);
             break;

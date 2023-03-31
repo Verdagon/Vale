@@ -171,13 +171,8 @@ void regularInitializeElementInSSA(
     LiveRef arrayRef,
     InBoundsLE indexLE,
     Ref elementRef) {
-  auto arrayElementsPtrLE =
-      getStaticSizedArrayContentsPtr(
-          builder,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, ssaRefMT,
-              globalState->getRegion(ssaRefMT)
-                  ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner)));
+  auto arrayWPtrLE = kindStructs->makeWrapperPtr(FL(), functionState, builder, ssaRefMT, arrayRef.refLE);
+  auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder,arrayWPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   initializeElementWithoutIncrementSize(
       globalState, functionState, builder, ssaRefMT->location,
@@ -195,13 +190,9 @@ LoadResult regularloadElementFromSSA(
     LiveRef arrayRef,
     InBoundsLE indexLE,
     KindStructs* kindStructs) {
-  LLVMValueRef arrayElementsPtrLE =
-      getStaticSizedArrayContentsPtr(
-          builder,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, ssaRefMT,
-              globalState->getRegion(ssaRefMT)
-                  ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner)));
+  auto arrayWPtrLE =
+      kindStructs->makeWrapperPtr(FL(), functionState, builder, ssaRefMT, arrayRef.refLE);
+  LLVMValueRef arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder,arrayWPtrLE);
   return loadElementFromSSAInner(
       globalState, functionState, builder, elementType, indexLE, arrayElementsPtrLE);
 }
@@ -262,14 +253,10 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
     Reference* elementType,
     LiveRef arrayRef,
     InBoundsLE indexLE) {
+  auto arrayWPtrLE =
+      kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaRefMT, arrayRef.refLE);
   auto arrayElementsPtrLE =
-      getRuntimeSizedArrayContentsPtr(
-          builder,
-          capacityExists,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, rsaRefMT,
-              globalState->getRegion(rsaRefMT)
-                  ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner)));
+      getRuntimeSizedArrayContentsPtr(builder,capacityExists,arrayWPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return loadElement(
       globalState, functionState, builder, arrayElementsPtrLE, elementType, indexLE);

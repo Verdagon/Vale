@@ -30,8 +30,8 @@ Ref translatePreCheckBorrow(
     }
   }
 
-  return globalState->getRegion(sourceResultType)
+  return wrap(globalState, sourceResultType,
+              globalState->getRegion(sourceResultType)
       ->preCheckBorrow(
-          FL(), functionState, builder, structRegionInstanceRef, sourceResultType, result, knownLive)
-          .inner;
+          FL(), functionState, builder, structRegionInstanceRef, sourceResultType, result, knownLive));
 }

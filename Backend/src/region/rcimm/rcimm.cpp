@@ -350,8 +350,6 @@ Ref RCImm::loadMember(
     Reference* expectedMemberType,
     Reference* targetMemberType,
     const std::string& memberName) {
-  globalState->getRegion(structRefMT)
-      ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef.inner);
   auto memberLE =
       loadMember2(
           functionState, builder, regionInstanceRef, structRefMT, structRef, memberIndex, expectedMemberType,
@@ -421,11 +419,7 @@ LLVMValueRef RCImm::getStringBytesPtr(
     LiveRef ref) {
   assert(refMT->kind == globalState->metalCache->str);
   auto strWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder,
-          refMT,
-          checkValidReference(
-              FL(), functionState, builder, true, refMT, ref.inner));
+      toWrapperPtr(functionState, builder, &kindStructs, refMT, ref);
   return kindStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
 }
 

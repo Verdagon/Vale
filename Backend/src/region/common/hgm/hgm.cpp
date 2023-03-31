@@ -264,7 +264,7 @@ WeakFatPtrLE HybridGenerationalMemory::assembleRuntimeSizedArrayWeakRef(
       functionState, builder, targetTypeM, weakRefStructLT, headerLE, objPtrLE.refLE);
 }
 
-WrapperPtrLE HybridGenerationalMemory::lockGenFatPtr(
+LiveRef HybridGenerationalMemory::lockGenFatPtr(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -289,8 +289,7 @@ WrapperPtrLE HybridGenerationalMemory::lockGenFatPtr(
           fastPanic(globalState, from, thenBuilder);
         });
   }
-  auto liveRef = LiveRef(ref); // Because we just checked
-  return getWrapperPtr(FL(), functionState, builder, refM, liveRef);
+  return toLiveRef(FL(), globalState, functionState, builder, kindStructs, refM, ref);
 }
 
 LiveRef HybridGenerationalMemory::preCheckFatPtr(
@@ -309,7 +308,7 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
 
   if (knownLive && elideChecksForKnownLive) {
     // Do nothing, just wrap it and return it.
-    return LiveRef(ref);
+    return toLiveRef(FL(), globalState, functionState, builder, kindStructs, refM, ref);
   } else {
     if (globalState->opt->printMemOverhead) {
       adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
@@ -326,7 +325,7 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
             [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
               return ref;
             });
-    return LiveRef(resultRef);
+    return toLiveRef(FL(), globalState, functionState, builder, kindStructs, refM, resultRef);
   }
 }
 
@@ -335,10 +334,10 @@ WrapperPtrLE HybridGenerationalMemory::getWrapperPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refM,
-    LiveRef ref) {
+    Ref ref) {
   auto refLE =
       globalState->getRegion(refM)->checkValidReference(
-          FL(), functionState, builder, false, refM, ref.inner);
+          FL(), functionState, builder, false, refM, ref);
   switch (refM->ownership) {
     case Ownership::OWN:
     case Ownership::IMMUTABLE_BORROW:
@@ -347,7 +346,7 @@ WrapperPtrLE HybridGenerationalMemory::getWrapperPtr(
       auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
       auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
       globalState->getRegion(refM)
-          ->checkValidReference(FL(), functionState, builder, true, refM, ref.inner);
+          ->checkValidReference(FL(), functionState, builder, true, refM, ref);
       return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
     }
     default:
@@ -763,14 +762,11 @@ void HybridGenerationalMemory::deallocate(
     Reference* sourceRefMT,
     LiveRef sourceRef) {
   // Increment the generation since we're freeing it.
-  auto sourceRefLE =
-      globalState->getRegion(sourceRefMT)
-          ->checkValidReference(FL(), functionState, builder, true, sourceRefMT, sourceRef.inner);
+  auto sourceWrapperPtr =
+      toWrapperPtr(functionState, builder, kindStructs, sourceRefMT, sourceRef);
   auto controlBlockPtr =
       kindStructs->getConcreteControlBlockPtr(
-          FL(), functionState, builder, sourceRefMT,
-          kindStructs->makeWrapperPtr(
-              FL(), functionState, builder, sourceRefMT, sourceRefLE));
+          FL(), functionState, builder, sourceRefMT, sourceWrapperPtr);
   int genMemberIndex =
       kindStructs->getControlBlock(sourceRefMT->kind)->getMemberIndex(ControlBlockMember::GENERATION_32B);
   auto genPtrLE =
