@@ -39,7 +39,7 @@ Ref swapMember(
     Ref newMemberRef) {
   auto memberRefMT = structDefM->members[memberIndex]->type;
 
-  structRef.inner.assertOwnership(Ownership::MUTABLE_BORROW);
+  assert(structRef.refM->ownership == Ownership::MUTABLE_BORROW);
 
   assert(structDefM->mutability == Mutability::MUTABLE);
 

@@ -392,14 +392,10 @@ public:
       Ref regionInstanceRef,
       LiveRef ref) override {
     assert(refMT->kind == globalState->metalCache->str);
-    auto strWrapperPtrLE =
-        kindStructs.makeWrapperPtr(
-            FL(), functionState, builder,
-            refMT,
-            checkValidReference(
-                FL(), functionState, builder, true, refMT, ref.inner));
+    auto strWrapperPtrLE = kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, ref.refLE);
     return kindStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
   }
+
   LLVMValueRef getStringLen(
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -407,12 +403,7 @@ public:
       Ref regionInstanceRef,
       LiveRef ref) override {
     assert(refMT->kind == globalState->metalCache->str);
-    auto strWrapperPtrLE =
-        kindStructs.makeWrapperPtr(
-            FL(), functionState, builder,
-            refMT,
-            checkValidReference(
-                FL(), functionState, builder, true, refMT, ref.inner));
+    auto strWrapperPtrLE = kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, ref.refLE);
     return kindStructs.getStringLen(functionState, builder, strWrapperPtrLE);
   }
 //  LLVMTypeRef getWeakRefHeaderStruct(Kind* kind) override {

@@ -8,6 +8,7 @@
 class FunctionState;
 class GlobalState;
 class IRegion;
+struct KindStructs;
 
 
 // Perhaps we should switch to a structure that looks like this:
@@ -149,15 +150,32 @@ private:
 
 // A Ref that we're sure is alive right now.
 struct LiveRef {
-  Ref inner;
+    Reference* const refM;
+    LLVMTypeRef wrapperStructLT;
+    // TODO rename to ptrLE
+    LLVMValueRef const refLE;
 
-  explicit LiveRef(Ref inner_) : inner(inner_) { }
+    LiveRef(Reference* refM_, LLVMTypeRef wrapperStructLT_, LLVMValueRef refLE_)
+    : refM(refM_), wrapperStructLT(wrapperStructLT_), refLE(refLE_) {
+        assert(LLVMTypeOf(refLE) == LLVMPointerType(wrapperStructLT, 0));
+    }
 };
 
+// DO NOT SUBMIT rename to toRef
 Ref wrap(IRegion* region, Reference* refM, LLVMValueRef exprLE);
 Ref wrap(IRegion* region, Reference* refM, WrapperPtrLE exprLE);
 Ref wrap(IRegion* region, Reference* refM, InterfaceFatPtrLE exprLE);
 Ref wrap(IRegion* region, Reference* refM, WeakFatPtrLE exprLE);
+Ref wrap(GlobalState* globalState, Reference* refM, LiveRef exprLE);
+
+
+WrapperPtrLE toWrapperPtr(FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refMT, LiveRef liveRef);
+
+LiveRef toLiveRef(WrapperPtrLE wrapperPtrLE);
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refM, LLVMValueRef ptrLE);
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refM, Ref ref);
+
+
 
 LLVMValueRef checkValidInternalReference(
     AreaAndFileAndLine checkerAFL,

@@ -517,22 +517,17 @@ LiveRef ResilientV3::checkRefLive(
     case Ownership::IMMUTABLE_SHARE:
     case Ownership::MUTABLE_SHARE:
       assert(false); // curious
-    case Ownership::IMMUTABLE_BORROW:
-      // Immutable borrows aren't really live, but we can dereference them as if they are. If they
-      // don't point to a live object, they'll point at a protected address instead, and
-      // dereferencing will safely fault.
-      return LiveRef(ref);
+    case Ownership::IMMUTABLE_BORROW: {
+        // Immutable borrows aren't really live, but we can dereference them as if they are. If they
+        // don't point to a live object, they'll point at a protected address instead, and
+        // dereferencing will safely fault.
+        return toLiveRef(FL(), globalState, functionState, builder, &kindStructs, refMT, ref);
+    }
     case Ownership::OWN: {
-      return LiveRef(ref);
-//      auto weakFatPtrLE =
-//          checkValidReference(
-//              FL(), functionState, builder, false, refMT, ref);
-//      return kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, weakFatPtrLE);
+        return toLiveRef(FL(), globalState, functionState, builder, &kindStructs, refMT, ref);
     }
     case Ownership::MUTABLE_BORROW: {
-      hgmWeaks.lockGenFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive);
-      return LiveRef(ref);
-      break;
+        return LiveRef(hgmWeaks.lockGenFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive));
     }
     case Ownership::WEAK: {
       assert(false);
@@ -542,7 +537,6 @@ LiveRef ResilientV3::checkRefLive(
       assert(false);
       break;
   }
-  return LiveRef(ref);
 }
 
 LiveRef ResilientV3::preCheckBorrow(
@@ -572,7 +566,7 @@ LiveRef ResilientV3::preCheckBorrow(
       assert(false);
       break;
   }
-  return LiveRef(ref);
+  assert(false);
 }
 
 

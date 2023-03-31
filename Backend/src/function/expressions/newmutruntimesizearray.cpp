@@ -28,7 +28,7 @@ Ref translateNewMutRuntimeSizedArray(
   auto capacityRef = translateExpression(globalState, functionState, blockState, builder, sizeExpr);
 
   // If we get here, arrayLT is a pointer to our counted struct.
-  auto rsaRef =
+  auto rsaLiveRef =
       globalState->getRegion(arrayRefType)->constructRuntimeSizedArray(
           makeVoidRef(globalState),
           functionState,
@@ -37,11 +37,12 @@ Ref translateNewMutRuntimeSizedArray(
           runtimeSizedArrayMT,
           capacityRef,
           runtimeSizedArrayMT->name->name);
+  auto rsaRef = wrap(globalState, arrayRefType, rsaLiveRef);
   buildFlare(FL(), globalState, functionState, builder);
   globalState->getRegion(arrayRefType)
-      ->checkValidReference(FL(), functionState, builder, true, arrayRefType, rsaRef.inner);
+      ->checkValidReference(FL(), functionState, builder, true, arrayRefType, rsaRef);
 
   globalState->getRegion(sizeType)->dealias(AFL("ConstructRSA"), functionState, builder, sizeType, capacityRef);
 
-  return rsaRef.inner;
+  return rsaRef;
 }

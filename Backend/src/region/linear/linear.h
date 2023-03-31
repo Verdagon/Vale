@@ -549,7 +549,7 @@ private:
       // If it's an array, this will be the number of elements.
       LLVMValueRef lenIntLE);
 
-  Ref innerAllocate(
+  LiveRef innerAllocate(
       Ref regionInstanceRef,
       AreaAndFileAndLine from,
       FunctionState* functionState,
@@ -639,7 +639,7 @@ private:
       LLVMBuilderRef builder,
       Ref regionInstanceRef);
 
-  Ref getDestinationRef(
+  LiveRef getDestinationRef(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
