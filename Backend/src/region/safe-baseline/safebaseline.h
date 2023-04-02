@@ -14,6 +14,8 @@
 
 class SafeBaseline : public IRegion {
 public:
+  using IRegion::checkValidReference;
+
     SafeBaseline(GlobalState* globalState);
     ~SafeBaseline() override = default;
 
@@ -223,7 +225,7 @@ public:
             LLVMBuilderRef builder,
             Ref regionInstanceRef,
             Reference* structRefMT,
-            LiveRef structRef,
+            LiveRef structLiveRef,
             int memberIndex,
             Reference* expectedMemberType,
             Reference* targetType,
@@ -404,12 +406,7 @@ public:
             Ref regionInstanceRef,
             LiveRef ref) override {
         assert(refMT->kind == globalState->metalCache->str);
-        auto strWrapperPtrLE =
-                kindStructs.makeWrapperPtr(
-                        FL(), functionState, builder,
-                        refMT,
-                        checkValidReference(
-                                FL(), functionState, builder, true, refMT, ref.inner));
+        auto strWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, refMT, ref);
         return kindStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
     }
     LLVMValueRef getStringLen(
@@ -419,12 +416,7 @@ public:
             Ref regionInstanceRef,
             LiveRef ref) override {
         assert(refMT->kind == globalState->metalCache->str);
-        auto strWrapperPtrLE =
-                kindStructs.makeWrapperPtr(
-                        FL(), functionState, builder,
-                        refMT,
-                        checkValidReference(
-                                FL(), functionState, builder, true, refMT, ref.inner));
+        auto strWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, refMT, ref);
         return kindStructs.getStringLen(functionState, builder, strWrapperPtrLE);
     }
 //  LLVMTypeRef getWeakRefHeaderStruct(Kind* kind) override {
@@ -532,6 +524,8 @@ public:
             LLVMBuilderRef builder,
             Reference *refM,
             LiveRef liveRef);
+
+
 
 protected:
     LLVMValueRef fillControlBlockGeneration(LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);

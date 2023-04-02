@@ -274,11 +274,11 @@ LiveRef HybridGenerationalMemory::lockGenFatPtr(
   auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
   auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
-  if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && elideChecksForKnownLive) {
-    globalState->getRegion(refM)
-        ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-    // Do nothing
-  } else {
+//  if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && elideChecksForKnownLive) {
+//    globalState->getRegion(refM)
+//        ->checkValidReference(FL(), functionState, builder, true, refM, ref);
+//    // Do nothing
+//  } else {
     if (globalState->opt->printMemOverhead) {
       adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
     }
@@ -288,8 +288,8 @@ LiveRef HybridGenerationalMemory::lockGenFatPtr(
         [this, from](LLVMBuilderRef thenBuilder) {
           fastPanic(globalState, from, thenBuilder);
         });
-  }
-  return toLiveRef(FL(), globalState, functionState, builder, kindStructs, refM, ref);
+//  }
+  return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
 }
 
 LiveRef HybridGenerationalMemory::preCheckFatPtr(
@@ -304,11 +304,11 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
           FL(), functionState, builder, false, refM, ref);
   auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
-  assert(refM->ownership == Ownership::MUTABLE_BORROW);
+//  assert(refM->ownership == Ownership::MUTABLE_BORROW);
 
   if (knownLive && elideChecksForKnownLive) {
     // Do nothing, just wrap it and return it.
-    return toLiveRef(FL(), globalState, functionState, builder, kindStructs, refM, ref);
+    return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
   } else {
     if (globalState->opt->printMemOverhead) {
       adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
@@ -325,7 +325,7 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
             [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
               return ref;
             });
-    return toLiveRef(FL(), globalState, functionState, builder, kindStructs, refM, resultRef);
+    return toLiveRef(FL(), globalState, functionState, builder, refM, resultRef);
   }
 }
 
@@ -340,8 +340,8 @@ WrapperPtrLE HybridGenerationalMemory::getWrapperPtr(
           FL(), functionState, builder, false, refM, ref);
   switch (refM->ownership) {
     case Ownership::OWN:
-    case Ownership::IMMUTABLE_BORROW:
       return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::MUTABLE_BORROW: {
       auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
       auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);

@@ -13,6 +13,8 @@ ControlBlock makeImmControlBlock(GlobalState* globalState);
 
 class RCImm : public IRegion {
 public:
+  using IRegion::checkValidReference;
+
   RCImm(GlobalState* globalState_);
 
 
@@ -433,7 +435,7 @@ public:
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* structRefMT,
-      LiveRef structRef,
+      LiveRef structLiveRef,
       int memberIndex,
       Reference* expectedMemberType,
       Reference* targetType,

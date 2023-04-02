@@ -158,6 +158,16 @@ public:
       Reference* refM,
       Ref ref) = 0;
 
+  LLVMValueRef checkValidReference(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LiveRef liveRef) {
+    auto ref = wrap(this, refM, liveRef.refLE);
+    return checkValidReference(checkerAFL, functionState, builder, true, refM, ref);
+  }
+
   virtual LLVMValueRef getCensusObjectId(
       AreaAndFileAndLine checkerAFL,
       FunctionState* functionState,
@@ -441,5 +451,24 @@ public:
   // perhaps the FunctionState?
   virtual Ref createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) = 0;
 };
+
+LLVMValueRef checkValidReference(
+    AreaAndFileAndLine checkerAFL,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    bool expectLive,
+    Reference* refM,
+    Ref ref);
+
+LLVMValueRef checkValidReference(
+    AreaAndFileAndLine checkerAFL,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    bool expectLive,
+    Reference* refM,
+    LiveRef liveRef);
+
 
 #endif

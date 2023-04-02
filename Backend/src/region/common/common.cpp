@@ -1226,7 +1226,7 @@ void regularCheckValidReference(
 //      auto wrapperPtrLE =
 //          kindStructs.makeWrapperPtr(
 //              FL(), functionState, builder, rsaRefMT,
-//              hgmWeaks.lockGenFatPtr(
+//              hgmWeaks.checkGenFatPtr(
 //                  FL(), functionState, builder, rsaRefMT, arrayRef.inner, true));
 //      return ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
 //    }
@@ -1285,19 +1285,20 @@ LiveRef constructRuntimeSizedArray(
   if (capacityExists) {
     LLVMBuildStore(builder, capacityLE, getRuntimeSizedArrayCapacityPtr(globalState, builder, rsaWrapperPtrLE));
   }
-  auto refLE = LiveRef(wrap(globalState->getRegion(rsaMT), rsaMT, rsaWrapperPtrLE.refLE));
+  auto rsaLiveRef = toLiveRef(rsaWrapperPtrLE);
+  auto rsaRef = wrap(globalState, rsaMT, rsaLiveRef);
 
   if (globalState->opt->census) {
     auto objIdLE =
         globalState->getRegion(rsaMT)
-            ->getCensusObjectId(FL(), functionState, builder, rsaMT, refLE.inner);
+            ->getCensusObjectId(FL(), functionState, builder, rsaMT, rsaRef);
     auto addrIntLE = ptrToIntLE(globalState, builder, ptrLE);
     buildFlare(
         FL(), globalState, functionState, builder,
         "Allocated object ", typeName, " &", addrIntLE, " obj id ", objIdLE, "\n");
   }
 
-  return refLE;
+  return rsaLiveRef;
 }
 
 LoadResult regularLoadMember(
@@ -1306,16 +1307,17 @@ LoadResult regularLoadMember(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* structRefMT,
-    LiveRef structRef,
+    LiveRef structLiveRef,
     int memberIndex,
     Reference* expectedMemberType,
     Reference* targetType,
     const std::string& memberName) {
 
   if (structRefMT->location == Location::INLINE) {
+    auto structRef = wrap(globalState, structRefMT, structLiveRef);
     auto structRefLE =
         globalState->getRegion(structRefMT)
-            ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef.inner);
+            ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
     return LoadResult{
       wrap(globalState->getRegion(expectedMemberType), expectedMemberType,
         LLVMBuildExtractValue(
@@ -1328,7 +1330,7 @@ LoadResult regularLoadMember(
       case Ownership::IMMUTABLE_BORROW:
       case Ownership::MUTABLE_BORROW: {
         return regularLoadStrongMember(
-            globalState, functionState, builder, kindStructs, structRefMT, structRef, memberIndex, expectedMemberType, targetType, memberName);
+            globalState, functionState, builder, kindStructs, structRefMT, structLiveRef, memberIndex, expectedMemberType, targetType, memberName);
       }
       case Ownership::WEAK:
         assert(false); // we arent supposed to force in naive/fast
@@ -1433,10 +1435,7 @@ LoadResult resilientloadElementFromSSA(
       LLVMValueRef arrayElementsPtrLE =
           getStaticSizedArrayContentsPtr(
               builder,
-              kindStructs->makeWrapperPtr(
-                  FL(), functionState, builder, ssaRefMT,
-                  globalState->getRegion(ssaRefMT)
-                      ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner)));
+              toWrapperPtr(functionState, builder, kindStructs, ssaRefMT, arrayRef));
       return loadElementFromSSAInner(
           globalState, functionState, builder, elementType, indexLE, arrayElementsPtrLE);
     }
@@ -1516,10 +1515,7 @@ Ref getRuntimeSizedArrayLengthStrong(
     KindStructs* kindStructs,
     Reference* rsaRefMT,
     LiveRef arrayRef) {
-  auto refLE =
-      globalState->getRegion(rsaRefMT)
-          ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner);
-  auto wrapperPtrLE = kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaRefMT, refLE);
+  auto wrapperPtrLE = toWrapperPtr(functionState, builder, kindStructs, rsaRefMT, arrayRef);
   return ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
 }
 
@@ -1530,11 +1526,7 @@ Ref getRuntimeSizedArrayCapacityStrong(
     KindStructs* kindStructs,
     Reference* rsaRefMT,
     LiveRef arrayRef) {
-  auto wrapperPtrLE =
-      kindStructs->makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)->checkValidReference(
-              FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto wrapperPtrLE = toWrapperPtr(functionState, builder, kindStructs, rsaRefMT, arrayRef);
   return ::getRuntimeSizedArrayCapacity(globalState, functionState, builder, wrapperPtrLE);
 }
 
@@ -1550,10 +1542,7 @@ LoadResult regularLoadStrongMember(
     Reference* targetType,
     const std::string& memberName) {
 
-  auto wrapperPtrLE =
-      kindStructs->makeWrapperPtr(FL(), functionState, builder, structRefMT,
-          globalState->getRegion(structRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef.inner));
+  auto wrapperPtrLE = toWrapperPtr(functionState, builder, kindStructs, structRefMT, structRef);
 
   auto innerStructPtrLE =
       kindStructs->getStructContentsPtr(builder, structRefMT->kind, wrapperPtrLE);
@@ -1722,11 +1711,7 @@ void storeMemberStrong(
   auto structMT = dynamic_cast<StructKind*>(structRefMT->kind);
   assert(structMT);
   LLVMValueRef innerStructPtrLE = nullptr;
-  auto wrapperPtrLE =
-      kindStructs->makeWrapperPtr(
-          FL(), functionState, builder, structRefMT,
-          globalState->getRegion(structRefMT)->checkValidReference(
-              FL(), functionState, builder, true, structRefMT, structRef.inner));
+  auto wrapperPtrLE = toWrapperPtr(functionState, builder, kindStructs, structRefMT, structRef);
   innerStructPtrLE = kindStructs->getStructContentsPtr(builder, structRefMT->kind, wrapperPtrLE);
   auto innerStructLT = kindStructs->getStructInnerStruct(structMT);
   storeInnerInnerStructMember(

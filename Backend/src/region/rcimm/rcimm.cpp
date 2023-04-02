@@ -640,11 +640,7 @@ void RCImm::pushRuntimeSizedArrayNoBoundsCheck(
   auto elementType = globalState->program->getRuntimeSizedArray(rsaMT)->elementType;
   buildFlare(FL(), globalState, functionState, builder);
 
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
+  auto arrayWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, rsaRef);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, false, arrayWrapperPtrLE);
   auto incrementedSize =
       incrementRSASize(globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
@@ -724,12 +720,7 @@ LLVMValueRef RCImm::getStringLen(
     Ref regionInstanceRef,
     LiveRef ref) {
   assert(refMT->kind == globalState->metalCache->str);
-  auto strWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder,
-          refMT,
-          checkValidReference(
-              FL(), functionState, builder, true, refMT, ref.inner));
+  auto strWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, refMT, ref);
   return kindStructs.getStringLen(functionState, builder, strWrapperPtrLE);
 }
 
@@ -873,22 +864,21 @@ LoadResult RCImm::loadMember2(
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
     Reference* structRefMT,
-    LiveRef structRef,
+    LiveRef structLiveRef,
     int memberIndex,
     Reference* expectedMemberType,
     Reference* targetType,
     const std::string& memberName) {
-  globalState->getRegion(structRefMT)
-      ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef.inner);
   if (structRefMT->location == Location::INLINE) {
+    auto structRef = wrap(globalState, structRefMT, structLiveRef);
     auto innerStructLE =
         globalState->getRegion(structRefMT)->checkValidReference(
-            FL(), functionState, builder, false, structRefMT, structRef.inner);
+            FL(), functionState, builder, false, structRefMT, structRef);
     auto memberLE =
         LLVMBuildExtractValue(builder, innerStructLE, memberIndex, memberName.c_str());
     return LoadResult{wrap(globalState->getRegion(expectedMemberType), expectedMemberType, memberLE)};
   } else {
-    return regularLoadStrongMember(globalState, functionState, builder, &kindStructs, structRefMT, structRef, memberIndex, expectedMemberType, targetType, memberName);
+    return regularLoadStrongMember(globalState, functionState, builder, &kindStructs, structRefMT, structLiveRef, memberIndex, expectedMemberType, targetType, memberName);
   }
 }
 
@@ -1293,7 +1283,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
         auto hostRegionInstanceRef =
             wrap(globalState->linearRegion, hostRegionRefMT, LLVMGetParam(functionState->containingFuncL, 1));
         auto hostObjectRef =
-            LiveRef(wrap(globalState->getRegion(hostObjectRefMT), hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2)));
+            toLiveRef(FL(), globalState, functionState, builder, hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2));
 
         if (auto valeStructKind = dynamic_cast<StructKind *>(valeObjectRefMT->kind)) {
           auto hostStructKind = dynamic_cast<StructKind *>(hostObjectRefMT->kind);
@@ -1383,7 +1373,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
                     indexInBoundsLE, valeElementRef);
               });
 
-          LLVMBuildRet(builder, checkValidReference(FL(), functionState, builder, true, valeRsaRefMT, valeRsaRef.inner));
+          LLVMBuildRet(builder, checkValidReference(FL(), functionState, builder, valeRsaRefMT, valeRsaRef));
         } else if (auto valeSsaMT = dynamic_cast<StaticSizedArrayT *>(valeObjectRefMT->kind)) {
           auto hostSsaMT = dynamic_cast<StaticSizedArrayT *>(hostObjectRefMT->kind);
           assert(hostSsaMT);
@@ -1426,7 +1416,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
               });
 
 
-          LLVMBuildRet(builder, checkValidReference(FL(), functionState, builder, true, valeSsaRefMT, valeSsaRef.inner));
+          LLVMBuildRet(builder, checkValidReference(FL(), functionState, builder, valeSsaRefMT, valeSsaRef));
         } else
           assert(false);
       });
@@ -1699,7 +1689,7 @@ LiveRef RCImm::checkRefLive(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return LiveRef(ref);
+  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }
 
 LiveRef RCImm::preCheckBorrow(
@@ -1711,5 +1701,5 @@ LiveRef RCImm::preCheckBorrow(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return LiveRef(ref);
+  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }

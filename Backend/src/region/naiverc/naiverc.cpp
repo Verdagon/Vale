@@ -371,10 +371,11 @@ void NaiveRC::discardOwningRef(
     LLVMBuilderRef builder,
     Reference* sourceMT,
     LiveRef sourceRef) {
+  auto ref = wrap(globalState, sourceMT, sourceRef);
   auto rcLE =
       adjustStrongRc(
           AFL("Destroy decrementing the owning ref"),
-          globalState, functionState, &kindStructs, builder, sourceRef.inner, sourceMT, -1);
+          globalState, functionState, &kindStructs, builder, ref, sourceMT, -1);
   buildIfV(
       globalState, functionState, builder, isZeroLE(builder, rcLE),
       [this, functionState, blockState, sourceRef, sourceMT](LLVMBuilderRef thenBuilder) {
@@ -679,11 +680,7 @@ Ref NaiveRC::storeElementInRSA(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto arrayWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, arrayRef);
   auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
@@ -765,9 +762,6 @@ Ref NaiveRC::loadMember(
     Reference* expectedMemberType,
     Reference* targetType,
     const std::string& memberName) {
-  globalState->getRegion(structRefMT)
-      ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef.inner);
-
   if (structRefMT->ownership == Ownership::MUTABLE_SHARE || structRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
   } else {
@@ -914,11 +908,7 @@ void NaiveRC::pushRuntimeSizedArrayNoBoundsCheck(
     LiveRef rsaRef,
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)->checkValidReference(
-              FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
+  auto arrayWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, rsaRef);
   auto incrementedSize =
       incrementRSASize(
           globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
@@ -956,11 +946,7 @@ Ref NaiveRC::popRuntimeSizedArrayNoBoundsCheck(
           arrayRef,
           indexLE)
           .move();
-  auto rsaWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto rsaWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, arrayRef);
   decrementRSASize(globalState, functionState, &kindStructs, builder, rsaRefMT, rsaWrapperPtrLE);
   return elementLE;
 }
@@ -975,11 +961,7 @@ void NaiveRC::initializeElementInSSA(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, ssaRefMT,
-          globalState->getRegion(ssaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner));
+  auto arrayWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, ssaRefMT, arrayRef);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
       globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, arrayElementsPtrLE,
@@ -1067,7 +1049,7 @@ LiveRef NaiveRC::checkRefLive(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return LiveRef(ref);
+  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }
 
 LiveRef NaiveRC::preCheckBorrow(
@@ -1079,5 +1061,5 @@ LiveRef NaiveRC::preCheckBorrow(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return LiveRef(ref);
+  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }

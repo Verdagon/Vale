@@ -103,7 +103,7 @@ struct WeakFatPtrLE {
       : refM(refM_), refLE(refLE_) { }
 };
 
-// An LLVM register, which contains a reference.
+// Represents the result of a previous instruction.
 struct Ref {
   Ref(Reference* refM_, LLVMValueRef refLE_) : refM(refM_), refLE(refLE_) {}
 
@@ -150,15 +150,12 @@ private:
 
 // A Ref that we're sure is alive right now.
 struct LiveRef {
-    Reference* const refM;
-    LLVMTypeRef wrapperStructLT;
-    // TODO rename to ptrLE
-    LLVMValueRef const refLE;
+  Reference* const refM;
+  // TODO rename to ptrLE
+  LLVMValueRef const refLE;
 
-    LiveRef(Reference* refM_, LLVMTypeRef wrapperStructLT_, LLVMValueRef refLE_)
-    : refM(refM_), wrapperStructLT(wrapperStructLT_), refLE(refLE_) {
-        assert(LLVMTypeOf(refLE) == LLVMPointerType(wrapperStructLT, 0));
-    }
+  LiveRef(Reference* refM_, LLVMValueRef refLE_)
+  : refM(refM_), refLE(refLE_) { }
 };
 
 // DO NOT SUBMIT rename to toRef
@@ -172,8 +169,8 @@ Ref wrap(GlobalState* globalState, Reference* refM, LiveRef exprLE);
 WrapperPtrLE toWrapperPtr(FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refMT, LiveRef liveRef);
 
 LiveRef toLiveRef(WrapperPtrLE wrapperPtrLE);
-LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refM, LLVMValueRef ptrLE);
-LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refM, Ref ref);
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, LLVMValueRef ptrLE);
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, Ref ref);
 
 
 

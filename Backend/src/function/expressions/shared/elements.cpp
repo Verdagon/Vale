@@ -253,10 +253,9 @@ LoadResult regularLoadElementFromRSAWithoutUpgrade(
     Reference* elementType,
     LiveRef arrayRef,
     InBoundsLE indexLE) {
-  auto arrayWPtrLE =
-      kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaRefMT, arrayRef.refLE);
+  auto arrayWPtrLE = toWrapperPtr(functionState, builder, kindStructs, rsaRefMT, arrayRef);
   auto arrayElementsPtrLE =
-      getRuntimeSizedArrayContentsPtr(builder,capacityExists,arrayWPtrLE);
+      getRuntimeSizedArrayContentsPtr(builder, capacityExists, arrayWPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return loadElement(
       globalState, functionState, builder, arrayElementsPtrLE, elementType, indexLE);

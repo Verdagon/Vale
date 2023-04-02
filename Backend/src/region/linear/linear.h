@@ -12,6 +12,8 @@
 
 class Linear : public IRegion {
 public:
+  using IRegion::checkValidReference;
+
   Linear(GlobalState* globalState_);
 
 
