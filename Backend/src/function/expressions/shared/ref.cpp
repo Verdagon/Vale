@@ -31,21 +31,26 @@ Ref wrap(GlobalState* globalState, Reference* refM, LiveRef liveRef) {
   return wrap(globalState->getRegion(refM), refM, liveRef.refLE);
 }
 
+// All wrapper pointers are regular references, so we can just translate directly
 LiveRef toLiveRef(WrapperPtrLE wrapperPtrLE) {
-  return LiveRef(wrapperPtrLE.refM, wrapperPtrLE.wrapperStructLT, wrapperPtrLE.refLE);
+  return LiveRef(wrapperPtrLE.refM, wrapperPtrLE.refLE);
 }
 
 WrapperPtrLE toWrapperPtr(FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refMT, LiveRef liveRef) {
   return kindStructs->makeWrapperPtr(FL(), functionState, builder, refMT, liveRef.refLE);
 }
 
-LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refM, LLVMValueRef ptrLE) {
-    return toLiveRef(kindStructs->makeWrapperPtr(checkerAFL, functionState, builder, refM, ptrLE));
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, LLVMValueRef untrustedRefLE) {
+  auto ref = wrap(globalState->getRegion(refM), refM, untrustedRefLE);
+  auto refLE = globalState->getRegion(refM)->checkValidReference(checkerAFL, functionState, builder, true, refM, ref);
+  return LiveRef(refM, refLE);
 }
 
-LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refM, Ref ref) {
-    auto ptrLE = globalState->getRegion(refM)->checkValidReference(checkerAFL, functionState, builder, true, refM, ref);
-    return toLiveRef(kindStructs->makeWrapperPtr(checkerAFL, functionState, builder, refM, ptrLE));
+// TODO: We might want to get rid of KindStructs here. Only some regions will be using a wrapper
+// struct; linear doesn't.
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, Ref ref) {
+  auto ptrLE = globalState->getRegion(refM)->checkValidReference(checkerAFL, functionState, builder, true, refM, ref);
+  return LiveRef(refM, ptrLE);
 }
 
 LLVMValueRef checkValidInternalReference(

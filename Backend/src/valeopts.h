@@ -45,7 +45,7 @@ struct ValeOptions {
     bool docs = false;            // Generate code documentation
     bool census = false;    // Enable census checking
     bool flares = false;    // Enable flare output
-    bool fastCrash = false;    // Enable single-instruction crash, a bit faster
+    bool fastCrash = true;    // Enable single-instruction crash, a bit faster
     bool elideChecksForKnownLive = false;    // Enables generational heap
     bool includeBoundsChecks = true;
     bool overrideKnownLiveTrue = false;    // Enables generational heap

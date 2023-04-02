@@ -134,35 +134,6 @@ static LLVMValueRef getInnerRefFromWeakRef(
   return innerRefLE;
 }
 
-static WrapperPtrLE getWrapperPtr(
-        GlobalState* globalState,
-        KindStructs* kindStructs,
-        AreaAndFileAndLine from,
-        FunctionState* functionState,
-        LLVMBuilderRef builder,
-        Reference* refM,
-        LiveRef ref) {
-    auto refLE =
-            globalState->getRegion(refM)->checkValidReference(
-                    FL(), functionState, builder, false, refM, ref.inner);
-    switch (refM->ownership) {
-        case Ownership::OWN:
-        case Ownership::IMMUTABLE_BORROW:
-            return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
-        case Ownership::MUTABLE_BORROW: {
-            auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
-            auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
-            globalState->getRegion(refM)
-                    ->checkValidReference(FL(), functionState, builder, true, refM, ref.inner);
-            return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
-        }
-        default:
-            assert(false);
-            break;
-    }
-    assert(false);
-}
-
 static LLVMValueRef getInnerRefFromWeakRefWithoutCheck(
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -511,7 +482,7 @@ static LiveRef preCheckFatPtr(
 
   if (knownLive && elideChecksForKnownLive) {
     // Do nothing, just wrap it and return it.
-    return LiveRef(ref);
+    return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
   } else {
     if (globalState->opt->printMemOverhead) {
       adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
@@ -528,8 +499,38 @@ static LiveRef preCheckFatPtr(
             [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
               return ref;
             });
-    return LiveRef(resultRef);
+    return toLiveRef(FL(), globalState, functionState, builder, refM, resultRef);
   }
+}
+
+static WrapperPtrLE getWrapperPtr(
+    GlobalState* globalState,
+    KindStructs* kindStructs,
+    AreaAndFileAndLine from,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LiveRef liveRef) {
+  auto ref = wrap(globalState, refM, liveRef);
+  auto refLE =
+      globalState->getRegion(refM)->checkValidReference(
+          FL(), functionState, builder, false, refM, ref);
+  switch (refM->ownership) {
+    case Ownership::OWN:
+    case Ownership::IMMUTABLE_BORROW:
+      return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
+    case Ownership::MUTABLE_BORROW: {
+      auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
+      auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
+      globalState->getRegion(refM)
+          ->checkValidReference(FL(), functionState, builder, true, refM, ref);
+      return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
+    }
+    default:
+      assert(false);
+      break;
+  }
+  assert(false);
 }
 
 static WrapperPtrLE lockGenFatPtr(
@@ -541,26 +542,27 @@ static WrapperPtrLE lockGenFatPtr(
         Reference* refM,
         Ref ref,
         bool knownLive) {
-    auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
-    auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
+  auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
+  auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
-    if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && globalState->opt->elideChecksForKnownLive) {
-        globalState->getRegion(refM)
-                ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-        // Do nothing
-    } else {
-        if (globalState->opt->printMemOverhead) {
-            adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
-        }
-        auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
-        buildIfV(
-                globalState, functionState, builder, isZeroLE(builder, isAliveLE),
-                [globalState, from](LLVMBuilderRef thenBuilder) {
-                    fastPanic(globalState, from, thenBuilder);
-                });
+  if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && globalState->opt->elideChecksForKnownLive) {
+    globalState->getRegion(refM)
+        ->checkValidReference(FL(), functionState, builder, true, refM, ref);
+    // Do nothing
+  } else {
+    if (globalState->opt->printMemOverhead) {
+      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
     }
-    auto liveRef = LiveRef(ref); // Because we just checked
-    return getWrapperPtr(globalState, kindStructs, FL(), functionState, builder, refM, liveRef);
+    auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
+    buildIfV(
+        globalState, functionState, builder, isZeroLE(builder, isAliveLE),
+        [globalState, from](LLVMBuilderRef thenBuilder) {
+            fastPanic(globalState, from, thenBuilder);
+        });
+  }
+  // Because we just checked
+  auto liveRef = toLiveRef(FL(), globalState, functionState, builder, refM, ref);
+  return getWrapperPtr(globalState, kindStructs, FL(), functionState, builder, refM, liveRef);
 }
 
 Safe::Safe(GlobalState* globalState_) :
@@ -625,9 +627,7 @@ LiveRef Safe::constructStaticSizedArray(
 
   fillControlBlock(FL(), functionState, builder, ssaMT, controlBlockPtrLE, ssaMT->name->name);
 
-  auto resultRef = LiveRef(wrap(globalState->getRegion(refMT), refMT, newStructLE.refLE));
-
-  return resultRef;
+  return toLiveRef(newStructLE);
 }
 
 Ref Safe::mallocStr(
@@ -1168,7 +1168,7 @@ Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
       auto prechecked =
           preCheckFatPtr(
               FL(), globalState, functionState, builder, &kindStructs, sourceType, sourceRef, resultKnownLive);
-      return prechecked.inner;
+      return wrap(globalState, regionRefMT, prechecked);
     } else {
       assert(
           targetOwnership == Ownership::MUTABLE_BORROW ||
@@ -1283,8 +1283,10 @@ LoadResult Safe::loadElementFromRSA(
     LiveRef arrayRef,
     InBoundsLE indexInBoundsLE) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  return regularLoadElementFromRSAWithoutUpgrade(
-      globalState, functionState, builder, &kindStructs, true, rsaRefMT, rsaDef->elementType, arrayRef, indexInBoundsLE);
+  auto wrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, arrayRef);
+  auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, wrapperPtrLE);
+  return loadElement(
+      globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, indexInBoundsLE);
 }
 
 Ref Safe::storeElementInRSA(
@@ -1296,14 +1298,8 @@ Ref Safe::storeElementInRSA(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
-  auto sizeRef = ::getRuntimeSizedArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+  auto arrayWrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, rsaRefMT, arrayRef);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
-  buildFlare(FL(), globalState, functionState, builder);
   return ::swapElement(
       globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, arrayElementsPtrLE, indexInBoundsLE, elementRef);
 }
@@ -1380,21 +1376,43 @@ Ref Safe::loadMember(
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
     Reference* structRefMT,
-    LiveRef structRef,
+    LiveRef structLiveRef,
     int memberIndex,
     Reference* expectedMemberType,
     Reference* targetType,
     const std::string& memberName) {
+  auto structMT = dynamic_cast<StructKind*>(structRefMT->kind);
+  assert(structMT);
+  auto innerStructLT = kindStructs.getStructInnerStruct(structMT);
 
-  if (structRefMT->ownership == Ownership::MUTABLE_SHARE || structRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
-    assert(false);
-  } else {
-    auto unupgradedMemberLE =
-        regularLoadMember(
-            globalState, functionState, builder, &kindStructs, structRefMT, structRef,
-            memberIndex, expectedMemberType, targetType, memberName);
+  if (structRefMT->location == Location::INLINE) {
+    auto structRef = wrap(globalState, structRefMT, structLiveRef);
+    auto structRefLE =
+        globalState->getRegion(structRefMT)
+            ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
+    LoadResult unupgradedMemberLE = LoadResult{
+        wrap(globalState->getRegion(expectedMemberType), expectedMemberType,
+            LLVMBuildExtractValue(
+                builder, structRefLE, memberIndex, memberName.c_str()))};
     return upgradeLoadResultToRefWithTargetOwnership(
         functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
+  } else {
+    WrapperPtrLE structWPtrLE =
+        getWrapperPtrLive(FL(), functionState, builder, structRefMT, structLiveRef);
+    auto innerStructPtrLE =
+        kindStructs.getStructContentsPtr(builder, structRefMT->kind, structWPtrLE);
+    auto memberLoadedLE =
+        loadInnerInnerStructMember(
+            globalState,
+            functionState,
+            builder,
+            innerStructLT,
+            innerStructPtrLE,
+            memberIndex,
+            expectedMemberType,
+            memberName);
+    return upgradeLoadResultToRefWithTargetOwnership(
+        functionState, builder, expectedMemberType, targetType, memberLoadedLE, false);
   }
 }
 
@@ -1565,11 +1583,7 @@ void Safe::initializeElementInSSA(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, ssaRefMT,
-          globalState->getRegion(ssaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner));
+  auto arrayWrapperPtrLE = getWrapperPtrLive(FL(), functionState, builder, ssaRefMT, arrayRef);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
       globalState, functionState, builder, ssaRefMT->location, ssaDef->elementType, arrayElementsPtrLE,
@@ -1655,31 +1669,30 @@ LiveRef Safe::checkRefLive(
     Reference* refMT,
     Ref ref,
     bool refKnownLive) {
-
-    switch (refMT->ownership) {
-        case Ownership::IMMUTABLE_SHARE:
-        case Ownership::MUTABLE_SHARE:
-            assert(false); // curious
-        case Ownership::IMMUTABLE_BORROW:
-            // Immutable borrows aren't really live, but we can dereference them as if they are. If they
-            // don't point to a live object, they'll point at a protected address instead, and
-            // dereferencing will safely fault.
-            return LiveRef(ref);
-        case Ownership::OWN: {
-            return LiveRef(ref);
-        }
-        case Ownership::MUTABLE_BORROW: {
-            lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
-            return LiveRef(ref);
-        }
-        case Ownership::WEAK: {
-            assert(false);
-            break;
-        }
-        default:
-            assert(false);
-            break;
+  switch (refMT->ownership) {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
+      assert(false); // curious
+    case Ownership::IMMUTABLE_BORROW:
+      // Immutable borrows aren't really live, but we can dereference them as if they are. If they
+      // don't point to a live object, they'll point at a protected address instead, and
+      // dereferencing will safely fault.
+      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+    case Ownership::OWN: {
+      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
     }
+    case Ownership::MUTABLE_BORROW: {
+      lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
+      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+    }
+    case Ownership::WEAK: {
+      assert(false);
+      break;
+    }
+    default:
+      assert(false);
+      break;
+  }
 }
 
 LiveRef Safe::preCheckBorrow(
@@ -1709,7 +1722,7 @@ LiveRef Safe::preCheckBorrow(
             assert(false);
             break;
     }
-    return LiveRef(ref);
+    assert(false);
 }
 
 // Doesn't return a constraint ref, returns a raw ref to the wrapper struct.
@@ -1724,10 +1737,7 @@ WrapperPtrLE Safe::getWrapperPtrLive(
     case Ownership::MUTABLE_SHARE:
       assert(false); // curious
     case Ownership::OWN: {
-      auto weakFatPtrLE =
-          checkValidReference(
-              FL(), functionState, builder, false, refM, liveRef.inner);
-      return kindStructs.makeWrapperPtr(FL(), functionState, builder, refM, weakFatPtrLE);
+      return toWrapperPtr(functionState, builder, &kindStructs, refM, liveRef);
     }
     case Ownership::MUTABLE_BORROW:
     case Ownership::IMMUTABLE_BORROW:

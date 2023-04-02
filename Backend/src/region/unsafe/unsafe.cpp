@@ -700,11 +700,7 @@ Ref Unsafe::storeElementInRSA(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto rsaDef = globalState->program->getRuntimeSizedArray(rsaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto arrayWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, arrayRef);
   auto arrayElementsPtrLE = getRuntimeSizedArrayContentsPtr(builder, true, arrayWrapperPtrLE);
   buildFlare(FL(), globalState, functionState, builder);
   return ::swapElement(
@@ -910,10 +906,7 @@ void Unsafe::pushRuntimeSizedArrayNoBoundsCheck(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, rsaRef.inner));
+      toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, rsaRef);
   auto incrementedSize =
       incrementRSASize(
           globalState, functionState, builder, rsaRefMT, arrayWrapperPtrLE);
@@ -943,11 +936,7 @@ Ref Unsafe::popRuntimeSizedArrayNoBoundsCheck(
           arrayRef,
           indexInBoundsLE)
           .move();
-  auto rsaWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, rsaRefMT,
-          globalState->getRegion(rsaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, rsaRefMT, arrayRef.inner));
+  auto rsaWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, rsaRefMT, arrayRef);
   decrementRSASize(globalState, functionState, &kindStructs, builder, rsaRefMT, rsaWrapperPtrLE);
   return elementLE;
 }
@@ -962,11 +951,7 @@ void Unsafe::initializeElementInSSA(
     InBoundsLE indexInBoundsLE,
     Ref elementRef) {
   auto ssaDef = globalState->program->getStaticSizedArray(ssaMT);
-  auto arrayWrapperPtrLE =
-      kindStructs.makeWrapperPtr(
-          FL(), functionState, builder, ssaRefMT,
-          globalState->getRegion(ssaRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, ssaRefMT, arrayRef.inner));
+  auto arrayWrapperPtrLE = toWrapperPtr(functionState, builder, &kindStructs, ssaRefMT, arrayRef);
   auto sizeRef = globalState->constI32(ssaDef->size);
   auto arrayElementsPtrLE = getStaticSizedArrayContentsPtr(builder, arrayWrapperPtrLE);
   ::initializeElementWithoutIncrementSize(
@@ -1054,7 +1039,7 @@ LiveRef Unsafe::checkRefLive(
     Ref ref,
     bool refKnownLive) {
   // The whole point of unsafe is to get around such notions of liveness, so just return a LiveRef.
-  return LiveRef(ref);
+  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }
 
 LiveRef Unsafe::preCheckBorrow(
@@ -1066,5 +1051,5 @@ LiveRef Unsafe::preCheckBorrow(
     Ref ref,
     bool refKnownLive) {
   // The whole point of unsafe is to get around such notions of liveness, so just return a LiveRef.
-  return LiveRef(ref);
+  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }

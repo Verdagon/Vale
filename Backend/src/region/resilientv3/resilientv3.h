@@ -223,7 +223,7 @@ public:
       LLVMBuilderRef builder,
       Ref regionInstanceRef,
       Reference* structRefMT,
-      LiveRef structRef,
+      LiveRef structLiveRef,
       int memberIndex,
       Reference* expectedMemberType,
       Reference* targetType,
@@ -493,7 +493,6 @@ public:
   Ref createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) override;
 
 protected:
-
   WrapperPtrLE getWrapperPtrNotLive(
       AreaAndFileAndLine from,
       FunctionState* functionState,

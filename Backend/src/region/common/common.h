@@ -358,7 +358,7 @@ LoadResult regularLoadMember(
     LLVMBuilderRef builder,
     KindStructs* kindStructs,
     Reference* structRefMT,
-    LiveRef structRef,
+    LiveRef structLiveRef,
     int memberIndex,
     Reference* expectedMemberType,
     Reference* targetType,

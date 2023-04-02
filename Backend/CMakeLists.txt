@@ -118,7 +118,8 @@ add_executable(backend
 		src/region/safe/safe.cpp
 		src/region/safe-baseline/safebaseline.cpp
 		src/region/common/migration.h
-		src/region/common/migration.cpp)
+		src/region/common/migration.cpp
+		src/region/iregion.cpp)
 
 target_link_libraries(backend ${llvm_libs})
 
