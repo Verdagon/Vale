@@ -337,7 +337,7 @@ void innerDeallocate(
     Reference* refMT,
     LiveRef ref) {
   buildFlare(FL(), globalState, functionState, builder);
-  assert(refMT->ownership != Ownership::IMMUTABLE_BORROW);
+  // assert(refMT->ownership != Ownership::IMMUTABLE_BORROW); when regions is disabled, naive-RC deallocates
   assert(refMT->ownership != Ownership::IMMUTABLE_SHARE);
   if (refMT->ownership == Ownership::MUTABLE_SHARE) {
     if (refMT->location == Location::INLINE) {

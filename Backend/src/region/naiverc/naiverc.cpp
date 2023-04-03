@@ -134,7 +134,15 @@ void NaiveRC::alias(
     } else if (sourceRef->ownership == Ownership::MUTABLE_BORROW) {
       adjustStrongRc(from, globalState, functionState, &kindStructs, builder, expr, sourceRef, 1);
     } else if (sourceRef->ownership == Ownership::IMMUTABLE_BORROW) {
-      // No need to adjust for immutable regions
+      if (globalState->opt->elideChecksForRegions) {
+        // No need to adjust for immutable regions
+      } else {
+        if (sourceRef->location == Location::INLINE) {
+          // Do nothing, we can just let inline structs disappear
+        } else {
+          adjustStrongRc(from, globalState, functionState, &kindStructs, builder, expr, sourceRef, 1);
+        }
+      }
     } else if (sourceRef->ownership == Ownership::WEAK) {
       aliasWeakRef(from, functionState, builder, sourceRef, expr);
     } else if (sourceRef->ownership == Ownership::MUTABLE_SHARE) {
@@ -143,8 +151,6 @@ void NaiveRC::alias(
       } else {
         adjustStrongRc(from, globalState, functionState, &kindStructs, builder, expr, sourceRef, 1);
       }
-    } else if (sourceRef->ownership == Ownership::IMMUTABLE_SHARE) {
-      // No need to adjust for immutable regions
     } else
       assert(false);
   } else {
@@ -168,13 +174,26 @@ void NaiveRC::dealias(
     // We can't discard owns, they must be destructured.
     assert(false); // impl
   } else if (sourceMT->ownership == Ownership::IMMUTABLE_BORROW) {
-    // Don't need to do anything for an immutable region
+    if (globalState->opt->elideChecksForRegions) {
+      // Don't need to do anything for an immutable region
+    } else {
+      auto rcLE = adjustStrongRc(from, globalState, functionState, &kindStructs, builder, sourceRef, sourceMT, -1);
+      auto sourceRegionInstanceRef = createRegionInstanceLocal(functionState, builder);
+      auto sourceLiveRef =
+          globalState->getRegion(sourceMT)
+              ->checkRefLive(FL(), functionState, builder, sourceRegionInstanceRef, sourceMT, sourceRef, false);
+      buildIfV(
+          globalState, functionState, builder, isZeroLE(builder, rcLE),
+          [this, functionState, sourceLiveRef, sourceMT](LLVMBuilderRef thenBuilder) {
+            deallocate(FL(), functionState, thenBuilder, sourceMT, sourceLiveRef);
+          });
+    }
   } else if (sourceMT->ownership == Ownership::MUTABLE_BORROW) {
     auto rcLE = adjustStrongRc(from, globalState, functionState, &kindStructs, builder, sourceRef, sourceMT, -1);
     auto sourceRegionInstanceRef = createRegionInstanceLocal(functionState, builder);
     auto sourceLiveRef =
-        globalState->getRegion(globalState->metalCache->mutStrRef)
-            ->checkRefLive(FL(), functionState, builder, sourceRegionInstanceRef, globalState->metalCache->mutStrRef, sourceRef, false);
+        globalState->getRegion(sourceMT)
+            ->checkRefLive(FL(), functionState, builder, sourceRegionInstanceRef, sourceMT, sourceRef, false);
     buildIfV(
         globalState, functionState, builder, isZeroLE(builder, rcLE),
         [this, functionState, sourceLiveRef, sourceMT](LLVMBuilderRef thenBuilder) {

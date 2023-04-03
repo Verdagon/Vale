@@ -11,7 +11,7 @@
 #include "../../function/expressions/shared/members.h"
 #include "../../function/expressions/shared/elements.h"
 #include "../../function/expressions/shared/string.h"
-#include "safe.h"
+#include "safefastest.h"
 #include <sstream>
 
 constexpr int WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN = 0;
@@ -144,8 +144,7 @@ static LLVMValueRef getInnerRefFromWeakRefWithoutCheck(
       weakRefM->ownership == Ownership::MUTABLE_BORROW ||
       weakRefM->ownership == Ownership::WEAK);
 
-  auto innerRefLE =
-      LLVMBuildExtractValue(builder, weakRefLE.refLE, WEAK_REF_MEMBER_INDEX_FOR_OBJPTR, "");
+  auto innerRefLE = LLVMBuildExtractValue(builder, weakRefLE.refLE, WEAK_REF_MEMBER_INDEX_FOR_OBJPTR, "");
   // We dont check that its valid because if it's a weak ref, it might *not* be pointing at
   // a valid reference.
   return innerRefLE;
@@ -159,14 +158,12 @@ static LLVMValueRef getIsAliveFromWeakFatPtr(
     Reference* weakRefM,
     WeakFatPtrLE weakFatPtrLE,
     bool knownLive) {
-  bool skipCheck =
-      (globalState->opt->elideChecksForKnownLive && knownLive) ||
-      (globalState->opt->elideChecksForRegions && weakRefM->ownership == Ownership::IMMUTABLE_BORROW);
-  if (!globalState->opt->census && skipCheck) {
+  if (knownLive) {
     return LLVMConstInt(LLVMInt1TypeInContext(globalState->context), 1, false);
   } else {
     // Get target generation from the ref
-    auto targetGenLE = getTargetGenFromWeakRef(globalState, builder, kindStructs, weakRefM->kind, weakFatPtrLE);
+    auto targetGenLE =
+        getTargetGenFromWeakRef(globalState, builder, kindStructs, weakRefM->kind, weakFatPtrLE);
 
     // Get actual generation from the table
     auto innerRefLE =
@@ -175,19 +172,11 @@ static LLVMValueRef getIsAliveFromWeakFatPtr(
     auto controlBlockPtrLE =
         kindStructs->getControlBlockPtrWithoutChecking(
             FL(), functionState, builder, innerRefLE, weakRefM);
-    auto actualGenLE = getGenerationFromControlBlockPtr(globalState, builder, kindStructs, weakRefM->kind,
-        controlBlockPtrLE);
+    auto actualGenLE =
+        getGenerationFromControlBlockPtr(
+            globalState, builder, kindStructs, weakRefM->kind, controlBlockPtrLE);
 
-    buildFlare(FL(), globalState, functionState, builder, "Comparing ", actualGenLE, " and ", targetGenLE);
-
-    auto isLiveLE = LLVMBuildICmp(builder, LLVMIntEQ, actualGenLE, targetGenLE, "isLive");
-    if (globalState->opt->census && skipCheck) {
-      // See MPESC for status codes
-      buildAssertWithExitCodeV(
-          globalState, functionState, builder, isLiveLE, 116, "knownLive is true, but object is dead!");
-    }
-
-    return isLiveLE;
+    return LLVMBuildICmp(builder, LLVMIntEQ, actualGenLE, targetGenLE, "isLive");
   }
 }
 
@@ -362,10 +351,6 @@ static Ref assembleWeakRef(
 static ControlBlock makeSafeNonWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
   controlBlock.addMember(ControlBlockMember::GENERATION_64B);
-  if (globalState->opt->census) {
-    controlBlock.addMember(ControlBlockMember::CENSUS_TYPE_STR);
-    controlBlock.addMember(ControlBlockMember::CENSUS_OBJ_ID);
-  }
   controlBlock.build();
   return controlBlock;
 }
@@ -374,10 +359,6 @@ static ControlBlock makeSafeWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
   controlBlock.addMember(ControlBlockMember::GENERATION_64B);
   // controlBlock.addMember(ControlBlockMember::WEAK_SOMETHING); impl weaks
-  if (globalState->opt->census) {
-    controlBlock.addMember(ControlBlockMember::CENSUS_TYPE_STR);
-    controlBlock.addMember(ControlBlockMember::CENSUS_OBJ_ID);
-  }
   controlBlock.build();
   return controlBlock;
 }
@@ -472,10 +453,6 @@ static LiveRef preCheckFatPtr(
     Reference* refM,
     Ref ref,
     bool knownLive) {
-  bool skipCheck =
-      (globalState->opt->elideChecksForKnownLive && knownLive) ||
-      (globalState->opt->elideChecksForRegions && refM->ownership == Ownership::IMMUTABLE_BORROW);
-
   auto maybeAliveRefLE =
       globalState->getRegion(refM)->checkValidReference(
           FL(), functionState, builder, false, refM, ref);
@@ -483,13 +460,10 @@ static LiveRef preCheckFatPtr(
 
   assert(refM->ownership == Ownership::MUTABLE_BORROW);
 
-  if (skipCheck && !globalState->opt->census) {
+  if (knownLive) {
     // Do nothing, just wrap it and return it.
     return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
   } else {
-    if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
-    }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     auto resultRef =
         buildIfElseV(
@@ -499,17 +473,8 @@ static LiveRef preCheckFatPtr(
             [globalState, kindStructs, from, functionState, refM, weakFatPtrLE](LLVMBuilderRef thenBuilder) -> Ref {
               return crashifyReference(globalState, functionState, thenBuilder, kindStructs, refM, weakFatPtrLE);
             },
-            [globalState, skipCheck, from, ref](LLVMBuilderRef elseBuilder) -> Ref {
-              // If we get here, we know at runtime it's not alive.
-
-              // If at compile-time we thought it was alive, then we found a bug!
-              if (skipCheck && globalState->opt->census) {
-                buildPrint(globalState, elseBuilder, "Known-live is actually dead! Exiting!\n");
-                globalState->externs->exit.call(elseBuilder, {constI64LE(globalState, 1)}, "");
-                return ref;
-              } else {
-                return ref;
-              }
+            [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
+              return ref;
             });
     return toLiveRef(FL(), globalState, functionState, builder, refM, resultRef);
   }
@@ -529,19 +494,8 @@ static WrapperPtrLE getWrapperPtr(
           FL(), functionState, builder, false, refM, ref);
   switch (refM->ownership) {
     case Ownership::OWN:
+    case Ownership::IMMUTABLE_BORROW:
       return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
-    case Ownership::IMMUTABLE_BORROW: {
-      if (globalState->opt->elideChecksForRegions) {
-        return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
-      } else {
-        auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
-        auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
-        globalState->getRegion(refM)
-            ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-        return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
-      }
-      break;
-    }
     case Ownership::MUTABLE_BORROW: {
       auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
       auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
@@ -557,40 +511,29 @@ static WrapperPtrLE getWrapperPtr(
 }
 
 static WrapperPtrLE lockGenFatPtr(
-        GlobalState* globalState,
-        AreaAndFileAndLine from,
-        FunctionState* functionState,
-        KindStructs* kindStructs,
-        LLVMBuilderRef builder,
-        Reference* refM,
-        Ref ref,
-        bool knownLive) {
+    GlobalState* globalState,
+    AreaAndFileAndLine from,
+    FunctionState* functionState,
+    KindStructs* kindStructs,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    Ref ref,
+    bool knownLive) {
   auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
   auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
-  bool skipCheck =
-      (globalState->opt->elideChecksForRegions && refM->ownership == Ownership::IMMUTABLE_BORROW) ||
-      (globalState->opt->elideChecksForKnownLive && knownLive);
-
-  assert(refM->ownership != Ownership::IMMUTABLE_SHARE); // curious
-  if (!globalState->opt->census && skipCheck) {
+  if (knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) {
     globalState->getRegion(refM)
         ->checkValidReference(FL(), functionState, builder, true, refM, ref);
     // Do nothing
   } else {
-    if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
-    }
-    auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
+    auto isAliveLE =
+        getIsAliveFromWeakFatPtr(
+            globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     buildIfV(
         globalState, functionState, builder, isZeroLE(builder, isAliveLE),
-        [globalState, from, skipCheck](LLVMBuilderRef thenBuilder) {
-          if (globalState->opt->census && skipCheck) {
-            buildPrint(globalState, thenBuilder, "Known-live is actually dead! Exiting!\n");
-            globalState->externs->exit.call(thenBuilder, {constI64LE(globalState, 1)}, "");
-          } else {
-            fastPanic(globalState, from, thenBuilder);
-          }
+        [globalState, from](LLVMBuilderRef thenBuilder) {
+          fastPanic(globalState, from, thenBuilder);
         });
   }
   // Because we just checked
@@ -598,7 +541,7 @@ static WrapperPtrLE lockGenFatPtr(
   return getWrapperPtr(globalState, kindStructs, FL(), functionState, builder, refM, liveRef);
 }
 
-Safe::Safe(GlobalState* globalState_) :
+SafeFastest::SafeFastest(GlobalState* globalState_) :
     globalState(globalState_),
     kindStructs(
         globalState,
@@ -624,23 +567,23 @@ Safe::Safe(GlobalState* globalState_) :
   LLVMSetInitializer(nextGenThreadGlobalI64LE, constI64LE(globalState, FIRST_GEN));
 }
 
-Reference* Safe::getRegionRefType() {
+Reference* SafeFastest::getRegionRefType() {
   return regionRefMT;
 }
 
-void Safe::mainSetup(FunctionState* functionState, LLVMBuilderRef builder) {
+void SafeFastest::mainSetup(FunctionState* functionState, LLVMBuilderRef builder) {
 //  wrcWeaks.mainSetup(functionState, builder);
 }
 
-void Safe::mainCleanup(FunctionState* functionState, LLVMBuilderRef builder) {
+void SafeFastest::mainCleanup(FunctionState* functionState, LLVMBuilderRef builder) {
 //  wrcWeaks.mainCleanup(functionState, builder);
 }
 
-RegionId* Safe::getRegionId() {
+RegionId* SafeFastest::getRegionId() {
   return globalState->metalCache->mutRegionId;
 }
 
-LiveRef Safe::constructStaticSizedArray(
+LiveRef SafeFastest::constructStaticSizedArray(
     Ref regionInstanceRef,
     FunctionState *functionState,
     LLVMBuilderRef builder,
@@ -663,7 +606,7 @@ LiveRef Safe::constructStaticSizedArray(
   return toLiveRef(newStructLE);
 }
 
-Ref Safe::mallocStr(
+Ref SafeFastest::mallocStr(
     Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -673,7 +616,7 @@ Ref Safe::mallocStr(
   exit(1);
 }
 
-Ref Safe::allocate(
+Ref SafeFastest::allocate(
     Ref regionInstanceRef,
     AreaAndFileAndLine from,
     FunctionState* functionState,
@@ -693,7 +636,7 @@ Ref Safe::allocate(
   return resultRef;
 }
 
-void Safe::alias(
+void SafeFastest::alias(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -733,7 +676,7 @@ void Safe::alias(
   }
 }
 
-void Safe::dealias(
+void SafeFastest::dealias(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -754,13 +697,13 @@ void Safe::dealias(
   }
 }
 
-Ref Safe::weakAlias(FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) {
+Ref SafeFastest::weakAlias(FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) {
   assert(false);
 //  return regularWeakAlias(globalState, functionState, &kindStructs, &wrcWeaks, builder, sourceRefMT, targetRefMT, sourceRef);
 }
 
 // Doesn't return a constraint ref, returns a raw ref to the wrapper struct.
-WrapperPtrLE Safe::lockWeakRef(
+WrapperPtrLE SafeFastest::lockWeakRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -791,7 +734,7 @@ WrapperPtrLE Safe::lockWeakRef(
 //  }
 }
 
-Ref Safe::lockWeak(
+Ref SafeFastest::lockWeak(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     bool thenResultIsNever,
@@ -807,7 +750,7 @@ Ref Safe::lockWeak(
 }
 
 
-Ref Safe::asSubtype(
+Ref SafeFastest::asSubtype(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* resultOptTypeM,
@@ -823,7 +766,7 @@ Ref Safe::asSubtype(
       sourceInterfaceRefMT, sourceInterfaceRef, sourceRefKnownLive, targetKind, buildThen, buildElse);
 }
 
-LLVMTypeRef Safe::translateType(Reference* referenceM) {
+LLVMTypeRef SafeFastest::translateType(Reference* referenceM) {
   if (referenceM == regionRefMT) {
     // We just have a raw pointer to region structs
     return LLVMPointerType(kindStructs.getStructInnerStruct(regionKind), 0);
@@ -834,18 +777,9 @@ LLVMTypeRef Safe::translateType(Reference* referenceM) {
       assert(false);
       break;
     case Ownership::OWN:
+    case Ownership::IMMUTABLE_BORROW:
       assert(referenceM->location != Location::INLINE);
       return translateReferenceSimple(globalState, &kindStructs, referenceM->kind);
-    case Ownership::IMMUTABLE_BORROW: {
-      if (globalState->opt->elideChecksForRegions) {
-        assert(referenceM->location != Location::INLINE);
-        return translateReferenceSimple(globalState, &kindStructs, referenceM->kind);
-      } else {
-        assert(referenceM->location != Location::INLINE);
-        return translateWeakReference(globalState, &kindStructs, referenceM->kind);
-      }
-      break;
-    }
     case Ownership::MUTABLE_BORROW:
       assert(referenceM->location != Location::INLINE);
       return translateWeakReference(globalState, &kindStructs, referenceM->kind);
@@ -858,7 +792,7 @@ LLVMTypeRef Safe::translateType(Reference* referenceM) {
   }
 }
 
-Ref Safe::upcastWeak(
+Ref SafeFastest::upcastWeak(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     WeakFatPtrLE sourceRefLE,
@@ -874,21 +808,21 @@ Ref Safe::upcastWeak(
 //  return wrap(this, targetInterfaceTypeM, resultWeakInterfaceFatPtr);
 }
 
-void Safe::declareStaticSizedArray(
+void SafeFastest::declareStaticSizedArray(
     StaticSizedArrayDefinitionT* staticSizedArrayMT) {
   globalState->regionIdByKind.emplace(staticSizedArrayMT->kind, getRegionId());
 
   kindStructs.declareStaticSizedArray(staticSizedArrayMT->kind, Weakability::WEAKABLE);
 }
 
-void Safe::declareRuntimeSizedArray(
+void SafeFastest::declareRuntimeSizedArray(
     RuntimeSizedArrayDefinitionT* runtimeSizedArrayMT) {
   globalState->regionIdByKind.emplace(runtimeSizedArrayMT->kind, getRegionId());
 
   kindStructs.declareRuntimeSizedArray(runtimeSizedArrayMT->kind, Weakability::WEAKABLE);
 }
 
-void Safe::defineRuntimeSizedArray(
+void SafeFastest::defineRuntimeSizedArray(
     RuntimeSizedArrayDefinitionT* runtimeSizedArrayMT) {
   auto elementLT =
       globalState->getRegion(runtimeSizedArrayMT->elementType)
@@ -896,7 +830,7 @@ void Safe::defineRuntimeSizedArray(
   kindStructs.defineRuntimeSizedArray(runtimeSizedArrayMT, elementLT, true);
 }
 
-void Safe::defineStaticSizedArray(
+void SafeFastest::defineStaticSizedArray(
     StaticSizedArrayDefinitionT* staticSizedArrayMT) {
   auto elementLT =
       globalState->getRegion(staticSizedArrayMT->elementType)
@@ -904,14 +838,14 @@ void Safe::defineStaticSizedArray(
   kindStructs.defineStaticSizedArray(staticSizedArrayMT, elementLT);
 }
 
-void Safe::declareStruct(
+void SafeFastest::declareStruct(
     StructDefinition* structM) {
   globalState->regionIdByKind.emplace(structM->kind, getRegionId());
 
   kindStructs.declareStruct(structM->kind, Weakability::WEAKABLE);
 }
 
-void Safe::defineStruct(
+void SafeFastest::defineStruct(
     StructDefinition* structM) {
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
@@ -922,32 +856,32 @@ void Safe::defineStruct(
   kindStructs.defineStruct(structM->kind, innerStructMemberTypesL);
 }
 
-void Safe::declareEdge(
+void SafeFastest::declareEdge(
     Edge* edge) {
   kindStructs.declareEdge(edge);
 }
 
-void Safe::defineEdge(
+void SafeFastest::defineEdge(
     Edge* edge) {
   auto interfaceFunctionsLT = globalState->getInterfaceFunctionPointerTypes(edge->interfaceName);
   auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
   kindStructs.defineEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
-void Safe::declareInterface(
+void SafeFastest::declareInterface(
     InterfaceDefinition* interfaceM) {
   globalState->regionIdByKind.emplace(interfaceM->kind, getRegionId());
 
   kindStructs.declareInterface(interfaceM->kind, Weakability::WEAKABLE);
 }
 
-void Safe::defineInterface(
+void SafeFastest::defineInterface(
     InterfaceDefinition* interfaceM) {
   auto interfaceMethodTypesL = globalState->getInterfaceFunctionPointerTypes(interfaceM->kind);
   kindStructs.defineInterface(interfaceM, interfaceMethodTypesL);
 }
 
-void Safe::discardOwningRef(
+void SafeFastest::discardOwningRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     BlockState* blockState,
@@ -958,7 +892,7 @@ void Safe::discardOwningRef(
   deallocate(AFL("discardOwningRef"), functionState, builder, sourceMT, sourceRef);
 }
 
-void Safe::noteWeakableDestroyed(
+void SafeFastest::noteWeakableDestroyed(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refM,
@@ -990,7 +924,7 @@ void Safe::noteWeakableDestroyed(
 //  }
 }
 
-void Safe::storeMember(
+void SafeFastest::storeMember(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1027,7 +961,7 @@ void Safe::storeMember(
 
 // Gets the itable PTR and the new value that we should put into the virtual param's slot
 // (such as a void* or a weak void ref)
-std::tuple<LLVMValueRef, LLVMValueRef> Safe::explodeInterfaceRef(
+std::tuple<LLVMValueRef, LLVMValueRef> SafeFastest::explodeInterfaceRef(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
@@ -1056,7 +990,7 @@ std::tuple<LLVMValueRef, LLVMValueRef> Safe::explodeInterfaceRef(
 //  }
 }
 
-Ref Safe::getRuntimeSizedArrayLength(
+Ref SafeFastest::getRuntimeSizedArrayLength(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1072,7 +1006,7 @@ Ref Safe::getRuntimeSizedArrayLength(
 //  return ::getRuntimeSizedArrayLength(globalState, functionState, builder, wrapperPtrLE);
 }
 
-Ref Safe::getRuntimeSizedArrayCapacity(
+Ref SafeFastest::getRuntimeSizedArrayCapacity(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1082,73 +1016,17 @@ Ref Safe::getRuntimeSizedArrayCapacity(
   return ::getRuntimeSizedArrayCapacity(globalState, functionState, builder, arrayWPtrLE);
 }
 
-LLVMValueRef Safe::checkValidReference(
+LLVMValueRef SafeFastest::checkValidReference(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     bool expectLive,
     Reference* refM,
     Ref ref) {
-  if (globalState->opt->census) {
-    if (refM->ownership == Ownership::OWN) {
-      Reference *actualRefM = nullptr;
-      LLVMValueRef refLE = nullptr;
-      std::tie(actualRefM, refLE) = megaGetRefInnardsForChecking(ref);
-      assert(actualRefM == refM);
-      assert(refLE != nullptr);
-      assert(LLVMTypeOf(refLE) == translateType(refM));
-
-      regularCheckValidReference(checkerAFL, globalState, functionState, builder, &kindStructs, refM, refLE);
-
-      return refLE;
-    } else if (refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE) {
-      assert(false);
-    } else {
-      auto weakRef = ref;
-      auto weakRefM = refM;
-
-      Reference *actualRefM = nullptr;
-      LLVMValueRef refLE = nullptr;
-      std::tie(actualRefM, refLE) = hgmGetRefInnardsForChecking(weakRef);
-      auto weakFatPtrLE = kindStructs.makeWeakFatPtr(weakRefM, refLE);
-      auto innerLE =
-          fatWeaks.getInnerRefFromWeakRefWithoutCheck(
-              functionState, builder, weakRefM, weakFatPtrLE);
-
-      auto controlBlockPtrLE =
-          kindStructs.getControlBlockPtrWithoutChecking(
-              FL(), functionState, builder, innerLE, weakRefM);
-      // We check that the generation is <= to what's in the actual object.
-      auto actualGen =
-          getGenerationFromControlBlockPtr(
-              globalState, builder, &kindStructs, weakRefM->kind, controlBlockPtrLE);
-      auto targetGen = getTargetGenFromWeakRef(globalState, builder, &kindStructs, weakRefM->kind, weakFatPtrLE);
-      buildCheckGen(globalState, functionState, builder, expectLive, targetGen, actualGen);
-
-      if (auto interfaceKindM = dynamic_cast<InterfaceKind *>(weakRefM->kind)) {
-        auto interfaceFatPtrLE = kindStructs.makeInterfaceFatPtrWithoutChecking(FL(),
-            functionState, builder, weakRefM, innerLE);
-        auto itablePtrLE = getTablePtrFromInterfaceRef(builder, interfaceFatPtrLE);
-        buildAssertCensusContains(FL(), globalState, functionState, builder, itablePtrLE);
-      }
-
-      return refLE;
-
-//      if (refM->ownership == Ownership::MUTABLE_BORROW || refM->ownership == Ownership::IMMUTABLE_BORROW) {
-//        regularCheckValidReference(checkerAFL, globalState, functionState, builder,
-//            &kindStructs, refM, refLE);
-//      } else if (refM->ownership == Ownership::WEAK) {
-//        assert(false);
-////      wrcWeaks.buildCheckWeakRef(checkerAFL, functionState, builder, refM, ref);
-//      } else
-//        assert(false);
-    }
-  } else {
-    Reference *actualRefM = nullptr;
-    LLVMValueRef refLE = nullptr;
-    std::tie(actualRefM, refLE) = megaGetRefInnardsForChecking(ref);
-    return refLE;
-  }
+  Reference *actualRefM = nullptr;
+  LLVMValueRef refLE = nullptr;
+  std::tie(actualRefM, refLE) = megaGetRefInnardsForChecking(ref);
+  return refLE;
 }
 
 // TODO maybe combine with alias/acquireReference?
@@ -1157,7 +1035,7 @@ LLVMValueRef Safe::checkValidReference(
 // Example:
 // - Can load from an owning ref member to get a constraint ref.
 // - Can load from a constraint ref member to get a weak ref.
-Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
+Ref SafeFastest::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceType,
@@ -1189,42 +1067,28 @@ Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
       // - Swapping from a member
       return sourceRef;
     } else if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
-      if (globalState->opt->elideChecksForRegions) {
-        // An immutable reference is just a raw pointer (and may have an offset when we support
-        // inlines). We can translate an owning reference to an immutable borrow easily.
-        return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
-      } else {
-        // Package it up into a fat pointer
-        return assembleWeakRef(globalState, functionState, builder, &kindStructs, sourceType, targetType, sourceRef);
-      }
+      // An immutable reference is just a raw pointer (and may have an offset when we support
+      // inlines). We can translate an owning reference to an immutable borrow easily.
+      return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
     } else if (
         targetOwnership == Ownership::MUTABLE_BORROW ||
         targetOwnership == Ownership::WEAK) {
-      // Now we need to package it up into a fat pointer.
+      // Now we need to package it up into a weak ref.
       return assembleWeakRef(globalState, functionState, builder, &kindStructs, sourceType, targetType, sourceRef);
     } else {
       assert(false);
     }
   } else if (sourceOwnership == Ownership::IMMUTABLE_BORROW) {
-    if (globalState->opt->elideChecksForRegions) {
-      assert(targetOwnership == Ownership::IMMUTABLE_BORROW);
-      return sourceRef;
-    } else {
-      return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
-    }
+    assert(targetOwnership == Ownership::IMMUTABLE_BORROW);
+    return sourceRef;
   } else if (
       sourceOwnership == Ownership::MUTABLE_BORROW ||
       sourceOwnership == Ownership::WEAK) {
     if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
-      if (globalState->opt->elideChecksForRegions) {
-        auto prechecked =
-            preCheckFatPtr(
-                FL(), globalState, functionState, builder, &kindStructs, sourceType, sourceRef,
-                resultKnownLive);
-        return wrap(globalState, regionRefMT, prechecked);
-      } else {
-        return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
-      }
+      auto prechecked =
+          preCheckFatPtr(
+              FL(), globalState, functionState, builder, &kindStructs, sourceType, sourceRef, resultKnownLive);
+      return wrap(globalState, regionRefMT, prechecked);
     } else {
       assert(
           targetOwnership == Ownership::MUTABLE_BORROW ||
@@ -1237,7 +1101,7 @@ Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
   assert(false);
 }
 
-void Safe::aliasWeakRef(
+void SafeFastest::aliasWeakRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1247,7 +1111,7 @@ void Safe::aliasWeakRef(
 //  return wrcWeaks.aliasWeakRef(from, functionState, builder, weakRefMT, weakRef);
 }
 
-void Safe::discardWeakRef(
+void SafeFastest::discardWeakRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1257,7 +1121,7 @@ void Safe::discardWeakRef(
 //  return wrcWeaks.discardWeakRef(from, functionState, builder, weakRefMT, weakRef);
 }
 
-LLVMValueRef Safe::getCensusObjectId(
+LLVMValueRef SafeFastest::getCensusObjectId(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1268,7 +1132,7 @@ LLVMValueRef Safe::getCensusObjectId(
   return kindStructs.getObjIdFromControlBlockPtr(builder, refM->kind, controlBlockPtrLE);
 }
 
-Ref Safe::getIsAliveFromWeakRef(
+Ref SafeFastest::getIsAliveFromWeakRef(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* weakRefM,
@@ -1278,7 +1142,7 @@ Ref Safe::getIsAliveFromWeakRef(
 //  return wrcWeaks.getIsAliveFromWeakRef(functionState, builder, weakRefM, weakRef);
 }
 
-LLVMValueRef Safe::fillControlBlockGeneration(
+LLVMValueRef SafeFastest::fillControlBlockGeneration(
     LLVMBuilderRef builder,
     LLVMValueRef controlBlockLE,
     Kind* kindM) {
@@ -1297,7 +1161,7 @@ LLVMValueRef Safe::fillControlBlockGeneration(
 }
 
 // Returns object ID
-void Safe::fillControlBlock(
+void SafeFastest::fillControlBlock(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1308,16 +1172,12 @@ void Safe::fillControlBlock(
   LLVMValueRef controlBlockLE = LLVMGetUndef(kindStructs.getControlBlock(kindM)->getStruct());
 
   controlBlockLE =
-      fillControlBlockCensusFields(
-          from, globalState, functionState, &kindStructs, builder, kindM, controlBlockLE, typeName);
-
-  controlBlockLE =
-    fillControlBlockGeneration(builder, controlBlockLE, kindM);
+      fillControlBlockGeneration(builder, controlBlockLE, kindM);
 
   LLVMBuildStore(builder, controlBlockLE, controlBlockPtrLE.refLE);
 }
 
-LoadResult Safe::loadElementFromSSA(
+LoadResult SafeFastest::loadElementFromSSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1330,7 +1190,7 @@ LoadResult Safe::loadElementFromSSA(
       globalState, functionState, builder, ssaRefMT, ssaDef->elementType, arrayRef, indexInBoundsLE, &kindStructs);
 }
 
-LoadResult Safe::loadElementFromRSA(
+LoadResult SafeFastest::loadElementFromRSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1345,7 +1205,7 @@ LoadResult Safe::loadElementFromRSA(
       globalState, functionState, builder, arrayElementsPtrLE, rsaDef->elementType, indexInBoundsLE);
 }
 
-Ref Safe::storeElementInRSA(
+Ref SafeFastest::storeElementInRSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* rsaRefMT,
@@ -1360,7 +1220,7 @@ Ref Safe::storeElementInRSA(
       globalState, functionState, builder, rsaRefMT->location, rsaDef->elementType, arrayElementsPtrLE, indexInBoundsLE, elementRef);
 }
 
-Ref Safe::upcast(
+Ref SafeFastest::upcast(
     FunctionState* functionState,
     LLVMBuilderRef builder,
 
@@ -1388,7 +1248,7 @@ Ref Safe::upcast(
 }
 
 
-void Safe::deallocate(
+void SafeFastest::deallocate(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1397,7 +1257,7 @@ void Safe::deallocate(
   innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, ref);
 }
 
-LiveRef Safe::constructRuntimeSizedArray(
+LiveRef SafeFastest::constructRuntimeSizedArray(
     Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1427,7 +1287,7 @@ LiveRef Safe::constructRuntimeSizedArray(
   return resultRef;
 }
 
-Ref Safe::loadMember(
+Ref SafeFastest::loadMember(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1472,7 +1332,7 @@ Ref Safe::loadMember(
   }
 }
 
-void Safe::checkInlineStructType(
+void SafeFastest::checkInlineStructType(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
@@ -1484,34 +1344,34 @@ void Safe::checkInlineStructType(
 }
 
 
-std::string Safe::generateRuntimeSizedArrayDefsC(
+std::string SafeFastest::generateRuntimeSizedArrayDefsC(
     Package* currentPackage,
     RuntimeSizedArrayDefinitionT* rsaDefM) {
   assert(rsaDefM->mutability == Mutability::MUTABLE);
   return generateUniversalRefStructDefC(currentPackage, currentPackage->getKindExportName(rsaDefM->kind, true));
 }
 
-std::string Safe::generateStaticSizedArrayDefsC(
+std::string SafeFastest::generateStaticSizedArrayDefsC(
     Package* currentPackage,
     StaticSizedArrayDefinitionT* ssaDefM) {
   assert(ssaDefM->mutability == Mutability::MUTABLE);
   return generateUniversalRefStructDefC(currentPackage, currentPackage->getKindExportName(ssaDefM->kind, true));
 }
 
-std::string Safe::generateStructDefsC(
+std::string SafeFastest::generateStructDefsC(
     Package* currentPackage, StructDefinition* structDefM) {
   assert(structDefM->mutability == Mutability::MUTABLE);
   return generateUniversalRefStructDefC(currentPackage, currentPackage->getKindExportName(structDefM->kind, true));
 }
 
-std::string Safe::generateInterfaceDefsC(
+std::string SafeFastest::generateInterfaceDefsC(
     Package* currentPackage, InterfaceDefinition* interfaceDefM) {
   assert(interfaceDefM->mutability == Mutability::MUTABLE);
   return generateUniversalRefStructDefC(currentPackage, currentPackage->getKindExportName(interfaceDefM->kind, true));
 }
 
 
-LLVMTypeRef Safe::getExternalType(Reference* refMT) {
+LLVMTypeRef SafeFastest::getExternalType(Reference* refMT) {
   if (dynamic_cast<StructKind*>(refMT->kind) ||
       dynamic_cast<StaticSizedArrayT*>(refMT->kind) ||
       dynamic_cast<RuntimeSizedArrayT*>(refMT->kind)) {
@@ -1523,7 +1383,7 @@ LLVMTypeRef Safe::getExternalType(Reference* refMT) {
   }
 }
 
-Ref Safe::receiveAndDecryptFamiliarReference(
+Ref SafeFastest::receiveAndDecryptFamiliarReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
@@ -1533,7 +1393,7 @@ Ref Safe::receiveAndDecryptFamiliarReference(
       globalState, functionState, builder, &kindStructs, sourceRefMT, sourceRefLE);
 }
 
-LLVMTypeRef Safe::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
+LLVMTypeRef SafeFastest::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
   switch (reference->ownership) {
     case Ownership::MUTABLE_BORROW:
     case Ownership::IMMUTABLE_BORROW:
@@ -1548,7 +1408,7 @@ LLVMTypeRef Safe::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
   }
 }
 
-std::pair<Ref, Ref> Safe::receiveUnencryptedAlienReference(
+std::pair<Ref, Ref> SafeFastest::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref sourceRegionInstanceRef,
@@ -1560,7 +1420,7 @@ std::pair<Ref, Ref> Safe::receiveUnencryptedAlienReference(
   exit(1);
 }
 
-LLVMValueRef Safe::encryptAndSendFamiliarReference(
+LLVMValueRef SafeFastest::encryptAndSendFamiliarReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
@@ -1571,7 +1431,7 @@ LLVMValueRef Safe::encryptAndSendFamiliarReference(
       globalState, functionState, builder, &kindStructs, sourceRefMT, sourceRef);
 }
 
-void Safe::pushRuntimeSizedArrayNoBoundsCheck(
+void SafeFastest::pushRuntimeSizedArrayNoBoundsCheck(
     FunctionState *functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1598,7 +1458,7 @@ void Safe::pushRuntimeSizedArrayNoBoundsCheck(
       incrementedSize);
 }
 
-Ref Safe::popRuntimeSizedArrayNoBoundsCheck(
+Ref SafeFastest::popRuntimeSizedArrayNoBoundsCheck(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref arrayRegionInstanceRef,
@@ -1629,7 +1489,7 @@ Ref Safe::popRuntimeSizedArrayNoBoundsCheck(
   return elementLE;
 }
 
-void Safe::initializeElementInSSA(
+void SafeFastest::initializeElementInSSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
@@ -1648,7 +1508,7 @@ void Safe::initializeElementInSSA(
       IncrementedSize{});
 }
 
-Ref Safe::deinitializeElementFromSSA(
+Ref SafeFastest::deinitializeElementFromSSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* ssaRefMT,
@@ -1659,7 +1519,7 @@ Ref Safe::deinitializeElementFromSSA(
   exit(1);
 }
 
-Weakability Safe::getKindWeakability(Kind* kind) {
+Weakability SafeFastest::getKindWeakability(Kind* kind) {
   if (auto structKind = dynamic_cast<StructKind*>(kind)) {
     return globalState->lookupStruct(structKind)->weakability;
   } else if (auto interfaceKind = dynamic_cast<InterfaceKind*>(kind)) {
@@ -1669,7 +1529,7 @@ Weakability Safe::getKindWeakability(Kind* kind) {
   }
 }
 
-FuncPtrLE Safe::getInterfaceMethodFunctionPtr(
+FuncPtrLE SafeFastest::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
@@ -1679,7 +1539,7 @@ FuncPtrLE Safe::getInterfaceMethodFunctionPtr(
       globalState, functionState, builder, &kindStructs, virtualParamMT, virtualArgRef, indexInEdge);
 }
 
-LLVMValueRef Safe::stackify(
+LLVMValueRef SafeFastest::stackify(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Local* local,
@@ -1690,26 +1550,26 @@ LLVMValueRef Safe::stackify(
   return makeBackendLocal(functionState, builder, typeLT, local->id->maybeName.c_str(), toStoreLE);
 }
 
-Ref Safe::unstackify(FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr) {
+Ref SafeFastest::unstackify(FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr) {
   return loadLocal(functionState, builder, local, localAddr);
 }
 
-Ref Safe::loadLocal(FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr) {
+Ref SafeFastest::loadLocal(FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr) {
   return normalLocalLoad(globalState, functionState, builder, local, localAddr);
 }
 
-Ref Safe::localStore(FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr, Ref refToStore, bool knownLive) {
+Ref SafeFastest::localStore(FunctionState* functionState, LLVMBuilderRef builder, Local* local, LLVMValueRef localAddr, Ref refToStore, bool knownLive) {
   return normalLocalStore(globalState, functionState, builder, local, localAddr, refToStore);
 }
 
-std::string Safe::getExportName(
+std::string SafeFastest::getExportName(
     Package* package,
     Reference* reference,
     bool includeProjectName) {
   return package->getKindExportName(reference->kind, includeProjectName) + (reference->location == Location::YONDER ? "Ref" : "");
 }
 
-Ref Safe::createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) {
+Ref SafeFastest::createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) {
   auto regionLT = kindStructs.getStructInnerStruct(regionKind);
   auto regionInstancePtrLE =
       makeBackendLocal(functionState, builder, regionLT, "region", LLVMGetUndef(regionLT));
@@ -1717,7 +1577,7 @@ Ref Safe::createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef
   return regionInstanceRef;
 }
 
-LiveRef Safe::checkRefLive(
+LiveRef SafeFastest::checkRefLive(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1730,15 +1590,10 @@ LiveRef Safe::checkRefLive(
     case Ownership::MUTABLE_SHARE:
       assert(false); // curious
     case Ownership::IMMUTABLE_BORROW:
-      if (globalState->opt->elideChecksForRegions) {
-        // Immutable borrows aren't really live, but we can dereference them as if they are. If they
-        // don't point to a live object, they'll point at a protected address instead, and
-        // dereferencing will safely fault.
-        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
-      } else {
-        lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
-        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
-      }
+      // Immutable borrows aren't really live, but we can dereference them as if they are. If they
+      // don't point to a live object, they'll point at a protected address instead, and
+      // dereferencing will safely fault.
+      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
     case Ownership::OWN: {
       return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
     }
@@ -1756,7 +1611,7 @@ LiveRef Safe::checkRefLive(
   }
 }
 
-LiveRef Safe::preCheckBorrow(
+LiveRef SafeFastest::preCheckBorrow(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1764,37 +1619,30 @@ LiveRef Safe::preCheckBorrow(
     Reference* refMT,
     Ref ref,
     bool refKnownLive) {
-    switch (refMT->ownership) {
-        case Ownership::IMMUTABLE_SHARE:
-        case Ownership::MUTABLE_SHARE:
-        case Ownership::OWN: {
-            assert(false); // curious
-            break;
-        }
-        case Ownership::IMMUTABLE_BORROW: {
-          if (globalState->opt->elideChecksForRegions) {
-            assert(false); // curious
-          } else {
-            return preCheckFatPtr(FL(), globalState, functionState, builder, &kindStructs, refMT, ref, refKnownLive);
-          }
-          break;
-        }
-        case Ownership::MUTABLE_BORROW: {
-            return preCheckFatPtr(FL(), globalState, functionState, builder, &kindStructs, refMT, ref, refKnownLive);
-        }
-        case Ownership::WEAK: {
-            assert(false);
-            break;
-        }
-        default:
-            assert(false);
-            break;
+  switch (refMT->ownership) {
+    case Ownership::IMMUTABLE_SHARE:
+    case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::OWN: {
+      assert(false); // curious
+      break;
     }
-    assert(false);
+    case Ownership::MUTABLE_BORROW: {
+      return preCheckFatPtr(FL(), globalState, functionState, builder, &kindStructs, refMT, ref, refKnownLive);
+    }
+    case Ownership::WEAK: {
+      assert(false);
+      break;
+    }
+    default:
+      assert(false);
+      break;
+  }
+  assert(false);
 }
 
 // Doesn't return a constraint ref, returns a raw ref to the wrapper struct.
-WrapperPtrLE Safe::getWrapperPtrLive(
+WrapperPtrLE SafeFastest::getWrapperPtrLive(
     AreaAndFileAndLine from,
     FunctionState *functionState,
     LLVMBuilderRef builder,

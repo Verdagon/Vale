@@ -787,11 +787,10 @@ LLVMValueRef KindStructs::getStrongRcPtrFromControlBlockPtr(
       assert(refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE);
       break;
     case RegionOverride::RESILIENT_V3:
-      case RegionOverride::SAFE:
-      case RegionOverride::SAFE_BASELINE:
+    case RegionOverride::SAFE:
+    case RegionOverride::SAFE_BASELINE:
+    case RegionOverride::SAFE_FASTEST:
       assert(refM->ownership == Ownership::MUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_SHARE);
-
-
       break;
     default:
       assert(false);
