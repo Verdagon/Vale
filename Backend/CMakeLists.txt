@@ -117,6 +117,7 @@ add_executable(backend
 		src/utils/structlt.h
 		src/region/safe/safe.cpp
 		src/region/safe-baseline/safebaseline.cpp
+		src/region/safe-fastest/safefastest.cpp
 		src/region/common/migration.h
 		src/region/common/migration.cpp
 		src/region/iregion.cpp)

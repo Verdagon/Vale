@@ -47,6 +47,7 @@ enum
     OPT_FAST_CRASH,
     OPT_GEN_HEAP,
     OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE,
+    OPT_ELIDE_CHECKS_FOR_REGIONS,
     OPT_INCLUDE_BOUNDS_CHECKS,
     OPT_OVERRIDE_KNOWN_LIVE_TRUE,
     OPT_PRINT_MEM_OVERHEAD,
@@ -96,6 +97,7 @@ static opt_arg_t args[] =
     { "fast_crash", '\0', OPT_ARG_OPTIONAL, OPT_FAST_CRASH },
     { "gen_heap", '\0', OPT_ARG_OPTIONAL, OPT_GEN_HEAP },
     { "elide_checks_for_known_live", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE },
+    { "elide_checks_for_regions", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_REGIONS },
     { "include_bounds_checks", '\0', OPT_ARG_OPTIONAL, OPT_INCLUDE_BOUNDS_CHECKS },
     { "override_known_live_true", '\0', OPT_ARG_NONE, OPT_OVERRIDE_KNOWN_LIVE_TRUE },
     { "print_mem_overhead", '\0', OPT_ARG_OPTIONAL, OPT_PRINT_MEM_OVERHEAD },
@@ -203,6 +205,7 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
     opt->flares = false;
     opt->fastCrash = false;
     opt->elideChecksForKnownLive = true;
+    opt->elideChecksForRegions = true;
     opt->includeBoundsChecks = true;
     opt->overrideKnownLiveTrue = false;
     opt->census = false;
@@ -275,6 +278,17 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
               opt->elideChecksForKnownLive = true;
             } else if (s.arg_val == std::string("false")) {
               opt->elideChecksForKnownLive = false;
+            } else assert(false);
+            break;
+          }
+
+          case OPT_ELIDE_CHECKS_FOR_REGIONS: {
+            if (!s.arg_val) {
+              opt->elideChecksForRegions = true;
+            } else if (s.arg_val == std::string("true")) {
+              opt->elideChecksForRegions = true;
+            } else if (s.arg_val == std::string("false")) {
+              opt->elideChecksForRegions = false;
             } else assert(false);
             break;
           }
@@ -356,6 +370,8 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
             opt->regionOverride = RegionOverride::RESILIENT_V3;
           } else if (s.arg_val == std::string("safe-baseline")) {
             opt->regionOverride = RegionOverride::SAFE_BASELINE;
+          } else if (s.arg_val == std::string("safe-fastest")) {
+            opt->regionOverride = RegionOverride::SAFE_FASTEST;
           } else if (s.arg_val == std::string("safe")) {
             opt->regionOverride = RegionOverride::SAFE;
 //          } else if (s.arg_val == std::string("resilient-limit")) {

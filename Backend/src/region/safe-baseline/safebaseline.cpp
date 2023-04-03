@@ -520,19 +520,22 @@ static LiveRef checkGenFatPtr(
         KindStructs* kindStructs,
         LLVMBuilderRef builder,
         Reference* refM,
-        Ref ref) {
-    auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
-    auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
+        Ref ref,
+        bool knownLive) {
+  auto maybeAliveRefLE = globalState->getRegion(refM)->checkValidReference(FL(), functionState, builder, false, refM, ref);
+  auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, maybeAliveRefLE);
 
+  if (!knownLive) {
     if (globalState->opt->printMemOverhead) {
         adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE);
     buildIfV(
-            globalState, functionState, builder, isZeroLE(builder, isAliveLE),
-            [globalState, from](LLVMBuilderRef thenBuilder) {
-                fastPanic(globalState, from, thenBuilder);
-            });
+        globalState, functionState, builder, isZeroLE(builder, isAliveLE),
+        [globalState, from](LLVMBuilderRef thenBuilder) {
+          fastPanic(globalState, from, thenBuilder);
+        });
+  }
 
   // Because we just checked
   return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
@@ -1645,7 +1648,7 @@ LiveRef SafeBaseline::checkRefLive(
         }
         case Ownership::IMMUTABLE_BORROW:
         case Ownership::MUTABLE_BORROW: {
-          checkGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref);
+          checkGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
           return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
         }
         case Ownership::WEAK: {

@@ -81,6 +81,7 @@ LLVMValueRef adjustStrongRc(
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::SAFE:
     case RegionOverride::SAFE_BASELINE:
+    case RegionOverride::SAFE_FASTEST:
       assert(refM->ownership == Ownership::MUTABLE_SHARE);
       // Shouldnt increment IMMUTABLE_SHARE's RC
       break;
@@ -93,6 +94,11 @@ LLVMValueRef adjustStrongRc(
   auto rcPtrLE = kindStructsSource->getStrongRcPtrFromControlBlockPtr(builder, refM, controlBlockPtrLE);
 //  auto oldRc = unmigratedLLVMBuildLoad(builder, rcPtrLE, "oldRc");
   auto newRc = adjustCounter(globalState, builder, globalState->metalCache->i32, rcPtrLE, amount);
+
+  if (globalState->opt->printMemOverhead) {
+    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->mutRcAdjustCounterLE, 1);
+  }
+
 //  flareAdjustStrongRc(from, globalState, functionState, builder, refM, controlBlockPtrLE, oldRc, newRc);
   return newRc;
 }

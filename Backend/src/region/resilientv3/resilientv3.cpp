@@ -147,12 +147,12 @@ void ResilientV3::alias(
              dynamic_cast<StaticSizedArrayT *>(sourceRnd) ||
              dynamic_cast<RuntimeSizedArrayT *>(sourceRnd) ||
              dynamic_cast<Str *>(sourceRnd)) {
-    if (sourceRef->ownership == Ownership::OWN) {
+    if (sourceRef->ownership == Ownership::OWN ||
+        sourceRef->ownership == Ownership::IMMUTABLE_BORROW) {
       // We might be loading a member as an own if we're destructuring.
       // Don't adjust the RC, since we're only moving it.
     } else if (
         sourceRef->ownership == Ownership::MUTABLE_BORROW ||
-        sourceRef->ownership == Ownership::IMMUTABLE_BORROW ||
         sourceRef->ownership == Ownership::WEAK) {
       aliasWeakRef(from, functionState, builder, sourceRef, expr);
     } else if (
@@ -186,11 +186,11 @@ void ResilientV3::dealias(
       sourceMT->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
   } else {
-    if (sourceMT->ownership == Ownership::OWN) {
+    if (sourceMT->ownership == Ownership::OWN ||
+        sourceMT->ownership == Ownership::IMMUTABLE_BORROW) {
       // This can happen if we're sending an owning reference to the outside world, see DEPAR.
     } else if (
-        sourceMT->ownership == Ownership::MUTABLE_BORROW ||
-        sourceMT->ownership == Ownership::IMMUTABLE_BORROW) {
+        sourceMT->ownership == Ownership::MUTABLE_BORROW) {
       discardWeakRef(from, functionState, builder, sourceMT, sourceRef);
     } else if (sourceMT->ownership == Ownership::WEAK) {
       discardWeakRef(from, functionState, builder, sourceMT, sourceRef);
@@ -257,7 +257,6 @@ Ref ResilientV3::lockWeak(
 
   assert(
       sourceWeakRefMT->ownership == Ownership::MUTABLE_BORROW ||
-      sourceWeakRefMT->ownership == Ownership::IMMUTABLE_BORROW ||
       sourceWeakRefMT->ownership == Ownership::WEAK);
   auto isAliveLE =
       getIsAliveFromWeakRef(
@@ -299,9 +298,9 @@ LLVMTypeRef ResilientV3::translateType(Reference *referenceM) {
     case Ownership::MUTABLE_SHARE:
       assert(false);
     case Ownership::OWN:
+    case Ownership::IMMUTABLE_BORROW:
       assert(referenceM->location != Location::INLINE);
       return translateReferenceSimple(globalState, &kindStructs, referenceM->kind);
-    case Ownership::IMMUTABLE_BORROW:
     case Ownership::MUTABLE_BORROW:
     case Ownership::WEAK:
       assert(referenceM->location != Location::INLINE);
@@ -484,13 +483,13 @@ std::tuple<LLVMValueRef, LLVMValueRef> ResilientV3::explodeInterfaceRef(
     Ref virtualArgRef) {
   switch (virtualParamMT->ownership) {
     case Ownership::OWN:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::MUTABLE_SHARE:
     case Ownership::IMMUTABLE_SHARE: {
       return explodeStrongInterfaceRef(
           globalState, functionState, builder, &kindStructs, virtualParamMT, virtualArgRef);
     }
     case Ownership::MUTABLE_BORROW:
-    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       return explodeWeakInterfaceRef(
           globalState, functionState, builder, &kindStructs, &fatWeaks, &kindStructs,
@@ -517,16 +516,16 @@ LiveRef ResilientV3::checkRefLive(
     case Ownership::IMMUTABLE_SHARE:
     case Ownership::MUTABLE_SHARE:
       assert(false); // curious
-//    case Ownership::IMMUTABLE_BORROW: {
-//        // Immutable borrows aren't really live, but we can dereference them as if they are. If they
-//        // don't point to a live object, they'll point at a protected address instead, and
-//        // dereferencing will safely fault.
-//        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
-//    }
+    case Ownership::IMMUTABLE_BORROW: {
+        // Immutable borrows aren't really live, but we can dereference them as if they are. If they
+        // don't point to a live object, they'll point at a protected address instead, and
+        // dereferencing will safely fault.
+        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+    }
     case Ownership::OWN: {
         return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
     }
-    case Ownership::IMMUTABLE_BORROW:
+//    case Ownership::IMMUTABLE_BORROW:
     case Ownership::MUTABLE_BORROW: {
         return LiveRef(hgmWeaks.lockGenFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive));
     }
@@ -551,11 +550,11 @@ LiveRef ResilientV3::preCheckBorrow(
   switch (refMT->ownership) {
     case Ownership::IMMUTABLE_SHARE:
     case Ownership::MUTABLE_SHARE:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::OWN: {
       assert(false); // curious
       break;
     }
-    case Ownership::IMMUTABLE_BORROW:
     case Ownership::MUTABLE_BORROW: {
       return hgmWeaks.preCheckFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive);
     }
@@ -655,12 +654,12 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
       // - Swapping from an element
       // - Swapping from a member
       return sourceRef;
-//    } else if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
-//      // An immutable reference is just a raw pointer (and may have an offset when we support
-//      // inlines). We can translate an owning reference to an immutable borrow easily.
-//      return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
+    } else if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
+      // An immutable reference is just a raw pointer (and may have an offset when we support
+      // inlines). We can translate an owning reference to an immutable borrow easily.
+      return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
     } else if (
-        targetOwnership == Ownership::IMMUTABLE_BORROW ||
+//        targetOwnership == Ownership::IMMUTABLE_BORROW ||
         targetOwnership == Ownership::MUTABLE_BORROW ||
         targetOwnership == Ownership::WEAK) {
       // Now we need to package it up into a weak ref.
@@ -668,11 +667,11 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
     } else {
       assert(false);
     }
-//  } else if (sourceOwnership == Ownership::IMMUTABLE_BORROW) {
-//    assert(targetOwnership == Ownership::IMMUTABLE_BORROW);
-//    return sourceRef;
+  } else if (sourceOwnership == Ownership::IMMUTABLE_BORROW) {
+    assert(targetOwnership == Ownership::IMMUTABLE_BORROW);
+    return sourceRef;
   } else if (
-      sourceOwnership == Ownership::IMMUTABLE_BORROW ||
+//      sourceOwnership == Ownership::IMMUTABLE_BORROW ||
       sourceOwnership == Ownership::MUTABLE_BORROW ||
       sourceOwnership == Ownership::WEAK) {
 //    if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
@@ -682,7 +681,7 @@ Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
 //      return wrap(globalState, targetType, prechecked);
 //    } else {
       assert(
-          targetOwnership == Ownership::IMMUTABLE_BORROW ||
+//          targetOwnership == Ownership::IMMUTABLE_BORROW ||
           targetOwnership == Ownership::MUTABLE_BORROW ||
           targetOwnership == Ownership::WEAK);
       return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
@@ -805,12 +804,12 @@ Ref ResilientV3::upcast(
   switch (sourceStructMT->ownership) {
     case Ownership::MUTABLE_SHARE:
     case Ownership::IMMUTABLE_SHARE:
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::OWN: {
       return upcastStrong(globalState, functionState, builder, &kindStructs, sourceStructMT, sourceStructKindM,
           sourceRefLE, targetInterfaceTypeM, targetInterfaceKindM);
     }
     case Ownership::MUTABLE_BORROW:
-    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       return ::upcastWeak(globalState, functionState, builder, &kindStructs, sourceStructMT, sourceStructKindM,
           sourceRefLE, targetInterfaceTypeM, targetInterfaceKindM);
@@ -970,9 +969,9 @@ LLVMTypeRef ResilientV3::getInterfaceMethodVirtualParamAnyType(Reference *refere
     case Ownership::OWN:
     case Ownership::MUTABLE_SHARE:
     case Ownership::IMMUTABLE_SHARE:
+    case Ownership::IMMUTABLE_BORROW:
       return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
     case Ownership::MUTABLE_BORROW:
-    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK:
       return kindStructs.getWeakVoidRefStruct(reference->kind);
   }
@@ -1137,6 +1136,7 @@ WrapperPtrLE ResilientV3::getWrapperPtrLive(
     case Ownership::IMMUTABLE_SHARE:
     case Ownership::MUTABLE_SHARE:
       assert(false); // curious
+    case Ownership::IMMUTABLE_BORROW:
     case Ownership::OWN: {
       auto ref = wrap(globalState, refM, liveRef);
       auto weakFatPtrLE =
@@ -1144,7 +1144,6 @@ WrapperPtrLE ResilientV3::getWrapperPtrLive(
       return kindStructs.makeWrapperPtr(FL(), functionState, builder, refM, weakFatPtrLE);
     }
     case Ownership::MUTABLE_BORROW:
-    case Ownership::IMMUTABLE_BORROW:
     case Ownership::WEAK: {
       auto ref = wrap(globalState, refM, liveRef);
       return hgmWeaks.getWrapperPtr(

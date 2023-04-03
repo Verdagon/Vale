@@ -14,6 +14,7 @@ enum class RegionOverride {
 //  RESILIENT_V2,
   RESILIENT_V3,
   SAFE_BASELINE,
+  SAFE_FASTEST,
   SAFE,
   FAST
 };
@@ -46,7 +47,8 @@ struct ValeOptions {
     bool census = false;    // Enable census checking
     bool flares = false;    // Enable flare output
     bool fastCrash = true;    // Enable single-instruction crash, a bit faster
-    bool elideChecksForKnownLive = false;    // Enables generational heap
+    bool elideChecksForKnownLive = false;    // Elide checks for static-analysis-known live
+    bool elideChecksForRegions = false;    // Elide checks for immutable regions
     bool includeBoundsChecks = true;
     bool overrideKnownLiveTrue = false;    // Enables generational heap
     bool printMemOverhead = false;    // Enables generational heap

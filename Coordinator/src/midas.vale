@@ -18,6 +18,7 @@ func invoke_backend(
   pic bool,
   print_mem_overhead bool,
   elide_checks_for_known_live bool,
+  elide_checks_for_regions bool,
   override_known_live_true bool,
   include_bounds_checks bool)
 Subprocess {
@@ -77,6 +78,9 @@ Subprocess {
   }
   if (not elide_checks_for_known_live) {
     command_line_args.add("--elide_checks_for_known_live=false");
+  }
+  if (not elide_checks_for_regions) {
+    command_line_args.add("--elide_checks_for_regions=false");
   }
   if (override_known_live_true) {
     command_line_args.add("--override_known_live_true");
