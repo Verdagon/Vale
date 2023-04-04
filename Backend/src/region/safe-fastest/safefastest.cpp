@@ -60,7 +60,7 @@ static LLVMValueRef getGenerationPtrFromControlBlockPtr(
           builder,
           controlBlockPtr.structLT,
           controlBlockPtr.refLE,
-          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION),
+          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B),
           "genPtr");
   return genPtrLE;
 }
