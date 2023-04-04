@@ -13,7 +13,6 @@ enum class RegionOverride {
 //  RESILIENT_V1,
 //  RESILIENT_V2,
   RESILIENT_V3,
-  SAFE_BASELINE,
   SAFE_FASTEST,
   SAFE,
   FAST
