@@ -1163,7 +1163,7 @@ LLVMValueRef SafeFastest::fillControlBlockGeneration(
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
   auto newGenLE =
-      adjustCounterVReturnOld(
+      adjustCounterV(
           globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1, false);
 
   int genMemberIndex =
