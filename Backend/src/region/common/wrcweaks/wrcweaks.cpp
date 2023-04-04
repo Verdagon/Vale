@@ -447,7 +447,7 @@ void WrcWeaks::aliasWeakRef(
   }
 
   auto ptrToWrcLE = getWrcPtr(builder, wrciLE);
-  adjustCounterV(globalState, builder, globalState->metalCache->i32, ptrToWrcLE, 1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i32, ptrToWrcLE, 1, false);
 }
 
 void WrcWeaks::discardWeakRef(
@@ -467,7 +467,7 @@ void WrcWeaks::discardWeakRef(
   }
 
   auto ptrToWrcLE = getWrcPtr(builder, wrciLE);
-  auto wrcLE = adjustCounterV(globalState, builder, globalState->metalCache->i32, ptrToWrcLE, -1);
+  auto wrcLE = adjustCounterV(globalState, builder, globalState->metalCache->i32, ptrToWrcLE, -1, false);
 
   buildFlare(FL(), globalState, functionState, builder, "decrementing ", wrciLE, " to ", wrcLE);
 

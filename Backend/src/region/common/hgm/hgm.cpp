@@ -282,7 +282,7 @@ LiveRef HybridGenerationalMemory::lockGenFatPtr(
     if (globalState->opt->printMemOverhead) {
       adjustCounterV(
           globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE,
-          1);
+          1, false);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, refM, weakFatPtrLE, knownLive);
     buildIfV(
@@ -315,7 +315,7 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
     if (globalState->opt->printMemOverhead) {
       adjustCounterV(
           globalState, builder, globalState->metalCache->i64,
-          globalState->livenessPreCheckCounterLE, 1);
+          globalState->livenessPreCheckCounterLE, 1, false);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, refM, weakFatPtrLE, knownLive);
     auto resultRef =
@@ -463,7 +463,7 @@ LLVMValueRef HybridGenerationalMemory::fillWeakableControlBlock(
   // to use that, we want to use a random gen.
   auto newGenLE =
       adjustCounterVReturnOld(
-          globalState, builder, globalState->metalCache->i32, nextGenGlobalI32LE, 1);
+          globalState, builder, globalState->metalCache->i32, nextGenGlobalI32LE, 1, false);
 
   int genMemberIndex =
       kindStructs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
@@ -781,7 +781,7 @@ void HybridGenerationalMemory::deallocate(
           controlBlockPtr.refLE,
           genMemberIndex,
           "genPtr");
-  adjustCounterV(globalState, builder, globalState->metalCache->i32, genPtrLE, 1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i32, genPtrLE, 1, false);
 
   innerDeallocate(from, globalState, functionState, kindStructs, builder, sourceRefMT, sourceRef);
 }

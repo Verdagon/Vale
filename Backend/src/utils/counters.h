@@ -11,20 +11,23 @@ LLVMValueRef adjustCounterV(
     LLVMBuilderRef builder,
     Int* innt,
     LLVMValueRef counterPtrLE,
-    int adjustAmount);
+    int adjustAmount,
+    bool atomic);
 
 LLVMValueRef adjustCounter(
     LLVMBuilderRef builder,
     LLVMTypeRef type,
     LLVMValueRef counterPtrLE,
-    int adjustAmount);
+    int adjustAmount,
+    bool atomic);
 
 LLVMValueRef adjustCounterVReturnOld(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     Int* innt,
     LLVMValueRef counterPtrLE,
-    int adjustAmount);
+    int adjustAmount,
+    bool atomic);
 
 LLVMValueRef isZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE);
 LLVMValueRef isNonZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE);

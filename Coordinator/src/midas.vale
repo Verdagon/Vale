@@ -19,6 +19,7 @@ func invoke_backend(
   print_mem_overhead bool,
   elide_checks_for_known_live bool,
   elide_checks_for_regions bool,
+  use_atomic_rc bool,
   gen_size int,
   override_known_live_true bool,
   include_bounds_checks bool)
@@ -88,6 +89,9 @@ Subprocess {
   }
   if not include_bounds_checks {
     command_line_args.add("--include_bounds_checks=false");
+  }
+  if use_atomic_rc {
+    command_line_args.add("--use_atomic_rc=true");
   }
 
   command_line_args.add("--gen_size={gen_size}");

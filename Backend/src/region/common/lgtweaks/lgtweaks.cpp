@@ -398,7 +398,7 @@ void LgtWeaks::innerNoteWeakableDestroyed(
   auto lgtiLE = getLgtiFromControlBlockPtr(globalState, builder, kindStructsSource, concreteRefM,
       controlBlockPtrLE);
   auto ptrToActualGenLE = getLGTEntryGenPtr(functionState, builder, lgtiLE);
-  adjustCounterV(globalState, builder, globalState->metalCache->i64, ptrToActualGenLE, 1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i64, ptrToActualGenLE, 1, false);
   auto ptrToLgtEntryNextFreeLE = getLGTEntryNextFreePtr(builder, lgtiLE);
 
   // __lgt_entries[lgti] = __lgt_firstFree;

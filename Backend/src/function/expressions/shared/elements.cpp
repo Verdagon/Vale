@@ -142,7 +142,7 @@ IncrementedSize incrementRSASize(
   auto sizePtrLE = ::getRuntimeSizedArrayLengthPtr(globalState, builder, rsaWPtrLE);
   assert(rsaRefMT->location != Location::INLINE); // impl
 
-  adjustCounterV(globalState, builder, globalState->metalCache->i32, sizePtrLE, 1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i32, sizePtrLE, 1, false);
 
 //  // Manually making an InBoundsLE because we know it's in bounds because it's the previous size.
 //  return InBoundsLE{indexLE};
@@ -229,7 +229,7 @@ LLVMValueRef getRuntimeSizedArrayCapacityPtr(
 
 void decrementRSASize(GlobalState* globalState, FunctionState *functionState, KindStructs* kindStructs, LLVMBuilderRef builder, Reference *rsaRefMT, WrapperPtrLE rsaWrapperPtrLE) {
   auto sizePtrLE = getRuntimeSizedArrayLengthPtr(globalState, builder, rsaWrapperPtrLE);
-  adjustCounterV(globalState, builder, globalState->metalCache->i32, sizePtrLE, -1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i32, sizePtrLE, -1, false);
 }
 
 LoadResult loadElementFromSSAInner(
@@ -421,7 +421,7 @@ void intRangeLoop(
         auto iterationIndexLE = LLVMBuildLoad2(bodyBuilder, int32LT, iterationIndexPtrLE, "iterationIndex");
         iterationBuilder(iterationIndexLE, bodyBuilder);
         adjustCounterV(
-            globalState, bodyBuilder, globalState->metalCache->i32, iterationIndexPtrLE, 1);
+            globalState, bodyBuilder, globalState->metalCache->i32, iterationIndexPtrLE, 1, false);
       });
 }
 
@@ -446,7 +446,7 @@ void intRangeLoopReverse(
       [globalState, innt, iterationIndexPtrLE, iterationBuilder](LLVMBuilderRef bodyBuilder) {
         auto iterationIndexLE =
             adjustCounterV(
-                globalState, bodyBuilder, innt, iterationIndexPtrLE, -1);
+                globalState, bodyBuilder, innt, iterationIndexPtrLE, -1, false);
         iterationBuilder(iterationIndexLE, bodyBuilder);
         auto isBeforeEndLE =
             LLVMBuildICmp(

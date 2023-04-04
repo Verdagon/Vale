@@ -237,6 +237,12 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "true",
           "Whether to skip gen-checks for immutable references."),
         Flag(
+          "--use_atomic_rc",
+          FLAG_BOOL(),
+          "Whether to force it to always use atomic RC operations.",
+          "false",
+          "Whether to force it to always use atomic RC operations."),
+        Flag(
           "--include_bounds_checks",
           FLAG_BOOL(),
           "Whether to do bounds checks.",
@@ -328,6 +334,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   elide_checks_for_known_live = parsed_flags.get_bool_flag("--elide_checks_for_known_live", true);
   elide_checks_for_regions = parsed_flags.get_bool_flag("--elide_checks_for_regions", true);
   gen_size = parsed_flags.get_int_flag("--gen_size", 32);
+  use_atomic_rc = parsed_flags.get_bool_flag("--use_atomic_rc", false);
   include_bounds_checks = parsed_flags.get_bool_flag("--include_bounds_checks", true);
   override_known_live_true = parsed_flags.get_bool_flag("--override_known_live_true", false);
 
@@ -478,6 +485,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           print_mem_overhead,
           elide_checks_for_known_live,
           elide_checks_for_regions,
+          use_atomic_rc,
           gen_size,
           override_known_live_true,
           include_bounds_checks);

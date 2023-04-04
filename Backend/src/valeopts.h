@@ -50,6 +50,7 @@ struct ValeOptions {
     bool elideChecksForKnownLive = false;    // Elide checks for static-analysis-known live
     bool elideChecksForRegions = false;    // Elide checks for immutable regions
     bool includeBoundsChecks = true;
+    bool useAtomicRc = false;
     bool overrideKnownLiveTrue = false;    // Enables generational heap
     bool printMemOverhead = false;    // Enables generational heap
     bool enableReplaying = false;    // Enables deterministic replaying
