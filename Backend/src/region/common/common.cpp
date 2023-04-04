@@ -154,7 +154,7 @@ LLVMValueRef fillControlBlockCensusFields(
     const std::string& typeName) {
   if (globalState->opt->census) {
     auto objIdLE = adjustCounterV(
-        globalState, builder, globalState->metalCache->i64, globalState->objIdCounterLE, 1);
+        globalState, builder, globalState->metalCache->i64, globalState->objIdCounterLE, 1, false);
     newControlBlockLE =
         LLVMBuildInsertValue(
             builder,
@@ -326,7 +326,7 @@ void innerDeallocateYonder(
 
   if (globalState->opt->census) {
     adjustCounterV(
-        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, -1);
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, -1, false);
   }
 }
 
@@ -489,7 +489,7 @@ WrapperPtrLE mallocStr(
 
   if (globalState->opt->census) {
     adjustCounterV(
-        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1, false);
 
     LLVMValueRef resultAsVoidPtrLE =
         LLVMBuildBitCast(
@@ -541,7 +541,7 @@ LLVMValueRef mallocKnownSize(
     LLVMTypeRef kindLT) {
   if (globalState->opt->census) {
     adjustCounterV(
-        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1, false);
   }
 
   LLVMValueRef resultPtrLE = nullptr;
@@ -761,7 +761,7 @@ LLVMValueRef mallocRuntimeSizedArray(
 
   if (globalState->opt->census) {
     adjustCounterV(
-        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1, false);
   }
 
   if (globalState->opt->census) {

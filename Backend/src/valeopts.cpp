@@ -51,6 +51,7 @@ enum
     OPT_ELIDE_CHECKS_FOR_REGIONS,
     OPT_INCLUDE_BOUNDS_CHECKS,
     OPT_OVERRIDE_KNOWN_LIVE_TRUE,
+    OPT_USE_ATOMIC_RC,
     OPT_PRINT_MEM_OVERHEAD,
     OPT_ENABLE_REPLAYING,
     OPT_ENABLE_SIDE_CALLING,
@@ -101,6 +102,7 @@ static opt_arg_t args[] =
     { "gen_size", '\0', OPT_ARG_REQUIRED, OPT_GENERATION_SIZE },
     { "elide_checks_for_regions", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_REGIONS },
     { "include_bounds_checks", '\0', OPT_ARG_OPTIONAL, OPT_INCLUDE_BOUNDS_CHECKS },
+    { "use_atomic_rc", '\0', OPT_ARG_OPTIONAL, OPT_USE_ATOMIC_RC },
     { "override_known_live_true", '\0', OPT_ARG_NONE, OPT_OVERRIDE_KNOWN_LIVE_TRUE },
     { "print_mem_overhead", '\0', OPT_ARG_OPTIONAL, OPT_PRINT_MEM_OVERHEAD },
     { "enable_replaying", '\0', OPT_ARG_OPTIONAL, OPT_ENABLE_REPLAYING },
@@ -210,6 +212,7 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
     opt->elideChecksForKnownLive = true;
     opt->elideChecksForRegions = true;
     opt->includeBoundsChecks = true;
+    opt->useAtomicRc = false;
     opt->overrideKnownLiveTrue = false;
     opt->census = false;
 
@@ -313,6 +316,17 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
               opt->includeBoundsChecks = true;
             } else if (s.arg_val == std::string("off") || s.arg_val == std::string("no") || s.arg_val == std::string("false")) {
               opt->includeBoundsChecks = false;
+            } else assert(false);
+            break;
+          }
+
+          case OPT_USE_ATOMIC_RC: {
+            if (!s.arg_val) {
+              opt->useAtomicRc = true;
+            } else if (s.arg_val == std::string("on") || s.arg_val == std::string("yes") || s.arg_val == std::string("true")) {
+              opt->useAtomicRc = true;
+            } else if (s.arg_val == std::string("off") || s.arg_val == std::string("no") || s.arg_val == std::string("false")) {
+              opt->useAtomicRc = false;
             } else assert(false);
             break;
           }

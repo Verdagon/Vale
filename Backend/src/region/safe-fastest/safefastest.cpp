@@ -48,23 +48,35 @@ static LLVMValueRef makeGenHeader(
   return headerLE;
 }
 
+static LLVMValueRef getGenerationPtrFromControlBlockPtr(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    KindStructs* structs,
+    Kind* kindM,
+    ControlBlockPtrLE controlBlockPtr) {
+  assert(LLVMTypeOf(controlBlockPtr.refLE) == LLVMPointerType(structs->getControlBlock(kindM)->getStruct(), 0));
+  auto genPtrLE =
+      LLVMBuildStructGEP2(
+          builder,
+          controlBlockPtr.structLT,
+          controlBlockPtr.refLE,
+          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION),
+          "genPtr");
+  return genPtrLE;
+}
+
 static LLVMValueRef getGenerationFromControlBlockPtr(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     KindStructs* structs,
     Kind* kindM,
     ControlBlockPtrLE controlBlockPtr) {
-  auto int64LT = LLVMInt64TypeInContext(globalState->context);
-  assert(LLVMTypeOf(controlBlockPtr.refLE) == LLVMPointerType(structs->getControlBlock(kindM)->getStruct(), 0));
-
+  auto genLT = LLVMInt64TypeInContext(globalState->context);
   auto genPtrLE =
-      LLVMBuildStructGEP2(
-          builder,
-          controlBlockPtr.structLT,
-          controlBlockPtr.refLE,
-          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B),
-          "genPtr");
-  return LLVMBuildLoad2(builder, int64LT, genPtrLE, "genA");
+      getGenerationPtrFromControlBlockPtr(globalState, builder, structs, kindM, controlBlockPtr);
+  auto resultLE = LLVMBuildLoad2(builder, genLT, genPtrLE, "genD");
+  assert(LLVMTypeOf(resultLE) == genLT);
+  return resultLE;
 }
 
 static WeakFatPtrLE assembleStructWeakRef(
@@ -1152,7 +1164,7 @@ LLVMValueRef SafeFastest::fillControlBlockGeneration(
   // to use that, we want to use a random gen.
   auto newGenLE =
       adjustCounterVReturnOld(
-          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
+          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1, false);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
@@ -1255,8 +1267,19 @@ void SafeFastest::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    LiveRef ref) {
-  innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, ref);
+    LiveRef liveRef) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  // The generation was already set when we allocated it, but we need to change it now so that
+  // nobody can access this object after we free it now.
+  auto ref = wrap(globalState, refMT, liveRef);
+  auto controlBlockPtrLE =
+      kindStructs.getControlBlockPtr(from, functionState, builder, ref, refMT);
+  auto genPtrLE =
+      getGenerationPtrFromControlBlockPtr(
+          globalState, builder, &kindStructs, refMT->kind, controlBlockPtrLE);
+  adjustCounter(builder, genLT, genPtrLE, 1, false);
+
+  innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, liveRef);
 }
 
 LiveRef SafeFastest::constructRuntimeSizedArray(

@@ -7,29 +7,29 @@ LLVMValueRef adjustCounterV(
     LLVMBuilderRef builder,
     Int* innt,
     LLVMValueRef counterPtrLE,
-    int adjustAmount) {
+    int adjustAmount,
+    bool atomic) {
   auto intLT = LLVMIntTypeInContext(globalState->context, innt->bits);
-  auto prevValLE = LLVMBuildLoad2(builder, intLT, counterPtrLE, "counterPrevVal");
-  auto adjustByLE = LLVMConstInt(intLT, adjustAmount, true);
-  assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
-  auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
-  LLVMBuildStore(builder, newValLE, counterPtrLE);
-
-  return newValLE;
+  return adjustCounter(builder, intLT, counterPtrLE, adjustAmount, atomic);
 }
 
 LLVMValueRef adjustCounter(
     LLVMBuilderRef builder,
     LLVMTypeRef type,
     LLVMValueRef counterPtrLE,
-    int adjustAmount) {
-  auto prevValLE = LLVMBuildLoad2(builder, type, counterPtrLE, "counterPrevVal");
+    int adjustAmount,
+    bool atomic) {
   auto adjustByLE = LLVMConstInt(type, adjustAmount, true);
-  assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
-  auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
-  LLVMBuildStore(builder, newValLE, counterPtrLE);
-
-  return newValLE;
+  assert(LLVMTypeOf(adjustByLE) == type);
+  if (atomic) {
+    return LLVMBuildAtomicRMW(builder, LLVMAtomicRMWBinOpAdd, counterPtrLE, adjustByLE, LLVMAtomicOrderingMonotonic, !atomic);
+  } else {
+    auto prevValLE = LLVMBuildLoad2(builder, type, counterPtrLE, "counterPrevVal");
+    assert(LLVMTypeOf(prevValLE) == type);
+    auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
+    LLVMBuildStore(builder, newValLE, counterPtrLE);
+    return newValLE;
+  }
 }
 
 LLVMValueRef adjustCounterVReturnOld(
@@ -37,7 +37,10 @@ LLVMValueRef adjustCounterVReturnOld(
     LLVMBuilderRef builder,
     Int* innt,
     LLVMValueRef counterPtrLE,
-    int adjustAmount) {
+    int adjustAmount,
+    bool atomic) {
+  assert(!atomic); // unimplemented
+
   auto intLT = LLVMIntTypeInContext(globalState->context, innt->bits);
   auto prevValLE = LLVMBuildLoad2(builder, intLT, counterPtrLE, "counterPrevVal");
   auto adjustByLE = LLVMConstInt(intLT, adjustAmount, true);

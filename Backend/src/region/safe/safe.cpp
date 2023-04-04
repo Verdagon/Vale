@@ -514,7 +514,7 @@ static LiveRef preCheckFatPtr(
     if (globalState->opt->printMemOverhead) {
       adjustCounterV(
           globalState, builder, globalState->metalCache->i64,
-          globalState->livenessPreCheckCounterLE, 1);
+          globalState->livenessPreCheckCounterLE, 1, false);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     auto resultRef =
@@ -607,7 +607,7 @@ static WrapperPtrLE lockGenFatPtr(
     if (globalState->opt->printMemOverhead) {
       adjustCounterV(
           globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE,
-          1);
+          1, false);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     buildIfV(
@@ -1315,7 +1315,7 @@ LLVMValueRef Safe::fillControlBlockGeneration(
   // The generation was already incremented when we freed it (or malloc'd it for the first time), but
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
-  auto newGenLE = adjustCounter(builder, genLT, nextGenThreadGlobalIntLE, 1);
+  auto newGenLE = adjustCounter(builder, genLT, nextGenThreadGlobalIntLE, 1, false);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION);
@@ -1426,15 +1426,13 @@ void Safe::deallocate(
   auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
   // The generation was already set when we allocated it, but we need to change it now so that
   // nobody can access this object after we free it now.
-  auto newGenLE = adjustCounter(builder, genLT, nextGenThreadGlobalIntLE, 1);
-
   auto ref = wrap(globalState, refMT, liveRef);
   auto controlBlockPtrLE =
       kindStructs.getControlBlockPtr(from, functionState, builder, ref, refMT);
   auto genPtrLE =
     getGenerationPtrFromControlBlockPtr(
         globalState, builder, &kindStructs, refMT->kind, controlBlockPtrLE);
-  LLVMBuildStore(builder, newGenLE, genPtrLE);
+  adjustCounter(builder, genLT, genPtrLE, 1, false);
 
   innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, liveRef);
 }
