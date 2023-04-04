@@ -226,7 +226,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "Whether to skip gen-checks for objects we know are live."),
         Flag(
           "--gen_size",
-          FLAG_BOOL(),
+          FLAG_INT(),
           "Size in bits of the generation number.",
           "32",
           "Size in bits of the generation number.",),
