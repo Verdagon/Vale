@@ -144,6 +144,7 @@ public:
   LLVMBuilderRef localsBuilder;
   int nextBlockNumber = 1;
   int instructionDepthInAst = 0;
+  //std::optional<LLVMValueRef> maybeNextGenPtr;
 
   FunctionState(
       std::string containingFuncName_,
@@ -153,7 +154,9 @@ public:
     containingFuncName(containingFuncName_),
     containingFuncL(containingFuncL_),
     returnTypeL(returnTypeL_),
-    localsBuilder(localsBuilder_) {}
+    localsBuilder(localsBuilder_)
+    //,maybeNextGenPtr(std::nullopt)
+    {}
 
   std::string nextBlockName() {
     return std::string("block") + std::to_string(nextBlockNumber++);
