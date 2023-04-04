@@ -62,7 +62,7 @@ static LLVMValueRef getGenerationFromControlBlockPtr(
           builder,
           controlBlockPtr.structLT,
           controlBlockPtr.refLE,
-          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B),
+          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B),
           "genPtr");
   return LLVMBuildLoad2(builder, int64LT, genPtrLE, "gen");
 }
@@ -350,14 +350,14 @@ static Ref assembleWeakRef(
 
 static ControlBlock makeSafeNonWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
-  controlBlock.addMember(ControlBlockMember::GENERATION_64B);
+  controlBlock.addMember(ControlBlockMember::GENERATION_32B);
   controlBlock.build();
   return controlBlock;
 }
 
 static ControlBlock makeSafeWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
-  controlBlock.addMember(ControlBlockMember::GENERATION_64B);
+  controlBlock.addMember(ControlBlockMember::GENERATION_32B);
   // controlBlock.addMember(ControlBlockMember::WEAK_SOMETHING); impl weaks
   controlBlock.build();
   return controlBlock;
@@ -563,8 +563,9 @@ SafeFastest::SafeFastest(GlobalState* globalState_) :
   });
 
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
-  nextGenThreadGlobalI64LE = LLVMAddGlobal(globalState_->mod, int64LT, "__vale_nextGen");
-  LLVMSetInitializer(nextGenThreadGlobalI64LE, constI64LE(globalState, FIRST_GEN));
+  auto int32LT = LLVMInt32TypeInContext(globalState->context);
+  nextGenThreadGlobalI64LE = LLVMAddGlobal(globalState_->mod, int32LT, "__vale_nextGen");
+  LLVMSetInitializer(nextGenThreadGlobalI64LE, constI32LE(globalState, FIRST_GEN));
 }
 
 Reference* SafeFastest::getRegionRefType() {
@@ -1150,10 +1151,10 @@ LLVMValueRef SafeFastest::fillControlBlockGeneration(
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
   auto newGenLE =
-      adjustCounterReturnOld(globalState, builder, globalState->metalCache->i64, nextGenThreadGlobalI64LE, 1);
+      adjustCounterReturnOld(globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
 
   int genMemberIndex =
-      kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B);
+      kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
   auto newControlBlockLE =
       LLVMBuildInsertValue(builder, controlBlockLE, newGenLE, genMemberIndex, "newControlBlock");
 
