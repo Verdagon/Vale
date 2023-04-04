@@ -64,7 +64,7 @@ static LLVMValueRef getGenerationFromControlBlockPtr(
                     controlBlockPtr.refLE,
                     structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B),
                     "genPtr");
-    return LLVMBuildLoad2(builder, int64LT, genPtrLE, "gen");
+    return LLVMBuildLoad2(builder, int64LT, genPtrLE, "genC");
 }
 
 static WeakFatPtrLE assembleStructWeakRef(
@@ -465,7 +465,9 @@ static LiveRef preCheckFatPtr(
     assert(refM->ownership == Ownership::MUTABLE_BORROW);
 
     if (globalState->opt->printMemOverhead) {
-        adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
+      adjustCounterV(
+          globalState, builder, globalState->metalCache->i64,
+          globalState->livenessPreCheckCounterLE, 1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE);
     auto resultRef =
@@ -527,7 +529,9 @@ static LiveRef checkGenFatPtr(
 
   if (!knownLive) {
     if (globalState->opt->printMemOverhead) {
-        adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
+      adjustCounterV(
+          globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE,
+          1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE);
     buildIfV(
@@ -1195,7 +1199,8 @@ LLVMValueRef SafeBaseline::fillControlBlockGeneration(
     // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
     // to use that, we want to use a random gen.
     auto newGenLE =
-            adjustCounterReturnOld(globalState, builder, globalState->metalCache->i64, nextGenThreadGlobalI64LE, 1);
+        adjustCounterVReturnOld(
+            globalState, builder, globalState->metalCache->i64, nextGenThreadGlobalI64LE, 1);
 
     int genMemberIndex =
             kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B);

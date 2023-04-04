@@ -2,7 +2,7 @@
 #include <region/common/migration.h>
 #include "counters.h"
 
-LLVMValueRef adjustCounter(
+LLVMValueRef adjustCounterV(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     Int* innt,
@@ -18,7 +18,21 @@ LLVMValueRef adjustCounter(
   return newValLE;
 }
 
-LLVMValueRef adjustCounterReturnOld(
+LLVMValueRef adjustCounter(
+    LLVMBuilderRef builder,
+    LLVMTypeRef type,
+    LLVMValueRef counterPtrLE,
+    int adjustAmount) {
+  auto prevValLE = LLVMBuildLoad2(builder, type, counterPtrLE, "counterPrevVal");
+  auto adjustByLE = LLVMConstInt(type, adjustAmount, true);
+  assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
+  auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
+  LLVMBuildStore(builder, newValLE, counterPtrLE);
+
+  return newValLE;
+}
+
+LLVMValueRef adjustCounterVReturnOld(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     Int* innt,
@@ -28,7 +42,7 @@ LLVMValueRef adjustCounterReturnOld(
   auto prevValLE = LLVMBuildLoad2(builder, intLT, counterPtrLE, "counterPrevVal");
   auto adjustByLE = LLVMConstInt(intLT, adjustAmount, true);
   assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
-  auto newValLE =LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
+  auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
   LLVMBuildStore(builder, newValLE, counterPtrLE);
 
   return prevValLE;

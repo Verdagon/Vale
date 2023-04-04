@@ -538,7 +538,7 @@ protected:
 //  WrcWeaks wrcWeaks;
 
 
-  LLVMValueRef nextGenThreadGlobalI64LE = nullptr;
+  LLVMValueRef nextGenThreadGlobalIntLE = nullptr;
 
   std::string namePrefix = "__Safe";
 

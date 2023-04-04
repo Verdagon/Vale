@@ -153,7 +153,8 @@ LLVMValueRef fillControlBlockCensusFields(
     LLVMValueRef newControlBlockLE,
     const std::string& typeName) {
   if (globalState->opt->census) {
-    auto objIdLE = adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->objIdCounterLE, 1);
+    auto objIdLE = adjustCounterV(
+        globalState, builder, globalState->metalCache->i64, globalState->objIdCounterLE, 1);
     newControlBlockLE =
         LLVMBuildInsertValue(
             builder,
@@ -324,7 +325,8 @@ void innerDeallocateYonder(
   callFree(globalState, functionState, builder, controlBlockPtrLE.refLE);
 
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, -1);
+    adjustCounterV(
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, -1);
   }
 }
 
@@ -486,7 +488,8 @@ WrapperPtrLE mallocStr(
   auto destCharPtrLE =callMalloc(globalState, builder, sizeBytesLE);
 
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
+    adjustCounterV(
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
 
     LLVMValueRef resultAsVoidPtrLE =
         LLVMBuildBitCast(
@@ -537,7 +540,8 @@ LLVMValueRef mallocKnownSize(
     Location location,
     LLVMTypeRef kindLT) {
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
+    adjustCounterV(
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
   }
 
   LLVMValueRef resultPtrLE = nullptr;
@@ -756,7 +760,8 @@ LLVMValueRef mallocRuntimeSizedArray(
   auto newWrapperPtrLE = callMalloc(globalState, builder, sizeBytesLE);
 
   if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
+    adjustCounterV(
+        globalState, builder, globalState->metalCache->i64, globalState->liveHeapObjCounterLE, 1);
   }
 
   if (globalState->opt->census) {

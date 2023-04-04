@@ -19,6 +19,7 @@ func invoke_backend(
   print_mem_overhead bool,
   elide_checks_for_known_live bool,
   elide_checks_for_regions bool,
+  gen_size int,
   override_known_live_true bool,
   include_bounds_checks bool)
 Subprocess {
@@ -88,6 +89,8 @@ Subprocess {
   if not include_bounds_checks {
     command_line_args.add("--include_bounds_checks=false");
   }
+
+  command_line_args.add("--gen_size={gen_size}");
 
   vast_files.each((vast_file) => {
     command_line_args.add(vast_file.str());
