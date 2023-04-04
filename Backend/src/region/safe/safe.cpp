@@ -48,23 +48,35 @@ static LLVMValueRef makeGenHeader(
   return headerLE;
 }
 
+static LLVMValueRef getGenerationPtrFromControlBlockPtr(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    KindStructs* structs,
+    Kind* kindM,
+    ControlBlockPtrLE controlBlockPtr) {
+  assert(LLVMTypeOf(controlBlockPtr.refLE) == LLVMPointerType(structs->getControlBlock(kindM)->getStruct(), 0));
+  auto genPtrLE =
+      LLVMBuildStructGEP2(
+          builder,
+          controlBlockPtr.structLT,
+          controlBlockPtr.refLE,
+          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION),
+          "genPtr");
+  return genPtrLE;
+}
+
 static LLVMValueRef getGenerationFromControlBlockPtr(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     KindStructs* structs,
     Kind* kindM,
     ControlBlockPtrLE controlBlockPtr) {
-  auto int64LT = LLVMInt64TypeInContext(globalState->context);
-  assert(LLVMTypeOf(controlBlockPtr.refLE) == LLVMPointerType(structs->getControlBlock(kindM)->getStruct(), 0));
-
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
   auto genPtrLE =
-      LLVMBuildStructGEP2(
-          builder,
-          controlBlockPtr.structLT,
-          controlBlockPtr.refLE,
-          structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B),
-          "genPtr");
-  return LLVMBuildLoad2(builder, int64LT, genPtrLE, "gen");
+      getGenerationPtrFromControlBlockPtr(globalState, builder, structs, kindM, controlBlockPtr);
+  auto resultLE = LLVMBuildLoad2(builder, genLT, genPtrLE, "genD");
+  assert(LLVMTypeOf(resultLE) == genLT);
+  return resultLE;
 }
 
 static WeakFatPtrLE assembleStructWeakRef(
@@ -76,6 +88,8 @@ static WeakFatPtrLE assembleStructWeakRef(
     StructKind* structKindM,
     LLVMValueRef currentGenLE,
     WrapperPtrLE objPtrLE) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  assert(LLVMTypeOf(currentGenLE) == genLT);
   auto headerLE = makeGenHeader(globalState, kindStructs, builder, structKindM, currentGenLE);
   auto weakRefStructLT = kindStructs->getStructWeakRefStruct(structKindM);
   return assembleWeakFatPtr(
@@ -93,6 +107,8 @@ static WeakFatPtrLE assembleStructWeakRef(
     WrapperPtrLE objPtrLE) {
   auto controlBlockPtrLE = kindStructs->getConcreteControlBlockPtr(FL(), functionState, builder, structTypeM, objPtrLE);
   auto currentGenLE = getGenerationFromControlBlockPtr(globalState, builder, kindStructs, structTypeM->kind, controlBlockPtrLE);
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  assert(LLVMTypeOf(currentGenLE) == genLT);
   auto headerLE = makeGenHeader(globalState, kindStructs, builder, structKindM, currentGenLE);
   auto weakRefStructLT = kindStructs->getStructWeakRefStruct(structKindM);
   return assembleWeakFatPtr(
@@ -200,6 +216,8 @@ static WeakFatPtrLE assembleRuntimeSizedArrayWeakRef(
     RuntimeSizedArrayT* staticSizedArrayMT,
     LLVMValueRef currentGenLE,
     WrapperPtrLE objPtrLE) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  assert(LLVMTypeOf(currentGenLE) == genLT);
   auto headerLE = makeGenHeader(globalState, kindStructs, builder, staticSizedArrayMT, currentGenLE);
   auto weakRefStructLT = kindStructs->getRuntimeSizedArrayWeakRefStruct(staticSizedArrayMT);
   return assembleWeakFatPtr(
@@ -238,6 +256,8 @@ static WeakFatPtrLE assembleStaticSizedArrayWeakRef(
     StaticSizedArrayT* staticSizedArrayMT,
     LLVMValueRef currentGenLE,
     WrapperPtrLE objPtrLE) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  assert(LLVMTypeOf(currentGenLE) == genLT);
   auto headerLE = makeGenHeader(globalState, kindStructs, builder, staticSizedArrayMT, currentGenLE);
   auto weakRefStructLT = kindStructs->getStaticSizedArrayWeakRefStruct(staticSizedArrayMT);
   return assembleWeakFatPtr(
@@ -276,6 +296,8 @@ static WeakFatPtrLE assembleInterfaceWeakRef(
     InterfaceKind* interfaceKindM,
     LLVMValueRef currentGenLE,
     InterfaceFatPtrLE sourceInterfaceFatPtrLE) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  assert(LLVMTypeOf(currentGenLE) == genLT);
   auto headerLE = makeGenHeader(globalState, kindStructs, builder, interfaceKindM, currentGenLE);
   auto weakRefStructLT =
       kindStructs->getInterfaceWeakRefStruct(interfaceKindM);
@@ -361,7 +383,7 @@ static Ref assembleWeakRef(
 
 static ControlBlock makeSafeNonWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
-  controlBlock.addMember(ControlBlockMember::GENERATION_64B);
+  controlBlock.addMember(ControlBlockMember::GENERATION);
   if (globalState->opt->census) {
     controlBlock.addMember(ControlBlockMember::CENSUS_TYPE_STR);
     controlBlock.addMember(ControlBlockMember::CENSUS_OBJ_ID);
@@ -372,7 +394,7 @@ static ControlBlock makeSafeNonWeakableControlBlock(GlobalState* globalState) {
 
 static ControlBlock makeSafeWeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
-  controlBlock.addMember(ControlBlockMember::GENERATION_64B);
+  controlBlock.addMember(ControlBlockMember::GENERATION);
   // controlBlock.addMember(ControlBlockMember::WEAK_SOMETHING); impl weaks
   if (globalState->opt->census) {
     controlBlock.addMember(ControlBlockMember::CENSUS_TYPE_STR);
@@ -383,12 +405,14 @@ static ControlBlock makeSafeWeakableControlBlock(GlobalState* globalState) {
 }
 
 static LLVMTypeRef makeSafeWeakRefHeaderStruct(GlobalState* globalState) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+
   auto refStructL = LLVMStructCreateNamed(globalState->context, "__SafeWeakRef");
 
   std::vector<LLVMTypeRef> memberTypesL;
 
   assert(WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN == memberTypesL.size());
-  memberTypesL.push_back(LLVMInt64TypeInContext(globalState->context));
+  memberTypesL.push_back(genLT);
 
   LLVMStructSetBody(refStructL, memberTypesL.data(), memberTypesL.size(), false);
 
@@ -488,7 +512,9 @@ static LiveRef preCheckFatPtr(
     return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
   } else {
     if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
+      adjustCounterV(
+          globalState, builder, globalState->metalCache->i64,
+          globalState->livenessPreCheckCounterLE, 1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     auto resultRef =
@@ -579,7 +605,9 @@ static WrapperPtrLE lockGenFatPtr(
     // Do nothing
   } else {
     if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
+      adjustCounterV(
+          globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE,
+          1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     buildIfV(
@@ -619,9 +647,9 @@ Safe::Safe(GlobalState* globalState_) :
       // This region doesnt need anything
   });
 
-  auto int64LT = LLVMInt64TypeInContext(globalState->context);
-  nextGenThreadGlobalI64LE = LLVMAddGlobal(globalState_->mod, int64LT, "__vale_nextGen");
-  LLVMSetInitializer(nextGenThreadGlobalI64LE, constI64LE(globalState, FIRST_GEN));
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  nextGenThreadGlobalIntLE = LLVMAddGlobal(globalState_->mod, genLT, "__vale_nextGen");
+  LLVMSetInitializer(nextGenThreadGlobalIntLE, LLVMConstInt(genLT, FIRST_GEN, false));
 }
 
 Reference* Safe::getRegionRefType() {
@@ -1282,14 +1310,15 @@ LLVMValueRef Safe::fillControlBlockGeneration(
     LLVMBuilderRef builder,
     LLVMValueRef controlBlockLE,
     Kind* kindM) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+
   // The generation was already incremented when we freed it (or malloc'd it for the first time), but
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
-  auto newGenLE =
-      adjustCounterReturnOld(globalState, builder, globalState->metalCache->i64, nextGenThreadGlobalI64LE, 1);
+  auto newGenLE = adjustCounter(builder, genLT, nextGenThreadGlobalIntLE, 1);
 
   int genMemberIndex =
-      kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_64B);
+      kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION);
   auto newControlBlockLE =
       LLVMBuildInsertValue(builder, controlBlockLE, newGenLE, genMemberIndex, "newControlBlock");
 
@@ -1393,8 +1422,21 @@ void Safe::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    LiveRef ref) {
-  innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, ref);
+    LiveRef liveRef) {
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  // The generation was already set when we allocated it, but we need to change it now so that
+  // nobody can access this object after we free it now.
+  auto newGenLE = adjustCounter(builder, genLT, nextGenThreadGlobalIntLE, 1);
+
+  auto ref = wrap(globalState, refMT, liveRef);
+  auto controlBlockPtrLE =
+      kindStructs.getControlBlockPtr(from, functionState, builder, ref, refMT);
+  auto genPtrLE =
+    getGenerationPtrFromControlBlockPtr(
+        globalState, builder, &kindStructs, refMT->kind, controlBlockPtrLE);
+  LLVMBuildStore(builder, newGenLE, genPtrLE);
+
+  innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, liveRef);
 }
 
 LiveRef Safe::constructRuntimeSizedArray(

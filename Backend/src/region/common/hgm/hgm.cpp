@@ -73,7 +73,7 @@ static LLVMValueRef getGenerationFromControlBlockPtr(
           controlBlockPtr.refLE,
           structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B),
           "genPtr");
-  return LLVMBuildLoad2(builder, int32LT, genPtrLE, "gen");
+  return LLVMBuildLoad2(builder, int32LT, genPtrLE, "genB");
 }
 
 WeakFatPtrLE HybridGenerationalMemory::weakStructPtrToGenWeakInterfacePtr(
@@ -280,7 +280,9 @@ LiveRef HybridGenerationalMemory::lockGenFatPtr(
 //    // Do nothing
 //  } else {
     if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE, 1);
+      adjustCounterV(
+          globalState, builder, globalState->metalCache->i64, globalState->livenessCheckCounterLE,
+          1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, refM, weakFatPtrLE, knownLive);
     buildIfV(
@@ -311,7 +313,9 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
     return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
   } else {
     if (globalState->opt->printMemOverhead) {
-      adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->livenessPreCheckCounterLE, 1);
+      adjustCounterV(
+          globalState, builder, globalState->metalCache->i64,
+          globalState->livenessPreCheckCounterLE, 1);
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, refM, weakFatPtrLE, knownLive);
     auto resultRef =
@@ -458,7 +462,8 @@ LLVMValueRef HybridGenerationalMemory::fillWeakableControlBlock(
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
   auto newGenLE =
-      adjustCounterReturnOld(globalState, builder, globalState->metalCache->i32, nextGenGlobalI32LE, 1);
+      adjustCounterVReturnOld(
+          globalState, builder, globalState->metalCache->i32, nextGenGlobalI32LE, 1);
 
   int genMemberIndex =
       kindStructs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
@@ -776,7 +781,7 @@ void HybridGenerationalMemory::deallocate(
           controlBlockPtr.refLE,
           genMemberIndex,
           "genPtr");
-  adjustCounter(globalState, builder, globalState->metalCache->i32, genPtrLE, 1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i32, genPtrLE, 1);
 
   innerDeallocate(from, globalState, functionState, kindStructs, builder, sourceRefMT, sourceRef);
 }

@@ -64,7 +64,7 @@ static LLVMValueRef getGenerationFromControlBlockPtr(
           controlBlockPtr.refLE,
           structs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B),
           "genPtr");
-  return LLVMBuildLoad2(builder, int64LT, genPtrLE, "gen");
+  return LLVMBuildLoad2(builder, int64LT, genPtrLE, "genA");
 }
 
 static WeakFatPtrLE assembleStructWeakRef(
@@ -1151,7 +1151,8 @@ LLVMValueRef SafeFastest::fillControlBlockGeneration(
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
   auto newGenLE =
-      adjustCounterReturnOld(globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
+      adjustCounterVReturnOld(
+          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);

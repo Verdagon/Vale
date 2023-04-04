@@ -225,6 +225,12 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           "true",
           "Whether to skip gen-checks for objects we know are live."),
         Flag(
+          "--gen_size",
+          FLAG_BOOL(),
+          "Size in bits of the generation number.",
+          "32",
+          "Size in bits of the generation number.",),
+        Flag(
           "--elide_checks_for_regions",
           FLAG_BOOL(),
           "Whether to skip gen-checks for immutable references.",
@@ -321,6 +327,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   print_mem_overhead = parsed_flags.get_bool_flag("--print_mem_overhead", false);
   elide_checks_for_known_live = parsed_flags.get_bool_flag("--elide_checks_for_known_live", true);
   elide_checks_for_regions = parsed_flags.get_bool_flag("--elide_checks_for_regions", true);
+  gen_size = parsed_flags.get_int_flag("--gen_size", 32);
   include_bounds_checks = parsed_flags.get_bool_flag("--include_bounds_checks", true);
   override_known_live_true = parsed_flags.get_bool_flag("--override_known_live_true", false);
 
@@ -471,6 +478,7 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
           print_mem_overhead,
           elide_checks_for_known_live,
           elide_checks_for_regions,
+          gen_size,
           override_known_live_true,
           include_bounds_checks);
   println("Running:\n" + backend_process.command);

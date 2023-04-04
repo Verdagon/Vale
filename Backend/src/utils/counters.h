@@ -6,14 +6,20 @@
 #include "../globalstate.h"
 #include "../function/function.h"
 
-LLVMValueRef adjustCounter(
+LLVMValueRef adjustCounterV(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     Int* innt,
     LLVMValueRef counterPtrLE,
     int adjustAmount);
 
-LLVMValueRef adjustCounterReturnOld(
+LLVMValueRef adjustCounter(
+    LLVMBuilderRef builder,
+    LLVMTypeRef type,
+    LLVMValueRef counterPtrLE,
+    int adjustAmount);
+
+LLVMValueRef adjustCounterVReturnOld(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     Int* innt,

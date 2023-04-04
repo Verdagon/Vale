@@ -93,10 +93,11 @@ LLVMValueRef adjustStrongRc(
       kindStructsSource->getControlBlockPtr(from, functionState, builder, exprRef, refM);
   auto rcPtrLE = kindStructsSource->getStrongRcPtrFromControlBlockPtr(builder, refM, controlBlockPtrLE);
 //  auto oldRc = unmigratedLLVMBuildLoad(builder, rcPtrLE, "oldRc");
-  auto newRc = adjustCounter(globalState, builder, globalState->metalCache->i32, rcPtrLE, amount);
+  auto newRc = adjustCounterV(globalState, builder, globalState->metalCache->i32, rcPtrLE, amount);
 
   if (globalState->opt->printMemOverhead) {
-    adjustCounter(globalState, builder, globalState->metalCache->i64, globalState->mutRcAdjustCounterLE, 1);
+    adjustCounterV(
+        globalState, builder, globalState->metalCache->i64, globalState->mutRcAdjustCounterLE, 1);
   }
 
 //  flareAdjustStrongRc(from, globalState, functionState, builder, refM, controlBlockPtrLE, oldRc, newRc);

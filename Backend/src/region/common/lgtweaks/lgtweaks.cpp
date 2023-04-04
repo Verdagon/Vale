@@ -398,7 +398,7 @@ void LgtWeaks::innerNoteWeakableDestroyed(
   auto lgtiLE = getLgtiFromControlBlockPtr(globalState, builder, kindStructsSource, concreteRefM,
       controlBlockPtrLE);
   auto ptrToActualGenLE = getLGTEntryGenPtr(functionState, builder, lgtiLE);
-  adjustCounter(globalState, builder, globalState->metalCache->i64, ptrToActualGenLE, 1);
+  adjustCounterV(globalState, builder, globalState->metalCache->i64, ptrToActualGenLE, 1);
   auto ptrToLgtEntryNextFreeLE = getLGTEntryNextFreePtr(builder, lgtiLE);
 
   // __lgt_entries[lgti] = __lgt_firstFree;
@@ -452,7 +452,7 @@ LLVMValueRef LgtWeaks::getIsAliveFromWeakFatPtr(
       buildCheckLgti(builder, lgtiLE);
     }
     auto ptrToActualGenLE = getLGTEntryGenPtr(functionState, builder, lgtiLE);
-    auto actualGenLE = LLVMBuildLoad2(builder, int32LT, ptrToActualGenLE, "gen");
+    auto actualGenLE = LLVMBuildLoad2(builder, int32LT, ptrToActualGenLE, "genE");
 
     return LLVMBuildICmp(
         builder,
