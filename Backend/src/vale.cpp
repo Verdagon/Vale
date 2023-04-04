@@ -39,7 +39,6 @@
 #include "function/expressions/shared/string.h"
 #include <sstream>
 #include <region/safe/safe.h>
-#include "region/safe-baseline/safebaseline.h"
 #include "region/safe-fastest/safefastest.h"
 #include "region/linear/linear.h"
 #include "function/expressions/shared/members.h"
@@ -681,9 +680,6 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     case RegionOverride::SAFE:
       std::cout << "Region override: safe" << std::endl;
       break;
-    case RegionOverride::SAFE_BASELINE:
-      std::cout << "Region override: safe-baseline" << std::endl;
-      break;
     case RegionOverride::SAFE_FASTEST:
       std::cout << "Region override: safe-fastest" << std::endl;
       break;
@@ -851,9 +847,6 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       break;
     case RegionOverride::SAFE:
       globalState->mutRegion = new Safe(globalState);
-      break;
-    case RegionOverride::SAFE_BASELINE:
-      globalState->mutRegion = new SafeBaseline(globalState);
       break;
     case RegionOverride::SAFE_FASTEST:
       globalState->mutRegion = new SafeFastest(globalState);

@@ -116,7 +116,6 @@ add_executable(backend
 		src/utils/llvm.h
 		src/utils/structlt.h
 		src/region/safe/safe.cpp
-		src/region/safe-baseline/safebaseline.cpp
 		src/region/safe-fastest/safefastest.cpp
 		src/region/common/migration.h
 		src/region/common/migration.cpp
