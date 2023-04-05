@@ -1315,7 +1315,7 @@ LLVMValueRef Safe::fillControlBlockGeneration(
   // The generation was already incremented when we freed it (or malloc'd it for the first time), but
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
-  auto newGenLE = adjustCounter(builder, genLT, nextGenThreadGlobalIntLE, 1, false);
+  auto newGenLE = adjustCounterReturnOld(builder, genLT, nextGenThreadGlobalIntLE, 1);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION);
@@ -1432,7 +1432,7 @@ void Safe::deallocate(
   auto genPtrLE =
     getGenerationPtrFromControlBlockPtr(
         globalState, builder, &kindStructs, refMT->kind, controlBlockPtrLE);
-  adjustCounter(builder, genLT, genPtrLE, 1, false);
+  adjustCounterReturnOld(builder, genLT, genPtrLE, 1);
 
   innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, liveRef);
 }
