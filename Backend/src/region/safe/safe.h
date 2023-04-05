@@ -487,7 +487,7 @@ public:
   void declareRuntimeSizedArrayExtraFunctions(RuntimeSizedArrayDefinitionT* rsaDefM) override {}
   void declareInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
 
-  FuncPtrLE getInterfaceMethodFunctionPtr(
+  ValeFuncPtrLE getInterfaceMethodFunctionPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* virtualParamMT,
@@ -524,7 +524,7 @@ public:
       LiveRef liveRef);
 
 protected:
-  LLVMValueRef fillControlBlockGeneration(LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);
+  LLVMValueRef fillControlBlockGeneration(FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);
 
   GlobalState* globalState = nullptr;
 
@@ -537,8 +537,6 @@ protected:
   FatWeaks fatWeaks;
 //  WrcWeaks wrcWeaks;
 
-
-  LLVMValueRef nextGenThreadGlobalIntLE = nullptr;
 
   std::string namePrefix = "__Safe";
 

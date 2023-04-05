@@ -982,7 +982,7 @@ Weakability Unsafe::getKindWeakability(Kind* kind) {
   }
 }
 
-FuncPtrLE Unsafe::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE Unsafe::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,

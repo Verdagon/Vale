@@ -1742,7 +1742,7 @@ void storeMemberWeak(
 //  storeInnerInnerStructMember(builder, innerStructPtrLE, memberIndex, memberName, newValueLE);
 }
 
-FuncPtrLE getInterfaceMethodFunctionPtrFromItable(
+ValeFuncPtrLE getInterfaceMethodFunctionPtrFromItable(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1775,7 +1775,7 @@ FuncPtrLE getInterfaceMethodFunctionPtrFromItable(
 
   auto resultLE = LLVMBuildLoad2(builder, LLVMPointerType(funcLT, 0), funcPtrPtrLE, "methodPtr");
   //buildFlare(FL(), globalState, functionState, builder, "method ptr: ", ptrToIntLE(globalState, builder, resultLE));
-  return FuncPtrLE(funcLT, resultLE);
+  return ValeFuncPtrLE(RawFuncPtrLE(funcLT, resultLE));
 }
 
 

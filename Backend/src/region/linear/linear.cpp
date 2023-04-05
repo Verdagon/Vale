@@ -373,13 +373,13 @@ void Linear::defineEdgeSerializeFunction(Edge* edge) {
         auto valeObjectRefMT = structPrototype->params[2];
 
         auto regionInstanceRef =
-            wrap(globalState->getRegion(regionRefMT), regionRefMT, LLVMGetParam(functionState->containingFuncL, 0));
+            wrap(globalState->getRegion(regionRefMT), regionRefMT, LLVMGetParam(functionState->containingFuncL, 0 + 1)); // DO NOT SUBMIT
         auto sourceRegionInstanceRef =
-            wrap(globalState->getRegion(valeObjectRefMT), globalState->getRegion(valeObjectRefMT)->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1));
+            wrap(globalState->getRegion(valeObjectRefMT), globalState->getRegion(valeObjectRefMT)->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
         auto valeObjectRef =
-            wrap(globalState->getRegion(valeObjectRefMT), valeObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2));
+            wrap(globalState->getRegion(valeObjectRefMT), valeObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
         auto dryRunBoolRef =
-            wrap(globalState->getRegion(boolMT), boolMT, LLVMGetParam(functionState->containingFuncL, 3));
+            wrap(globalState->getRegion(boolMT), boolMT, LLVMGetParam(functionState->containingFuncL, 3 + 1)); // DO NOT SUBMIT
 
         auto structRef =
             buildCallV(
@@ -1646,13 +1646,13 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
         auto valeObjectRefMT = prototype->params[2];
         auto hostObjectRefMT = prototype->returnType;
 
-        auto hostRegionInstanceRef = wrap(globalState->getRegion(regionRefMT), regionRefMT, LLVMGetParam(functionState->containingFuncL, 0));
+        auto hostRegionInstanceRef = wrap(globalState->getRegion(regionRefMT), regionRefMT, LLVMGetParam(functionState->containingFuncL, 0 + 1)); // DO NOT SUBMIT
         auto sourceRegionInstanceRef = wrap(globalState->getRegion(valeKind),
-            globalState->getRegion(valeKind)->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1));
-        auto valeObjectRef = wrap(globalState->getRegion(valeObjectRefMT), valeObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2));
+            globalState->getRegion(valeKind)->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
+        auto valeObjectRef = wrap(globalState->getRegion(valeObjectRefMT), valeObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
         auto valeObjectLiveRef =
             checkRefLive(FL(), functionState, builder, sourceRegionInstanceRef, valeObjectRefMT, valeObjectRef, false);
-        auto dryRunBoolRef = wrap(globalState->getRegion(boolMT), boolMT, LLVMGetParam(functionState->containingFuncL, 3));
+        auto dryRunBoolRef = wrap(globalState->getRegion(boolMT), boolMT, LLVMGetParam(functionState->containingFuncL, 3 + 1)); // DO NOT SUBMIT
 
         if (auto valeStructKind = dynamic_cast<StructKind *>(valeObjectRefMT->kind)) {
           auto hostKind = hostKindByValeKind.find(valeStructKind)->second;
@@ -2115,7 +2115,7 @@ Weakability Linear::getKindWeakability(Kind* kind) {
   return Weakability::NON_WEAKABLE;
 }
 
-FuncPtrLE Linear::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE Linear::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
@@ -2161,7 +2161,7 @@ FuncPtrLE Linear::getInterfaceMethodFunctionPtr(
     auto valeStructMT = unlinearizeStructKind(hostStructMT);
     auto prototype = globalState->rcImm->getUnserializeThunkPrototype(valeStructMT, valeInterfaceMT);
     auto funcLE = globalState->lookupFunction(prototype);
-    auto bitcastedFuncPtrLE = LLVMBuildPointerCast(builder, funcLE.ptrLE, funcPtrLT, "bitcastedFunc");
+    auto bitcastedFuncPtrLE = LLVMBuildPointerCast(builder, funcLE.inner.ptrLE, funcPtrLT, "bitcastedFunc");
     // We're using store here because LLVMBuildInsertElement caused LLVM to go into an infinite loop and crash.
     std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0), constI64LE(globalState, i) };
     auto destPtrLE = LLVMBuildInBoundsGEP2(builder, fftableLT, fftablePtrLE, indices.data(), indices.size(), "storeMethodPtrPtr");
@@ -2174,7 +2174,7 @@ FuncPtrLE Linear::getInterfaceMethodFunctionPtr(
   assert(LLVMTypeOf(methodPtrPtrLE) == LLVMPointerType(funcPtrLT, 0));
   auto methodFuncPtr = LLVMBuildLoad2(builder, funcPtrLT, methodPtrPtrLE, "methodFuncPtr");
   assert(LLVMTypeOf(methodFuncPtr) == funcPtrLT);
-  return FuncPtrLE(funcLT, methodFuncPtr);
+  return ValeFuncPtrLE(RawFuncPtrLE(funcLT, methodFuncPtr));
 }
 
 LLVMValueRef Linear::stackify(

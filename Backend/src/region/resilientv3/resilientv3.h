@@ -476,7 +476,7 @@ public:
   void declareRuntimeSizedArrayExtraFunctions(RuntimeSizedArrayDefinitionT* rsaDefM) override {}
   void declareInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
 
-  FuncPtrLE getInterfaceMethodFunctionPtr(
+  ValeFuncPtrLE getInterfaceMethodFunctionPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* virtualParamMT,

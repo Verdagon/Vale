@@ -1077,7 +1077,7 @@ Weakability ResilientV3::getKindWeakability(Kind *kind) {
   }
 }
 
-FuncPtrLE ResilientV3::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE ResilientV3::getInterfaceMethodFunctionPtr(
     FunctionState *functionState,
     LLVMBuilderRef builder,
     Reference *virtualParamMT,

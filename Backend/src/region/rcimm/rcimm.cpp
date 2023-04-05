@@ -1124,11 +1124,11 @@ void RCImm::defineEdgeUnserializeFunction(Edge* edge) {
         auto hostRegion = globalState->getRegion(hostObjectRefMT);
 
         auto regionInstanceRef =
-            wrap(this, regionRefMT, LLVMGetParam(functionState->containingFuncL, 0));
+            wrap(this, regionRefMT, LLVMGetParam(functionState->containingFuncL, 0 + 1)); // DO NOT SUBMIT
         auto hostRegionInstanceRef =
-            wrap(hostRegion, hostRegion->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1));
+            wrap(hostRegion, hostRegion->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
         auto hostObjectRef =
-            wrap(globalState->getRegion(hostObjectRefMT), hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2));
+            wrap(globalState->getRegion(hostObjectRefMT), hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
 
         auto valeStructRef =
             buildCallV(
@@ -1277,13 +1277,13 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
         auto valeObjectRefMT = prototype->returnType;
 
         auto regionInstanceRef =
-            wrap(this, regionRefMT, LLVMGetParam(functionState->containingFuncL, 0));
+            wrap(this, regionRefMT, LLVMGetParam(functionState->containingFuncL, 0 + 1)); // DO NOT SUBMIT
         auto hostRegionRefMT =
             globalState->linearRegion->getRegionRefType();
         auto hostRegionInstanceRef =
-            wrap(globalState->linearRegion, hostRegionRefMT, LLVMGetParam(functionState->containingFuncL, 1));
+            wrap(globalState->linearRegion, hostRegionRefMT, LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
         auto hostObjectRef =
-            toLiveRef(FL(), globalState, functionState, builder, hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2));
+            toLiveRef(FL(), globalState, functionState, builder, hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
 
         if (auto valeStructKind = dynamic_cast<StructKind *>(valeObjectRefMT->kind)) {
           auto hostStructKind = dynamic_cast<StructKind *>(hostObjectRefMT->kind);
@@ -1422,7 +1422,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
       });
 }
 
-FuncPtrLE RCImm::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE RCImm::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
@@ -1502,7 +1502,7 @@ void RCImm::defineConcreteFreeFunction(Kind* valeKind) {
                 wrap(
                     globalState->getRegion(objectRefMT),
                     objectRefMT,
-                    LLVMGetParam(functionState->containingFuncL, 1)),
+                    LLVMGetParam(functionState->containingFuncL, 1 + 1)), // DO NOT SUBMIT
                     false);
 
         if (auto structKind = dynamic_cast<StructKind *>(objectRefMT->kind)) {
@@ -1646,9 +1646,9 @@ void RCImm::defineEdgeFreeFunction(Edge* edge) {
         auto objectRefMT = structPrototype->params[1];
 
         auto regionInstanceRef =
-            wrap(this, regionRefMT, LLVMGetParam(functionState->containingFuncL, 0));
+            wrap(this, regionRefMT, LLVMGetParam(functionState->containingFuncL, 0 + 1)); // DO NOT SUBMIT
         auto objectRef =
-            wrap(globalState->getRegion(objectRefMT), objectRefMT, LLVMGetParam(functionState->containingFuncL, 1));
+            wrap(globalState->getRegion(objectRefMT), objectRefMT, LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
 
         buildCallV(
             globalState, functionState, builder, structPrototype,

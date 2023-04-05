@@ -18,11 +18,6 @@ constexpr int WEAK_REF_HEADER_MEMBER_INDEX_FOR_TARGET_GEN = 0;
 constexpr int WEAK_REF_MEMBER_INDEX_FOR_HEADER = 0;
 constexpr int WEAK_REF_MEMBER_INDEX_FOR_OBJPTR = 1;
 
-// This is 0x27100000 in hex.
-// This number was chosen because it ends in zeroes either way, so it should be a bit more
-// recognizable.
-constexpr int FIRST_GEN = 655360000;
-
 static WeakFatPtrLE assembleWeakFatPtr(
     FunctionState *functionState,
     LLVMBuilderRef builder,
@@ -646,10 +641,6 @@ Safe::Safe(GlobalState* globalState_) :
   kindStructs.defineStruct(regionKind, {
       // This region doesnt need anything
   });
-
-  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
-  nextGenThreadGlobalIntLE = LLVMAddGlobal(globalState_->mod, genLT, "__vale_nextGen");
-  LLVMSetInitializer(nextGenThreadGlobalIntLE, LLVMConstInt(genLT, FIRST_GEN, false));
 }
 
 Reference* Safe::getRegionRefType() {
@@ -1307,15 +1298,17 @@ Ref Safe::getIsAliveFromWeakRef(
 }
 
 LLVMValueRef Safe::fillControlBlockGeneration(
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef controlBlockLE,
     Kind* kindM) {
   auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
 
-  // The generation was already incremented when we freed it (or malloc'd it for the first time), but
-  // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
-  // to use that, we want to use a random gen.
-  auto newGenLE = adjustCounterReturnOld(builder, genLT, nextGenThreadGlobalIntLE, 1);
+  // The generation was already incremented when we freed it (or malloc'd it for the first time),
+  // but it's very likely that someone else overwrote it with something else, such as a zero. We
+  // don't want to use that, we want to use a new gen.
+  auto nextGenLocalPtrLE = functionState->nextGenPtrLE.value();
+  auto newGenLE = adjustCounterReturnOld(builder, genLT, nextGenLocalPtrLE, 1);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION);
@@ -1341,7 +1334,7 @@ void Safe::fillControlBlock(
           from, globalState, functionState, &kindStructs, builder, kindM, controlBlockLE, typeName);
 
   controlBlockLE =
-    fillControlBlockGeneration(builder, controlBlockLE, kindM);
+    fillControlBlockGeneration(functionState, builder, controlBlockLE, kindM);
 
   LLVMBuildStore(builder, controlBlockLE, controlBlockPtrLE.refLE);
 }
@@ -1709,7 +1702,7 @@ Weakability Safe::getKindWeakability(Kind* kind) {
   }
 }
 
-FuncPtrLE Safe::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE Safe::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,

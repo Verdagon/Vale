@@ -120,7 +120,7 @@ void LinearStructs::defineInterface(InterfaceKind *interface) {
 void LinearStructs::defineEdge(
     Edge* edge,
     std::vector<LLVMTypeRef> interfaceFunctionsLT,
-    std::vector<FuncPtrLE> functions) {
+    std::vector<ValeFuncPtrLE> functions) {
 }
 
 void LinearStructs::defineRuntimeSizedArray(

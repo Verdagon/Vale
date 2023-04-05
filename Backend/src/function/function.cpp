@@ -9,8 +9,9 @@
 #include "expression.h"
 #include "boundary.h"
 #include <region/common/migration.h>
+#include <utils/counters.h>
 
-FuncPtrLE declareFunction(
+ValeFuncPtrLE declareFunction(
     GlobalState* globalState,
     Function* functionM) {
 
@@ -21,7 +22,7 @@ FuncPtrLE declareFunction(
 
   auto valeFunctionNameL = functionM->prototype->name->name;
   auto valeFunctionL =
-      addFunction(globalState->mod, valeFunctionNameL.c_str(), valeReturnTypeL, valeParamTypesL);
+      addValeFunction(globalState, valeFunctionNameL.c_str(), valeReturnTypeL, valeParamTypesL);
 
   assert(globalState->functions.count(functionM->prototype->name->name) == 0);
   globalState->functions.emplace(functionM->prototype->name->name, valeFunctionL);
@@ -72,10 +73,9 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
   bool usingReturnOutParam = typeNeedsPointerParameter(globalState, functionM->prototype->returnType);
   std::vector<LLVMTypeRef> exportParamTypesL;
   if (usingReturnOutParam) {
-    exportParamTypesL.push_back(
-        LLVMPointerType(
-            globalState->getRegion(functionM->prototype->returnType)->getExternalType(functionM->prototype->returnType),
-            0));
+    auto exportParamLT =
+        globalState->getRegion(functionM->prototype->returnType)->getExternalType(functionM->prototype->returnType);
+    exportParamTypesL.push_back(LLVMPointerType(exportParamLT, 0));
   }
   // We may have added an out-parameter above for the return.
   // Now add the actual parameters.
@@ -109,7 +109,18 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
   // should be fine.
   LLVMBuilderRef localsBuilder = builder;
 
-  FunctionState functionState(exportName, exportFunctionL, exportReturnLT, localsBuilder);
+  // Exported functions cant have their nextGen pointer passed in from the outside, so we need to
+  // grab it from the global. We add a prime to the global too, so that we get different generations
+  // each call.
+  // DO NOT SUBMIT we might want to add to the restrict pointer when we return from extern calls
+  // too, to help with security perhaps.
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  auto newGenLE =
+      adjustCounterReturnOld(builder, genLT, globalState->nextGenThreadGlobalIntLE, GEN_PRIME_INCREMENT);
+  auto nextGenLocalPtrLE = LLVMBuildAlloca(localsBuilder, genLT, "nextGenLocalPtr");
+  LLVMBuildStore(builder, newGenLE, nextGenLocalPtrLE);
+
+  FunctionState functionState(exportName, exportFunctionL, exportReturnLT, localsBuilder, nextGenLocalPtrLE);
   BlockState initialBlockState(globalState->addressNumberer, nullptr, std::nullopt);
   buildFlare(FL(), globalState, &functionState, builder, "Calling export function ", functionState.containingFuncName, " from native");
 
@@ -127,7 +138,7 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
     // below if-statement.
     auto hostParamRefLT = globalState->getRegion(valeParamRefMT)->getExternalType(valeParamRefMT);
 
-    auto cArgLE = LLVMGetParam(exportFunctionL, cParamIndex);;
+    auto cArgLE = LLVMGetParam(exportFunctionL, cParamIndex); // DO NOT SUBMIT find a way to not rely on LLVMGetParam directly
     LLVMValueRef hostArgRefLE = nullptr;
     if (typeNeedsPointerParameter(globalState, valeParamRefMT)) {
       hostArgRefLE = LLVMBuildLoad2(builder, hostParamRefLT, cArgLE, "arg");
@@ -193,7 +204,7 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
   LLVMDisposeBuilder(builder);
 }
 
-FuncPtrLE declareExternFunction(
+RawFuncPtrLE declareExternFunction(
     GlobalState* globalState,
     Package* package,
     Prototype* prototypeM) {
@@ -227,8 +238,8 @@ FuncPtrLE declareExternFunction(
   auto userFuncNameL = package->getFunctionExternName(prototypeM);
   auto abiFuncNameL = std::string("vale_abi_") + userFuncNameL;
 
-  FuncPtrLE functionL =
-      addFunction(globalState->mod, abiFuncNameL.c_str(), externReturnLT, externParamTypesL);
+  RawFuncPtrLE functionL =
+      addRawFunction(globalState->mod, abiFuncNameL.c_str(), externReturnLT, externParamTypesL);
 
   assert(globalState->externFunctions.count(prototypeM->name->name) == 0);
   globalState->externFunctions.emplace(prototypeM->name->name, functionL);
@@ -246,17 +257,21 @@ void translateFunction(
   auto localsBlockName = std::string("localsBlock");
   auto localsBuilder = LLVMCreateBuilderInContext(globalState->context);
   LLVMBasicBlockRef localsBlockL =
-      LLVMAppendBasicBlockInContext(globalState->context, functionL.ptrLE, localsBlockName.c_str());
+      LLVMAppendBasicBlockInContext(globalState->context, functionL.inner.ptrLE, localsBlockName.c_str());
   LLVMPositionBuilderAtEnd(localsBuilder, localsBlockL);
 
   auto firstBlockName = std::string("codeStartBlock");
   LLVMBasicBlockRef firstBlockL =
-      LLVMAppendBasicBlockInContext(globalState->context, functionL.ptrLE, firstBlockName.c_str());
+      LLVMAppendBasicBlockInContext(globalState->context, functionL.inner.ptrLE, firstBlockName.c_str());
   LLVMBuilderRef bodyTopLevelBuilder = LLVMCreateBuilderInContext(globalState->context);
   LLVMPositionBuilderAtEnd(bodyTopLevelBuilder, firstBlockL);
 
   FunctionState functionState(
-      functionM->prototype->name->name, functionL.ptrLE, returnTypeL, localsBuilder);
+      functionM->prototype->name->name,
+      functionL.inner.ptrLE,
+      returnTypeL,
+      localsBuilder,
+      LLVMGetParam(functionL.inner.ptrLE, 0)); // DO NOT SUBMIT see if we can always pull from argument zero. i think next gen locals can always live in an export wrapper's local.
 
   // There are other builders made elsewhere for various blocks in the function,
   // but this is the one for the top level.
@@ -327,7 +342,7 @@ void declareExtraFunction(
     paramsLT.push_back(globalState->getRegion(paramMT)->translateType(paramMT));
   }
 
-  auto functionL = addFunction(globalState->mod, llvmName.c_str(), returnTypeLT, paramsLT);
+  auto functionL = addValeFunction(globalState, llvmName.c_str(), returnTypeLT, paramsLT);
   // Don't define it yet, we're just declaring them right now.
   globalState->extraFunctions.emplace(std::make_pair(prototype, functionL));
 }
@@ -338,9 +353,9 @@ void defineFunctionBodyV(
     std::function<void(FunctionState*, LLVMBuilderRef)> definer) {
   auto functionL = globalState->lookupFunction(prototype);
   auto retType = globalState->getRegion(prototype->returnType)->translateType(prototype->returnType);
-  defineFunctionBody(
+  defineValeFunctionBody(
       globalState->context,
-      functionL.ptrLE,
+      functionL,
       retType,
       prototype->name->name,
       definer);

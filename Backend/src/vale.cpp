@@ -53,6 +53,11 @@
 #define objext "o"
 #endif
 
+// This is 0x27100000 in hex.
+// This number was chosen because it ends in zeroes either way, so it should be a bit more
+// recognizable.
+constexpr int FIRST_GEN = 655360000;
+
 // for convenience
 using json = nlohmann::json;
 template <typename Out>
@@ -77,10 +82,10 @@ std::string genFreeName(int bytes) {
   return std::string("__genMalloc") + std::to_string(bytes) + std::string("B");
 }
 
-std::tuple<FuncPtrLE, LLVMBuilderRef> makeStringSetupFunction(GlobalState* globalState);
+std::tuple<RawFuncPtrLE, LLVMBuilderRef> makeStringSetupFunction(GlobalState* globalState);
 Prototype* makeValeMainFunction(
     GlobalState* globalState,
-    FuncPtrLE stringSetupFunctionL,
+    RawFuncPtrLE stringSetupFunctionL,
     Prototype* mainSetupFuncProto,
     Prototype* userMainFunctionPrototype,
     Prototype* mainCleanupFunctionPrototype);
@@ -89,7 +94,7 @@ LLVMValueRef makeEntryFunction(
     Prototype* valeMainPrototype);
 //LLVMValueRef makeCoroutineEntryFunc(GlobalState* globalState);
 
-FuncPtrLE declareFunction(
+ValeFuncPtrLE declareFunction(
   GlobalState* globalState,
   Function* functionM);
 
@@ -746,7 +751,7 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     }
   }
 
-  FuncPtrLE stringSetupFunctionL;
+  RawFuncPtrLE stringSetupFunctionL;
   LLVMBuilderRef stringConstantBuilder = nullptr;
   std::tie(stringSetupFunctionL, stringConstantBuilder) = makeStringSetupFunction(globalState);
   globalState->stringConstantBuilder = stringConstantBuilder;
@@ -824,6 +829,10 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
   globalState->livenessPreCheckCounterLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__livenessPreCheckCounter");
   LLVMSetInitializer(globalState->livenessPreCheckCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  globalState->nextGenThreadGlobalIntLE = LLVMAddGlobal(globalState->mod, genLT, "__vale_nextGen");
+  LLVMSetInitializer(globalState->nextGenThreadGlobalIntLE, LLVMConstInt(genLT, FIRST_GEN, false));
 
   initInternalExterns(globalState);
 

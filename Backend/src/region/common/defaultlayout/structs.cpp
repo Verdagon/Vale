@@ -243,13 +243,13 @@ void KindStructs::declareEdge(
 void KindStructs::defineEdge(
     Edge* edge,
     std::vector<LLVMTypeRef> interfaceFunctionsLT,
-    std::vector<FuncPtrLE> functions) {
+    std::vector<ValeFuncPtrLE> functions) {
   auto interfaceTableStructL =
       getInterfaceTableStruct(edge->interfaceName);
   auto builder = LLVMCreateBuilderInContext(globalState->context);
   auto itableLE = LLVMGetUndef(interfaceTableStructL);
   for (int i = 0; i < functions.size(); i++) {
-    auto entryLE = LLVMConstBitCast(functions[i].ptrLE, interfaceFunctionsLT[i]);
+    auto entryLE = LLVMConstBitCast(functions[i].inner.ptrLE, interfaceFunctionsLT[i]);
     itableLE = LLVMBuildInsertValue(builder, itableLE, entryLE, i, std::to_string(i).c_str());
   }
   LLVMDisposeBuilder(builder);
