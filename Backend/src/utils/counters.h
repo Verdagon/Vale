@@ -26,8 +26,14 @@ LLVMValueRef adjustCounterVReturnOld(
     LLVMBuilderRef builder,
     Int* innt,
     LLVMValueRef counterPtrLE,
-    int adjustAmount,
-    bool atomic);
+    int adjustAmount);
+
+
+LLVMValueRef adjustCounterReturnOld(
+    LLVMBuilderRef builder,
+    LLVMTypeRef type,
+    LLVMValueRef counterPtrLE,
+    int adjustAmount);
 
 LLVMValueRef isZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE);
 LLVMValueRef isNonZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE);
