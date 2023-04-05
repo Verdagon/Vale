@@ -1277,7 +1277,7 @@ void SafeFastest::deallocate(
   auto genPtrLE =
       getGenerationPtrFromControlBlockPtr(
           globalState, builder, &kindStructs, refMT->kind, controlBlockPtrLE);
-  adjustCounterReturnOld(builder, genLT, genPtrLE, 1);
+  LLVMBuildStore(builder, LLVMConstInt(genLT, 0, false), genPtrLE);
 
   innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, liveRef);
 }
