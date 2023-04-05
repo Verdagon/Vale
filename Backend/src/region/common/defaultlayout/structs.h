@@ -30,7 +30,7 @@ public:
   void defineEdge(
       Edge* edge,
       std::vector<LLVMTypeRef> interfaceFunctionsLT,
-      std::vector<FuncPtrLE> functions);
+      std::vector<ValeFuncPtrLE> functions);
   void declareInterface(InterfaceKind* interface, Weakability weakable);
   void defineInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL);
   void declareStaticSizedArray(StaticSizedArrayT* staticSizedArrayMT, Weakability weakable);

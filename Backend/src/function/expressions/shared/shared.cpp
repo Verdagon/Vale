@@ -237,7 +237,7 @@ Ref buildInterfaceCall(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Prototype* prototype,
-    FuncPtrLE methodFunctionPtrLE,
+    ValeFuncPtrLE methodFunctionPtrLE,
     std::vector<Ref> argRefs,
     int virtualParamIndex) {
   auto virtualParamMT = prototype->params[virtualParamIndex];
@@ -280,8 +280,8 @@ Ref buildInterfaceCall(
 
 
 
-  auto resultLE = methodFunctionPtrLE.call(builder, argsLE, "");
-  assert(LLVMTypeOf(resultLE) == LLVMGetReturnType(methodFunctionPtrLE.funcLT));
+  auto resultLE = methodFunctionPtrLE.call(builder, functionState->nextGenPtrLE.value(), argsLE, "");
+  assert(LLVMTypeOf(resultLE) == LLVMGetReturnType(methodFunctionPtrLE.inner.funcLT));
   buildFlare(FL(), globalState, functionState, builder);
   return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultLE);
 }
@@ -357,7 +357,7 @@ Ref buildCallV(
 
   buildFlare(FL(), globalState, functionState, builder, "Doing call");
 
-  auto resultLE = funcL.call(builder, argsLE, "");
+  auto resultLE = funcL.call(builder, functionState->nextGenPtrLE.value(), argsLE, "");
 
   buildFlare(FL(), globalState, functionState, builder, "Done with call");
 
@@ -381,7 +381,7 @@ Ref buildCallV(
 LLVMValueRef buildMaybeNeverCall(
     GlobalState* globalState,
     LLVMBuilderRef builder,
-    FuncPtrLE funcL,
+    RawFuncPtrLE funcL,
     std::vector<LLVMValueRef> argsLE) {
   auto resultLE = funcL.call(builder, argsLE, "");
 
@@ -392,6 +392,16 @@ LLVMValueRef buildMaybeNeverCall(
   } else {
     return resultLE;
   }
+}
+
+LLVMValueRef buildMaybeNeverCallV(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    ValeFuncPtrLE functionLE,
+    LLVMValueRef nextGenPtrLE,
+    std::vector<LLVMValueRef> argsLE) {
+  argsLE.insert(argsLE.begin(), nextGenPtrLE);
+  return buildMaybeNeverCall(globalState, builder, functionLE.inner, argsLE);
 }
 
 LLVMValueRef getArgsAreaPtr(
@@ -418,7 +428,7 @@ LLVMValueRef buildSideCall(
     GlobalState* globalState,
     LLVMBuilderRef entryBuilder,
     LLVMValueRef sideStackStartPtrAsI8PtrLE,
-    FuncPtrLE calleeFuncLE,
+    RawFuncPtrLE calleeFuncLE,
     const std::vector<LLVMValueRef>& userArgsLE) {
   buildPrint(globalState, entryBuilder, "In buildSideCall!\n");
 
@@ -598,7 +608,7 @@ LLVMValueRef buildSideCall(
       LLVMBuildExtractValue(
           entryBuilder, argsStructAfterSwitchLE, numPaddingInts + userArgsLE.size() + 0, "returnDest");
   auto calleeFuncPtrAfterSwitchLE =
-      FuncPtrLE(
+      RawFuncPtrLE(
           calleeFuncLE.funcLT,
           LLVMBuildExtractValue(
               entryBuilder, argsStructAfterSwitchLE, numPaddingInts + userArgsLE.size() + 1, "calleeFuncPtr"));
@@ -697,8 +707,8 @@ LLVMValueRef buildSideCall(
 }
 
 
-FuncPtrLE addExtern(LLVMModuleRef mod, const std::string& name, LLVMTypeRef retType, std::vector<LLVMTypeRef> paramTypes) {
+RawFuncPtrLE addExtern(LLVMModuleRef mod, const std::string& name, LLVMTypeRef retType, std::vector<LLVMTypeRef> paramTypes) {
   auto funcLT = LLVMFunctionType(retType, paramTypes.data(), paramTypes.size(), 0);
   auto funcLE = LLVMAddFunction(mod, name.c_str(), funcLT);
-  return FuncPtrLE(funcLT, funcLE);
+  return RawFuncPtrLE(funcLT, funcLE);
 }

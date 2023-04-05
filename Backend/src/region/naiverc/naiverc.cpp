@@ -1010,7 +1010,7 @@ Weakability NaiveRC::getKindWeakability(Kind* kind) {
   }
 }
 
-FuncPtrLE NaiveRC::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE NaiveRC::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,

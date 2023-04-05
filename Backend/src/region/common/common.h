@@ -528,7 +528,7 @@ void callFree(
     LLVMValueRef ptrLE);
 
 
-FuncPtrLE getInterfaceMethodFunctionPtrFromItable(
+ValeFuncPtrLE getInterfaceMethodFunctionPtrFromItable(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,

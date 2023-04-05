@@ -7,13 +7,14 @@
 #include "globalstate.h"
 #include "translatetype.h"
 #include <region/common/migration.h>
+#include <utils/counters.h>
 
 #define STACK_SIZE (8 * 1024 * 1024)
 
-std::tuple<FuncPtrLE, LLVMBuilderRef> makeStringSetupFunction(GlobalState* globalState) {
+std::tuple<RawFuncPtrLE, LLVMBuilderRef> makeStringSetupFunction(GlobalState* globalState) {
   auto voidLT = LLVMVoidTypeInContext(globalState->context);
 
-  auto functionL = addFunction(globalState->mod, "__Vale_SetupStrings", voidLT, {});
+  auto functionL = addRawFunction(globalState->mod, "__Vale_SetupStrings", voidLT, {});
 
   auto stringsBuilder = LLVMCreateBuilderInContext(globalState->context);
   LLVMBasicBlockRef blockL = LLVMAppendBasicBlockInContext(globalState->context, functionL.ptrLE, "stringsBlock");
@@ -27,7 +28,7 @@ std::tuple<FuncPtrLE, LLVMBuilderRef> makeStringSetupFunction(GlobalState* globa
 
 Prototype* makeValeMainFunction(
     GlobalState* globalState,
-    FuncPtrLE stringSetupFunctionL,
+    RawFuncPtrLE stringSetupFunctionL,
     Prototype* mainSetupFuncProto,
     Prototype* userMainFunctionPrototype,
     Prototype* mainCleanupFunctionPrototype) {
@@ -50,8 +51,11 @@ Prototype* makeValeMainFunction(
         buildFlare(FL(), globalState, functionState, entryBuilder);
 
         stringSetupFunctionL.call(entryBuilder, {}, "");
-        globalState->lookupFunction(mainSetupFuncProto).call(entryBuilder, {}, "");
-//
+        // Main has the next gen ptr handed in from the entry function.
+        auto nextGenPtrLE = functionState->nextGenPtrLE.value();
+        globalState->lookupFunction(mainSetupFuncProto)
+            .call(entryBuilder, nextGenPtrLE, {}, "");
+
 //        LLVMBuildStore(
 //            entryBuilder,
 //            LLVMBuildUDiv(
@@ -263,13 +267,19 @@ LLVMValueRef makeEntryFunction(
         globalState->sideStackLE);
   }
 
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  auto newGenLE =
+      adjustCounterReturnOld(entryBuilder, genLT, globalState->nextGenThreadGlobalIntLE, GEN_PRIME_INCREMENT);
+  auto nextGenLocalPtrLE = LLVMBuildAlloca(entryBuilder, genLT, "nextGenLocalPtr");
+  LLVMBuildStore(entryBuilder, newGenLE, nextGenLocalPtrLE);
+
   auto calleeUserFunction = globalState->lookupFunction(valeMainPrototype);
   auto calleeUserFunctionReturnMT = valeMainPrototype->returnType;
   auto calleeUserFunctionReturnLT =
       globalState->getRegion(calleeUserFunctionReturnMT)->translateType(calleeUserFunctionReturnMT);
   auto resultLE =
-      buildMaybeNeverCall(
-          globalState, entryBuilder, calleeUserFunction, {});
+      buildMaybeNeverCallV(
+          globalState, entryBuilder, calleeUserFunction, nextGenLocalPtrLE, {});
 
   if (globalState->opt->enableSideCalling) {
     buildMaybeNeverCall(

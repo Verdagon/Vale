@@ -249,7 +249,7 @@ public:
       Reference* virtualParamMT,
       Ref virtualArgRef) = 0;
 
-  virtual FuncPtrLE getInterfaceMethodFunctionPtr(
+  virtual ValeFuncPtrLE getInterfaceMethodFunctionPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* virtualParamMT,

@@ -214,7 +214,7 @@ Ref translateExpressionInner(
     return globalState->getRegion(unstackify->local->type)->unstackify(functionState, builder, unstackify->local, localAddr);
   } else if (auto argument = dynamic_cast<Argument*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " arg ", argument->argumentIndex);
-    auto resultLE = LLVMGetParam(functionState->containingFuncL, argument->argumentIndex);
+    auto resultLE = LLVMGetParam(functionState->containingFuncL, argument->argumentIndex + 1); // DO NOT SUBMIT
     auto resultRef = wrap(globalState->getRegion(argument->resultType), argument->resultType, resultLE);
     auto resultLT = globalState->getRegion(argument->resultType)->translateType(argument->resultType);
     globalState->getRegion(argument->resultType)

@@ -21,15 +21,17 @@ struct KindStructs;
 // Then we can have a PtrLE-like thing that contains that IType and an LLVMValueRef.
 // Perhaps we dont even need that IType* elementType? probably do. must think on it.
 
-struct FuncPtrLE {
+// A "Raw function" is one that doesn't have a restrict nextgen ptr as the first parameter.
+// As opposed to a Vale function which does.
+struct RawFuncPtrLE {
   LLVMValueRef ptrLE;
   LLVMTypeRef funcLT;
 
-  FuncPtrLE() : funcLT(nullptr), ptrLE(nullptr) { }
+  RawFuncPtrLE() : funcLT(nullptr), ptrLE(nullptr) { }
 
-  FuncPtrLE(LLVMTypeRef funcLT_, LLVMValueRef ptrLE_)
-    : funcLT(funcLT_),
-      ptrLE(ptrLE_) {
+  RawFuncPtrLE(LLVMTypeRef funcLT_, LLVMValueRef ptrLE_)
+      : funcLT(funcLT_),
+        ptrLE(ptrLE_) {
     assert(LLVMTypeOf(ptrLE) == LLVMPointerType(funcLT, 0));
   }
 
@@ -37,6 +39,36 @@ struct FuncPtrLE {
     return LLVMBuildCall2(
         builder, funcLT, ptrLE, const_cast<LLVMValueRef*>(argsLE.data()), argsLE.size(), name);
   }
+
+  LLVMValueRef getRawArg(int index) {
+    return LLVMGetParam(ptrLE, index);
+  }
+};
+
+// A "Vale function" is one that has a restrict nextgen ptr as the first parameter.
+// As opposed to a raw function which doesnt.
+struct ValeFuncPtrLE {
+  RawFuncPtrLE inner;
+
+  ValeFuncPtrLE() { }
+
+  explicit ValeFuncPtrLE(RawFuncPtrLE inner_)
+      : inner(inner_) { }
+
+  LLVMValueRef call(LLVMBuilderRef builder, LLVMValueRef nextGenPtrLE, std::vector<LLVMValueRef> argsLE, const char* name) const {
+    argsLE.insert(argsLE.begin(), nextGenPtrLE);
+    return inner.call(builder, argsLE, name);
+  }
+
+  LLVMValueRef getValeParam(int index) {
+    // The 0th argument is always the next gen ptr.
+    return inner.getRawArg(index + 1);
+  }
+
+//  LLVMValueRef getNextGenPtrArg() {
+//    // The 0th argument is always the next gen ptr.
+//    return inner.getRawArg(0);
+//  }
 };
 
 // A type-system token to assure certain functions that we indeed checked the bounds of an array

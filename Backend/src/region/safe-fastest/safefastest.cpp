@@ -1556,7 +1556,7 @@ Weakability SafeFastest::getKindWeakability(Kind* kind) {
   }
 }
 
-FuncPtrLE SafeFastest::getInterfaceMethodFunctionPtr(
+ValeFuncPtrLE SafeFastest::getInterfaceMethodFunctionPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
