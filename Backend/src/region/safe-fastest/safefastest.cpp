@@ -1163,8 +1163,8 @@ LLVMValueRef SafeFastest::fillControlBlockGeneration(
   // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
   // to use that, we want to use a random gen.
   auto newGenLE =
-      adjustCounterV(
-          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1, false);
+      adjustCounterVReturnOld(
+          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
@@ -1277,7 +1277,7 @@ void SafeFastest::deallocate(
   auto genPtrLE =
       getGenerationPtrFromControlBlockPtr(
           globalState, builder, &kindStructs, refMT->kind, controlBlockPtrLE);
-  adjustCounter(builder, genLT, genPtrLE, 1, false);
+  adjustCounterReturnOld(builder, genLT, genPtrLE, 1);
 
   innerDeallocate(from, globalState, functionState, &kindStructs, builder, refMT, liveRef);
 }

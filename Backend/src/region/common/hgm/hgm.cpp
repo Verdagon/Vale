@@ -463,7 +463,7 @@ LLVMValueRef HybridGenerationalMemory::fillWeakableControlBlock(
   // to use that, we want to use a random gen.
   auto newGenLE =
       adjustCounterVReturnOld(
-          globalState, builder, globalState->metalCache->i32, nextGenGlobalI32LE, 1, false);
+          globalState, builder, globalState->metalCache->i32, nextGenGlobalI32LE, 1);
 
   int genMemberIndex =
       kindStructs->getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);

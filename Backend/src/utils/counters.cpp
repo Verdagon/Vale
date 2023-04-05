@@ -32,23 +32,28 @@ LLVMValueRef adjustCounter(
   }
 }
 
-LLVMValueRef adjustCounterVReturnOld(
-    GlobalState* globalState,
+LLVMValueRef adjustCounterReturnOld(
     LLVMBuilderRef builder,
-    Int* innt,
+    LLVMTypeRef type,
     LLVMValueRef counterPtrLE,
-    int adjustAmount,
-    bool atomic) {
-  assert(!atomic); // unimplemented
-
-  auto intLT = LLVMIntTypeInContext(globalState->context, innt->bits);
-  auto prevValLE = LLVMBuildLoad2(builder, intLT, counterPtrLE, "counterPrevVal");
-  auto adjustByLE = LLVMConstInt(intLT, adjustAmount, true);
+    int adjustAmount) {
+  auto prevValLE = LLVMBuildLoad2(builder, type, counterPtrLE, "counterPrevVal");
+  auto adjustByLE = LLVMConstInt(type, adjustAmount, true);
   assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
   auto newValLE = LLVMBuildAdd(builder, prevValLE, adjustByLE, "counterNewVal");
   LLVMBuildStore(builder, newValLE, counterPtrLE);
 
   return prevValLE;
+}
+
+LLVMValueRef adjustCounterVReturnOld(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    Int* innt,
+    LLVMValueRef counterPtrLE,
+    int adjustAmount) {
+  auto intLT = LLVMIntTypeInContext(globalState->context, innt->bits);
+  return adjustCounterReturnOld(builder, intLT, counterPtrLE, adjustAmount);
 }
 
 LLVMValueRef isZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE) {
