@@ -1159,12 +1159,14 @@ LLVMValueRef SafeFastest::fillControlBlockGeneration(
     LLVMBuilderRef builder,
     LLVMValueRef controlBlockLE,
     Kind* kindM) {
-  // The generation was already incremented when we freed it (or malloc'd it for the first time), but
-  // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
-  // to use that, we want to use a random gen.
-  auto newGenLE =
-      adjustCounterVReturnOld(
-          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
+//  // The generation was already incremented when we freed it (or malloc'd it for the first time), but
+//  // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
+//  // to use that, we want to use a random gen.
+//  auto newGenLE =
+//      adjustCounterVReturnOld(
+//          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  auto newGenLE = LLVMConstInt(genLT, 0, false);
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
