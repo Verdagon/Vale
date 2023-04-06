@@ -2946,30 +2946,38 @@ class Instantiator(
         vassertSome(vassertSome(substitutions.get(placeholderFullName.initFullName(interner))).get(placeholderFullName)) match {
           case CoordTemplataI(CoordI(innerOwnership, kind)) => {
             val combinedOwnership =
-              ((outerOwnership, innerOwnership) match {
-                case (OwnT, OwnI) => OwnI
-                case (OwnT, ImmutableShareI) => ImmutableShareI
-                case (OwnT | BorrowT, MutableShareI) => {
-                  if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
-                    MutableShareI
-                  } else {
-                    ImmutableShareI
-                  }
+              kind match {
+                case IntIT(_) | BoolIT() | VoidIT() => {
+                  // We don't want any ImmutableShareH for primitives, it's better to only ever have one
+                  // ownership for primitives.
+                  MutableShareI
                 }
-//                case (OwnT, BorrowT) => BorrowT
-//                case (BorrowT, OwnT) => BorrowT
-//                case (BorrowT, BorrowT) => BorrowT
-//                case (BorrowT, WeakT) => WeakT
-//                case (BorrowT, ShareT) => ShareT
-//                case (WeakT, OwnT) => WeakT
-//                case (WeakT, BorrowT) => WeakT
-//                case (WeakT, WeakT) => WeakT
-//                case (WeakT, ShareT) => ShareT
-//                case (ShareT, ShareT) => ShareT
-//                case (OwnT, ShareT) => ShareT
-                case other => vwat(other)
-                  // DO NOT SUBMIT combine this with what's elsewhere in this file
-              })
+                case _ => {
+                  ((outerOwnership, innerOwnership) match {
+                    case (OwnT, OwnI) => OwnI
+                    case (OwnT | BorrowT, MutableShareI) => {
+                      if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
+                        MutableShareI
+                      } else {
+                        ImmutableShareI
+                      }
+                    }
+    //                case (OwnT, BorrowT) => BorrowT
+    //                case (BorrowT, OwnT) => BorrowT
+    //                case (BorrowT, BorrowT) => BorrowT
+    //                case (BorrowT, WeakT) => WeakT
+    //                case (BorrowT, ShareT) => ShareT
+    //                case (WeakT, OwnT) => WeakT
+    //                case (WeakT, BorrowT) => WeakT
+    //                case (WeakT, WeakT) => WeakT
+    //                case (WeakT, ShareT) => ShareT
+    //                case (ShareT, ShareT) => ShareT
+    //                case (OwnT, ShareT) => ShareT
+                    case other => vwat(other)
+                      // DO NOT SUBMIT combine this with what's elsewhere in this file
+                  })
+                }
+              }
 //            vassert(innerRegion == translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
             CoordI(combinedOwnership, kind)
           }
@@ -2988,14 +2996,14 @@ class Instantiator(
         // to an Vector<imm, int> (which is immutable).
         // So, we have to check for that here and possibly make the ownership share.
         val kind = translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other)
-        val newOwnership = {
-//          kind match {
-//            case IntIT(_) | BoolIT() | VoidIT() => {
-//              // We don't want any ImmutableShareH for primitives, it's better to only ever have one
-//              // ownership for primitives.
-//              MutableShareI
-//            }
-//            case _ => {
+        val newOwnership =
+          kind match {
+            case IntIT(_) | BoolIT() | VoidIT() => {
+              // We don't want any ImmutableShareH for primitives, it's better to only ever have one
+              // ownership for primitives.
+              MutableShareI
+            }
+            case _ => {
               val mutability = getMutability(RegionCollapser.collapseKind(RegionCounter.countKind(kind), kind))
               ((outerOwnership, mutability) match {
                 case (_, ImmutableI) => ShareT
@@ -3023,7 +3031,7 @@ class Instantiator(
                 }
                 case WeakT => vimpl()
               }
-//            }
+            }
           }
 //        val newRegion = expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
         CoordI(newOwnership, translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other))
