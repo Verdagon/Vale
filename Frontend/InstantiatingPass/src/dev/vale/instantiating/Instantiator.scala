@@ -2948,6 +2948,7 @@ class Instantiator(
             val combinedOwnership =
               ((outerOwnership, innerOwnership) match {
                 case (OwnT, OwnI) => OwnI
+                case (OwnT, ImmutableShareI) => ImmutableShareI
                 case (OwnT | BorrowT, MutableShareI) => {
                   if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
                     MutableShareI
@@ -2987,14 +2988,14 @@ class Instantiator(
         // to an Vector<imm, int> (which is immutable).
         // So, we have to check for that here and possibly make the ownership share.
         val kind = translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other)
-        val newOwnership =
-          kind match {
-            case IntIT(_) | BoolIT() | VoidIT() => {
-              // We don't want any ImmutableShareH for primitives, it's better to only ever have one
-              // ownership for primitives.
-              MutableShareI
-            }
-            case _ => {
+        val newOwnership = {
+//          kind match {
+//            case IntIT(_) | BoolIT() | VoidIT() => {
+//              // We don't want any ImmutableShareH for primitives, it's better to only ever have one
+//              // ownership for primitives.
+//              MutableShareI
+//            }
+//            case _ => {
               val mutability = getMutability(RegionCollapser.collapseKind(RegionCounter.countKind(kind), kind))
               ((outerOwnership, mutability) match {
                 case (_, ImmutableI) => ShareT
@@ -3022,7 +3023,7 @@ class Instantiator(
                 }
                 case WeakT => vimpl()
               }
-            }
+//            }
           }
 //        val newRegion = expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
         CoordI(newOwnership, translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other))
