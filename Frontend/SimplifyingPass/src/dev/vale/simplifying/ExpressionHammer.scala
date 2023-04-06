@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast._
-import dev.vale.{Keywords, vassert, vcurious, vfail, vimpl, finalast => m}
+import dev.vale.{Keywords, vassert, vcurious, vfail, vimpl, vwat, finalast => m}
 import dev.vale.finalast._
 import dev.vale.instantiating.ast._
 
@@ -985,7 +985,10 @@ class ExpressionHammer(
 
     val (conditionBlockH, Vector()) =
       translate(hinputs, hamuts, currentFunctionHeader, parentLocals, condition2);
-    vassert(conditionBlockH.resultType == CoordH(MutableShareH, InlineH, BoolHT()))
+    conditionBlockH.resultType match {
+      case CoordH(MutableShareH | ImmutableShareH, InlineH, BoolHT()) =>
+      case other => vwat(other)
+    }
 
     val thenLocals = LocalsBox(parentLocals.snapshot)
     val (thenBlockH, Vector()) =

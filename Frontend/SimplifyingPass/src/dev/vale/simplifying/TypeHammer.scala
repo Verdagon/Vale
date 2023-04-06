@@ -119,8 +119,15 @@ class TypeHammer(
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityI)
         //    val variability = Conversions.evaluateVariability(variabilityI)
         val definition = RuntimeSizedArrayDefinitionHT(nameH, mutability, memberReferenceH)
-        hamuts.addRuntimeSizedArray(rsaIT, definition)
-        RuntimeSizedArrayHT(nameH)
+        val result = RuntimeSizedArrayHT(nameH)
+        // DO NOT SUBMIT a few options:
+        // - do this for SSAs too
+        // - nuke the way we were doing names for hamuts, make proper names finally
+        hamuts.runtimeSizedArrays.values.find(_.kind == result) match {
+          case Some(x) =>
+          case None => hamuts.addRuntimeSizedArray(rsaIT, definition)
+        }
+        result
       }
     }
   }
