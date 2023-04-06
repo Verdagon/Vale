@@ -1156,17 +1156,27 @@ Ref SafeFastest::getIsAliveFromWeakRef(
 }
 
 LLVMValueRef SafeFastest::fillControlBlockGeneration(
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef controlBlockLE,
     Kind* kindM) {
-//  // The generation was already incremented when we freed it (or malloc'd it for the first time), but
-//  // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
-//  // to use that, we want to use a random gen.
-//  auto newGenLE =
-//      adjustCounterVReturnOld(
-//          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
   auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
-  auto newGenLE = LLVMConstInt(genLT, 0, false);
+
+  // The generation was already incremented when we freed it (or malloc'd it for the first time),
+  // but it's very likely that someone else overwrote it with something else, such as a zero. We
+  // don't want to use that, we want to use a new gen.
+  auto nextGenLocalPtrLE = functionState->nextGenPtrLE.value();
+  auto newGenLE = adjustCounterReturnOld(builder, genLT, nextGenLocalPtrLE, 1);
+
+////  // The generation was already incremented when we freed it (or malloc'd it for the first time), but
+////  // it's very likely that someone else overwrote it with something else, such as a zero. We don't want
+////  // to use that, we want to use a random gen.
+////  auto newGenLE =
+////      adjustCounterVReturnOld(
+////          globalState, builder, globalState->metalCache->i32, nextGenThreadGlobalI64LE, 1);
+//  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+//  auto newGenLE = LLVMConstInt(genLT, 0, false);
+
 
   int genMemberIndex =
       kindStructs.getControlBlock(kindM)->getMemberIndex(ControlBlockMember::GENERATION_32B);
@@ -1188,7 +1198,7 @@ void SafeFastest::fillControlBlock(
   LLVMValueRef controlBlockLE = LLVMGetUndef(kindStructs.getControlBlock(kindM)->getStruct());
 
   controlBlockLE =
-      fillControlBlockGeneration(builder, controlBlockLE, kindM);
+      fillControlBlockGeneration(functionState, builder, controlBlockLE, kindM);
 
   LLVMBuildStore(builder, controlBlockLE, controlBlockPtrLE.refLE);
 }
