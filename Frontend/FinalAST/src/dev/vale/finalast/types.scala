@@ -41,10 +41,10 @@ case class CoordH[+T <: KindHT](
 
   kind match {
     case IntHT(_) | BoolHT() | FloatHT() | NeverHT(_) => {
-//      // Make sure that if we're pointing at a primitives, it's via a Share reference.
-//      // We don't want any ImmutableShareH, it's better to only ever have one ownership for
-//      // primitives.
-//      vassert(ownership == MutableShareH)
+      // Make sure that if we're pointing at a primitives, it's via a Share reference.
+      // We don't want any ImmutableShareH, it's better to only ever have one ownership for
+      // primitives.
+      vassert(ownership == MutableShareH)
       vassert(location == InlineH)
     }
     case StrHT() => {
