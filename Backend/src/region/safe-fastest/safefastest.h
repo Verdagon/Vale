@@ -524,7 +524,8 @@ public:
       LiveRef liveRef);
 
 protected:
-  LLVMValueRef fillControlBlockGeneration(LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);
+  LLVMValueRef fillControlBlockGeneration(
+      FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);
 
   GlobalState* globalState = nullptr;
 
