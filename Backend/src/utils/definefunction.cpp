@@ -28,15 +28,15 @@ ValeFuncPtrLE addValeFunction(
 
   auto functionLF = LLVMAddFunction(globalState->mod, name.c_str(), functionLT);
 
-  // Now lets add the restrict/noalias attribute for that pointer.
-  auto noaliasAttribute =
-      LLVMCreateEnumAttribute(globalState->context, llvm::Attribute::NoAlias, 0);
-  assert(noaliasAttribute);
-  // From LLVMAttributeIndex docs: "Attribute index are either LLVMAttributeReturnIndex,
-  // LLVMAttributeFunctionIndex or a parameter number from 1 to N."
-  // So this 1 means the 0th parameter.
-  auto firstParamAttributeIndex = static_cast<LLVMAttributeIndex>(1);
-  LLVMAddAttributeAtIndex(functionLF, firstParamAttributeIndex, noaliasAttribute);
+  // // Now lets add the restrict/noalias attribute for that pointer.
+  // auto noaliasAttribute =
+  //     LLVMCreateEnumAttribute(globalState->context, llvm::Attribute::NoAlias, 0);
+  // assert(noaliasAttribute);
+  // // From LLVMAttributeIndex docs: "Attribute index are either LLVMAttributeReturnIndex,
+  // // LLVMAttributeFunctionIndex or a parameter number from 1 to N."
+  // // So this 1 means the 0th parameter.
+  // auto firstParamAttributeIndex = static_cast<LLVMAttributeIndex>(1);
+  // LLVMAddAttributeAtIndex(functionLF, firstParamAttributeIndex, noaliasAttribute);
 
   // Add static, should help optimizations
   LLVMSetLinkage(functionLF, LLVMInternalLinkage);
