@@ -77,7 +77,10 @@ case class CouldntFindFunctionToCallT(range: List[RangeS], fff: FindFunctionFail
 
   vpass()
 }
-case class CouldntEvaluateFunction(range: List[RangeS], eff: IFindFunctionFailureReason) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class CouldntEvaluateFunction(range: List[RangeS], eff: IFindFunctionFailureReason) extends ICompileErrorT {
+  vpass()
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+}
 case class CouldntEvaluatImpl(range: List[RangeS], eff: IIncompleteOrFailedCompilerSolve) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()

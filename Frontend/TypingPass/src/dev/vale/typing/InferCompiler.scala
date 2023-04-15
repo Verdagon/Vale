@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, typing, vassert, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
 import dev.vale.solver._
@@ -43,6 +43,7 @@ case class IncompleteCompilerSolve(
   unknownRunes: Set[IRuneS],
   incompleteConclusions: Map[IRuneS, ITemplataT[ITemplataType]]
 ) extends IIncompleteOrFailedCompilerSolve {
+  vpass()
   vassert(unknownRunes.nonEmpty)
   override def getOrDie(): Map[IRuneS, ITemplataT[ITemplataType]] = vfail()
   override def unsolvedRunes: Vector[IRuneS] = unknownRunes.toVector

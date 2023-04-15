@@ -130,6 +130,29 @@ case class LetNormalIE(
   }
 }
 
+case class RestackifyIE(
+  variable: ILocalVariableI,
+  expr: ReferenceExpressionIE,
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+
+  expr.result.kind match {
+    case NeverIT(_) => // then we can put it into whatever type we want
+    case _ => {
+      variable.collapsedCoord.kind match {
+        case NeverIT(_) => vfail() // can't receive into a never
+        case _ => vassert(variable.collapsedCoord == expr.result)
+      }
+    }
+  }
+
+  expr match {
+    case BreakIE() | ReturnIE(_) => vwat() // See BRCOBS
+    case _ =>
+  }
+}
+
 // Only ExpressionCompiler.unletLocal should make these
 case class UnletIE(
   variable: ILocalVariableI,

@@ -753,6 +753,13 @@ class ExpressionCompiler(
           (templataFromEnv, Set())
         }
         case LocalMutateSE(range, name, sourceExpr1) => {
+          val (unconvertedSourceExpr2, returnsFromSource) =
+            evaluateAndCoerceToReferenceExpression(
+              coutputs, nenv, life, parentRanges, callLocation, region, sourceExpr1)
+
+          // We do this after the source because of statements like these:
+          //   set ship = foo(ship);
+          // which move the thing on the right and then restackify it on the left.
           val destinationExpr2 =
             evaluateAddressibleLookupForMutate(coutputs, nenv, parentRanges, region, range, name) match {
               case None => {
@@ -761,9 +768,6 @@ class ExpressionCompiler(
               }
               case Some(x) => x
             }
-          val (unconvertedSourceExpr2, returnsFromSource) =
-            evaluateAndCoerceToReferenceExpression(
-              coutputs, nenv, life, parentRanges, callLocation, region, sourceExpr1)
 
           // We should have inferred variability from the presents of sets
           vassert(destinationExpr2.variability == VaryingT)
@@ -791,8 +795,18 @@ class ExpressionCompiler(
               unconvertedSourceExpr2,
               destinationExpr2.result.coord);
 
-          val mutate2 = MutateTE(destinationExpr2, convertedSourceExpr2);
-          (mutate2, returnsFromSource)
+          val exprTE =
+            destinationExpr2 match {
+              case LocalLookupTE(_, local) if nenv.unstackifieds.contains(local.name) => {
+                // It was already moved, so this becomes a Restackify.
+                nenv.markLocalRestackified(local.name)
+                RestackifyTE(local, convertedSourceExpr2)
+              }
+              case _ => {
+                MutateTE(destinationExpr2, convertedSourceExpr2)
+              }
+            }
+          (exprTE, returnsFromSource)
         }
         case ExprMutateSE(range, destinationExpr1, sourceExpr1) => {
           vcurious(region == nenv.defaultRegion)

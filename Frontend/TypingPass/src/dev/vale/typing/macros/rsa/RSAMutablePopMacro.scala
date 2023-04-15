@@ -16,7 +16,6 @@ import dev.vale.typing.types._
 import dev.vale.typing.ast
 import dev.vale.typing.names.DenizenDefaultRegionNameT
 
-
 class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_runtime_sized_array_pop
 

@@ -220,7 +220,9 @@ object structSName {
 
 case class ParameterS(
   preChecked: Boolean,
-    pattern: AtomSP) {
+//  outerRegionRune: IRuneS, // See PMHBRS
+  pattern: AtomSP) {
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   vassert(pattern.coordRune.nonEmpty)

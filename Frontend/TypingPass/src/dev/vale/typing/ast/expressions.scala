@@ -265,6 +265,14 @@ case class MutateTE(
   override def result = ReferenceResultT(destinationExpr.result.coord)
 }
 
+case class RestackifyTE(
+  variable: ILocalVariableT,
+  sourceExpr: ReferenceExpressionTE
+) extends ReferenceExpressionTE {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def result = ReferenceResultT(CoordT(ShareT, sourceExpr.result.coord.region, VoidT()))
+}
+
 
 case class ReturnTE(
   sourceExpr: ReferenceExpressionTE
