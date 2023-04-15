@@ -1,4 +1,5 @@
 
+
 Three weak options:
 A. wrc table
 B. lgt table
@@ -41,3 +42,13 @@ C for Z: just blast it all away. the control blocks need to be in the arena too 
 all objects need a free() anyway. the nice thing about arenas is that we can delay it, or copy stuff out and skip all of them.
 
 C seems the best since we can no-op merge two heap regions together.
+
+
+
+if we have an arena subregion pointing into an imm region, dont need to update control block counts.
+if we have an arena subregion pointing into a mut region, then need to update control block counts into that mut region. delaying them might suck, we wouldnt be able to blast away the entire arena, would need to actually run all the free functions.
+its no longer a zero cost abstraction. hmmm.
+
+we might want to include them in the drop() function. kind of sucks though.
+
+

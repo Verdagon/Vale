@@ -238,6 +238,34 @@ class CompilerRegionTests extends FunSuite with Matchers {
     }
   }
 
+  test("Tests pure merging") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Ship { fuel int; }
+        |pure func merged<rr' imm>(a &rr'Ship, b &rr'Ship) int { 42 }
+        |pure func bork<r' imm>(x &r'Ship) int {
+        |  return merged(x, &Ship(28));
+        |}
+        |exported func main() int {
+        |  return bork(&Ship(42));
+        |}
+        """.stripMargin)
+    val bork = compile.expectCompilerOutputs().lookupFunction("bork")
+    val genArg =
+      bork.header.id.localName match {
+        case FunctionNameT(_, genArgs, _) => {
+          genArgs match {
+            case Vector(x, y) => x
+          }
+        }
+      }
+    genArg match {
+      case PlaceholderTemplataT(
+      IdT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),RegionPlaceholderNameT(0,CodeRuneS(StrI("i")),None,ImmutableRegionS)),
+      RegionTemplataType()) =>
+    }
+  }
+
   test("Tests detect pure violation") {
     val compile = CompilerTestCompilation.test(
       """

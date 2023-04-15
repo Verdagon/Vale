@@ -146,6 +146,7 @@ class FunctionCompilerCore(
               translateFunctionAttributes(
                 fullEnv.function.attributes.filter({
                   case ExternS(_, _) => false
+                  case PureS => false
                   case _ => true
                 })),
               params2,

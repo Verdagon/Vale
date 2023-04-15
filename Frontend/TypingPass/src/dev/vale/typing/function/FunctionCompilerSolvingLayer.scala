@@ -595,6 +595,12 @@ class FunctionCompilerSolvingLayer(
         TemplataCompiler.getFirstUnsolvedIdentifyingGenericParam(function.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
           case None => false
           case Some((genericParam, index)) => {
+            genericParam.rune.rune match {
+              case CodeRuneS(StrI("A" | "B")) => {
+                vpass()
+              }
+              case _ =>
+            }
             val placeholderPureHeight =
               TemplataCompiler.getRegionPlaceholderPureHeight(genericParam)
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.

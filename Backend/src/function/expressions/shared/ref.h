@@ -155,10 +155,8 @@ private:
   friend std::tuple<Reference*, LLVMValueRef> lgtGetRefInnardsForChecking(Ref ref);
   friend std::tuple<Reference*, LLVMValueRef> wrcGetRefInnardsForChecking(Ref ref);
 
-  friend void buildPrint(
-      GlobalState* globalState,
-      LLVMBuilderRef builder,
-      Ref ref);
+  friend void buildPrint(GlobalState* globalState, LLVMBuilderRef builder, Ref ref);
+  friend void buildPrintToStderr(GlobalState* globalState, LLVMBuilderRef builder, Ref ref);
 };
 
 // When we load something from an array, for example an owning reference,

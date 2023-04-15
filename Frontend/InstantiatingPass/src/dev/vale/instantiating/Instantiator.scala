@@ -1867,6 +1867,21 @@ class Instantiator(
     val denizenTemplateName = TemplataCompiler.getTemplate(denizenName)
     val (resultIT: CoordI[sI], resultCE) =
       expr match {
+        case RestackifyTE(variable, inner) => {
+          val (innerIT, innerIE) =
+            translateRefExpr(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)
+          val (localIT, localI) =
+            translateLocalVariable(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, variable)
+          //          env.addTranslatedVariable(variableT.name, vimpl(translatedVariable))
+          val subjectiveResultIT = CoordI[sI](MutableShareI, VoidIT())
+          val exprIE =
+            RestackifyIE(
+              localI, innerIE, collapseCoord(RegionCounter.countCoord(subjectiveResultIT), subjectiveResultIT))
+          (subjectiveResultIT, exprIE)
+        }
+
         case LetNormalTE(variableT, innerTE) => {
           val (innerIT, innerIE) =
             translateRefExpr(

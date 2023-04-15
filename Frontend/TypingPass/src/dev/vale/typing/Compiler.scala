@@ -34,7 +34,6 @@ import dev.vale.typing.templata._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult, StampFunctionSuccess}
 import dev.vale.typing.macros.citizen.StructDropMacro
-import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
 import dev.vale.typing.templata.ITemplataT.expectRegion
 

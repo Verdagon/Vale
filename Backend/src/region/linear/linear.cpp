@@ -1010,9 +1010,6 @@ Ref Linear::innerMallocStr(
   auto lenI64LE = LLVMBuildZExt(builder, lenI32LE, LLVMInt64TypeInContext(globalState->context), "");
 
   auto sizeLE = predictShallowSize(functionState, builder, true, linearStr, lenI32LE);
-  buildFlare(FL(), globalState, functionState, builder);
-
-  buildFlare(FL(), globalState, functionState, builder, "bumping by size: ", lenI64LE);
 
   auto strLiveRef = getDestinationRef(functionState, builder, regionInstanceRef, mutLinearStrRefMT);
   auto strPtrLE = strLiveRef.refLE;
@@ -1030,29 +1027,25 @@ Ref Linear::innerMallocStr(
       globalState, functionState, builder, LLVMBuildNot(builder, dryRunBoolLE, "notDryRun"),
       [this, functionState, regionInstanceRef, strPtrLE, int8LT, lenI32LE, lenI64LE, strLiveRef, sourceCharsPtrLE](
           LLVMBuilderRef thenBuilder) mutable {
-        buildFlare(FL(), globalState, functionState, thenBuilder);
-
+        auto strLT = structs.getStringStruct();
         auto strWithLenValLE =
-            LLVMBuildInsertValue(
-                thenBuilder, LLVMGetUndef(structs.getStringStruct()), lenI32LE, 0, "strWithLen");
+            LLVMBuildInsertValue(thenBuilder, LLVMGetUndef(strLT), lenI32LE, 0, "strWithLen");
         assert(LLVMPointerType(LLVMTypeOf(strWithLenValLE), 0) == LLVMTypeOf(strPtrLE));
-        LLVMBuildStore(thenBuilder, strWithLenValLE, strPtrLE);
 
-        buildFlare(FL(), globalState, functionState, thenBuilder, "length for str: ", lenI64LE);
+        // When we write a pointer, we need to subtract the Serialized Address Adjuster, see PSBCBO.
+        auto adjustedStrPtrLE =
+            translateBetweenBufferAddressAndPointer(
+                functionState, thenBuilder, regionInstanceRef, mutLinearStrRefMT, strPtrLE, true);
+        assert(LLVMPointerType(LLVMTypeOf(strWithLenValLE), 0) == LLVMTypeOf(adjustedStrPtrLE));
 
         auto charsBeginPtr =
             getStringBytesPtr(
                 functionState, thenBuilder, mutLinearStrRefMT, regionInstanceRef, strLiveRef);
 
-        buildFlare(FL(), globalState, functionState, thenBuilder);
-
         std::vector<LLVMValueRef> argsLE = {charsBeginPtr, sourceCharsPtrLE, lenI64LE};
         globalState->externs->strncpy.call(thenBuilder, argsLE, "");
 
-
         auto charsEndPtr = LLVMBuildInBoundsGEP2(thenBuilder, int8LT, charsBeginPtr, &lenI64LE, 1, "charsEndPtr_");
-
-//        buildFlare(FL(), globalState, functionState, thenBuilder, "storing at ", ptrToIntLE(globalState, thenBuilder, charsEndPtr));
 
         // When we write a pointer, we need to subtract the Serialized Address Adjuster, see PSBCBO,
         // but here we're not writing any pointers (just chars) so no need to subtract anything here.
@@ -1063,9 +1056,9 @@ Ref Linear::innerMallocStr(
         return strLiveRef;
       });
 
-  buildFlare(FL(), globalState, functionState, builder);
-
+  buildFlare(FL(), globalState, functionState, builder, "innerMallocStr, from ", getRegionInstanceDestinationOffset(functionState, builder, regionInstanceRef), " adding ", sizeLE);
   bumpDestinationOffset(functionState, builder, regionInstanceRef, sizeLE); // moved
+  buildFlare(FL(), globalState, functionState, builder, "...to ", getRegionInstanceDestinationOffset(functionState, builder, regionInstanceRef));
 
   buildFlare(FL(), globalState, functionState, builder);
 

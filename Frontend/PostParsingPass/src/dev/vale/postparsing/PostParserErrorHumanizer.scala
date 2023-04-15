@@ -161,6 +161,7 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructMethodSelfOwnCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".ownself"
       case AnonymousSubstructMethodSelfBorrowCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".borrowself"
       case DenizenDefaultRegionRuneS(denizenName) => humanizeName(denizenName) + "'"
+      case ExternDefaultRegionRuneS(denizenName) => humanizeName(denizenName) + "'"
       case AnonymousSubstructVoidKindRuneS() => "anon.void.kind"
       case AnonymousSubstructVoidCoordRuneS() => "anon.void"
       case ImplicitCoercionOwnershipRuneS(_, inner) => humanizeRune(inner) + ".own"

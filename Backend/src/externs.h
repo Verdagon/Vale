@@ -10,8 +10,10 @@ public:
   RawFuncPtrLE perror;
   RawFuncPtrLE assertI64Eq;
   RawFuncPtrLE printCStr;
+  RawFuncPtrLE printCStrToStderr;
   RawFuncPtrLE getch;
   RawFuncPtrLE printInt;
+  RawFuncPtrLE printIntToStderr;
   RawFuncPtrLE strlen;
   RawFuncPtrLE memset;
   RawFuncPtrLE strncpy;

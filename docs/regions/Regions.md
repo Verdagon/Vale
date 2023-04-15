@@ -858,6 +858,35 @@ So instead, let's make it so the pure is outside the block.
 
 
 
+# Pure Merging Happens Before Rest of Solving (PMHBRS)
+
+This is a basic function that does pure merging:
+
+```
+struct Ship { fuel int; }
+pure func zork<m' imm>(a &m'Ship, b &m'Ship) int { 42 }
+pure func bork<r' imm>(x &r'Ship) int {
+  return zork(x, &Ship(28));
+}
+exported func main() int {
+  return bork(&Ship(42));
+}
+```
+
+When bork calls zork, it merges bork' and r' into zork's m'. This is similar to Rust's lifetime subtyping, where two callsite lifetimes can be merged into one intersection lifetime for the callee.
+
+As far as we know, this can only be done for the parameter's outer region; we wouldn't be able to e.g. merge the `s'` in `Ship<s'>` (we *might* be able to merge them into an anonymous parameter `_'` rather than `s'`).
+
+Without any special code for pure merging, we get an error like this: `Conflict, thought rune m was bork' but now concluding it's r'`
+
+That's because the solver doesn't understand that, when convenient, it can decree two incoming regions to actually be the same region.
+
+Since we only do merging for the parameters' outer regions, we can do this merging before the call solver starts.
+
+We track the outer region as part of ParameterS, and then do the merging in OverloadResolver.
+
+
+
 
 
 

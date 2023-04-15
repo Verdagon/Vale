@@ -24,6 +24,7 @@ object Builtins {
       "as" -> "as.vale",
       "print" -> "print.vale",
       "tup" -> "tup.vale",
+      "streq" -> "streq.vale",
       "panic" -> "panic.vale",
       "panicutils" -> "panicutils.vale",
       "opt" -> "opt.vale",
