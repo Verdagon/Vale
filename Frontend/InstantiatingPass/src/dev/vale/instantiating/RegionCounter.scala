@@ -1,7 +1,7 @@
 package dev.vale.instantiating
 
 import dev.vale.instantiating.ast._
-import dev.vale.{U, vimpl, vwat}
+import dev.vale.{U, vassert, vimpl, vwat}
 
 import scala.collection.mutable
 
