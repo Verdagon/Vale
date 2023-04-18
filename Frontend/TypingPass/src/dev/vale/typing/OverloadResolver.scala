@@ -20,6 +20,7 @@ import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.function.FunctionCompiler.{StampFunctionFailure, StampFunctionSuccess}
 import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT, RegionPlaceholderNameT}
+import dev.vale.typing.templata.ITemplataT.expectRegionPlaceholder
 
 import scala.collection.immutable.{Map, Set}
 import scala.collection.mutable
@@ -396,6 +397,60 @@ class OverloadResolver(
                         RegionTemplataType())
                     }
 
+                    // (This is all for pure merging)
+                    //
+                    //// Per PMHBRS, we need to do some pure merging logic before the actual solving,
+                    //// because the solver isn't smart enough to know when it can merge two regions.
+                    //val paramRegionRuneToArgRegion =
+                    //  mutable.HashMap[IRuneS, Set[ITemplataT[RegionTemplataType]]]()
+                    //args.zip(function.params).foreach({ case (arg, param) =>
+                    //  val existingSet =
+                    //    paramRegionRuneToArgRegion.getOrElse(param.outerRegionRune, Set())
+                    //  paramRegionRuneToArgRegion.put(
+                    //    param.outerRegionRune, existingSet + arg.region)
+                    //})
+                    //// As a temporary solution, if any regions need to be merged, we'll merge *all*
+                    //// regions, see PMHBRS.
+                    //val anyMerging = paramRegionRuneToArgRegion.values.exists(_.size > 1)
+                    //
+                    //val perhapsMergedArgCoords =
+                    //  if (anyMerging) {
+                    //    // Recall the callee's context region is at callingEnv.currentHeight + 1, so
+                    //    // it's fine to have a new region at callingEnv.currentHeight.
+                    //    val mergedRegionHeight = callingEnv.currentHeight
+                    //    val mergedRegion =
+                    //      PlaceholderTemplataT(
+                    //        callingEnv.denizenId
+                    //          .addStep(
+                    //            interner.intern(RegionPlaceholderNameT(
+                    //              -1,
+                    //              CallPureMergeRegionRuneS(callLocation),
+                    //              Some(mergedRegionHeight),
+                    //              ImmutableRegionS))),
+                    //        RegionTemplataType())
+                    //    paramRegionRuneToArgRegion
+                    //
+                    //    args.map({ case CoordT(ownership, region, kind) =>
+                    //      ownership match {
+                    //        case BorrowT => // good
+                    //        case ShareT => // good
+                    //        case _ => vimpl()
+                    //      }
+                    //      kind match {
+                    //        case IntT(_) | BoolT() | StrT() | FloatT() | VoidT() | NeverT(_) =>
+                    //        case StructTT(structName) => {
+                    //          if (structName.localName.templateArgs.nonEmpty) {
+                    //            vimpl()
+                    //          }
+                    //        }
+                    //
+                    //      }
+                    //      CoordT(ownership, mergedRegion, kind)
+                    //    })
+                    //  } else {
+                    //
+                    //  }
+
                     val (calleeContextRegion, newMaybeNearestPureHeight, newMaybeNearestAdditiveHeight) =
                       if (ft.function.attributes.collectFirst({ case PureS => }).nonEmpty) {
                         val newHeight = callingEnv.currentHeight + 1
@@ -411,12 +466,24 @@ class OverloadResolver(
                         (contextRegion, callingEnv.pureHeight, callingEnv.additiveHeight)
                       }
 
+                    val perhapsTransmigratedArgs =
+                      if (contextRegion == calleeContextRegion) {
+                        args
+                      } else {
+                        args.map({
+                          case x if x.kind.isPrimitive => {
+                            x.copy(region = calleeContextRegion)
+                          }
+                          case other => other
+                        })
+                      }
+
                     // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                     functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                      coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, calleeContextRegion, args) match {
+                      coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, calleeContextRegion, perhapsTransmigratedArgs) match {
                       case (EvaluateFunctionFailure(reason)) => Err(reason)
                       case (EvaluateFunctionSuccess(prototype, conclusions)) => {
-                        paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
+                        paramsMatch(coutputs, callingEnv, callRange, perhapsTransmigratedArgs, prototype.prototype.paramTypes, exact) match {
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)

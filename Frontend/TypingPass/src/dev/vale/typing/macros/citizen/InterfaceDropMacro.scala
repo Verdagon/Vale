@@ -1,7 +1,7 @@
 package dev.vale.typing.macros.citizen
 
 import dev.vale.highertyping.{FunctionA, InterfaceA}
-import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
+import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, IRulexSR, LookupSR, MaybeCoercingCallSR, MaybeCoercingLookupSR, RuneUsage}
 import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vimpl}
 import dev.vale.postparsing._
@@ -14,7 +14,6 @@ import dev.vale.typing.types.MutabilityT
 import dev.vale.highertyping.FunctionA
 import dev.vale.parsing.ast.MoveP
 import dev.vale.postparsing._
-import dev.vale.postparsing.patterns.AbstractSP
 import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.names.FunctionTemplateNameT
 import dev.vale.typing.types._
@@ -93,12 +92,15 @@ class InterfaceDropMacro(
         runeToType.toMap,
         Vector(
           ParameterS(
+            range(-1340),
+            Some(AbstractSP(range(-64002), true)),
             false,
+            vimpl(),
             AtomSP(
               range(-1340),
               Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)))),
-              Some(AbstractSP(range(-64002), true)),
-              Some(use(-64002, selfCoordRune)), None))),
+              Some(use(-64002, selfCoordRune)),
+              None))),
         Some(use(-64002, voidCoordRune)),
         vimpl(),
         rules.buildArray().toVector,

@@ -127,7 +127,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         rules.RuneUsage(evalRange(range), rune)
       }
       case TemplexPR(templex) => {
-        templexScout.translateTemplex(env, lidb.child(), builder, contextRegion, templex)
+        templexScout.translateTemplex(env, lidb.child(), builder, contextRegion, templex)._2
       }
       case BuiltinCallPR(range, name, args) => {
         if (name.str == keywords.IS_INTERFACE) {

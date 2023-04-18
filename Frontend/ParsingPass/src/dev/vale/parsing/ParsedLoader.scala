@@ -219,18 +219,27 @@ class ParsedLoader(interner: Interner) {
   def loadParams(jobj: JObject): ParamsP = {
     ast.ParamsP(
       loadRange(getObjectField(jobj, "range")),
-      getArrayField(jobj, "patterns").map(expectObject).map(loadPattern))
+      getArrayField(jobj, "params").map(expectObject).map(loadParameter))
+  }
+
+  def loadParameter(jobj: JObject): ParameterP = {
+    ast.ParameterP(
+      loadRange(getObjectField(jobj, "range")),
+      loadOptionalObject(getObjectField(jobj, "virtuality"), loadVirtuality),
+      loadOptionalObject(getObjectField(jobj, "maybePreChecked"), loadRange),
+      loadOptionalObject(getObjectField(jobj, "selfBorrow"), loadRange),
+      loadOptionalObject(getObjectField(jobj, "pattern"), loadPattern))
   }
 
   def loadPattern(jobj: JObject): PatternPP = {
     ast.PatternPP(
       loadRange(getObjectField(jobj, "range")),
-      loadOptionalObject(getObjectField(jobj, "selfBorrow"), loadRange),
+//      loadOptionalObject(getObjectField(jobj, "selfBorrow"), loadRange),
       loadOptionalObject(getObjectField(jobj, "capture"), loadNameDeclaration),
-      loadOptionalObject(getObjectField(jobj, "maybePreChecked"), loadRange),
+      //loadOptionalObject(getObjectField(jobj, "maybePreChecked"), loadRange),
       loadOptionalObject(getObjectField(jobj, "templex"), loadTemplex),
-      loadOptionalObject(getObjectField(jobj, "destructure"), loadDestructure),
-      loadOptionalObject(getObjectField(jobj, "virtuality"), loadVirtuality))
+      loadOptionalObject(getObjectField(jobj, "destructure"), loadDestructure))
+//      loadOptionalObject(getObjectField(jobj, "virtuality"), loadVirtuality))
   }
 
   def loadDestructure(jobj: JObject): DestructureP = {
@@ -822,7 +831,7 @@ class ParsedLoader(interner: Interner) {
           loadRange(getObjectField(jobj, "range")),
           loadName(getObjectField(jobj, "name")),
           loadRange(getObjectField(jobj, "paramsRange")),
-          getArrayField(jobj, "parameters").map(expectObject).map(loadTemplex),
+          getArrayField(jobj, "params").map(expectObject).map(loadTemplex),
           loadTemplex(getObjectField(jobj, "returnType")))
       }
       case x => vimpl(x.toString)

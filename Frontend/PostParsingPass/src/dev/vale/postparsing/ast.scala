@@ -2,10 +2,9 @@ package dev.vale.postparsing
 
 import dev.vale.{PackageCoordinate, RangeS, StrI, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.parsing.ast.{IMacroInclusionP, IRuneAttributeP, MutabilityP, VariabilityP}
-import dev.vale.postparsing.patterns.{AbstractSP, AtomSP}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.parsing._
-import dev.vale.postparsing.patterns.{AbstractSP, AtomSP}
+import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules._
 
 import scala.collection.immutable.List
@@ -219,14 +218,23 @@ object structSName {
 // Also remember, if a parameter has no name, it can't be varying.
 
 case class ParameterS(
+  range: RangeS,
+  virtuality: Option[AbstractSP],
   preChecked: Boolean,
-//  outerRegionRune: IRuneS, // See PMHBRS
+  outerRegionRune: IRuneS, // See PMHBRS
   pattern: AtomSP) {
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   vassert(pattern.coordRune.nonEmpty)
 }
+
+case class AbstractSP(
+  range: RangeS,
+  // True if this is defined inside an interface
+  // False if this is a free function somewhere else
+  isInternalMethod: Boolean
+)
 
 case class SimpleParameterS(
     origin: Option[AtomSP],

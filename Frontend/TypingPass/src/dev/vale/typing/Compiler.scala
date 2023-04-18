@@ -633,10 +633,11 @@ class Compiler(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironmentT,
       ranges: List[RangeS],
+      region: ITemplataT[RegionTemplataType],
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
-      expressionCompiler.translatePatternList(coutputs, nenv, life, ranges, patterns1, patternInputExprs2)
+      expressionCompiler.translatePatternList(coutputs, nenv, life, ranges, patterns1, patternInputExprs2, region)
     }
 
 //    override def evaluateParent(env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], sparkHeader: FunctionHeaderT): Unit = {
@@ -1010,7 +1011,14 @@ class Compiler(
                       // substituting templatas, the bounds are already made for these types.
                       val externPlaceholderedWrapperPrototype =
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                          coutputs, List(functionA.range), LocationInDenizen(Vector()), externEnv, templata, Vector(regionPlaceholder), regionPlaceholder, Vector()) match {
+                          coutputs,
+                          List(functionA.range),
+                          LocationInDenizen(Vector()),
+                          externEnv,
+                          templata,
+                          U.repeat(regionPlaceholder, functionA.genericParameters.length),
+                          regionPlaceholder,
+                          Vector()) match {
                           case EvaluateFunctionSuccess(prototype, inferences) => prototype.prototype
                           case EvaluateFunctionFailure(reason) => {
                             throw CompileErrorExceptionT(CouldntEvaluateFunction(List(functionA.range), reason))

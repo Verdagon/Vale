@@ -161,4 +161,12 @@ object U {
     }
     return (result.toVector, remainder.toVector)
   }
+
+  def repeat[T](elem: T, n: Int): Vector[T] = {
+    val result = mutable.ArrayBuffer[T]()
+    (0 until n).foreach(i => {
+      result += elem
+    })
+    result.toVector
+  }
 }

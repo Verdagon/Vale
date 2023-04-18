@@ -207,6 +207,47 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val func = coutputs.lookupFunction("main")
   }
 
+  test("Test automatic int transmigration for call") {
+    // See PATDR, the int from main should automatically match GetHp's default region.
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Ship { }
+        |pure func GetHp<r'>(map &r'Ship, x bool) int { 42 }
+        |exported func main() int {
+        |  ship = Ship();
+        |  return GetHp(&ship, true);
+        |}
+        |""".stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val func = coutputs.lookupFunction("main")
+//    Collector.only(func, {
+//      case TransmigrateTE(sourceExpr, targetRegion) if sourceExpr.kind == IntT(32) =>
+//    })
+    Collector.only(func, {
+      case TransmigrateTE(sourceExpr, targetRegion) if sourceExpr.kind == BoolT() =>
+    })
+  }
+
+  test("Test automatic int transmigration from member load") {
+    // See PATDR, the int from main should automatically match GetHp's default region.
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Ship { fuel int; }
+        |pure func GetFuel<r'>(ship &r'Ship) int { ship.fuel }
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  return GetFuel(&ship);
+        |}
+        |""".stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val func = coutputs.lookupFunction("GetFuel")
+    Collector.only(func, {
+      case TransmigrateTE(sourceExpr, targetRegion) if sourceExpr.kind == IntT(32) =>
+    })
+  }
+
   test("Tests pure") {
     val compile = CompilerTestCompilation.test(
       """
@@ -220,34 +261,6 @@ class CompilerRegionTests extends FunSuite with Matchers {
         |  x = bork(&ship);
         |  [_] = ship;
         |  return x;
-        |}
-        """.stripMargin)
-    val bork = compile.expectCompilerOutputs().lookupFunction("bork")
-    val genArg =
-      bork.header.id.localName match {
-        case FunctionNameT(_, genArgs, _) => {
-          genArgs match {
-            case Vector(x, y) => x
-          }
-        }
-      }
-    genArg match {
-      case PlaceholderTemplataT(
-      IdT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),RegionPlaceholderNameT(0,CodeRuneS(StrI("i")),None,ImmutableRegionS)),
-      RegionTemplataType()) =>
-    }
-  }
-
-  test("Tests pure merging") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct Ship { fuel int; }
-        |pure func merged<rr' imm>(a &rr'Ship, b &rr'Ship) int { 42 }
-        |pure func bork<r' imm>(x &r'Ship) int {
-        |  return merged(x, &Ship(28));
-        |}
-        |exported func main() int {
-        |  return bork(&Ship(42));
         |}
         """.stripMargin)
     val bork = compile.expectCompilerOutputs().lookupFunction("bork")

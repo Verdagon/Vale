@@ -3,7 +3,7 @@ package dev.vale.typing.macros
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.{Accumulator, CodeLocationS, Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import dev.vale.parsing.ast.{BorrowP, FinalP, OwnP, UseP}
-import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
+import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.{SealedS, _}
 import dev.vale.postparsing.rules._
 import dev.vale.typing.{OverloadResolver, TypingPassOptions}
@@ -252,11 +252,11 @@ class AnonymousInterfaceMacro(
           AugmentSR(internalMethod.range, RuneUsage(internalMethod.range, selfBorrowCoordRuneS), Some(BorrowP), None, memberRune))
 
         val paramRunes =
-          internalMethod.params.map(_.pattern).map({
-            case AtomSP(range, name, None, coordRune, destructure) => {
+          internalMethod.params.map({
+            case ParameterS(range, None, _, _, AtomSP(_, _, coordRune, _)) => {
               RuneUsage(range, inheritedMethodRune(interfaceA, internalMethod, vassertSome(coordRune).rune))
             }
-            case AtomSP(range, name, Some(_), coordRune, destructure) => {
+            case ParameterS(range, Some(virtuality), _, _, _) => {
               RuneUsage(range, selfBorrowCoordRuneS)
             }
           })
@@ -279,10 +279,12 @@ class AnonymousInterfaceMacro(
         //
         // we need to make a IBork<B, A> = IBork<X, Y> to connect those two worlds of runes.
         val interfaceParam =
-          vassertOne(internalMethod.params.map(_.pattern).filter(_.virtuality.nonEmpty))
-        val originalInterfaceCoordRune = vassertSome(interfaceParam.coordRune).rune
+          vassertOne(internalMethod.params.filter(_.virtuality.nonEmpty))
+        val originalInterfaceCoordRune = vassertSome(interfaceParam.pattern.coordRune).rune
         val interfaceCoordRune =
-          RuneUsage(interfaceParam.range, inheritedMethodRune(interfaceA, internalMethod, vassertSome(interfaceParam.coordRune).rune))
+          RuneUsage(
+            interfaceParam.range,
+            inheritedMethodRune(interfaceA, internalMethod, vassertSome(interfaceParam.pattern.coordRune).rune))
         runeToType.put(interfaceCoordRune.rune, CoordTemplataType())
 
         val methodInterfaceCoordRune =
@@ -437,7 +439,7 @@ class AnonymousInterfaceMacro(
 
     val abstractParamIndex =
       originalParams.indexWhere(param => {
-        param.pattern.virtuality match {
+        param.virtuality match {
           case Some(AbstractSP(_, _)) => true
           case _ => false
         }
@@ -484,19 +486,21 @@ class AnonymousInterfaceMacro(
 
     val newParams =
       originalParams.map({
-        case ParameterS(preChecked, AtomSP(_, _, Some(_), Some(_), _)) => {
+        case ParameterS(rangeS, Some(virtuality), preChecked, outerRegionRune, AtomSP(_, _, Some(_), _)) => {
           ParameterS(
+            rangeS,
+            None,
             preChecked,
+            outerRegionRune,
             AtomSP(
               abstractParamRange,
               Some(CaptureS(interner.intern(SelfNameS()))),
-              None,//Some(OverrideSP(abstractParamRange, RuneUsage(abstractParamCoordRune.range, AnonymousSubstructParentInterfaceTemplateRuneS()))),
               Some(RuneUsage(abstractParamCoordRune.range, selfCoordRune)),
               None))
         }
-        case ParameterS(preChecked, a @ AtomSP(_, _, None, Some(RuneUsage(runeRange, oldRune)), _)) => {
+        case ParameterS(range, None, preChecked, outerRegionRune, a @ AtomSP(_, _, Some(RuneUsage(runeRange, oldRune)), _)) => {
           val rune = RuneUsage(runeRange, inheritedMethodRune(interface, method, oldRune))
-          ParameterS(preChecked, a.copy(coordRune = Some(rune)))
+          ParameterS(range, None, preChecked, outerRegionRune, a.copy(coordRune = Some(rune)))
         }
       })
 

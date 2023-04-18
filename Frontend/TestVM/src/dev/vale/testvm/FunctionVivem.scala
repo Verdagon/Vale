@@ -57,6 +57,7 @@ object FunctionVivem {
       .replaceAllLiterally("v::builtins::arith", "")
       .replaceAllLiterally("v::StrI(builtins)::StrI(arith)", "")
       .replaceAllLiterally("v::StrI(builtins)::StrI(str)", "")
+      .replaceAllLiterally("v::StrI(builtins)::StrI(streq)", "")
       .replaceAllLiterally("v::StrI(builtins)::StrI(print)", "") match {
       case """::EF("__vbi_addI32")""" => VivemExterns.addI32
       case """::EF("__vbi_addFloatFloat")""" => VivemExterns.addFloatFloat
