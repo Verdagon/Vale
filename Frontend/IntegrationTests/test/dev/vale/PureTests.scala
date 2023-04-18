@@ -10,7 +10,7 @@ import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE,
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
-import dev.vale.von.VonInt
+import dev.vale.von.{VonBool, VonInt}
 import dev.vale.{finalast => m}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -274,4 +274,43 @@ class PureTests extends FunSuite with Matchers {
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
   }
+
+
+  test("Pure function with immediate value") {
+    val compile =
+      RunCompilation.test(
+        """
+          |pure func pureFunc<r'>(s r'str) bool {
+          |  true
+          |}
+          |exported func main() bool {
+          |  pureFunc("abc")
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    compile.evalForKind(Vector()) match { case VonBool(false) => }
+  }
+
+
+  test("Extern function with different regions") {
+    val compile =
+      RunCompilation.test(
+        """import v.builtins.streq.*;
+          |
+          |pure func pureFunc<r'>(s r'str) bool {
+          |  streq(s, 0, 3, "def", 0, 3)
+          |}
+          |
+          |exported func main() bool {
+          |  s = "abc";
+          |  pureFunc(s)
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    compile.evalForKind(Vector()) match { case VonBool(false) => }
+  }
+
+
 }

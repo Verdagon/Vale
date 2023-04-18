@@ -190,7 +190,7 @@ class ExpressionCompiler(
   Option[ExpressionT] = {
     evaluateAddressibleLookup(coutputs, nenv, range, region, name) match {
       case Some(x) => {
-        val thing = localHelper.softLoad(nenv, range, x, targetOwnership)
+        val thing = localHelper.softLoad(nenv, range, x, targetOwnership, region)
         Some(thing)
       }
       case None => {
@@ -466,7 +466,7 @@ class ExpressionCompiler(
         (r, returnsFromExpr)
       }
       case a: AddressExpressionTE => {
-        val expr = coerceToReferenceExpression(nenv, parentRanges, a)
+        val expr = coerceToReferenceExpression(nenv, parentRanges, a, region)
         (expr, returnsFromExpr)
       }
       case _ => vwat()
@@ -476,12 +476,15 @@ class ExpressionCompiler(
   def coerceToReferenceExpression(
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
-    expr2: ExpressionT
+    expr2: ExpressionT,
+    region: ITemplataT[RegionTemplataType]
   ):
   (ReferenceExpressionTE) = {
     expr2 match {
       case r: ReferenceExpressionTE => (r)
-      case a: AddressExpressionTE => localHelper.softLoad(nenv, a.range :: parentRanges, a, UseP)
+      case a: AddressExpressionTE => {
+        localHelper.softLoad(nenv, a.range :: parentRanges, a, UseP, region)
+      }
     }
   }
 
@@ -600,7 +603,7 @@ class ExpressionCompiler(
           val decayedCallableExpr2 =
             localHelper.maybeBorrowSoftLoad(coutputs, undecayedCallableExpr2)
           val decayedCallableReferenceExpr2 =
-            coerceToReferenceExpression(nenv, parentRanges, decayedCallableExpr2)
+            coerceToReferenceExpression(nenv, parentRanges, decayedCallableExpr2, region)
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(
               coutputs, nenv, life + 1, parentRanges, callLocation, nenv.defaultRegion, argsExprs1)
@@ -1173,6 +1176,7 @@ class ExpressionCompiler(
               runeToType,
               pattern,
               sourceExpr2,
+              region,
               (coutputs, nenv, life, liveCaptureLocals) => VoidLiteralTE(nenv.defaultRegion))
 
           (resultTE, returnsFromSource)
@@ -2177,10 +2181,11 @@ class ExpressionCompiler(
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     patterns1: Vector[AtomSP],
-    patternInputExprs2: Vector[ReferenceExpressionTE]
+    patternInputExprs2: Vector[ReferenceExpressionTE],
+    region: ITemplataT[RegionTemplataType]
   ): ReferenceExpressionTE = {
     patternCompiler.translatePatternList(
-      coutputs, nenv, life, parentRanges, patterns1, patternInputExprs2,
+      coutputs, nenv, life, parentRanges, patterns1, patternInputExprs2, region,
       (coutputs, nenv, liveCaptureLocals) => VoidLiteralTE(nenv.defaultRegion))
   }
 

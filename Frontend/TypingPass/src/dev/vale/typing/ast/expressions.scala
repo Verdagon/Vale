@@ -273,6 +273,14 @@ case class RestackifyTE(
   override def result = ReferenceResultT(CoordT(ShareT, sourceExpr.result.coord.region, VoidT()))
 }
 
+case class TransmigrateTE(
+  sourceExpr: ReferenceExpressionTE,
+  targetRegion: ITemplataT[RegionTemplataType]
+) extends ReferenceExpressionTE {
+  vassert(sourceExpr.kind.isPrimitive)
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def result = ReferenceResultT(sourceExpr.result.coord.copy(region = targetRegion))
+}
 
 case class ReturnTE(
   sourceExpr: ReferenceExpressionTE
@@ -594,6 +602,16 @@ case class FunctionCallTE(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   vassert(callable.paramTypes.size == args.size)
+  args.map(_.result.coord).foreach(argCoord => {
+    val isPrimitive =
+      argCoord.kind match {
+        case IntT(_) | BoolT() | VoidT() | FloatT() => true
+        case _ => false
+      }
+    if (/*argCoord.ownership == OwnT || */isPrimitive) {
+      vassert(argCoord.region == callable.id.localName.templateArgs.last)
+    }
+  })
   args.map(_.result.coord).zip(callable.paramTypes).foreach({
     case (CoordT(_, _, NeverT(_)), _) =>
     case (a, b) => vassert(a == b)

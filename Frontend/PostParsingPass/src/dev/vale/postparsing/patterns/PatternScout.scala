@@ -18,7 +18,7 @@ class PatternScout(
     interner: Interner,
     templexScout: TemplexScout) {
   def getParameterCaptures(pattern: AtomSP): Vector[VariableDeclaration] = {
-    val AtomSP(_, maybeCapture, _, _, maybeDestructure) = pattern
+    val AtomSP(_, maybeCapture, _, maybeDestructure) = pattern
   Vector.empty ++
       maybeCapture.toVector.flatMap(getCaptureCaptures) ++
         maybeDestructure.toVector.flatten.flatMap(getParameterCaptures)
@@ -28,22 +28,7 @@ class PatternScout(
   }
 
   // Returns:
-  // - New rules
-  // - Scouted patterns
-  private[postparsing] def scoutPatterns(
-      stackFrame: StackFrame,
-      lidb: LocationInDenizenBuilder,
-      ruleBuilder: ArrayBuffer[IRulexSR],
-      runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
-      params: Vector[PatternPP]):
-  Vector[AtomSP] = {
-    params.map(
-      translatePattern(
-        stackFrame, lidb, ruleBuilder, runeToExplicitType, _))
-  }
-
-  // Returns:
-  // - Rules, which are likely just TypedSR
+  // - Region rune, or None if it's an ignore pattern
   // - The translated patterns
   private[postparsing] def translatePattern(
     stackFrame: StackFrame,
@@ -51,30 +36,26 @@ class PatternScout(
     ruleBuilder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
     patternPP: PatternPP):
-  AtomSP = {
-    val PatternPP(range,_,maybeCaptureP, maybePreCheckedP, maybeTypeP, maybeDestructureP, maybeAbstractP) = patternPP
+  (Option[IRuneS], AtomSP) = {
+    val PatternPP(range,maybeCaptureP, maybeTypeP, maybeDestructureP) = patternPP
 
-    val maybeAbstractS =
-      maybeAbstractP match {
-        case None => None
-        case Some(AbstractP(range)) => {
-          Some(AbstractSP(PostParser.evalRange(stackFrame.file, range), stackFrame.parentEnv.isInterfaceInternalMethod))
+    val (maybeOuterRegionRune, maybeCoordRuneS) =
+      maybeTypeP match {
+        case Some(typeP) => {
+          val (maybeOuterRegionRune, runeS) =
+            templexScout.translateTypeIntoRune(
+              stackFrame.parentEnv,
+              lidb.child(),
+              ruleBuilder,
+              stackFrame.contextRegion,
+              typeP)
+          runeToExplicitType += ((runeS.rune, CoordTemplataType()))
+          (maybeOuterRegionRune, Some(runeS))
+        }
+        case None => {
+          (None, None)
         }
       }
-
-    val maybeCoordRuneS =
-      maybeTypeP.map(typeP => {
-        val runeS =
-          templexScout.translateMaybeTypeIntoRune(
-            stackFrame.parentEnv,
-            lidb.child(),
-            PostParser.evalRange(stackFrame.file, range),
-            ruleBuilder,
-            stackFrame.contextRegion,
-            maybeTypeP)
-        runeToExplicitType += ((runeS.rune, CoordTemplataType()))
-        runeS
-      })
 
     val maybePatternsS =
       maybeDestructureP match {
@@ -83,7 +64,7 @@ class PatternScout(
           Some(
             destructureP.map(
               translatePattern(
-                stackFrame, lidb.child(), ruleBuilder, runeToExplicitType, _)))
+                stackFrame, lidb.child(), ruleBuilder, runeToExplicitType, _)._2))
         }
       }
 
@@ -116,7 +97,9 @@ class PatternScout(
         }
       }
 
-    AtomSP(PostParser.evalRange(stackFrame.file, range), captureS, maybeAbstractS, maybeCoordRuneS, maybePatternsS)
+    val patternS =
+      AtomSP(PostParser.evalRange(stackFrame.file, range), captureS, maybeCoordRuneS, maybePatternsS)
+    (maybeOuterRegionRune, patternS)
   }
 
 }

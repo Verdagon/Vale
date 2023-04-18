@@ -129,6 +129,8 @@ sealed trait KindT {
       case _ => vfail()
     }
   }
+
+  def isPrimitive: Boolean
 }
 
 // like Scala's Nothing. No instance of this can ever happen.
@@ -139,12 +141,12 @@ case class NeverT(
   // See BRCOBS.
   fromBreak: Boolean
 ) extends KindT {
-
+  override def isPrimitive: Boolean = true
 }
 
 // Mostly for interoperability with extern functions
 case class VoidT() extends KindT {
-
+  override def isPrimitive: Boolean = true
 }
 
 object IntT {
@@ -152,18 +154,21 @@ object IntT {
   val i64: IntT = IntT(64)
 }
 case class IntT(bits: Int) extends KindT {
+  override def isPrimitive: Boolean = true
 }
 
 case class BoolT() extends KindT {
+  override def isPrimitive: Boolean = true
 
 }
 
 case class StrT() extends KindT {
+  override def isPrimitive: Boolean = false
 
 }
 
 case class FloatT() extends KindT {
-
+  override def isPrimitive: Boolean = true
 }
 
 object contentsStaticSizedArrayTT {
@@ -178,6 +183,7 @@ case class StaticSizedArrayTT(
   name: IdT[StaticSizedArrayNameT]
 ) extends KindT with IInterning {
   vassert(name.initSteps.isEmpty)
+  override def isPrimitive: Boolean = false
   def mutability: ITemplataT[MutabilityTemplataType] = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
   def size = name.localName.size
@@ -194,6 +200,7 @@ object contentsRuntimeSizedArrayTT {
 case class RuntimeSizedArrayTT(
   name: IdT[RuntimeSizedArrayNameT]
 ) extends KindT with IInterning {
+  override def isPrimitive: Boolean = false
   def mutability = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
 
@@ -224,6 +231,7 @@ sealed trait ICitizenTT extends ISubKindTT with IInterning {
 
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
 case class StructTT(id: IdT[IStructNameT]) extends ICitizenTT {
+  override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(StructTemplateNameT(_)), StructNameT(_, _)) => vfail()
     case _ =>
@@ -231,6 +239,7 @@ case class StructTT(id: IdT[IStructNameT]) extends ICitizenTT {
 }
 
 case class InterfaceTT(id: IdT[IInterfaceNameT]) extends ICitizenTT with ISuperKindTT {
+  override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(InterfaceTemplateNameT(_)), InterfaceNameT(_, _)) => vfail()
     case _ =>
@@ -245,10 +254,13 @@ case class OverloadSetT(
   // The name to look for in the environment.
   name: IImpreciseNameS
 ) extends KindT with IInterning {
+  override def isPrimitive: Boolean = true
   vpass()
 
 }
 
 // At some point it'd be nice to make Coord.kind into a templata so we can directly have a
 // placeholder templata instead of needing this special kind.
-case class KindPlaceholderT(id: IdT[KindPlaceholderNameT]) extends ISubKindTT with ISuperKindTT
+case class KindPlaceholderT(id: IdT[KindPlaceholderNameT]) extends ISubKindTT with ISuperKindTT {
+  override def isPrimitive: Boolean = false
+}

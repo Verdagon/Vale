@@ -272,7 +272,16 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
       case TopLevelFunctionP(FunctionP(_,
         FunctionHeaderP(_,
           Some(NameP(_, StrI("doCivicDance"))), Vector(), None,
-          None, Some(ParamsP(_, Vector(PatternPP(_, _,Some(LocalNameDeclarationP(NameP(_, StrI("this")))), None,Some(NameOrRunePT(NameP(_, StrI("Car")))), None, Some(AbstractP(_)))))),
+          None,
+          Some(
+            ParamsP(_,
+              Vector(
+                ParameterP(_,
+                  Some(AbstractP(_)),
+                  _,
+                  _,
+                  Some(
+                    PatternPP(_, Some(LocalNameDeclarationP(NameP(_, StrI("this")))),Some(NameOrRunePT(NameP(_, StrI("Car")))), _)))))),
           FunctionReturnP(_, Some(NameOrRunePT(NameP(_, StrI("int")))))),
         None)) =>
     }
@@ -294,7 +303,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         FunctionP(_,
           FunctionHeaderP(_,
             Some(NameP(_,StrI("main"))),Vector(),None,None,
-            Some(ParamsP(_,Vector(PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("moo")))),None,Some(NameOrRunePT(NameP(_,StrI("T")))),None,None)))),
+            Some(ParamsP(_,Vector(ParameterP(_,_,_,_,Some(PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("moo")))),Some(NameOrRunePT(NameP(_,StrI("T")))),None)))))),
             FunctionReturnP(_,Some(NameOrRunePT(NameP(_,StrI("T")))))),
           Some(BlockPE(_,None, None,VoidPE(_))))) =>
     }
@@ -325,12 +334,15 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
             ParamsP(
               _,
               Vector(
-                PatternPP(_,_,
-                  Some(LocalNameDeclarationP(NameP(_, StrI("this")))),
-                  None,
-                  Some(NameOrRunePT(NameP(_, StrI("Marine")))),
-                  None,
-                  Some(AbstractP(_)))))),
+                ParameterP(_,
+                  Some(AbstractP(_)),
+                  _,
+                  _,
+                  Some(
+                    PatternPP(_,
+                      Some(LocalNameDeclarationP(NameP(_, StrI("this")))),
+                      Some(NameOrRunePT(NameP(_, StrI("Marine")))),
+                      None)))))),
           FunctionReturnP(_, None)),
         Some(BlockPE(_, None, None, _))) =>
     }
@@ -339,7 +351,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
   test("Param") {
     val program = compileDenizenExpect("func call(f F){f()}")
     program shouldHave {
-      case PatternPP(_,_,Some(LocalNameDeclarationP(NameP(_, StrI("f")))),None,Some(NameOrRunePT(NameP(_, StrI("F")))),None,None) =>
+      case PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("f")))),Some(NameOrRunePT(NameP(_, StrI("F")))),None) =>
     }
   }
 
@@ -430,11 +442,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
                 Some(
                   ParamsP(_,
                     Vector(
-                      PatternPP(_,
-                        Some(_),
-                        Some(LocalNameDeclarationP(NameP(_, StrI("self")))),
-                        None,
-                        None,None,None)))),
+                      ParameterP(_,None,None,Some(_),None)))),
                 _),
               _)))) =>
     }

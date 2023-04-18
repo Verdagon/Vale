@@ -2601,6 +2601,14 @@ class Instantiator(
           val resultCE = ArrayLengthIE(arrayCE)
           (resultIT, resultCE)
         }
+        case TransmigrateTE(sourceExpr, targetRegion) => {
+          vassert(sourceExpr.kind.isPrimitive)
+          val (sourceIT, sourceCE) =
+            translateRefExpr(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, sourceExpr)
+          // Just a pass through, TransmigrateTE only exists for typing stage's benefit
+          (sourceIT, sourceCE)
+        }
         case DestroyImmRuntimeSizedArrayTE(arrayExpr, arrayType, consumer, consumerMethod) => {
           val (arrayIT, arrayCE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
           val rsaIT = translateRuntimeSizedArray(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, arrayType)
@@ -2970,6 +2978,7 @@ class Instantiator(
                 case _ => {
                   ((outerOwnership, innerOwnership) match {
                     case (OwnT, OwnI) => OwnI
+                    case (OwnT, ImmutableShareI) => ImmutableShareI
                     case (OwnT | BorrowT, MutableShareI) => {
                       if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
                         MutableShareI

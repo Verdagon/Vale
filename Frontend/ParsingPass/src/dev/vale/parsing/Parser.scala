@@ -565,14 +565,14 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
       val paramsP =
         ParamsP(
           paramsL.range,
-          U.mapWithIndex[ScrambleIterator, PatternPP](
+          U.mapWithIndex[ScrambleIterator, ParameterP](
             new ScrambleIterator(paramsL.contents).splitOnSymbol(',', false),
             (index, patternIter) => {
-              patternParser.parsePattern(patternIter, index, isInCitizen, true, false) match {
+              patternParser.parseParameter(patternIter, index, isInCitizen, true, false) match {
                 case Err(e) => return Err(e)
                 case Ok(x) => x
               }
-            }).toVector)
+            }))
 
       val trailingDetailsWithReturnAndWhereAndDefaultRegion = originalTrailingDetailsL
       val (trailingDetailsWithReturnAndWhere, maybeDefaultRegion) =

@@ -39,6 +39,7 @@ trait IBodyCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
+    region: ITemplataT[RegionTemplataType],
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
   ReferenceExpressionTE
@@ -176,7 +177,7 @@ class BodyCompiler(
     val startingEnv = env.snapshot
 
     val patternsTE =
-      evaluateLets(env, coutputs, life + 0, body1.range :: parentRanges, params1, params2);
+      evaluateLets(env, coutputs, life + 0, body1.range :: parentRanges, region, params1, params2);
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
       delegate.evaluateBlockStatements(
@@ -251,6 +252,7 @@ class BodyCompiler(
       coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
+    region: ITemplataT[RegionTemplataType],
       params1: Vector[ParameterS],
       params2: Vector[ParameterT]):
   ReferenceExpressionTE = {
@@ -258,13 +260,13 @@ class BodyCompiler(
       params2.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) })
     val letExprs2 =
       delegate.translatePatternList(
-        coutputs, nenv, life, range, params1.map(_.pattern), paramLookups2);
+        coutputs, nenv, life, range, region, params1.map(_.pattern), paramLookups2);
 
     // todo: at this point, to allow for recursive calls, add a callable type to the environment
     // for everything inside the body to use
 
     params1.foreach({
-      case ParameterS(_, AtomSP(_, Some(CaptureS(name)), _, _, _)) => {
+      case ParameterS(_, _, _, _, AtomSP(_, Some(CaptureS(name)), _, _)) => {
         if (!nenv.declaredLocals.exists(_.name == nameTranslator.translateVarNameStep(name))) {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "wot couldnt find " + name))
         }

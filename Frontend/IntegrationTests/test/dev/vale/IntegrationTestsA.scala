@@ -999,4 +999,20 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val compile = RunCompilation.test(Tests.loadExpected("programs/restackify.vale"))
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
+
+  test("Test automatic int transmigration for call") {
+    // See PATDR, the int from main should automatically match GetHp's default region.
+    val compile = RunCompilation.test(
+      """
+        |struct Ship { }
+        |pure func GetHp<r'>(map &r'Ship, x int) int { x }
+        |exported func main() int {
+        |  ship = Ship();
+        |  return GetHp(&ship, 42);
+        |}
+        |""".stripMargin)
+
+    compile.evalForKind(Vector()) match { case VonInt(42) => }
+  }
+
 }

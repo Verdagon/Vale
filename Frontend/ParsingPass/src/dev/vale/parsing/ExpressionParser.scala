@@ -309,7 +309,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         }) match {
         case None => return Err(BadForeachInError(iter.getPos()))
         case Some((in, patternIter)) => {
-          patternParser.parsePattern(patternIter, 0, false, false, false) match {
+          patternParser.parsePattern(patternIter, 0, false, false, false, None) match {
             case Err(cpe) => return Err(cpe)
             case Ok(result) => (in.range, result)
           }
@@ -496,7 +496,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     stopOnCurlied: Boolean):
   Result[LetPE, IParseError] = {
     val pattern =
-      patternParser.parsePattern(patternIter, 0, false, false, false) match {
+      patternParser.parsePattern(patternIter, 0, false, false, false, None) match {
         case Ok(result) => result
         case Err(e) => return Err(e)
       }
@@ -1594,7 +1594,13 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           iter.advance()
           iter.advance()
           iter.advance()
-          val param = PatternPP(paramRange, None, Some(LocalNameDeclarationP(NameP(paramRange, paramName))), None, None, None, None)
+          val param =
+            ParameterP(
+              paramRange,
+              None,
+              None,
+              None,
+              Some(PatternPP(paramRange, Some(LocalNameDeclarationP(NameP(paramRange, paramName))), None, None)))
           val params = ParamsP(paramRange, Vector(param))
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None)
           val range = RangeL(begin, iter.getPrevEndPos())
@@ -1610,14 +1616,14 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           val paramsP =
             ParamsP(
               paramsRange,
-              U.mapWithIndex[ScrambleIterator, PatternPP](
+              U.mapWithIndex[ScrambleIterator, ParameterP](
                 new ScrambleIterator(paramsContents).splitOnSymbol(',', false),
                 (index, patternIter) => {
-                  patternParser.parsePattern(patternIter, index, false, true, true) match {
+                  patternParser.parseParameter(patternIter, index, false, true, true) match {
                     case Err(e) => return Err(e)
                     case Ok(x) => x
                   }
-                }).toVector)
+                }))
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None)
           val range = RangeL(begin, iter.getPrevEndPos())
           FunctionHeaderP(range, None, Vector(), None, None, Some(paramsP), retuurn)

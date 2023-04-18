@@ -404,15 +404,23 @@ object Spanner {
 
   def forParams(p: ParamsP): Span = {
     val ParamsP(range, params) = p
-    makeSpan(Params, range, params.map(forPattern))
+    makeSpan(Params, range, params.map(forParameter))
   }
 
-  def forPattern(p: PatternPP): Span = {
-    val PatternPP(range, maybeselfBorrow, capture, maybePreChecked, templex, maybeDestructure, virtuality) = p
+  def forParameter(p: ParameterP): Span = {
+    val ParameterP(range, virtuality, maybePreChecked, maybeselfBorrow, pattern) = p
     makeSpan(
       Pat,
       range,
       maybeselfBorrow.toVector.map(b => makeSpan(Point, b, Vector.empty)) ++
+        pattern.toVector.map(forPattern))
+  }
+
+  def forPattern(p: PatternPP): Span = {
+    val PatternPP(range, capture, templex, maybeDestructure) = p
+    makeSpan(
+      Pat,
+      range,
       capture.toVector.map(forCapture) ++
       templex.toVector.map(forTemplex) ++
       maybeDestructure.toVector.map(forDestructure))

@@ -74,7 +74,7 @@ class StructConstructorMacro(
       structA.members.zipWithIndex.flatMap({
         case (NormalStructMemberS(range, name, variability, typeRune), index) => {
           val capture = CaptureS(interner.intern(CodeVarNameS(name)))
-          Vector(ParameterS(false, AtomSP(range, Some(capture), None, Some(typeRune), None)))
+          Vector(ParameterS(range, None, false, typeRune.rune, AtomSP(range, Some(capture), Some(typeRune), None)))
         }
         case (VariadicStructMemberS(range, variability, typeRune), index) => {
           Vector()

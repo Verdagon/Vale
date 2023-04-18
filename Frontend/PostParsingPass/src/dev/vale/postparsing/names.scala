@@ -131,6 +131,7 @@ case class CodeRuneS(name: StrI) extends IRuneS {
 case class ImplDropCoordRuneS() extends IRuneS
 case class ImplDropVoidRuneS() extends IRuneS
 case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
+  vpass()
   lid match {
     case LocationInDenizen(Vector(2, 1, 1, 2)) => {
       vpass()
@@ -139,9 +140,8 @@ case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   }
 }
 case class PureBlockRegionRuneS(lid: LocationInDenizen) extends IRuneS
-case class CallRegionRuneS(lid: LocationInDenizen) extends IRuneS {
-  vpass()
-}
+case class CallRegionRuneS(lid: LocationInDenizen) extends IRuneS
+case class CallPureMergeRegionRuneS(lid: LocationInDenizen) extends IRuneS
 case class ImplicitRegionRuneS(originalRune: IRuneS) extends IRuneS
 case class ReachablePrototypeRuneS(num: Int) extends IRuneS
 case class FreeOverrideStructTemplateRuneS() extends IRuneS

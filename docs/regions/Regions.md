@@ -858,7 +858,23 @@ So instead, let's make it so the pure is outside the block.
 
 
 
+# Regions and Externs
+
+An extern call will implicitly try to copy all shared values into the native realm.
+
+Sending any owned values into the outside world isn't really supported yet in a regions world.
+
+It does this by compiling the `extern` statement assuming that all regions are `ext'`, the extern function's default region. The ExternFunctionCall AST node will do the proper transmigration for these values into native memory.
+
+
+# Primitives automatically transmigrated
+
+
+
+
 # Pure Merging Happens Before Rest of Solving (PMHBRS)
+
+NOTE FROM LATER: This is largely fubar, pure merging kind of fell apart.
 
 This is a basic function that does pure merging:
 
@@ -883,7 +899,88 @@ That's because the solver doesn't understand that, when convenient, it can decre
 
 Since we only do merging for the parameters' outer regions, we can do this merging before the call solver starts.
 
+#### Temporary solution
+
 We track the outer region as part of ParameterS, and then do the merging in OverloadResolver.
+
+Note that ParameterS's outerRegionRune might be the rune of a coord, from which the OverloadResolver should get the region rune.
+
+Also, for now, when any merging is needed, we'll merge all incoming regions into one, even though that might not be sufficient for all/most functions.
+
+This is just a temporary solution until we figure out something good to do.
+
+Perhaps we could do something like a region-specific solver, that just solves the regions of things, kind of like we currently have the kind equivalency solver.
+
+If whatever we do is expensive, perhaps we can only do it when we detect that the function receives different regions (the outer regions are different, not talking about the `T` in `List<T>`) or the arguments are different.
+
+
+
+how do we deal with arrays?
+
+[]Ship 
+
+foo(myShipArr)
+
+we know its fine if theyre all in the same region. This works:
+
+```
+struct Ship { fuel int; }
+
+pure func zork<m' imm>(a &m'[]Ship, b &m'[]Ship) int { 42 }
+pure func bork<r' imm>(x &r'[]Ship) int {
+  return zork(x, &[]Ship(0));
+}
+exported func main() int {
+  return bork(&[]Ship(0));
+}
+```
+
+If we receive directly into `T`s, does it still work?
+
+```
+struct Ship { fuel int; }
+
+pure func zork<m' imm, T>(a &m'T, b &m'T) int { 42 }
+
+pure func bork<r' imm>(x &r'[]Ship) int {
+  return zork(x, &[]Ship(0));
+}
+exported func main() int {
+  return bork(&[]Ship(0));
+}
+```
+
+It might work? It might think `T` is a `m'[]Ship`, which is fine.
+
+the problem is with any denizen that's parameterized on a region. unfortunately, all generics are parameterized on regions.
+
+
+But if we receive something parameterized on `T`, does it still work?
+
+```
+struct Ship { fuel int; }
+
+pure func zork<m' imm, T>(a &m'[]T, b &m'[]T) int { 42 }
+
+pure func bork<r' imm>(x &r'[]Ship) int {
+  return zork(x, &[]Ship(0));
+}
+exported func main() int {
+  return bork(&[]Ship(0));
+}
+```
+
+whats T? we know it works if the T is in the same region as its parent. but T could be any region.
+
+if one side gives an immutable T, like from `main`, and one side gives a mutable T, like from `bork`, it might not work right?
+
+is there a way to enforce that T needs to be of the same region as its container? like:
+
+```
+pure func zork<m' imm, T>(a &m'[]m'T, b &m'[]m'T) int { 42 }
+```
+
+
 
 
 

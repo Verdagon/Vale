@@ -124,7 +124,7 @@ class FunctionScout(
         maybeParamsP match {
           case None =>
           case Some(paramsP) => {
-            if (!paramsP.patterns.exists(_.virtuality match { case Some(AbstractP(_)) => true case _ => false })) {
+            if (!paramsP.params.exists(_.virtuality match { case Some(AbstractP(_)) => true case _ => false })) {
               throw CompileErrorExceptionS(InterfaceMethodNeedsSelf(rangeS))
             }
           }
@@ -216,41 +216,54 @@ class FunctionScout(
     val myStackFrameWithoutParams =
       StackFrame(file, funcName, functionEnv, None, defaultRegionRuneS, 0, noDeclarations)
 
-    val paramPatternsP =
-      maybeParamsP.toVector.flatMap(_.patterns).map(pattern => {
+    val paramsP =
+      maybeParamsP.toVector.flatMap(_.params).map(param => {
         maybeParent match {
           case FunctionNoParent() | ParentInterface(_, _, _, _) => {
             // Should have been caught by LightFunctionMustHaveParamTypes error in parser,
-            vassert(pattern.templex.nonEmpty)
+            vassert(vassertSome(param.pattern).templex.nonEmpty)
           }
           case ParentFunction(_) =>
         }
-        pattern
+        param
       })
 
     // We say PerhapsTypeless because we're in a lambda, they might be anonymous params
     // like in `(_) => { true }`
     // Later on, we'll make identifying runes for these.
-    val explicitParamPatternsPerhapsTypelessS =
-      patternScout.scoutPatterns(
-        myStackFrameWithoutParams,
-        lidb.child(),
-        ruleBuilder,
-        runeToExplicitType,
-        paramPatternsP)
 
-//    val explicitParamPatternsAndIdentifyingRunes =
     val explicitParamsS =
-      explicitParamPatternsPerhapsTypelessS
-        .zip(paramPatternsP.map(_.maybePreChecked.nonEmpty))
+      paramsP
         .map({
-          case (a @ AtomSP(_, _, _, Some(_), _), preChecked) => ParameterS(preChecked, a)
-          case (AtomSP(range, name, virtuality, None, destructure), preChecked) => {
-            val rune = rules.RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
-            runeToExplicitType += ((rune.rune, CoordTemplataType()))
-            val newParam = patterns.AtomSP(range, name, virtuality, Some(rune), destructure)
-            ParameterS(preChecked, newParam)
-  //          (newParam, Some(rune))
+          case ParameterP(rangeL, maybeAbstractP, maybePreChecked, maybeSelfBorrow, maybePattern) => {
+            val rangeS = evalRange(file, rangeL)
+            val maybeAbstractS =
+              maybeAbstractP match {
+                case None => None
+                case Some(AbstractP(range)) => {
+                  Some(AbstractSP(PostParser.evalRange(file, range), myStackFrameWithoutParams.parentEnv.isInterfaceInternalMethod))
+                }
+              }
+            (maybeSelfBorrow, maybePattern) match {
+              case (Some(selfBorrow), None) => {
+                val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+                runeToExplicitType += ((rune.rune, CoordTemplataType()))
+                val patternS =
+                  AtomSP(rangeS, Some(CaptureS(CodeVarNameS(keywords.self))), Some(rune), None)
+                ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, defaultRegionRuneS, patternS)
+              }
+              case (None, Some(patternP)) => {
+                val (maybeOuterRegionRune, patternS) =
+                  patternScout.translatePattern(
+                    myStackFrameWithoutParams,
+                    lidb.child(),
+                    ruleBuilder,
+                    runeToExplicitType,
+                    patternP)
+                val outerRegionRune = vassertSome(maybeOuterRegionRune)
+                ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, outerRegionRune, patternS)
+              }
+            }
           }
         })
 //    val explicitParamsS = explicitParamPatternsAndIdentifyingRunes.map(_._1).map(ParameterS)
@@ -575,8 +588,8 @@ class FunctionScout(
 
     val capture = CaptureS(closureParamName)
     val closurePattern =
-      AtomSP(closureParamRange, Some(capture), None, Some(closureParamTypeRune), None)
-    ParameterS(false, closurePattern)
+      AtomSP(closureParamRange, Some(capture), Some(closureParamTypeRune), None)
+    ParameterS(closureParamRange, None, false, vimpl(), closurePattern)
   }
 
   private def createMagicParameters(
@@ -592,10 +605,13 @@ class FunctionScout(
         runeToExplicitType += ((magicParamRune.rune, CoordTemplataType()))
         val paramS =
           ParameterS(
+            magicParamRange,
+            None,
             false,
+            vimpl(),
             AtomSP(
               magicParamRange,
-              Some(patterns.CaptureS(mpn)), None, Some(magicParamRune), None))
+              Some(patterns.CaptureS(mpn)), Some(magicParamRune), None))
         paramS
       }
     })

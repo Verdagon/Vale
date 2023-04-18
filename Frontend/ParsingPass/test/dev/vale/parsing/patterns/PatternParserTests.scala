@@ -33,22 +33,20 @@ class PatternParserTests extends FunSuite with Matchers with Collector with Test
   }
   test("Name-only Capture") {
     compile("a") match {
-      case PatternPP(_, _,Some(LocalNameDeclarationP(NameP(_, StrI("a")))), None, None, None, None) =>
+      case PatternPP(_, Some(LocalNameDeclarationP(NameP(_, StrI("a")))), None, None) =>
     }
   }
   test("Empty pattern") {
-    compile("_") match { case PatternPP(_,_, Some(IgnoredLocalNameDeclarationP(_)),None,None,None,None) => }
+    compile("_") match { case PatternPP(_, Some(IgnoredLocalNameDeclarationP(_)),None,None) => }
   }
 
   test("Capture with type with destructure") {
     compile("a Moo[a, b]") shouldHave {
       case PatternPP(
-          _,_,
+          _,
           Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
-          None,
           Some(NameOrRunePT(NameP(_, StrI("Moo")))),
-          Some(DestructureP(_,Vector(capture("a"),capture("b")))),
-          None) =>
+          Some(DestructureP(_,Vector(capture("a"),capture("b"))))) =>
     }
   }
 
@@ -57,28 +55,24 @@ class PatternParserTests extends FunSuite with Matchers with Collector with Test
     // This tests us handling an ambiguity properly, see CSTODTS in docs.
     compile("moo T[a int]") shouldHave {
       case PatternPP(
-          _,_,
+          _,
           Some(LocalNameDeclarationP(NameP(_, StrI("moo")))),
-          None,
           Some(NameOrRunePT(NameP(_, StrI("T")))),
-          Some(DestructureP(_,Vector(PatternPP(_,_, Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,Some(NameOrRunePT(NameP(_, StrI("int")))),None,None)))),
-          None) =>
+          Some(DestructureP(_,Vector(PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),Some(NameOrRunePT(NameP(_, StrI("int")))),None))))) =>
     }
   }
 
   test("Capture with destructure with type outside") {
     compile("a (int, bool)[a, b]") shouldHave {
       case PatternPP(
-          _,_,
+          _,
           Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
-          None,
           Some(
             TuplePT(_,
                   Vector(
                     NameOrRunePT(NameP(_, StrI("int"))),
                     NameOrRunePT(NameP(_, StrI("bool")))))),
-          Some(DestructureP(_,Vector(capture("a"), capture("b")))),
-          None) =>
+          Some(DestructureP(_,Vector(capture("a"), capture("b"))))) =>
     }
   }
 

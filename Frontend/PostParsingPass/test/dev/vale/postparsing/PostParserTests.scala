@@ -8,7 +8,7 @@ import dev.vale.postparsing.rules.{LiteralSR, MaybeCoercingLookupSR, MutabilityL
 import dev.vale.solver.IncompleteSolve
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
-import dev.vale.postparsing.patterns.AbstractSP
+import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules._
 import dev.vale.solver.IncompleteSolve
 import org.scalatest.{FunSuite, Matchers}
@@ -221,10 +221,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val BlockSE(_, _, ConsecutorSE(things)) = block
     val lambdas = Collector.all(things, { case f @ FunctionSE(_) => f }).toList
     lambdas.head.function.params match {
-      case Vector(_, ParameterS(false, AtomSP(_, Some(CaptureS(MagicParamNameS(_))), None, Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
+      case Vector(_, ParameterS(_, _, false, _, AtomSP(_, Some(CaptureS(MagicParamNameS(_))), Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
     }
     lambdas.last.function.params match {
-      case Vector(_, ParameterS(false, AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")))), None, Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
+      case Vector(_, ParameterS(_, _, false, _, AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")))), Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
     }
   }
 
@@ -248,13 +248,13 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     Collector.only(exprs, {
       case LetSE(_,
       _,
-      AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")))), None, _, None),
+      AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")))), _, None),
       ConstantIntSE(_, 4, _)) =>
     })
     Collector.only(exprs, {
       case LetSE(_,
         _,
-        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")))), None, _, None),
+        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")))), _, None),
         ConstantBoolSE(_, true)) =>
     })
     Collector.only(exprs, {
@@ -366,12 +366,12 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     Collector.only(block, {
       case LetSE(_, _,
-        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")))), None, _, None),
+        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")))), _, None),
         ConstantIntSE(_, 4, _)) =>
     })
     Collector.only(block, {
       case LetSE(_, _,
-        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")))), None, _, None),
+        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")))), _, None),
         LocalLoadSE(_, ConstructingMemberNameS(StrI("x")), LoadAsBorrowP)) =>
     })
     Collector.only(block, {
@@ -406,12 +406,12 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(IterableNameS(_))),None,None,None),
+        AtomSP(_,Some(CaptureS(IterableNameS(_))),None,None),
         OutsideLoadSE(_,_,CodeNameS(StrI("myList")),None,UseP)) =>
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(IteratorNameS(_))),None,None,None),
+        AtomSP(_,Some(CaptureS(IteratorNameS(_))),None,None),
         FunctionCallSE(_,_,
           OutsideLoadSE(_,_,CodeNameS(StrI("begin")),None,LoadAsBorrowP),
           Vector(LocalLoadSE(_,IterableNameS(_),LoadAsBorrowP)))) =>
@@ -421,7 +421,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(IterationOptionNameS(_))),None,None,None),
+        AtomSP(_,Some(CaptureS(IterationOptionNameS(_))),None,None),
         FunctionCallSE(_,_,
           OutsideLoadSE(_,_,CodeNameS(StrI("next")),None,LoadAsBorrowP),
           Vector(
@@ -438,7 +438,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(CodeVarNameS(StrI("i")))),None,None,None),
+        AtomSP(_,Some(CaptureS(CodeVarNameS(StrI("i")))),None,None),
         FunctionCallSE(_,_,
           OutsideLoadSE(_,_,CodeNameS(StrI("get")),None,LoadAsBorrowP),
           Vector(LocalLoadSE(_,IterationOptionNameS(_),UseP)))) =>

@@ -491,7 +491,7 @@ class ExpressionScout(
           val maybeTypeRuneS =
             maybeTypePT.map(typePT => {
               templexScout.translateTemplex(
-                stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, typePT)
+                stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, typePT)._2
             })
           val mutabilityRuneS =
             maybeMutabilityPT match {
@@ -502,7 +502,7 @@ class ExpressionScout(
               }
               case Some(mutabilityPT) => {
                 templexScout.translateTemplex(
-                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, mutabilityPT)
+                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, mutabilityPT)._2
               }
             }
           val variabilityRuneS =
@@ -514,7 +514,7 @@ class ExpressionScout(
               }
               case Some(variabilityPT) => {
                 templexScout.translateTemplex(
-                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, variabilityPT)
+                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, variabilityPT)._2
               }
             }
 
@@ -544,7 +544,7 @@ class ExpressionScout(
                           lidb.child(),
                           ruleBuilder,
                           stackFrame0.contextRegion,
-                          sizePT))
+                          sizePT)._2)
                     }
                   }
 
@@ -732,7 +732,7 @@ class ExpressionScout(
 
           val patternS =
             patternScout.translatePattern(
-              stackFrame1, lidb.child(), ruleBuilder, runeToExplicitType, patternP)
+              stackFrame1, lidb.child(), ruleBuilder, runeToExplicitType, patternP)._2
 
           val declarationsFromPattern = vale.postparsing.VariableDeclarations(patternScout.getParameterCaptures(patternS))
 
@@ -851,7 +851,7 @@ class ExpressionScout(
             maybeTemplateArgs.map(templateArgs => {
               templateArgs.map(templateArgPT => {
                 templexScout.translateTemplex(
-                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
+                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)._2
               })
             })
           val load = vale.postparsing.OutsideLoadSE(range, ruleBuilder.toVector, interner.intern(CodeNameS(name)), maybeTemplateArgRunes, loadAsP)

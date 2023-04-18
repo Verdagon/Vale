@@ -1,9 +1,9 @@
 
-pure extern func streq<r'>(
-  aContainerStr r'str,
-  aBegin r'int,
-  aEnd r'int,
-  bContainerStr r'str,
-  bBegin r'int,
-  bEnd r'int)
+extern func streq<a', b'>(
+  aContainerStr a'str,
+  aBegin int,
+  aEnd int,
+  bContainerStr b'str,
+  bBegin int,
+  bEnd int)
 bool;

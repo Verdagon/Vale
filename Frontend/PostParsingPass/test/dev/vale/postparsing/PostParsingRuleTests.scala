@@ -4,7 +4,6 @@ import dev.vale.{Err, FileCoordinateMap, Interner, Ok, RangeS, StrI, vassertSome
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing._
 import dev.vale.postparsing._
-import dev.vale.postparsing.patterns.AbstractSP
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.List

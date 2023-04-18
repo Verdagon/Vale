@@ -318,7 +318,7 @@ object PostParser {
     val defaultS =
       maybeDefault.map(defaultPT => {
         val uncategorizedRules = ArrayBuffer[IRulexSR]()
-        val resultRune = templexScout.translateTemplex(env, lidb, uncategorizedRules, contextRegion, defaultPT)
+        val resultRune = templexScout.translateTemplex(env, lidb, uncategorizedRules, contextRegion, defaultPT)._2
         uncategorizedRules += EqualsSR(genericParamRangeS, runeS, resultRune)
 
         val rulesToLeaveInDefaultArgument = new Accumulator[IRulexSR]()
@@ -471,7 +471,7 @@ class PostParser(
         rangeS,
         ruleBuilder,
         defaultRegionRuneS,
-        Some(struct))
+        Some(struct))._2
 
     val interfaceRune =
       templexScout.translateMaybeTypeIntoRune(
@@ -480,7 +480,7 @@ class PostParser(
         rangeS,
         ruleBuilder,
         defaultRegionRuneS,
-        Some(interface))
+        Some(interface))._2
 
     val subCitizenImpreciseName =
       struct match {
@@ -537,7 +537,7 @@ class PostParser(
       (regionRange, rune, implicitRegionGenericParam)
     }
 
-    val runeS = templexScout.translateTemplex(exportEnv, lidb, ruleBuilder, defaultRegionRuneS, templexP)
+    val runeS = templexScout.translateTemplex(exportEnv, lidb, ruleBuilder, defaultRegionRuneS, templexP)._2
 
     postparsing.ExportAsS(rangeS, ruleBuilder.toVector, regionGenericParam, defaultRegionRuneS, exportName, runeS, exportedName.str)
   }
@@ -639,7 +639,7 @@ class PostParser(
       mutabilityPT.getOrElse(MutabilityPT(RangeL(bodyRangeP.begin, bodyRangeP.begin), MutableP))
     val mutabilityRuneS =
       templexScout.translateTemplex(
-        structEnv, lidb.child(), headerRuleBuilder, defaultRegionRuneS, mutability)
+        structEnv, lidb.child(), headerRuleBuilder, defaultRegionRuneS, mutability)._2
     headerRuneToExplicitType += ((mutabilityRuneS.rune, MutabilityTemplataType()))
 
     val membersS =
@@ -647,14 +647,14 @@ class PostParser(
         case NormalStructMemberP(range, name, variability, memberType) => {
           val memberRune =
             templexScout.translateTemplex(
-              structEnv, lidb.child(), memberRuleBuilder, defaultRegionRuneS, memberType)
+              structEnv, lidb.child(), memberRuleBuilder, defaultRegionRuneS, memberType)._2
           membersRuneToExplicitType.put(memberRune.rune, CoordTemplataType())
           Vector(NormalStructMemberS(PostParser.evalRange(structEnv.file, range), name.str, variability, memberRune))
         }
         case VariadicStructMemberP(range, variability, memberType) => {
           val memberRune =
             templexScout.translateTemplex(
-              structEnv, lidb.child(), memberRuleBuilder, defaultRegionRuneS, memberType)
+              structEnv, lidb.child(), memberRuleBuilder, defaultRegionRuneS, memberType)._2
           membersRuneToExplicitType.put(memberRune.rune, PackTemplataType(CoordTemplataType()))
           Vector(VariadicStructMemberS(PostParser.evalRange(structEnv.file, range), variability, memberRune))
         }
@@ -839,7 +839,7 @@ class PostParser(
       mutabilityPT.getOrElse(MutabilityPT(RangeL(bodyRangeP.begin, bodyRangeP.begin), MutableP))
     val mutabilityRuneS =
       templexScout.translateTemplex(
-        interfaceEnv, lidb.child(), ruleBuilder, defaultRegionRuneS, mutability)
+        interfaceEnv, lidb.child(), ruleBuilder, defaultRegionRuneS, mutability)._2
 
 
     val rulesS = ruleBuilder.toVector

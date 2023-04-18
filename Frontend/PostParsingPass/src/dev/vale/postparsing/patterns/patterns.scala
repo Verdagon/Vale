@@ -22,16 +22,8 @@ case class AtomSP(
   // remember the LocalSs in scope. But it'd be even more difficult for Scout to know the Used/NotUsed
   // etc up-front to include in the pattern.
   name: Option[CaptureS],
-  virtuality: Option[AbstractSP],
   coordRune: Option[RuneUsage],
   destructure: Option[Vector[AtomSP]]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }
-
-case class AbstractSP(
-  range: RangeS,
-  // True if this is defined inside an interface
-  // False if this is a free function somewhere else
-  isInternalMethod: Boolean
-)
