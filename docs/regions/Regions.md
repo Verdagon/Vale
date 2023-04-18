@@ -867,7 +867,8 @@ Sending any owned values into the outside world isn't really supported yet in a 
 It does this by compiling the `extern` statement assuming that all regions are `ext'`, the extern function's default region. The ExternFunctionCall AST node will do the proper transmigration for these values into native memory.
 
 
-# Primitives automatically transmigrated
+# Primitives Automatically Transmigrated to Default Region (PATDR)
+
 
 
 
@@ -1023,3 +1024,8 @@ if we can nail it, then we can put an array in its own region and mutex lock it,
 
 nm start w pure calls.
 just have a thing in the func env, vector of regions' mutabilities
+
+
+
+
+
