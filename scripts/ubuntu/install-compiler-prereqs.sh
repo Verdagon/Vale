@@ -23,7 +23,7 @@ bail() {
   exit 1
 }
 
-CLANG_VERSION="14.0.0"
+CLANG_VERSION="16.0.0"
 CLANG_UBUNTU_VERSION="18.04"
 
 INSTALL_DEBS=0
@@ -78,9 +78,9 @@ fi
 # Install Java
 if [[ $INSTALL_JAVA != 0 ]]; then
   echo -e "\n${TEXT_GREEN}Installing Java...${TEXT_RESET}"
-  apt-get install -y wget apt-transport-https gnupg
-  wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add -
-  echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+  sudo apt-get install -y wget apt-transport-https gnupg
+  wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo apt-key add -
+  echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | sudo tee /etc/apt/sources.list.d/adoptium.list
 
   sudo apt update
   sudo apt install temurin-11-jdk 
@@ -114,3 +114,5 @@ if [[ $LLVM_DIR != "" ]]; then
   tar xf /tmp/clang+llvm-$CLANG_VERSION-x86_64-linux-gnu-ubuntu-$CLANG_UBUNTU_VERSION.tar.xz -C $LLVM_DIR
   # Later, we'll need to feed this to a cmake command so it knows where the LLVM libraries are.
 fi
+
+
