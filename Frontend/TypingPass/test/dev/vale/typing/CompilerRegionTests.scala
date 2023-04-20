@@ -196,7 +196,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
   test("Access field of immutable object") {
     val compile = CompilerTestCompilation.test(
       """struct Ship { hp int; }
-        |func GetHp<r', x' rw>(map &r'Ship) r'int x'{ map.hp }
+        |func GetHp<r', x' rw>(map &r'Ship) x'int x'{ map.hp }
         |exported func main() int {
         |  ship = Ship(42);
         |  return GetHp(&ship);
@@ -253,7 +253,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
       """
         |#!DeriveStructDrop
         |struct Ship { hp int; }
-        |pure func bork<i' imm, f' rw>(x &i'Ship) i'int f'{
+        |pure func bork<i' imm, f' rw>(x &i'Ship) f'int f'{
         |  x.hp
         |}
         |exported func main() int {
@@ -308,7 +308,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
       """
         |#!DeriveStructDrop
         |struct Ship { hp int; }
-        |additive func bork<i' additive, f' rw>(x &i'Ship) i'int f'{
+        |additive func bork<i' additive, f' rw>(x &i'Ship) f'int f'{
         |  x.hp
         |}
         |exported func main() int {

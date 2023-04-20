@@ -67,17 +67,16 @@ object SourceCodeUtils {
     filenamesAndSources: FileCoordinateMap[String],
     codeLocationS: CodeLocationS):
   CodeLocationS = {
-    val (begin, end) = lineRangeContaining(filenamesAndSources, codeLocationS)
-    CodeLocationS(codeLocationS.file, begin)
+    lineRangeContaining(filenamesAndSources, codeLocationS).begin
   }
 
   def lineRangeContaining(
     filenamesAndSources: FileCoordinateMap[String],
     codeLocationS: CodeLocationS):
-  (Int, Int) = {
+  RangeS = {
     val CodeLocationS(file, offset) = codeLocationS
     if (offset < 0) {
-      return (-1, 0)
+      return RangeS(CodeLocationS(file, -1), CodeLocationS(file, 0))
     }
     val text = filenamesAndSources(file)
     // TODO: can optimize this perhaps
@@ -85,16 +84,16 @@ object SourceCodeUtils {
     while (lineBegin < text.length) {
       val lineEnd =
         text.indexOf('\n', lineBegin) match {
-          case -1 => return (lineBegin, text.length)
+          case -1 => return RangeS(CodeLocationS(file, lineBegin), CodeLocationS(file, text.length))
           case other => other
         }
       if (lineBegin <= offset && offset <= lineEnd) {
-        return (lineBegin, lineEnd)
+        return RangeS(CodeLocationS(file, lineBegin), CodeLocationS(file, lineEnd))
       }
       lineBegin = lineEnd + 1
     }
     if (offset == text.length) {
-      return (lineBegin, lineBegin)
+      return RangeS(CodeLocationS(file, lineBegin), CodeLocationS(file, lineBegin))
     }
     vfail()
   }
@@ -104,7 +103,7 @@ object SourceCodeUtils {
     filenamesAndSources: FileCoordinateMap[String],
     beginCodeLoc: CodeLocationS,
     endCodeLoc: CodeLocationS):
-  Vector[(Int, Int)] = {
+  Vector[RangeS] = {
     vassert(beginCodeLoc.file == endCodeLoc.file)
     vassert(beginCodeLoc.offset <= endCodeLoc.offset)
 
@@ -114,19 +113,22 @@ object SourceCodeUtils {
     }
     val result = ArrayBuffer[(Int, Int)]()
 
-    var (lineBegin, lineEnd) = lineRangeContaining(filenamesAndSources, beginCodeLoc)
+    var RangeS(CodeLocationS(_, lineBegin), CodeLocationS(_, lineEnd)) =
+      lineRangeContaining(filenamesAndSources, beginCodeLoc)
     result += ((lineBegin, lineEnd))
     val text = filenamesAndSources(file)
     while (lineBegin < endCodeLoc.offset && lineBegin < text.length) {
-      lineBegin = lineEnd + 1
       lineEnd =
         text.indexOf('\n', lineBegin) match {
           case -1 => text.length
           case other => other
         }
       result += ((lineBegin, lineEnd))
+      lineBegin = lineEnd + 1
     }
-    return result.toVector
+    result.map({ case (begin, end) =>
+      RangeS(CodeLocationS(file, begin), CodeLocationS(file, end))
+    }).toVector
   }
 
   def lineContaining(
@@ -136,7 +138,8 @@ object SourceCodeUtils {
     if (codeLocationS.file.isInternal) {
       return humanizeFile(codeLocationS.file)
     }
-    val (lineBegin, lineEnd) = lineRangeContaining(filenamesAndSources, codeLocationS)
+    var RangeS(CodeLocationS(_, lineBegin), CodeLocationS(_, lineEnd)) =
+        lineRangeContaining(filenamesAndSources, codeLocationS)
     val text = filenamesAndSources(codeLocationS.file)
     text.substring(lineBegin, lineEnd)
   }

@@ -185,7 +185,11 @@ class LoadHammer(
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, indexExpr2);
     val indexAccess = indexExprResultLine.expectIntAccess()
 
-    vassert(targetOwnership == finalast.MutableBorrowH || targetOwnership == finalast.ImmutableBorrowH || targetOwnership == finalast.MutableShareH || targetOwnership == finalast.ImmutableShareH)
+    vassert(
+      targetOwnership == finalast.MutableBorrowH ||
+        targetOwnership == finalast.ImmutableBorrowH ||
+        targetOwnership == finalast.MutableShareH ||
+        targetOwnership == finalast.ImmutableShareH)
 
     val ssa = hamuts.getStaticSizedArray(arrayAccess.resultType.kind)
     val expectedElementType = ssa.elementType

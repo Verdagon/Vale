@@ -778,6 +778,13 @@ case class SoftLoadIE(
   // This is just here to try the asserts inside Coord's constructor
   CoordI[cI](targetOwnership, expr.result.kind)
 
+  result.kind match {
+    case IntIT(_) | BoolIT() | FloatIT() => {
+      vassert(targetOwnership == MutableShareI)
+    }
+    case _ =>
+  }
+
 //  override def resultRemoveMe: CoordI[cI] = {
 //    ReferenceResultI(CoordI[cI](targetOwnership, expr.result.kind))
 //  }

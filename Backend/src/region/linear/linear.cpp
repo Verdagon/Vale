@@ -87,7 +87,7 @@ void Linear::declareExtraFunctions() {
       globalState->rcImm->getRegionRefType();
   auto prototype =
       globalState->metalCache->getPrototype(
-          globalState->serializeName, mutLinearStrRefMT, {regionRefMT, sourceRegionRefMT, valeMutStrMT, boolMT});
+          globalState->serializeName, mutLinearStrRefMT, {regionRefMT, sourceRegionRefMT, valeImmStrMT, boolMT});
   auto nameL = globalState->serializeName->name + "__str";
   declareExtraFunction(globalState, prototype, nameL);
 }
@@ -1554,7 +1554,7 @@ Prototype* Linear::getSerializePrototype(Kind* valeKind) {
   auto boolMT = globalState->metalCache->boolRef;
   auto sourceStructRefMT =
       globalState->metalCache->getReference(
-          Ownership::MUTABLE_SHARE, Location::YONDER, valeKind);
+          Ownership::IMMUTABLE_SHARE, Location::YONDER, valeKind);
   auto hostRefMT = linearizeReference(sourceStructRefMT, true);
   auto sourceRegionRefMT =
       globalState->getRegion(sourceStructRefMT)->getRegionRefType();
@@ -1567,10 +1567,10 @@ Prototype* Linear::getSerializeThunkPrototype(StructKind* structKind, InterfaceK
   auto boolMT = globalState->metalCache->boolRef;
   auto valeStructRefMT =
       globalState->metalCache->getReference(
-          Ownership::MUTABLE_SHARE, Location::YONDER, structKind);
+          Ownership::IMMUTABLE_SHARE, Location::YONDER, structKind);
   auto valeInterfaceRefMT =
       globalState->metalCache->getReference(
-          Ownership::MUTABLE_SHARE, Location::YONDER, interfaceKind);
+          Ownership::IMMUTABLE_SHARE, Location::YONDER, interfaceKind);
   auto hostRefMT = linearizeReference(valeInterfaceRefMT, true);
   auto sourceRegionRefMT = globalState->getRegion(interfaceKind)->getRegionRefType();
   return globalState->metalCache->getPrototype(
@@ -1644,7 +1644,7 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
             globalState->getRegion(valeKind)->getRegionRefType(), LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
         auto valeObjectRef = wrap(globalState->getRegion(valeObjectRefMT), valeObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
         auto valeObjectLiveRef =
-            checkRefLive(FL(), functionState, builder, sourceRegionInstanceRef, valeObjectRefMT, valeObjectRef, false);
+            globalState->getRegion(valeObjectRefMT)->checkRefLive(FL(), functionState, builder, sourceRegionInstanceRef, valeObjectRefMT, valeObjectRef, false);
         auto dryRunBoolRef = wrap(globalState->getRegion(boolMT), boolMT, LLVMGetParam(functionState->containingFuncL, 3 + 1)); // DO NOT SUBMIT
 
         if (auto valeStructKind = dynamic_cast<StructKind *>(valeObjectRefMT->kind)) {
@@ -1964,9 +1964,9 @@ InterfaceKind* Linear::linearizeInterfaceKind(InterfaceKind* kindMT) {
 Reference* Linear::linearizeReference(Reference* immRcRefMT, bool mut) {
   assert(globalState->getRegion(immRcRefMT) == globalState->rcImm);
   auto hostKind = hostKindByValeKind.find(immRcRefMT->kind)->second;
-  assert(immRcRefMT->ownership == Ownership::MUTABLE_SHARE);
+  assert(immRcRefMT->ownership == Ownership::IMMUTABLE_SHARE || immRcRefMT->ownership == Ownership::MUTABLE_SHARE);
   return globalState->metalCache->getReference(
-      Ownership::MUTABLE_SHARE, //mut ? Ownership::MUTABLE_SHARE : Ownership::IMMUTABLE_SHARE,
+      mut ? Ownership::MUTABLE_SHARE : Ownership::IMMUTABLE_SHARE,
       immRcRefMT->location,
       hostKind);
 }

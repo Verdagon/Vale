@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, finalast, vfail, vwat}
+import dev.vale._
 import dev.vale.finalast.IdH
 import dev.vale.finalast._
 import dev.vale.postparsing.AnonymousSubstructParentInterfaceTemplateRuneS
@@ -10,7 +10,7 @@ import dev.vale.von.{IVonData, VonArray, VonInt, VonMember, VonObject, VonStr}
 
 import scala.collection.immutable.List
 
-class NameHammer(translateName: (HinputsI, HamutsBox, INameI[cI]) => IVonData) {
+class NameHammer() {
   def getReadableName(namePart: INameI[cI]): String = {
     namePart match {
       case SelfNameI() => "self"
@@ -65,16 +65,10 @@ class NameHammer(translateName: (HinputsI, HamutsBox, INameI[cI]) => IVonData) {
     hamuts: HamutsBox,
     fullName2: IdI[cI, INameI[cI]]
   ): IdH = {
-    val IdI(packageCoord@PackageCoordinate(project, packageSteps), _, _) = fullName2
-    val newNameParts = fullName2.steps.map(step => translateName(hinputs, hamuts, step))
-    val readableName = getReadableName(fullName2.localName)
-
-    val id =
-      fullName2.localName match {
-        case ExternFunctionNameI(_, _) | ExternNameI(_, _) => -1
-        case _ => hamuts.getNameId(readableName, packageCoord, newNameParts)
-      }
-    finalast.IdH(readableName, id, packageCoord, newNameParts)
+    val IdI(packageCoord, _, localNameT) = fullName2
+    val longName = InstantiatedHumanizer.humanizeId(_.toString, fullName2)
+    val localName = InstantiatedHumanizer.humanizeName(_.toString, localNameT)
+    finalast.IdH(localName, packageCoord, longName, longName)
   }
 
   // Adds a step to the name.
@@ -83,9 +77,8 @@ class NameHammer(translateName: (HinputsI, HamutsBox, INameI[cI]) => IVonData) {
     fullName: IdH,
     s: String):
   IdH = {
-    val newNameParts = fullName.parts :+ VonStr(s)
-    val id = hamuts.getNameId(s, fullName.packageCoordinate, newNameParts)
-    IdH(s, id, fullName.packageCoordinate, newNameParts)
+    val IdH(_, packageCoordinate, shortenedName, fullyQualifiedName) = fullName
+    IdH(s, packageCoordinate, shortenedName + "." + s, fullyQualifiedName + "." + s)
   }
 }
 

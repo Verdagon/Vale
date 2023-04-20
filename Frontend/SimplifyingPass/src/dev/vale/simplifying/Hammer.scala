@@ -92,9 +92,9 @@ case class Locals(
     val newLocalHeight = locals.size
     val newLocalIdNumber = nextLocalIdNumber
     val newLocalId = VariableIdH(newLocalIdNumber, newLocalHeight, Some(varIdNameH))
-    // Temporary until catalyst fills in stuff here
-    val keepAlive = newLocalId.name.map(_.readableName).getOrElse("").endsWith("__tether");
-    val newLocal = Local(newLocalId, variability, tyype, keepAlive)
+//    // Temporary until catalyst fills in stuff here
+//    val keepAlive = newLocalId.name.map(_.readableName).getOrElse("").endsWith("__tether");
+    val newLocal = Local(newLocalId, variability, tyype)
     val newLocals =
       Locals(
         typingPassLocals + (varId2 -> newLocalId),
@@ -111,7 +111,7 @@ case class Locals(
     val newLocalHeight = locals.size
     val newLocalIdNumber = nextLocalIdNumber
     val newLocalId = VariableIdH(newLocalIdNumber, newLocalHeight, None)
-    val newLocal = Local(newLocalId, variability, tyype, false)
+    val newLocal = Local(newLocalId, variability, tyype)
     val newLocals =
       Locals(
         typingPassLocals,
@@ -160,10 +160,7 @@ case class Locals(
 }
 
 class Hammer(interner: Interner, keywords: Keywords) {
-  val nameHammer: NameHammer =
-    new NameHammer((hinputs, hamuts, step) => {
-      vonHammer.translateName(hinputs, hamuts, step)
-    })
+  val nameHammer: NameHammer = new NameHammer()
   val structHammer: StructHammer =
     new StructHammer(
       interner,
