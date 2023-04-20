@@ -230,6 +230,7 @@ Ref replayReturnOrCallAndOrRecord(
                 // write that we're calling this particular function
                 globalState->determinism->buildWriteCallBeginToFile(builder, prototype);
 
+                buildFlare(FL(), globalState, functionState, builder, "Recording arguments for ", prototype->name->name);
                 // write the argument to the file
                 for (int i = 0; i < args.size(); i++) {
                   auto valeArgRefMT = prototype->params[i];
@@ -245,10 +246,14 @@ Ref replayReturnOrCallAndOrRecord(
                   }
                 }
 
+                buildFlare(FL(), globalState, functionState, builder, "Calling extern for ", prototype->name->name);
                 auto valeReturnRef = callUserExtern(builder);
 
                 // Signal that we're ending the call, rather than having some exports call into us.
                 globalState->determinism->buildRecordCallEnd(builder, prototype);
+
+                buildFlare(FL(), globalState, functionState, builder, "Recording return for ", prototype->name->name);
+
                 // write to the file what we received from C
                 if (valeReturnRefMT->ownership == Ownership::MUTABLE_SHARE || valeReturnRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
                   globalState->determinism->buildWriteValueToFile(
@@ -285,10 +290,12 @@ Ref replayReturnOrCallAndOrRecord(
                 }
 
                 if (whitelisted) {
+                  buildFlare(FL(), globalState, functionState, builder, "Allowing whitelisted call for ", prototype->name->name);
                   auto valeReturnRef = callUserExtern(builder);
                   // Ignore the return value, we'll still be using the one from the file.
                   // Later on, we'll add an exception for opaque types here.
                 } else {
+                  buildFlare(FL(), globalState, functionState, builder, "Skipping call for ", prototype->name->name);
                   // Dealias all the incoming arguments, we don't care about them when we're not
                   // actually calling that extern function.
                   for (int i = 0; i < args.size(); i++) {
@@ -307,11 +314,12 @@ Ref replayReturnOrCallAndOrRecord(
                   }
                 }
 
-                buildFlare(FL(), globalState, functionState, builder);
+                buildFlare(FL(), globalState, functionState, builder, "Replaying export calls for ", prototype->name->name);
                 replayExportCalls(globalState, functionState, builder);
 
                 // above, we consumed a marker that said we're ending this current extern call.
 
+                buildFlare(FL(), globalState, functionState, builder, "Replaying return value for ", prototype->name->name);
                 Ref valeReturnRef =
                     ((valeReturnRefMT->ownership == Ownership::MUTABLE_SHARE || valeReturnRefMT->ownership == Ownership::IMMUTABLE_SHARE) ?
                      globalState->determinism->buildReadValueFromFile(functionState, builder, valeReturnRefMT) :
@@ -501,16 +509,24 @@ Ref buildExternCall(
         globalState->getRegion(globalState->metalCache->mutStrRef)
             ->createRegionInstanceLocal(functionState, builder);
 
+    auto expectedOwnership = prototype->params[0]->ownership;
+    assert(expectedOwnership == Ownership::IMMUTABLE_SHARE || expectedOwnership == Ownership::MUTABLE_SHARE);
+
+    auto expectedType =
+        expectedOwnership == Ownership::MUTABLE_SHARE ?
+        globalState->metalCache->mutStrRef :
+        globalState->metalCache->immStrRef;
+
     auto strLiveRef =
-        globalState->getRegion(globalState->metalCache->mutStrRef)
-        ->checkRefLive(FL(), functionState, builder, strRegionInstanceRef, globalState->metalCache->mutStrRef, args[0], false);
+        globalState->getRegion(expectedType)
+        ->checkRefLive(FL(), functionState, builder, strRegionInstanceRef, expectedType, args[0], false);
 
     auto resultLenLE =
-        globalState->getRegion(globalState->metalCache->mutStrRef)
+        globalState->getRegion(expectedType)
         ->getStringLen(
-            functionState, builder, globalState->metalCache->mutStrRef, strRegionInstanceRef, strLiveRef);
-    globalState->getRegion(globalState->metalCache->mutStrRef)
-        ->dealias(FL(), functionState, builder, globalState->metalCache->mutStrRef, args[0]);
+            functionState, builder, expectedType, strRegionInstanceRef, strLiveRef);
+    globalState->getRegion(expectedType)
+        ->dealias(FL(), functionState, builder, expectedType, args[0]);
     return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultLenLE);
   } else if (prototype->name->name == "__vbi_addFloatFloat") {
     assert(args.size() == 2);

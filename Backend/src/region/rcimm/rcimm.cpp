@@ -93,7 +93,13 @@ void RCImm::alias(
     if (sourceRef->location == Location::INLINE) {
       // Do nothing, we can just let inline structs disappear
     } else {
-      adjustStrongRc(from, globalState, functionState, &kindStructs, builder, ref, sourceRef, 1);
+      if (sourceRef->ownership == Ownership::IMMUTABLE_SHARE) {
+        // Do nothing, immutable yonders need no RC adjustments.
+      } else if (sourceRef->ownership == Ownership::MUTABLE_SHARE) {
+        adjustStrongRc(from, globalState, functionState, &kindStructs, builder, ref, sourceRef, 1);
+      } else {
+        assert(false);
+      }
     }
   } else {
     std::cerr << "Unimplemented type in acquireReference: "
@@ -756,29 +762,36 @@ void RCImm::discard(
       buildFlare(FL(), globalState, functionState, builder);
       // Do nothing, we can just let inline structs disappear
     } else {
-      buildFlare(FL(), globalState, functionState, builder);
-      auto rcLE =
-          adjustStrongRc(
-              from, globalState, functionState, &kindStructs, builder, sourceRef, sourceMT, -1);
-      buildFlare(FL(), globalState, functionState, builder, rcLE);
-      buildIfV(
-          globalState, functionState,
-          builder,
-          isZeroLE(builder, rcLE),
-          [this, from, globalState, functionState, sourceRef, sourceMT](LLVMBuilderRef thenBuilder) {
-            buildFlare(FL(), globalState, functionState, thenBuilder);
-            auto regionInstanceRef = makeRegionInstance(thenBuilder);
-            callFree(functionState, thenBuilder, regionInstanceRef, sourceMT->kind, sourceRef);
-//            auto immDestructor = getFreePrototype(sourceMT->kind);
-////                globalState->program->getImmDestructor(sourceMT->kind);
-//            auto funcL = globalState->getFunction(immDestructor);
-//
-//            auto sourceLE =
-//                globalState->getRegion(sourceMT)->checkValidReference(FL(),
-//                    functionState, thenBuilder, true, sourceMT, sourceRef);
-//            std::vector<LLVMValueRef> argExprsL = {sourceLE};
-//            return unmigratedLLVMBuildCall(thenBuilder, funcL, argExprsL.data(), argExprsL.size(), "");
-          });
+      if (sourceMT->ownership == Ownership::IMMUTABLE_SHARE) {
+        // Do nothing, immutable yonders need no RC adjustments.
+      } else if (sourceMT->ownership == Ownership::MUTABLE_SHARE) {
+        buildFlare(FL(), globalState, functionState, builder);
+        auto rcLE =
+            adjustStrongRc(
+                from, globalState, functionState, &kindStructs, builder, sourceRef, sourceMT, -1);
+        buildFlare(FL(), globalState, functionState, builder, rcLE);
+        buildIfV(
+            globalState, functionState,
+            builder,
+            isZeroLE(builder, rcLE),
+            [this, from, globalState, functionState, sourceRef, sourceMT](
+                LLVMBuilderRef thenBuilder) {
+              buildFlare(FL(), globalState, functionState, thenBuilder);
+              auto regionInstanceRef = makeRegionInstance(thenBuilder);
+              callFree(functionState, thenBuilder, regionInstanceRef, sourceMT->kind, sourceRef);
+              //  auto immDestructor = getFreePrototype(sourceMT->kind);
+              ////      globalState->program->getImmDestructor(sourceMT->kind);
+              //  auto funcL = globalState->getFunction(immDestructor);
+              //
+              //  auto sourceLE =
+              //      globalState->getRegion(sourceMT)->checkValidReference(FL(),
+              //          functionState, thenBuilder, true, sourceMT, sourceRef);
+              //  std::vector<LLVMValueRef> argExprsL = {sourceLE};
+              //  return unmigratedLLVMBuildCall(thenBuilder, funcL, argExprsL.data(), argExprsL.size(), "");
+            });
+      } else {
+        assert(false);
+      }
     }
   } else {
     std::cerr << "Unimplemented type in discard: "
