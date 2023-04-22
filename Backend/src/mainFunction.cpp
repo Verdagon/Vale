@@ -98,23 +98,23 @@ Prototype* makeValeMainFunction(
         buildFlare(FL(), globalState, functionState, entryBuilder);
 
         if (globalState->opt->printMemOverhead) {
-          buildPrint(globalState, entryBuilder, "\nRC adjustments: ");
-          buildPrint(
+          buildPrintToStderr(globalState, entryBuilder, "\nRC adjustments: ");
+          buildPrintToStderr(
               globalState, entryBuilder,
               LLVMBuildLoad2(entryBuilder, int64LT, globalState->mutRcAdjustCounterLE, "rcadjusts"));
 
 
-          buildPrint(globalState, entryBuilder, "\nLiveness checks: ");
-          buildPrint(
+          buildPrintToStderr(globalState, entryBuilder, "\nLiveness checks: ");
+          buildPrintToStderr(
               globalState, entryBuilder,
               LLVMBuildLoad2(entryBuilder, int64LT, globalState->livenessCheckCounterLE, "genprechecks"));
 
-          buildPrint(globalState, entryBuilder, "\nLiveness pre-checks: ");
-          buildPrint(
+          buildPrintToStderr(globalState, entryBuilder, "\nLiveness pre-checks: ");
+          buildPrintToStderr(
               globalState, entryBuilder,
               LLVMBuildLoad2(entryBuilder, int64LT, globalState->livenessPreCheckCounterLE, "genchecks"));
 
-          buildPrint(globalState, entryBuilder, "\n");
+          buildPrintToStderr(globalState, entryBuilder, "\n");
         }
 
 
