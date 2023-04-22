@@ -3,6 +3,7 @@ project(backend)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++17 -fvisibility=hidden")
 
+
 if (MSVC)
 	# Set the stack size to 4mb instead of the default 1mb for visual studio
 	# because for some reason 1mb is too small for the backend on Windows.

@@ -289,9 +289,46 @@ class PureTests extends FunSuite with Matchers {
           |""".stripMargin, false)
     val main = compile.getMonouts().lookupFunction("main")
 
-    compile.evalForKind(Vector()) match { case VonBool(false) => }
+    compile.evalForKind(Vector()) match { case VonBool(true) => }
   }
 
+  test("Pure function reading from local") {
+    val compile =
+      RunCompilation.test(
+        """
+          |pure func pureFunc<r'>(s r'str) bool {
+          |  true
+          |}
+          |exported func main() bool {
+          |  s = "abc";
+          |  return pureFunc(s);
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    compile.evalForKind(Vector()) match {
+      case VonBool(true) =>
+    }
+  }
+
+  test("Readonly function call inside pure block") {
+    val compile =
+      RunCompilation.test(
+        """
+          |func rofunc<r'>(s r'str) bool {
+          |  true
+          |}
+          |exported func main() bool {
+          |  s = "abc";
+          |  return pure block { rofunc(s) };
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    compile.evalForKind(Vector()) match {
+      case VonBool(true) =>
+    }
+  }
 
   test("Extern function with different regions") {
     val compile =

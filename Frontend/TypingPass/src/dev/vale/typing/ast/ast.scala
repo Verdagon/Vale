@@ -253,6 +253,7 @@ case class ValidHeaderCalleeCandidate(
   override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
 }
 case class ValidPrototypeTemplataCalleeCandidate(
+  pure: Boolean,
   maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
   prototype: PrototypeTemplataT
 ) extends IValidCalleeCandidate {

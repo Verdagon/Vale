@@ -376,7 +376,7 @@ class OverloadResolver(
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
                             vregionmut() // check regions?
-                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(vimpl(), prototype))
+                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(vimpl(), vimpl(), prototype))
                           }
                         }
                       }
@@ -451,19 +451,19 @@ class OverloadResolver(
                     //
                     //  }
 
-                    val (calleeContextRegion, newMaybeNearestPureHeight, newMaybeNearestAdditiveHeight) =
+                    val (calleeContextRegion, isPure, newMaybeNearestPureHeight, newMaybeNearestAdditiveHeight) =
                       if (ft.function.attributes.collectFirst({ case PureS => }).nonEmpty) {
                         val newHeight = callingEnv.currentHeight + 1
                         // The callee is going to reinterpret everything as pure, so we
                         // need to make a new region for it to use as its default region.
-                        (makeNewDefaultRegion(newHeight), Some(newHeight), callingEnv.additiveHeight)
+                        (makeNewDefaultRegion(newHeight), true, Some(newHeight), callingEnv.additiveHeight)
                       } else if (ft.function.attributes.collectFirst({ case AdditiveS => }).nonEmpty) {
                         val newHeight = callingEnv.currentHeight + 1
                         // The callee is going to reinterpret everything as pure, so we
                         // need to make a new region for it to use as its default region.
-                        (makeNewDefaultRegion(newHeight), callingEnv.pureHeight, Some(newHeight))
+                        (makeNewDefaultRegion(newHeight), false, callingEnv.pureHeight, Some(newHeight))
                       } else {
-                        (contextRegion, callingEnv.pureHeight, callingEnv.additiveHeight)
+                        (contextRegion, false, callingEnv.pureHeight, callingEnv.additiveHeight)
                       }
 
                     val perhapsTransmigratedArgs =
@@ -491,7 +491,7 @@ class OverloadResolver(
                               case Err(e) => return Err(e)
                               case Ok(()) =>
                             }
-                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(Some(calleeContextRegion), prototype))
+                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(isPure, Some(calleeContextRegion), prototype))
                           }
                         }
                       }
@@ -542,7 +542,7 @@ class OverloadResolver(
             val bounds = Map[IRuneS, PrototypeTemplataT]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-            Ok(ValidPrototypeTemplataCalleeCandidate(None, PrototypeTemplataT(declarationRange, prototype)))
+            Ok(ValidPrototypeTemplataCalleeCandidate(vimpl(), None, PrototypeTemplataT(declarationRange, prototype)))
           }
           case Err(fff) => Err(fff)
         }
@@ -806,7 +806,7 @@ class OverloadResolver(
         val ordinaryBanners =
           potentialBannersWithSameParamTypes.filter({
             case ValidCalleeCandidate(_, _, function) => false
-            case ValidPrototypeTemplataCalleeCandidate(_, prototype) => true
+            case ValidPrototypeTemplataCalleeCandidate(_, _, prototype) => true
             case ValidHeaderCalleeCandidate(_) => true
           })
         if (ordinaryBanners.isEmpty) {
@@ -861,7 +861,7 @@ class OverloadResolver(
       survivingBannerIndices
         .groupBy(index => {
           banners(index) match {
-            case ValidPrototypeTemplataCalleeCandidate(_, PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+            case ValidPrototypeTemplataCalleeCandidate(_, _, PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
               Some((firstHumanName, firstParameters, firstReturnType))
             }
             case _ => None
@@ -945,7 +945,7 @@ class OverloadResolver(
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
                 coutputs,callRange, callLocation, callingEnv, ft, templateArgs, contextRegion, args, verifyConclusions) match {
-              case EvaluateFunctionSuccess(prototype, inferences) => StampFunctionSuccess(vimpl(), prototype, inferences)
+              case EvaluateFunctionSuccess(prototype, inferences) => StampFunctionSuccess(vimpl(), vimpl(), prototype, inferences)
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
 //          } else {
@@ -958,7 +958,7 @@ class OverloadResolver(
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
             coutputs, callRange, callLocation, callingEnv, ft, templateArgs, contextRegion, args) match {
             case EvaluateFunctionSuccess(prototype, inferences) => {
-              StampFunctionSuccess(vimpl(), prototype, inferences)
+              StampFunctionSuccess(vimpl(), vimpl(), prototype, inferences)
             }
             case (EvaluateFunctionFailure(fffr)) => {
               throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))
@@ -969,11 +969,11 @@ class OverloadResolver(
       case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunctionTemplata).function.range
         vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
-        StampFunctionSuccess(vimpl(), PrototypeTemplataT(declarationRange, header.toPrototype), Map())
+        StampFunctionSuccess(vimpl(), vimpl(), PrototypeTemplataT(declarationRange, header.toPrototype), Map())
       }
-      case ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype) => {
+      case ValidPrototypeTemplataCalleeCandidate(pure, maybeNewRegion, prototype) => {
         vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
-        StampFunctionSuccess(maybeNewRegion, prototype, Map())
+        StampFunctionSuccess(pure, maybeNewRegion, prototype, Map())
       }
     }
   }

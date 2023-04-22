@@ -55,7 +55,7 @@ class CallCompiler(
         // we might be in the middle of a recursive call like:
         // func main():Int(main())
 
-        val StampFunctionSuccess(maybeNewRegion, prototype, inferences) =
+        val StampFunctionSuccess(pure, maybeNewRegion, prototype, inferences) =
           overloadCompiler.findFunction(
             overloadSetEnv,
             coutputs,
@@ -89,41 +89,18 @@ class CallCompiler(
           exact = true)
 
         vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
-        val callTE = ast.FunctionCallTE(prototype.prototype, argsExprs2)
+        // DO NOT SUBMIT merge this with the other code before FunctionCallTE's elsewhere
         val resultTE =
           maybeNewRegion match {
-            case None => callTE
+            case None => prototype.prototype.returnType
             case Some(newRegion) => {
               // If we get any instances that are part of the newRegion, we need to interpret them
               // to the contextRegion.
-
-              val resultCoord =
-                TemplataCompiler.mergeCoordRegions(
-                  interner, coutputs, Map(newRegion -> contextRegion), callTE.result.coord)
-
-//              val innerCoord = inner.result.coord
-//              val CoordT(innerOwnership, innerRegion, innerKind) = innerCoord
-//              vimpl()
-//              (innerOwnership, innerRegion, transmigrateResultToRegion) match {
-//                case (ShareT, PlaceholderTemplata(_, _), PlaceholderTemplata(_, _)) => {
-//                  ReferenceResultT(innerCoord.copy(region = transmigrateResultToRegion))
-//                }
-//                case (ImmutableShareT, RegionTemplata(false), RegionTemplata(true)) => {
-//                  ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), innerKind))
-//                }
-//                case (OwnT, PlaceholderTemplata(fullNameT, tyype), PlaceholderTemplata(fullNameT, tyype)) => {
-//                  vimpl()
-//                }
-//                case (MutableShareT, RegionTemplata(true), RegionTemplata(true)) => {
-//                  vwat()
-//                }
-//                case _ => vwat()
-//              }
-              PureTE(
-                callLocation, newRegion, Vector((contextRegion, newRegion)), callTE, resultCoord)
+              TemplataCompiler.mergeCoordRegions(
+                interner, coutputs, Map(newRegion -> contextRegion), prototype.prototype.returnType)
             }
           }
-        resultTE
+        FunctionCallTE(prototype.prototype, pure, maybeNewRegion, argsExprs2, resultTE)
       }
       case other => {
         evaluateCustomCall(
@@ -230,12 +207,14 @@ class CallCompiler(
 
     val actualArgsExprs2 = Vector(actualCallableExpr2) ++ givenArgsExprs2
 
+    val StampFunctionSuccess(pure, maybeNewRegion, prototype, inferences) = resolved
+
     val argTypes = actualArgsExprs2.map(_.result.coord)
-    if (argTypes != resolved.prototype.prototype.paramTypes) {
+    if (argTypes != prototype.prototype.paramTypes) {
       throw CompileErrorExceptionT(RangedInternalErrorT(
         range,
         "arg param type mismatch. params: " +
-          resolved.prototype.prototype.paramTypes +
+          prototype.prototype.paramTypes +
           " args: " +
           argTypes))
     }
@@ -244,12 +223,23 @@ class CallCompiler(
       coutputs,
       env,
       range,
-      resolved.prototype.prototype.paramTypes,
+      prototype.prototype.paramTypes,
       argTypes,
       exact = true)
 
     vassert(coutputs.getInstantiationBounds(resolved.prototype.prototype.id).nonEmpty)
-    val resultingExpr2 = FunctionCallTE(resolved.prototype.prototype, actualArgsExprs2);
+    // DO NOT SUBMIT merge this with the other place that calculates the call result
+    val resultTE =
+      maybeNewRegion match {
+        case None => prototype.prototype.returnType
+        case Some(newRegion) => {
+          // If we get any instances that are part of the newRegion, we need to interpret them
+          // to the contextRegion.
+          TemplataCompiler.mergeCoordRegions(
+            interner, coutputs, Map(newRegion -> contextRegion), prototype.prototype.returnType)
+        }
+      }
+    val resultingExpr2 = FunctionCallTE(resolved.prototype.prototype, pure, maybeNewRegion, actualArgsExprs2, vimpl());
 
     (resultingExpr2)
   }

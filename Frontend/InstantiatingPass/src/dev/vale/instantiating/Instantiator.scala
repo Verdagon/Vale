@@ -1896,79 +1896,46 @@ class Instantiator(
               localI, innerIE, collapseCoord(RegionCounter.countCoord(subjectiveResultIT), subjectiveResultIT))
           (subjectiveResultIT, exprIE)
         }
-        case PureTE(location, newDefaultRegionT, oldRegionToNewRegion, inner, resultCoordT) => {
-//          val oldPureHeight = currentPureHeight
+        case PureTE(newDefaultRegionT, innerTE, resultCoordT) => {
           val oldPerspectiveRegionT = perspectiveRegionT
-          val newDefaultRegionNameT =
-            newDefaultRegionT match {
-              case PlaceholderTemplataT(id @ IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
-                IdT(packageCoord, initSteps, r)
-              }
-              case other => vwat(other)
-            }
-          val newPerspectiveRegionT = newDefaultRegionNameT
-//          val newPureHeight = currentPureHeight + 1
-//          val newDefaultRegionName =
-//            translateRegionFullName(
-//              substitutions, perspectiveRegionT, newDefaultRegionNameT)
-          val newDefaultRegion = RegionTemplataI[sI](vassertSome(newDefaultRegionNameT.localName.height))
-          val oldSubstitutionsForThisDenizenTemplate =
-            substitutions.getOrElse(denizenTemplateName, Map())
-          val newSubstitutionsForThisDenizenTemplate =
-            oldSubstitutionsForThisDenizenTemplate + (newDefaultRegionNameT -> newDefaultRegion)
-          val newSubstitutions =
-            substitutions + (denizenTemplateName -> newSubstitutionsForThisDenizenTemplate)
-
-          val (innerSubjectiveIT, innerIE) =
-            translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, newSubstitutions, newPerspectiveRegionT, inner)
-
-          val resultFromWithinPureIT = innerSubjectiveIT
-          val resultFromWithinPureCE =
-            RegionCollapser.collapseCoord(
-              RegionCounter.countCoord(resultFromWithinPureIT), resultFromWithinPureIT)
-          val resultFromOutsidePureIT =
+          val resultOutsideIT =
             translateCoord(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, oldPerspectiveRegionT, resultCoordT)
-          val resultFromOutsidePureCE =
-            RegionCollapser.collapseCoord(
-              RegionCounter.countCoord(resultFromOutsidePureIT), resultFromOutsidePureIT)
+          val resultOutsideCT =
+            collapseCoord(RegionCounter.countCoord(resultOutsideIT), resultOutsideIT)
 
-          if (resultFromWithinPureCE.kind != resultFromOutsidePureCE.kind) {
+          val (innerIT, innerCE) =
+            runInNewPureRegion(
+              denizenName,
+              denizenBoundToDenizenCallerSuppliedThing,
+              env,
+              substitutions,
+              denizenTemplateName,
+              newDefaultRegionT,
+              (newSubstitutions, newPerspectiveRegionT) => {
+                translateRefExpr(
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing, env, newSubstitutions, newPerspectiveRegionT, innerTE)
+              })
+
+          // DO NOT SUBMIT combine with code in FunctionCallTE case
+          if (innerCE.result.kind != resultOutsideCT.kind) {
             vimpl("Transmigration unimplemented!")
           }
-
           val mutabilifyNeeded =
-            (resultFromWithinPureIT.ownership, resultFromOutsidePureIT.ownership) match {
+            (innerIT.ownership, resultOutsideIT.ownership) match {
               case (x, y) if x == y => false
               case (ImmutableBorrowI, MutableBorrowI) => true
               case (ImmutableShareI, MutableShareI) => true
               case other => vimpl(other)
             }
-
           val resultIE =
             if (mutabilifyNeeded) {
-              MutabilifyIE(innerIE, collapseCoord(RegionCounter.countCoord(resultFromOutsidePureIT), resultFromOutsidePureIT))
+              MutabilifyIE(innerCE, resultOutsideCT)
             } else {
-              innerIE
+              innerCE
             }
 
-          (resultFromOutsidePureIT, resultIE)
-
-//          MutabilifyIE(
-////            location,
-//////            newDefaultRegion,
-//////            oldRegionToNewRegion.map({ case (oldRegionT, newRegionT) =>
-//////              vassert(newRegionT == newDefaultRegionT)
-//////              val newRegion = newDefaultRegion
-//////              val oldRegion =
-//////                expectRegionTemplata(
-//////                  translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//////                    newSubstitutions, perspectiveRegionT, oldRegionT))
-//////              (oldRegion, newRegion)
-//////            }),
-//            )
-////            translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, oldPerspectiveRegionT, resultCoordT))
+          (resultOutsideIT, resultIE)
         }
         case BlockTE(inner) => {
           val (innerIT, innerIE) =
@@ -2037,15 +2004,8 @@ class Instantiator(
         case VoidLiteralTE(region) => {
           (CoordI[sI](MutableShareI, VoidIT()), VoidLiteralIE())
         }
-        case FunctionCallTE(prototypeT, args) => {
-          val (prototypeI, prototypeC) =
-            translatePrototype(
-              denizenName,
-              denizenBoundToDenizenCallerSuppliedThing,
-              substitutions,
-              perspectiveRegionT,
-              prototypeT)
-          val inners =
+        case FunctionCallTE(prototypeT, pure, maybeNewRegion, args, returnCoordT) => {
+          val innersIE =
             args.map(argTE => {
               val (argIT, argCE) =
                 translateRefExpr(
@@ -2056,9 +2016,98 @@ class Instantiator(
                 argCE
               }
             })
-          val resultIT = prototypeI.returnType
-          val resultIE = FunctionCallIE(prototypeC, inners, collapseCoord(RegionCounter.countCoord(resultIT), resultIT))
-          (resultIT, resultIE)
+
+          if (!pure) {
+            val (prototypeI, prototypeC) =
+              translatePrototype(
+                denizenName,
+                denizenBoundToDenizenCallerSuppliedThing,
+                substitutions,
+                perspectiveRegionT,
+                prototypeT)
+            vassert(
+              prototypeI.returnType ==
+                translateCoord(
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, returnCoordT))
+            val returnCoordIT =
+              translateCoord(
+                denizenName,
+                denizenBoundToDenizenCallerSuppliedThing,
+                substitutions,
+                perspectiveRegionT,
+                returnCoordT)
+            val returnCoordCT =
+              collapseCoord(RegionCounter.countCoord(returnCoordIT), returnCoordIT)
+            val resultIE = FunctionCallIE(prototypeC, innersIE, returnCoordCT)
+            (returnCoordIT, resultIE)
+          } else {
+            val newRegion = vassertSome(maybeNewRegion)
+            val oldPerspectiveRegionT = perspectiveRegionT
+            val returnCoordOutsideIT =
+              translateCoord(
+                denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, oldPerspectiveRegionT, returnCoordT)
+
+            val (returnCoordInsideIT, callCE) =
+              runInNewPureRegion(
+                denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, denizenTemplateName, newRegion,
+                (newSubstitutions, newPerspectiveRegionT) => {
+                  val returnCoordIT =
+                    translateCoord(
+                      denizenName,
+                      denizenBoundToDenizenCallerSuppliedThing,
+                      substitutions,
+                      perspectiveRegionT,
+                      returnCoordT)
+                  val returnCoordCT =
+                    collapseCoord(RegionCounter.countCoord(returnCoordIT), returnCoordIT)
+                  val (prototypeI, prototypeC) =
+                    translatePrototype(
+                      denizenName,
+                      denizenBoundToDenizenCallerSuppliedThing,
+                      newSubstitutions,
+                      newPerspectiveRegionT,
+                      prototypeT)
+                  val callCE =
+                    FunctionCallIE(
+                      prototypeC,
+                      innersIE.map(innerIE => {
+                        innerIE.result.ownership match {
+                          case OwnI => innerIE // These are being moved into the receiver's region
+                          case ImmutableBorrowI | ImmutableShareI => innerIE
+                          case MutableBorrowI => {
+                            ImmutabilifyIE(innerIE, innerIE.result.copy(ownership = ImmutableBorrowI))
+                          }
+                          case MutableShareI => {
+                            if (innerIE.result.kind.isPrimitive) {
+                              innerIE // These are conceptually moved into the receiver's region
+                            } else {
+                              ImmutabilifyIE(innerIE, innerIE.result.copy(ownership = ImmutableShareI))
+                            }
+                          }
+                        }
+                      }),
+                      returnCoordCT)
+                  (returnCoordIT, callCE)
+                })
+
+            if (returnCoordInsideIT.kind != returnCoordOutsideIT.kind) {
+              vimpl("Transmigration unimplemented!")
+            }
+            val mutabilifyNeeded =
+              (returnCoordInsideIT.ownership, returnCoordOutsideIT.ownership) match {
+                case (x, y) if x == y => false
+                case (ImmutableBorrowI, MutableBorrowI) => true
+                case (ImmutableShareI, MutableShareI) => true
+                case other => vimpl(other)
+              }
+            val resultCE =
+              if (mutabilifyNeeded) {
+                MutabilifyIE(callCE, collapseCoord(RegionCounter.countCoord(returnCoordOutsideIT), returnCoordOutsideIT))
+              } else {
+                callCE
+              }
+            (returnCoordOutsideIT, resultCE)
+          }
         }
         case InterfaceFunctionCallTE(superFunctionPrototypeT, virtualParamIndex, resultReference, args) => {
           val (superFunctionPrototypeI, superFunctionPrototypeC) =
@@ -2712,6 +2761,35 @@ class Instantiator(
     //      vassert(Collector.all(resultRefExpr, { case PlaceholderNameT(_) => }).isEmpty)
     //    }
     (resultIT, resultCE)
+  }
+
+  private def runInNewPureRegion[T](
+      denizenName: IdT[IInstantiationNameT],
+      denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+      env: NodeEnvironment,
+      substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
+      denizenTemplateName: IdT[ITemplateNameT],
+      newDefaultRegionT: ITemplataT[RegionTemplataType],
+      run: (Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]], IdT[RegionPlaceholderNameT]) => T):
+  T = {
+    val newDefaultRegionNameT =
+      newDefaultRegionT match {
+        case PlaceholderTemplataT(id@IdT(packageCoord, initSteps, r@RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
+          IdT(packageCoord, initSteps, r)
+        }
+        case other => vwat(other)
+      }
+    val newPerspectiveRegionT = newDefaultRegionNameT
+
+    val newDefaultRegion = RegionTemplataI[sI](vassertSome(newDefaultRegionNameT.localName.height))
+    val oldSubstitutionsForThisDenizenTemplate =
+      substitutions.getOrElse(denizenTemplateName, Map())
+    val newSubstitutionsForThisDenizenTemplate =
+      oldSubstitutionsForThisDenizenTemplate + (newDefaultRegionNameT -> newDefaultRegion)
+    val newSubstitutions =
+      substitutions + (denizenTemplateName -> newSubstitutionsForThisDenizenTemplate)
+
+    run(newSubstitutions, newPerspectiveRegionT)
   }
 
   def translateOwnership(

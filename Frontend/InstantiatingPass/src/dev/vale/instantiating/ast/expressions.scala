@@ -300,13 +300,27 @@ case class BlockIE(
 // 2. Freeze the existing region
 // 3. Run the inner code
 // 4. Un-freeze the existing region
-// 5. Merge (transmigraIE) any results from the new region into the existing region
+// 5. Merge (transmigrate) any results from the new region into the existing region
 // 6. Destroy the new region
 case class MutabilifyIE(
   inner: ReferenceExpressionIE,
   result: CoordI[cI] // See HCCSCS
 ) extends ReferenceExpressionIE {
   vpass()
+  vassert(inner.result.kind == result.kind)
+
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+}
+
+// See NPFCASTN
+case class ImmutabilifyIE(
+    inner: ReferenceExpressionIE,
+    result: CoordI[cI]
+) extends ReferenceExpressionIE {
+  vpass()
+  vassert(inner.result.kind == result.kind)
+  vassert(inner.result.ownership == MutableBorrowI || inner.result.ownership == MutableShareI)
+  vassert(result.ownership == ImmutableBorrowI || result.ownership == ImmutableShareI)
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }

@@ -871,6 +871,46 @@ It does this by compiling the `extern` statement assuming that all regions are `
 
 
 
+# Need Pure Function Call AST Node (NPFCASTN)
+
+We originally had only a PureTE instruction, which reinterpreted everything outside of it as immutable. This snippet produced one:
+
+```
+pure func pureFunc<r'>(s r'str) bool {
+  true
+}
+exported func main() bool {
+  s = "abc";
+  return pureFunc(s);
+}
+```
+
+It produced a PureTE(FunctionCallTE(LocalLoad(s))) and that worked well.
+
+However, that doesn't work for examples like this:
+
+```
+pure func pureFunc<r'>(s r'str) bool {
+  true
+}
+exported func main() bool {
+  return pureFunc("abc");
+}
+```
+
+It would produce a PureTE(FunctionCallTE(StrTE("abc"))), but that StrTE isn't outside the pure, so it doesn't get regarded as immutable when it should.
+
+Instead, we need to evaluate the arguments first:
+[ "abc" ]
+and then do a "pure call" of each argument immutabilified.
+
+
+For this, we have some extra information in FunctionCallTE, and also the instantiator produces ImmutabilifyIE's around the arguments.
+
+
+WAIT
+
+this doesnt seem right. we could call a function bound that just *happens* to be pure. that means that this logic should really just go in the instantiator. in a way, the pureness is a callee implementation detail (which we then bring to the call-site as optimization). we should take pure function calls out of the templar.
 
 
 # Pure Merging Happens Before Rest of Solving (PMHBRS)

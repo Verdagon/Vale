@@ -106,6 +106,8 @@ sealed trait KindIT[R <: IRegionsModeI] {
   // should be enough to uniquely identify a type, and no more.
   // We can always get the mutability for a struct from the coutputs.
 
+  def isPrimitive: Boolean
+
   def expectCitizen(): ICitizenIT[R] = {
     this match {
       case c : ICitizenIT[R] => c
@@ -136,27 +138,28 @@ case class NeverIT[R <: IRegionsModeI](
   // See BRCOBS.
   fromBreak: Boolean
 ) extends KindIT[R] {
-
+  override def isPrimitive: Boolean = true
 }
 
 // Mostly for interoperability with extern functions
 case class VoidIT[R <: IRegionsModeI]() extends KindIT[R] {
-
+  override def isPrimitive: Boolean = true
 }
 
 case class IntIT[R <: IRegionsModeI](bits: Int) extends KindIT[R] {
+  override def isPrimitive: Boolean = true
 }
 
 case class BoolIT[R <: IRegionsModeI]() extends KindIT[R] {
-
+  override def isPrimitive: Boolean = true
 }
 
 case class StrIT[R <: IRegionsModeI]() extends KindIT[R] {
-
+  override def isPrimitive: Boolean = false
 }
 
 case class FloatIT[R <: IRegionsModeI]() extends KindIT[R] {
-
+  override def isPrimitive: Boolean = true
 }
 
 object contentsStaticSizedArrayIT {
@@ -171,6 +174,7 @@ case class StaticSizedArrayIT[R <: IRegionsModeI](
   name: IdI[R, StaticSizedArrayNameI[R]]
 ) extends KindIT[R] {
   vassert(name.initSteps.isEmpty)
+  override def isPrimitive: Boolean = false
   def mutability: MutabilityI = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
   def size = name.localName.size
@@ -187,6 +191,7 @@ object contentsRuntimeSizedArrayIT {
 case class RuntimeSizedArrayIT[R <: IRegionsModeI](
   name: IdI[R, RuntimeSizedArrayNameI[R]]
 ) extends KindIT[R] {
+  override def isPrimitive: Boolean = false
   def mutability = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
 
@@ -217,6 +222,7 @@ sealed trait ICitizenIT[R <: IRegionsModeI] extends ISubKindIT[R] {
 
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
 case class StructIT[R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends ICitizenIT[R] {
+  override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(StructTemplateNameI(_)), StructNameI(_, _)) => vfail()
     case _ =>
@@ -224,20 +230,9 @@ case class StructIT[R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends ICi
 }
 
 case class InterfaceIT[R <: IRegionsModeI](id: IdI[R, IInterfaceNameI[R]]) extends ICitizenIT[R] with ISuperKindIT[R] {
+  override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(InterfaceTemplateNameI(_)), InterfaceNameI(_, _)) => vfail()
     case _ =>
   }
-}
-
-// Represents a bunch of functions that have the same name.
-// See ROS.
-// Lowers to an empty struct.
-case class OverloadSeIT[R <: IRegionsModeI](
-  env: IInDenizenEnvironment,
-  // The name to look for in the environment.
-  name: IImpreciseNameS
-) extends KindIT[R] {
-  vpass()
-
 }

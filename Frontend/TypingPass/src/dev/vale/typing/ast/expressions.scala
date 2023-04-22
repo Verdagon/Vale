@@ -7,7 +7,8 @@ import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.options.GlobalOptions.test
-import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, CallRegionRuneS, RegionTemplataType}
+import dev.vale.postparsing.{CallRegionRuneS, IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType}
+import dev.vale.typing.TemplataCompiler
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -321,10 +322,10 @@ case class BlockTE(
 // 5. Merge (transmigrate) any results from the new region into the existing region
 // 6. Destroy the new region
 case class PureTE(
-  location: LocationInDenizen,
+//  location: LocationInDenizen,
 //  newDefaultRegionName: IdT[INameT],
   newDefaultRegion: ITemplataT[RegionTemplataType],
-  oldRegionToNewRegion: Vector[(ITemplataT[RegionTemplataType], ITemplataT[RegionTemplataType])],
+//  oldRegionToNewRegion: Vector[(ITemplataT[RegionTemplataType], ITemplataT[RegionTemplataType])],
   inner: ReferenceExpressionTE,
   resultType: CoordT
 ) extends ReferenceExpressionTE {
@@ -597,9 +598,16 @@ case class ExternFunctionCallTE(
 
 case class FunctionCallTE(
   callable: PrototypeT,
-  args: Vector[ReferenceExpressionTE]
+  // See NPFCASTN for why we need a pure boolean here.
+  // If true, then this call introduces a conceptual pure block (but not actually, see NPFCASTN)
+  pure: Boolean,
+  maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
+  args: Vector[ReferenceExpressionTE],
+  returnType: CoordT
 ) extends ReferenceExpressionTE {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+
+  override def hashCode(): Int = vcurious()
 
   vassert(callable.paramTypes.size == args.size)
   args.map(_.result.coord).foreach(argCoord => {
@@ -608,7 +616,7 @@ case class FunctionCallTE(
         case IntT(_) | BoolT() | VoidT() | FloatT() => true
         case _ => false
       }
-    if (/*argCoord.ownership == OwnT || */isPrimitive) {
+    if ( /*argCoord.ownership == OwnT || */ isPrimitive) {
       vassert(argCoord.region == callable.id.localName.templateArgs.last)
     }
   })
@@ -617,9 +625,7 @@ case class FunctionCallTE(
     case (a, b) => vassert(a == b)
   })
 
-  override def result: ReferenceResultT = {
-    ReferenceResultT(callable.returnType)
-  }
+  override def result: ReferenceResultT = ReferenceResultT(returnType)
 }
 
 // A typingpass reinterpret is interpreting a type as a different one which is hammer-equivalent.
