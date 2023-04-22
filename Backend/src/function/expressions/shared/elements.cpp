@@ -25,7 +25,7 @@ InBoundsLE checkIndexInBounds(
       globalState, functionState->containingFuncL, builder, outOfBounds,
       [globalState, failMessage](LLVMBuilderRef bodyBuilder) {
         if (globalState->opt->includeBoundsChecks) {
-          buildPrint(globalState, bodyBuilder, failMessage);
+          buildPrintToStderr(globalState, bodyBuilder, failMessage);
           globalState->externs->exit.call(bodyBuilder, {constI64LE(globalState, 1)}, "");
         }
         // buildIfNever will still put in an unreachable here.
@@ -53,7 +53,7 @@ InBoundsLE checkLastElementExists(
       globalState, functionState->containingFuncL, builder, isEmpty,
       [globalState, failMessage](LLVMBuilderRef bodyBuilder) {
         if (globalState->opt->includeBoundsChecks) {
-          buildPrint(globalState, bodyBuilder, failMessage);
+          buildPrintToStderr(globalState, bodyBuilder, failMessage);
           globalState->externs->exit.call(bodyBuilder, {constI64LE(globalState, 1)}, "");
         }
         // buildIfNever will still put in an unreachable here.
@@ -79,7 +79,7 @@ void checkArrayEmpty(
       globalState, functionState->containingFuncL, builder, nonEmpty,
       [globalState, failMessage](LLVMBuilderRef bodyBuilder) {
         if (globalState->opt->includeBoundsChecks) {
-          buildPrint(globalState, bodyBuilder, failMessage);
+          buildPrintToStderr(globalState, bodyBuilder, failMessage);
           globalState->externs->exit.call(bodyBuilder, {constI64LE(globalState, 1)}, "");
         }
         // buildIfNever will still put in an unreachable here.
