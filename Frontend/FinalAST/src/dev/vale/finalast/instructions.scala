@@ -658,7 +658,6 @@ case class BlockH(
 
 // Casts an immutable reference to a mutable one.
 case class MutabilifyH(
-  // The instructions to run. This will probably be a consecutor.
   inner: ExpressionH[KindHT],
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
@@ -669,6 +668,25 @@ case class MutabilifyH(
         case OwnH => OwnH
         case ImmutableBorrowH | MutableBorrowH => MutableBorrowH
         case ImmutableShareH | MutableShareH => MutableShareH
+        case WeakH => vimpl()
+      },
+      location,
+      kind)
+  }
+}
+
+// Casts a mutable reference to an immutable one.
+case class ImmutabilifyH(
+  inner: ExpressionH[KindHT],
+) extends ExpressionH[KindHT] {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+  override def resultType: CoordH[KindHT] = {
+    val CoordH(ownership, location, kind) = inner.resultType
+    CoordH(
+      ownership match {
+        case OwnH => OwnH
+        case ImmutableBorrowH | MutableBorrowH => ImmutableBorrowH
+        case ImmutableShareH | MutableShareH => ImmutableShareH
         case WeakH => vimpl()
       },
       location,

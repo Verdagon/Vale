@@ -1579,7 +1579,12 @@ class ExpressionCompiler(
             TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
               .addStep(
                 interner.intern(RegionPlaceholderNameT(
-                  -1, PureBlockRegionRuneS(location), Some(newHeight), ImmutableRegionS)))
+                  -1,
+                  PureBlockRegionRuneS(location),
+                  Some(newHeight),
+                  // The regions OUTSIDE the pure block become immutable.
+                  // A pure block always introduces a new temporary MUTABLE region inside it.
+                  ReadWriteRegionS)))
           val newRegion = PlaceholderTemplataT(newRegionId, RegionTemplataType())
 
           // We'll restore these things at the end. We're reusing the same nenv because any locals
@@ -1616,8 +1621,7 @@ class ExpressionCompiler(
           val resultCoord =
             TemplataCompiler.mergeCoordRegions(
               interner, coutputs, Map(newRegion -> region), innerExpr.result.coord)
-          val pureTE =
-            PureTE(location, newRegion, Vector((region, newRegion)), innerExpr, resultCoord)
+          val pureTE = PureTE(newRegion, innerExpr, resultCoord)
           (pureTE, returnsFromExprs)
         }
         case b@BlockSE(range, locals, _) => {

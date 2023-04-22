@@ -98,6 +98,11 @@ class ExpressionHammer(
           blockHammer.translateMutabilify(hinputs, hamuts, currentFunctionHeader, locals, b)
         (pureH, Vector.empty)
       }
+      case b@ImmutabilifyIE(_, _) => {
+        val pureH =
+          blockHammer.translateImmutabilify(hinputs, hamuts, currentFunctionHeader, locals, b)
+        (pureH, Vector.empty)
+      }
       case b @ BlockIE(_, _) => {
         val blockH =
           blockHammer.translateBlock(hinputs, hamuts, currentFunctionHeader, locals, b)

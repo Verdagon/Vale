@@ -853,6 +853,13 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("innerExpr", vonifyExpression(inner))))
       }
+      case ImmutabilifyH(inner) => {
+        VonObject(
+          "Immutabilify",
+          None,
+          Vector(
+            VonMember("innerExpr", vonifyExpression(inner))))
+      }
       case BlockH(inner) => {
         VonObject(
           "Block",

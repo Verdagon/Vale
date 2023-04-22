@@ -84,6 +84,7 @@ object FunctionCompiler {
   trait IStampFunctionResult
 
   case class StampFunctionSuccess(
+    pure: Boolean,
     maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
     prototype: PrototypeTemplataT,
     inferences: Map[IRuneS, ITemplataT[ITemplataType]]

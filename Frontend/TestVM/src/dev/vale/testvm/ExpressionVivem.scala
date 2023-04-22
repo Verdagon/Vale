@@ -195,8 +195,41 @@ object ExpressionVivem {
         NodeContinue(ref)
       }
       case MutabilifyH(inner) => {
-        // No op, just execute inner.
-        executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), inner)
+        val sourceRef =
+          executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), inner) match {
+            case r@(NodeReturn(_) | NodeBreak()) => return r
+            case NodeContinue(r) => r
+          }
+        val resultRef =
+          sourceRef.copy(
+            ownership =
+            sourceRef.ownership match {
+              case ImmutableShareH => MutableShareH
+              case ImmutableBorrowH => MutableBorrowH
+              case other => vwat()
+            })
+        heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, resultRef.ownership), resultRef)
+        heap.decrementReferenceRefCount(RegisterToObjectReferrer(callId, sourceRef.ownership), sourceRef)
+        NodeContinue(resultRef)
+      }
+      case ImmutabilifyH(inner) => {
+        val sourceRef =
+          executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), inner) match {
+            case r@(NodeReturn(_) | NodeBreak()) => return r
+            case NodeContinue(r) => r
+          }
+        val resultRef =
+          sourceRef.copy(
+            ownership =
+              sourceRef.ownership match {
+                case MutableShareH => ImmutableShareH
+                case MutableBorrowH => ImmutableBorrowH
+                case other => vwat()
+              })
+        heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, resultRef.ownership), resultRef)
+        heap.decrementReferenceRefCount(RegisterToObjectReferrer(callId, sourceRef.ownership), sourceRef)
+
+        NodeContinue(resultRef)
       }
       case BlockH(sourceExpr) => {
         executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), sourceExpr)

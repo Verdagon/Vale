@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.finalast.{BlockH, ImmutableBorrowH, ImmutableShareH, MutabilifyH, MutableBorrowH, MutableShareH, NeverHT}
+import dev.vale.finalast.{BlockH, ImmutabilifyH, ImmutableBorrowH, ImmutableShareH, MutabilifyH, MutableBorrowH, MutableShareH, NeverHT}
 import dev.vale.instantiating.ast._
 import dev.vale.{vassert, vcurious, vfail, vimpl, vwat, finalast => m}
 
@@ -75,25 +75,32 @@ class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
         }))
 
     MutabilifyH(innerHE)
-//    val MutabilifyTE(_, newDefaultRegion, oldRegionToNewRegion, innerIE, resultCoordI) = node
-//    oldRegionToNewRegion.foreach({ case (oldRegion, newRegion) =>
-//      vcurious(newRegion == RegionTemplata(true))
-//    })
-//
-//    val innerHE =
-//      expressionHammer.translateExpressionsAndDeferreds(
-//        hinputs, hamuts, currentFunctionHeader, locals, Vector(innerIE));
-//
-//    val resultCoordH =
-//      typeHammer.translateCoord(hinputs, hamuts, resultCoordI)
-//    (innerHE.resultType.ownership, resultCoordH.ownership) match {
-//      case (x, y) if x == y =>
-//      case (ImmutableShareH, MutableShareH) =>
-//      case (ImmutableBorrowH, MutableBorrowH) =>
-//      case other => vwat(other)
-//    }
-//    vassert(innerHE.resultType.kind == resultCoordH.kind)
-//
-//    MutabilifyH(innerHE)
+  }
+
+  def translateImmutabilify(
+      hinputs: HinputsI,
+      hamuts: HamutsBox,
+      currentFunctionHeader: FunctionHeaderI,
+      locals: LocalsBox,
+      node: ImmutabilifyIE):
+  ImmutabilifyH = {
+    val ImmutabilifyIE(innerIE, resultCoordI) = node
+
+    val innerHE =
+      expressionHammer.translateExpressionsAndDeferreds(
+        hinputs, hamuts, currentFunctionHeader, locals, Vector(innerIE))
+
+    val resultCoordH =
+      typeHammer.translateCoord(hinputs, hamuts, resultCoordI)
+
+    vassert(
+      resultCoordH.ownership ==
+          (innerHE.resultType.ownership match {
+            case MutableShareH => ImmutableShareH
+            case MutableBorrowH => ImmutableBorrowH
+            case other => other
+          }))
+
+    ImmutabilifyH(innerHE)
   }
 }

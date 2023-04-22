@@ -279,7 +279,7 @@ class ArrayCompiler(
         NewImmRuntimeSizedArrayTE(rsaMT, region, sizeTE, callableTE, prototype)
       }
       case MutabilityTemplataT(MutableT) => {
-        val StampFunctionSuccess(maybeNewRegion, prototype, conclusions) =
+        val StampFunctionSuccess(pure, maybeNewRegion, prototype, conclusions) =
           overloadResolver.findFunction(
             callingEnv
               .addEntries(
@@ -330,8 +330,19 @@ class ArrayCompiler(
           }
         })
         vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
+        // DO NOT SUBMIT merge this with other FunctionCallTE's code
+        val resultTE =
+          maybeNewRegion match {
+            case None => prototype.prototype.returnType
+            case Some(newRegion) => {
+              // If we get any instances that are part of the newRegion, we need to interpret them
+              // to the contextRegion.
+              TemplataCompiler.mergeCoordRegions(
+                interner, coutputs, Map(newRegion -> region), prototype.prototype.returnType)
+            }
+          }
         val callTE =
-          FunctionCallTE(prototype.prototype, Vector(sizeTE) ++ maybeCallableTE)
+          FunctionCallTE(prototype.prototype, pure, maybeNewRegion, Vector(sizeTE) ++ maybeCallableTE, resultTE)
         callTE
         //        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't construct a mutable runtime array from a callable!"))
       }
