@@ -596,7 +596,8 @@ private:
       Ref regionInstanceRef,
       Ref sourceRegionInstanceRef,
       Kind* valeKind,
-      Ref ref);
+      Reference* readonlyRefMT,
+      Ref readonlyRef);
 
 public:
   LLVMValueRef getRegionInstanceDestinationBufferStartPtr(

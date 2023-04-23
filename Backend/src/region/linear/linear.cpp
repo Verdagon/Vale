@@ -1291,7 +1291,11 @@ std::pair<LiveRef, Ref> Linear::topLevelSerialize(
     Ref regionInstanceRef,
     Ref sourceRegionInstanceRef,
     Kind* valeKind,
-    Ref ref) {
+    // Readonly, we don't know whether it's mutable or immutable.
+    // We'll need to immutabilify the reference before giving it to any
+    // serialize funcs.
+    Reference* readonlyRefMT,
+    Ref readonlyRef) {
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
 
   auto valeRefMT =
@@ -1318,7 +1322,21 @@ std::pair<LiveRef, Ref> Linear::topLevelSerialize(
   auto regionInstancePtrLE =
       checkValidReference(FL(), functionState, builder, true, regionRefMT, regionInstanceRef);
 
-  callSerialize(functionState, builder, valeKind, regionInstanceRef, sourceRegionInstanceRef, ref, globalState->constI1(true));
+  Reference* immRefMT =
+      readonlyRefMT->ownership == Ownership::IMMUTABLE_SHARE ?
+      readonlyRefMT :
+      globalState->metalCache->getReference(
+          Ownership::IMMUTABLE_SHARE, readonlyRefMT->location, readonlyRefMT->kind);
+  Ref immRef =
+      readonlyRefMT->ownership == Ownership::IMMUTABLE_SHARE ?
+      readonlyRef :
+      wrap(
+          globalState, immRefMT,
+          globalState->getRegion(readonlyRefMT)->immutabilify(
+              FL(), functionState, builder, sourceRegionInstanceRef, readonlyRefMT, readonlyRef, immRefMT));
+  callSerialize(
+      functionState, builder, valeKind, regionInstanceRef, sourceRegionInstanceRef, immRef,
+      globalState->constI1(true));
 
 //  // Reserve some space for the beginning metadata block
 //  bumpDestinationOffset(functionState, builder, regionInstanceRef, constI64LE(globalState, startMetadataSize));
@@ -1352,7 +1370,7 @@ std::pair<LiveRef, Ref> Linear::topLevelSerialize(
 
   auto resultLiveRef =
       callSerialize(
-          functionState, builder, valeKind, regionInstanceRef, sourceRegionInstanceRef, ref, globalState->constI1(false));
+          functionState, builder, valeKind, regionInstanceRef, sourceRegionInstanceRef, immRef, globalState->constI1(false));
   auto resultRef = wrap(globalState, hostRefMT, resultLiveRef);
 
   auto rootObjectPtrLE =
@@ -1383,7 +1401,9 @@ std::pair<Ref, Ref> Linear::receiveUnencryptedAlienReference(
     Ref sourceRef) {
   buildFlare(FL(), globalState, functionState, builder);
 
-  assert(sourceRefMT->ownership == Ownership::MUTABLE_SHARE);
+  assert(
+      sourceRefMT->ownership == Ownership::MUTABLE_SHARE ||
+      sourceRefMT->ownership == Ownership::IMMUTABLE_SHARE);
 
   auto sourceRegion = globalState->getRegion(sourceRefMT);
 
@@ -1421,7 +1441,7 @@ std::pair<Ref, Ref> Linear::receiveUnencryptedAlienReference(
     } else {
       auto [liveRef, size] =
         topLevelSerialize(
-            functionState, builder, targetRegionInstanceRef, sourceRegionInstanceRef, sourceRefMT->kind, sourceRef);
+            functionState, builder, targetRegionInstanceRef, sourceRegionInstanceRef, sourceRefMT->kind, sourceRefMT, sourceRef);
       auto ref = wrap(globalState, targetRefMT, liveRef);
       return std::make_pair(ref, size);
     }
