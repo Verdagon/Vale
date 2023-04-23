@@ -70,3 +70,69 @@ Ref translateDestructure(
 
   return makeVoidRef(globalState);
 }
+
+Ref translateDestroySSAIntoLocals(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    DestroyStaticSizedArrayIntoLocals* destroySSAIntoLocalsM) {
+  buildFlare(FL(), globalState, functionState, builder);
+  auto mutability = ownershipToMutability(destroySSAIntoLocalsM->arrayType->ownership);
+
+  auto structRegionInstanceRef =
+      // At some point, look up the actual region instance, perhaps from the FunctionState?
+      globalState->getRegion(destroySSAIntoLocalsM->arrayType)->createRegionInstanceLocal(functionState, builder);
+
+  auto structRef =
+      translateExpression(
+          globalState, functionState, blockState, builder, destroySSAIntoLocalsM->arrayExpr);
+  auto structLiveRef =
+      globalState->getRegion(destroySSAIntoLocalsM->arrayType)->checkRefLive(FL(),
+                                                                     functionState, builder, structRegionInstanceRef, destroySSAIntoLocalsM->arrayType, structRef, false);
+  globalState->getRegion(destroySSAIntoLocalsM->arrayType)->checkValidReference(FL(),
+                                                                        functionState, builder, true, destroySSAIntoLocalsM->arrayType, structRef);
+
+  buildFlare(FL(), globalState, functionState, builder);
+
+  auto ssaKind =
+      dynamic_cast<StaticSizedArrayT *>(destroySSAIntoLocalsM->arrayType->kind);
+  assert(ssaKind);
+
+  auto ssaM = globalState->program->getStaticSizedArray(ssaKind);
+
+  for (int i = 0; i < ssaM->size; i++) {
+    buildFlare(FL(), globalState, functionState, builder);
+    // We know it's in bounds because we used size as a bound for the loop.
+    auto inBoundsIndexLE = InBoundsLE{constI64LE(globalState, i)};
+    auto memberLoadResult =
+        globalState->getRegion(destroySSAIntoLocalsM->arrayType)->loadElementFromSSA(
+            functionState, builder, structRegionInstanceRef, destroySSAIntoLocalsM->arrayType, ssaKind, structLiveRef, inBoundsIndexLE);
+    auto memberLE =
+        globalState->getRegion(destroySSAIntoLocalsM->arrayType)->upgradeLoadResultToRefWithTargetOwnership(
+            functionState, builder, ssaM->elementType, ssaM->elementType, memberLoadResult, false);
+    makeHammerLocal(
+        globalState, functionState, blockState, builder, destroySSAIntoLocalsM->localIndices[i], memberLE, false);
+    buildFlare(FL(), globalState, functionState, builder);
+  }
+  buildFlare(FL(), globalState, functionState, builder);
+
+  if (destroySSAIntoLocalsM->arrayType->ownership == Ownership::OWN) {
+    buildFlare(FL(), globalState, functionState, builder);
+    globalState->getRegion(destroySSAIntoLocalsM->arrayType)
+        ->discardOwningRef(FL(), functionState, blockState, builder, destroySSAIntoLocalsM->arrayType, structLiveRef);
+  } else if (destroySSAIntoLocalsM->arrayType->ownership == Ownership::MUTABLE_SHARE || destroySSAIntoLocalsM->arrayType->ownership == Ownership::IMMUTABLE_SHARE) {
+    buildFlare(FL(), globalState, functionState, builder);
+    // We dont decrement anything here, we're only here because we already hit zero.
+
+    globalState->getRegion(destroySSAIntoLocalsM->arrayType)->deallocate(
+        AFL("Destroy freeing"), functionState, builder,
+        destroySSAIntoLocalsM->arrayType, structLiveRef);
+  } else {
+    assert(false);
+  }
+
+  buildFlare(FL(), globalState, functionState, builder);
+
+  return makeVoidRef(globalState);
+}

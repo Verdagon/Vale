@@ -1240,7 +1240,7 @@ Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
             preCheckFatPtr(
                 FL(), globalState, functionState, builder, &kindStructs, sourceType, sourceRef,
                 resultKnownLive);
-        return wrap(globalState, regionRefMT, prechecked);
+        return wrap(globalState, targetType, prechecked);
       } else {
         return transmutePtr(globalState, functionState, builder, false, sourceType, targetType, sourceRef);
       }
@@ -1805,6 +1805,7 @@ LiveRef Safe::preCheckBorrow(
             break;
         }
         case Ownership::IMMUTABLE_BORROW: {
+          assert(false); // curious
           if (globalState->opt->elideChecksForRegions) {
             assert(false); // curious
           } else {
@@ -1849,4 +1850,46 @@ WrapperPtrLE Safe::getWrapperPtrLive(
       assert(false);
       break;
   }
+}
+
+Ref Safe::mutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}
+
+LiveRef Safe::immutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref sourceRef,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  auto liveRef =
+    preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, sourceRef, false);
+
+  // DO NOT SUBMIT
+  // it seems things have been a bit broken.
+  // PreCheckBorrow isnt being generated, so we need to fix that.
+  // we also need to make it so immutabilify actually makes a raw pointer.
+
+  // doesnt work, because immutable refs should be pointers
+//  auto ref = wrap(globalState, refMT, liveRef);
+//  return toLiveRef(
+//      checkerAFL, globalState, functionState, builder, targetRefMT,
+//      transmutePtr(globalState, functionState, builder, true, refMT, targetRefMT, ref));
+
+  auto wrapperPtrLE =
+    getWrapperPtrLive(checkerAFL, functionState, builder, refMT, liveRef);
+  auto transmuted =
+      kindStructs.makeWrapperPtr(checkerAFL, functionState, builder, targetRefMT, wrapperPtrLE.refLE);
+  return toLiveRef(transmuted);
 }

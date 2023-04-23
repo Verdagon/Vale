@@ -2010,7 +2010,7 @@ class Instantiator(
               val (argIT, argCE) =
                 translateRefExpr(
                   denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)
-              if (argIT.ownership == MutableBorrowI) {
+              if (pure && argIT.ownership == MutableBorrowI) {
                 PreCheckBorrowIE(argCE)
               } else {
                 argCE

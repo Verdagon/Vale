@@ -523,6 +523,24 @@ public:
       Reference *refM,
       LiveRef liveRef);
 
+  Ref mutabilify(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      Reference* targetRefMT) override;
+
+  LiveRef immutabilify(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      Reference* targetRefMT) override;
+
 protected:
   LLVMValueRef fillControlBlockGeneration(FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef controlBlockLE, Kind* kindM);
 

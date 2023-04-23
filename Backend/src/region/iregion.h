@@ -136,6 +136,24 @@ public:
       Ref ref,
       bool refKnownLive) = 0;
 
+  virtual Ref mutabilify(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      Reference* targetRefMT) = 0;
+
+  virtual LiveRef immutabilify(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      Reference* targetRefMT) = 0;
+
   virtual Ref getRuntimeSizedArrayLength(
       FunctionState* functionState,
       LLVMBuilderRef builder,

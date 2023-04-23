@@ -324,6 +324,17 @@ exported func main() int {
       suite.StartTest(10, "ssamutparamexport", samples_path./("programs/externs/ssamutparamexport"), &List<str>(), region, false, None<str>());
       suite.StartTest(42, "ssamutreturnexport", samples_path./("programs/externs/ssamutreturnexport"), &List<str>(), region, false, None<str>());
     }
+
+
+    if region == "safe" or region == "resilient-v3" {
+      suite.StartTest(10, "pure_block_produce_ssa", samples_path./("programs/pure/pure_block_produce_ssa.vale"), &List<str>(), region, false, None<str>());
+      suite.StartTest(10, "pure_block_read_ssa", samples_path./("programs/pure/pure_block_read_ssa.vale"), &List<str>(), region, false, None<str>());
+      suite.StartTest(42, "pure_func_return_rsa", samples_path./("programs/pure/pure_func_return_rsa.vale"), &List<str>(), region, false, None<str>());
+      suite.StartTest(10, "pure_func_return_ssa", samples_path./("programs/pure/pure_func_return_ssa.vale"), &List<str>(), region, false, None<str>());
+      suite.StartTest(10, "pure_func_return_struct", samples_path./("programs/pure/pure_func_return_struct.vale"), &List<str>(), region, false, None<str>());
+      suite.StartTest(10, "pure_func_take_ssa", samples_path./("programs/pure/pure_func_take_ssa.vale"), &List<str>(), region, false, None<str>());
+      suite.StartTest(42, "multi_region_extern", samples_path./("programs/regions/multi_region_extern.vale"), &List<str>(), region, false, None<str>());
+    }
   });
 
   if (include_regions.exists({ _ == "resilient-v3" }) or include_regions.exists({ _ == "safe" })) {

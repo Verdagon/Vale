@@ -1695,3 +1695,29 @@ LiveRef RCImm::preCheckBorrow(
   // Everything is always known live in an RC world.
   return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }
+
+Ref RCImm::mutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(false); // impl
+}
+
+LiveRef RCImm::immutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(false); // impl
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  auto liveRef =
+      preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, ref, false);
+  return liveRef;
+}

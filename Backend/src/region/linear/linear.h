@@ -505,6 +505,24 @@ public:
       LLVMValueRef useOffsetsLE,
       LLVMValueRef bufferBeginOffsetLE);
 
+    Ref mutabilify(
+        AreaAndFileAndLine checkerAFL,
+        FunctionState* functionState,
+        LLVMBuilderRef builder,
+        Ref regionInstanceRef,
+        Reference* refMT,
+        Ref ref,
+        Reference* targetRefMT) override;
+
+    LiveRef immutabilify(
+        AreaAndFileAndLine checkerAFL,
+        FunctionState* functionState,
+        LLVMBuilderRef builder,
+        Ref regionInstanceRef,
+        Reference* refMT,
+        Ref ref,
+        Reference* targetRefMT) override;
+
 private:
   void declareConcreteSerializeFunction(Kind* valeKindM);
   void defineConcreteSerializeFunction(Kind* valeKindM);

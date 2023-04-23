@@ -556,6 +556,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           None,
           Vector(
             VonMember("arrayExpr", vonifyExpression(structExpr)),
+            VonMember("arrayType", vonifyCoord(structExpr.resultType)),
             VonMember(
               "localTypes",
               VonArray(None, localTypes.map(localType => vonifyCoord(localType)).toVector)),
@@ -846,19 +847,23 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("exprs", VonArray(None, nodes.map(node => vonifyExpression(node)).toVector))))
       }
-      case MutabilifyH(inner) => {
+      case m @ MutabilifyH(inner) => {
         VonObject(
           "Mutabilify",
           None,
           Vector(
-            VonMember("innerExpr", vonifyExpression(inner))))
+            VonMember("sourceExpr", vonifyExpression(inner)),
+            VonMember("sourceType", vonifyCoord(inner.resultType)),
+            VonMember("resultType", vonifyCoord(m.resultType))))
       }
-      case ImmutabilifyH(inner) => {
+      case m @ ImmutabilifyH(inner) => {
         VonObject(
           "Immutabilify",
           None,
           Vector(
-            VonMember("innerExpr", vonifyExpression(inner))))
+            VonMember("sourceExpr", vonifyExpression(inner)),
+            VonMember("sourceType", vonifyCoord(inner.resultType)),
+            VonMember("resultType", vonifyCoord(m.resultType))))
       }
       case BlockH(inner) => {
         VonObject(

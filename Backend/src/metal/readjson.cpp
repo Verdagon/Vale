@@ -338,9 +338,19 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readReference(cache, expression["resultType"]),
         readName(cache, expression["memberName"])->name);
   } else if (type == "Discard") {
-    return new Discard(
-        readExpression(cache, expression["sourceExpr"]),
-        readReference(cache, expression["sourceResultType"]));
+      return new Discard(
+              readExpression(cache, expression["sourceExpr"]),
+              readReference(cache, expression["sourceResultType"]));
+  } else if (type == "Mutabilify") {
+      return new Mutabilify(
+              readExpression(cache, expression["sourceExpr"]),
+              readReference(cache, expression["sourceType"]),
+              readReference(cache, expression["resultType"]));
+  } else if (type == "Immutabilify") {
+      return new Immutabilify(
+              readExpression(cache, expression["sourceExpr"]),
+              readReference(cache, expression["sourceType"]),
+              readReference(cache, expression["resultType"]));
   } else if (type == "PreCheckBorrow") {
     return new PreCheckBorrow(
         readExpression(cache, expression["sourceExpr"]),
@@ -412,6 +422,12 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readArray(cache, expression["localTypes"], readReference),
         readArray(cache, expression["localIndices"], readLocal),
         readArray(cache, expression["localsKnownLives"], [](MetalCache*, const json& j) -> bool { return j; }));
+  } else if (type == "DestroyStaticSizedArrayIntoLocals") {
+      return new DestroyStaticSizedArrayIntoLocals(
+          readExpression(cache, expression["arrayExpr"]),
+          readReference(cache, expression["arrayType"]),
+          readArray(cache, expression["localTypes"], readReference),
+          readArray(cache, expression["localIndices"], readLocal));
   } else if (type == "MemberLoad") {
     return new MemberLoad(
         readExpression(cache, expression["structExpr"]),

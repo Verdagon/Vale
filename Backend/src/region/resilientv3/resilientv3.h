@@ -492,6 +492,24 @@ public:
   // Soon it'll be non-virtual, and parameters will differ by region.
   Ref createRegionInstanceLocal(FunctionState* functionState, LLVMBuilderRef builder) override;
 
+  Ref mutabilify(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      Reference* targetRefMT) override;
+
+  LiveRef immutabilify(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* refMT,
+      Ref ref,
+      Reference* targetRefMT) override;
+
 protected:
   WrapperPtrLE getWrapperPtrNotLive(
       AreaAndFileAndLine from,

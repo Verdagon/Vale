@@ -52,8 +52,10 @@ class CompilerRegionTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(
         PrototypeT(
-          IdT(_,_,FunctionNameT(FunctionTemplateNameT(StrI("myFunc"),_),_, params)), returnType),
-        Vector(arg)) => {
+          IdT(_,_,FunctionNameT(FunctionTemplateNameT(StrI("myFunc"),_), _, params)), returnType),
+        _, _,
+        Vector(arg),
+        _) => {
         returnType match {
           case CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()),VoidT()) =>
         }
