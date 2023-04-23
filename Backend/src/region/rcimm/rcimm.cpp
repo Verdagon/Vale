@@ -1715,9 +1715,8 @@ LiveRef RCImm::immutabilify(
     Reference* refMT,
     Ref ref,
     Reference* targetRefMT) {
-  assert(false); // impl
-  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
-  auto liveRef =
-      preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, ref, false);
-  return liveRef;
+  return toLiveRef(
+      checkerAFL, globalState, functionState, builder, targetRefMT,
+      // Imm and mut refs in RC are the same, so we can just do a transmute.
+      transmutePtr(globalState, functionState, builder, true, refMT, targetRefMT, ref));
 }
