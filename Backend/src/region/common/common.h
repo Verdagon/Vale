@@ -223,6 +223,7 @@ LLVMValueRef mallocRuntimeSizedArray(
     LLVMTypeRef rsaWrapperLT,
     LLVMTypeRef rsaElementLT,
     LLVMValueRef lengthLE);
+
 // Transmutes a ptr of one ownership (such as own) to another ownership (such as borrow).
 Ref transmutePtr(
     GlobalState* globalState,
@@ -232,6 +233,15 @@ Ref transmutePtr(
     Reference* sourceRefMT,
     Reference* targetRefMT,
     Ref sourceRef);
+
+//// Transmutes a ptr of one ownership (such as own) to another ownership (such as borrow).
+//LiveRef transmuteLiveRef(
+//    GlobalState* globalState,
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    Reference* sourceRefMT,
+//    Reference* targetRefMT,
+//    LiveRef sourceRef);
 
 Ref getRuntimeSizedArrayCapacity(
     GlobalState* globalState,

@@ -1702,3 +1702,29 @@ WrapperPtrLE SafeFastest::getWrapperPtrLive(
       break;
   }
 }
+
+Ref SafeFastest::mutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}
+
+LiveRef SafeFastest::immutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  auto liveRef =
+      preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, ref, false);
+  return liveRef;
+}

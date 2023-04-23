@@ -27,6 +27,13 @@ Ref translateDestructure(
     LLVMBuilderRef builder,
     Destroy* destructureM);
 
+Ref translateDestroySSAIntoLocals(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    DestroyStaticSizedArrayIntoLocals* destroySSAIntoLocalsM);
+
 Ref translateConstruct(
     AreaAndFileAndLine from,
     GlobalState* globalState,
@@ -83,6 +90,22 @@ Ref translateDiscard(
     BlockState* blockState,
     LLVMBuilderRef builder,
     Discard* discardM);
+
+Ref translateMutabilify(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Mutabilify* mutabilifyM);
+
+Ref translateImmutabilify(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Immutabilify* immutabilifyM);
 
 Ref translateNewArrayFromValues(
     GlobalState* globalState,

@@ -63,6 +63,7 @@ add_executable(backend
 		src/function/expressions/destructure.cpp
 		src/function/expressions/block.cpp
 		src/function/expressions/discard.cpp
+		src/function/expressions/mutabilify.cpp
 		src/function/expressions/externs.cpp
 		src/function/expressions/if.cpp
 		src/function/expressions/constantstr.cpp

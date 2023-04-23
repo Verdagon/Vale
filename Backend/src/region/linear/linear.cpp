@@ -2436,3 +2436,27 @@ LiveRef Linear::preCheckBorrow(
   assert(refMT->ownership == Ownership::MUTABLE_BORROW);
   return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }
+
+Ref Linear::mutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}
+
+LiveRef Linear::immutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}

@@ -41,6 +41,8 @@ WrapperPtrLE toWrapperPtr(FunctionState* functionState, LLVMBuilderRef builder, 
 }
 
 LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, LLVMValueRef untrustedRefLE) {
+  // Not sure if this line makes much sense. A LiveRef will often not have the same LLVM type as a full Ref would, and this
+  // checks that theyre the same.
   auto ref = wrap(globalState->getRegion(refM), refM, untrustedRefLE);
   auto refLE = globalState->getRegion(refM)->checkValidReference(checkerAFL, functionState, builder, true, refM, ref);
   return LiveRef(refM, refLE);

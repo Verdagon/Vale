@@ -1082,3 +1082,27 @@ LiveRef NaiveRC::preCheckBorrow(
   // Everything is always known live in an RC world.
   return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
 }
+
+Ref NaiveRC::mutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}
+
+LiveRef NaiveRC::immutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}

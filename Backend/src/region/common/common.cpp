@@ -795,6 +795,20 @@ Ref transmutePtr(
   return targetWeakRef;
 }
 
+//// Transmutes a ptr of one ownership (such as own) to another ownership (such as borrow).
+//LiveRef transmuteLiveRef(
+//    GlobalState* globalState,
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    Reference* sourceRefMT,
+//    Reference* targetRefMT,
+//    LiveRef sourceRef) {
+//  auto sourcePtrRawLE =
+//      globalState->getRegion(sourceRefMT)
+//          ->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+//  auto targetWeakRef = toLiveRef(FL(), globalState, functionState, builder, targetRefMT, sourcePtrRawLE);
+//  return targetWeakRef;
+//}
 
 Ref getRuntimeSizedArrayCapacity(
     GlobalState* globalState,

@@ -95,9 +95,11 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(
         functionNameT("+"),
+        _, _,
         Vector(
           ConstantIntTE(IntegerTemplataT(2), _, _),
-          ConstantIntTE(IntegerTemplataT(3), _, _))) =>
+          ConstantIntTE(IntegerTemplataT(3), _, _)),
+        _) =>
     })
   }
 
@@ -137,7 +139,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _) =>
+      case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _, _, _, _) =>
     })
   }
 
@@ -156,7 +158,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _) =>
+      case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _, _, _, _) =>
     })
   }
 
@@ -234,7 +236,7 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     val callable =
       Collector.only(main.body, {
-        case FunctionCallTE(callable, _) => callable
+        case FunctionCallTE(callable, _, _, _, _) => callable
       })
     callable.id.localName match {
       case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), Vector(IntegerTemplataT(42), _), _) =>
@@ -297,7 +299,9 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(
         PrototypeT(simpleNameT("MyStruct"), _),
-        Vector(ConstantIntTE(IntegerTemplataT(7), _, _))) =>
+        _, _,
+        Vector(ConstantIntTE(IntegerTemplataT(7), _, _)),
+        _) =>
     })
   }
 
@@ -316,8 +320,8 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectCompilerOutputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _) => })
-    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
+    Collector.only(main, { case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _, _, _, _) => })
+    Collector.all(main, { case FunctionCallTE(_, _, _, _, _) => }).size shouldEqual 2
   }
 
   test("Tests defining an empty interface and an implementing struct") {
@@ -462,7 +466,8 @@ class CompilerTests extends FunSuite with Matchers {
                   OwnT,_,
                   StructTT(
                     IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(_,RegionTemplataType()))))))))),
-        CoordT(ShareT,_,VoidT())), _) =>
+          CoordT(ShareT,_,VoidT())),
+        _, _, _, _) =>
     }
   }
 
@@ -602,7 +607,7 @@ class CompilerTests extends FunSuite with Matchers {
     }
 
     Collector.all(coutputs.lookupFunction("main"), {
-      case FunctionCallTE(functionNameT("MySome"), _) =>
+      case FunctionCallTE(functionNameT("MySome"), _, _, _, _) =>
     })
   }
 
@@ -660,7 +665,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case f @ FunctionCallTE(PrototypeT(simpleNameT("doCivicDance"),CoordT(ShareT,_,IntT.i32)), _) => {
+      case f @ FunctionCallTE(PrototypeT(simpleNameT("doCivicDance"),CoordT(ShareT,_,IntT.i32)), _, _, _, _) => {
 //        vassert(f.callable.paramTypes == Vector(Coord(Borrow,InterfaceRef2(simpleName("Car")))))
       }
     })
@@ -822,7 +827,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case f @ FunctionCallTE(functionNameT("forEach"), _) => f
+      case f @ FunctionCallTE(functionNameT("forEach"), _, _, _, _) => f
     })
   }
 
@@ -847,7 +852,7 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     val destructorCalls =
       Collector.all(main, {
-        case fpc @ FunctionCallTE(PrototypeT(IdT(_,Vector(StructTemplateNameT(StrI("Marine"))),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,_,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Marine")),Vector()))))))),_),_) => fpc
+        case fpc @ FunctionCallTE(PrototypeT(IdT(_,Vector(StructTemplateNameT(StrI("Marine"))),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,_,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Marine")),Vector()))))))),_),_, _, _, _) => fpc
       })
     destructorCalls.size shouldEqual 2
   }
@@ -1757,8 +1762,10 @@ class CompilerTests extends FunSuite with Matchers {
       val (asPrototype, asArg) =
         Collector.only(mainFunc, {
           case FunctionCallTE(
-          prototype @ PrototypeT(IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("as"),_),_,_)), _),
-          Vector(arg)) => {
+            prototype @ PrototypeT(IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("as"),_),_,_)), _),
+            _, _,
+            Vector(arg),
+            _) => {
             (prototype, arg)
           }
         })

@@ -1168,3 +1168,29 @@ WrapperPtrLE ResilientV3::getWrapperPtrNotLive(
       checkRefLive(FL(), functionState, builder, regionInstanceRef, refMT, ref, refKnownLive);
   return getWrapperPtrLive(FL(), functionState, builder, refMT, liveRef);
 }
+
+Ref ResilientV3::mutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  assert(false); // impl
+}
+
+LiveRef ResilientV3::immutabilify(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    Ref ref,
+    Reference* targetRefMT) {
+  assert(refMT->ownership == Ownership::MUTABLE_BORROW);
+  auto liveRef =
+      preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, ref, false);
+  return liveRef;
+}

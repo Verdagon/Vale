@@ -94,6 +94,25 @@ Ref translateExpressionInner(
   } else if (auto discardM = dynamic_cast<Discard*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     Ref result = translateDiscard(globalState, functionState, blockState, builder, discardM);
+    return result;
+  } else if (auto mutabilifyM = dynamic_cast<Mutabilify*>(expr)) {
+    buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
+
+    auto regionInstanceRef =
+        // At some point, look up the actual region instance, perhaps from the FunctionState?
+        globalState->getRegion(mutabilifyM->sourceType)->createRegionInstanceLocal(functionState, builder);
+
+    Ref result = translateMutabilify(globalState, functionState, blockState, builder, regionInstanceRef, mutabilifyM);
+//    buildFlare(FL(), globalState, functionState, builder, std::string("/") + typeid(*expr).name());
+    return result;
+  } else if (auto immutabilifyM = dynamic_cast<Immutabilify*>(expr)) {
+    buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
+
+    auto regionInstanceRef =
+        // At some point, look up the actual region instance, perhaps from the FunctionState?
+        globalState->getRegion(immutabilifyM->sourceType)->createRegionInstanceLocal(functionState, builder);
+
+    Ref result = translateImmutabilify(globalState, functionState, blockState, builder, regionInstanceRef, immutabilifyM);
 //    buildFlare(FL(), globalState, functionState, builder, std::string("/") + typeid(*expr).name());
     return result;
   } else if (auto preCheckBorrowM = dynamic_cast<PreCheckBorrow*>(expr)) {
@@ -278,6 +297,9 @@ Ref translateExpressionInner(
   } else if (auto destructureM = dynamic_cast<Destroy*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     return translateDestructure(globalState, functionState, blockState, builder, destructureM);
+  } else if (auto destroySSAIntoLocalsM = dynamic_cast<DestroyStaticSizedArrayIntoLocals*>(expr)) {
+    buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
+    return translateDestroySSAIntoLocals(globalState, functionState, blockState, builder, destroySSAIntoLocalsM);
   } else if (auto memberLoad = dynamic_cast<MemberLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", memberLoad->memberName);
     auto structType = memberLoad->structType;
