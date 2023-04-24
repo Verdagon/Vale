@@ -8,11 +8,11 @@ import dev.vale.postparsing._
 // but Compiler's correspond more to what packages and stamped functions / structs
 // they're in. See TNAD.
 
-case class IdI[R <: IRegionsModeI, +I <: INameI[R]](
+case class IdI[+R <: IRegionsModeI, +I <: INameI[R]](
   packageCoord: PackageCoordinate,
   initSteps: Vector[INameI[R]],
   localName: I
-)  {
+) {
   // PackageTopLevelName2 is just here because names have to have a last step.
   vassert(initSteps.collectFirst({ case PackageTopLevelNameI() => }).isEmpty)
 
@@ -53,100 +53,98 @@ case class IdI[R <: IRegionsModeI, +I <: INameI[R]](
       case _ => initSteps :+ localName
     }
   }
+}
 
-  def addStep[Y <: INameI[R]](newLast: Y): IdI[R, Y] = {
-    IdI[R, Y](packageCoord, steps, newLast)
-  }
-
-  def mapLocal[Z <: INameI[R]](func: I => Z): IdI[R, Z] = {
-    IdI[R, Z](packageCoord, steps, func(localName))
+object INameI {
+  def addStep[R <: IRegionsModeI, I <: INameI[R], Y <: INameI[R]](old: IdI[R, I], newLast: Y): IdI[R, Y] = {
+    IdI[R, Y](old.packageCoord, old.steps, newLast)
   }
 }
 
-sealed trait INameI[R <: IRegionsModeI]
-sealed trait ITemplateNameI[R <: IRegionsModeI] extends INameI[R]
-sealed trait IFunctionTemplateNameI[R <: IRegionsModeI] extends ITemplateNameI[R] {
+sealed trait INameI[+R <: IRegionsModeI]
+sealed trait ITemplateNameI[+R <: IRegionsModeI] extends INameI[R]
+sealed trait IFunctionTemplateNameI[+R <: IRegionsModeI] extends ITemplateNameI[R] {
 //  def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): IFunctionNameI
 }
-sealed trait IInstantiationNameI[R <: IRegionsModeI] extends INameI[R] {
+sealed trait IInstantiationNameI[+R <: IRegionsModeI] extends INameI[R] {
   def template: ITemplateNameI[R]
   def templateArgs: Vector[ITemplataI[R]]
 }
-sealed trait IFunctionNameI[R <: IRegionsModeI] extends IInstantiationNameI[R] {
+sealed trait IFunctionNameI[+R <: IRegionsModeI] extends IInstantiationNameI[R] {
   def template: IFunctionTemplateNameI[R]
   def templateArgs: Vector[ITemplataI[R]]
   def parameters: Vector[CoordI[R]]
 }
-sealed trait ISuperKindTemplateNameI[R <: IRegionsModeI] extends ITemplateNameI[R]
-sealed trait ISubKindTemplateNameI[R <: IRegionsModeI] extends ITemplateNameI[R]
-sealed trait ICitizenTemplateNameI[R <: IRegionsModeI] extends ISubKindTemplateNameI[R] {
+sealed trait ISuperKindTemplateNameI[+R <: IRegionsModeI] extends ITemplateNameI[R]
+sealed trait ISubKindTemplateNameI[+R <: IRegionsModeI] extends ITemplateNameI[R]
+sealed trait ICitizenTemplateNameI[+R <: IRegionsModeI] extends ISubKindTemplateNameI[R] {
 //  def makeCitizenName(templateArgs: Vector[ITemplataI[R]]): ICitizenNameI
 }
-sealed trait IStructTemplateNameI[R <: IRegionsModeI] extends ICitizenTemplateNameI[R] {
+sealed trait IStructTemplateNameI[+R <: IRegionsModeI] extends ICitizenTemplateNameI[R] {
 //  def makeStructName(templateArgs: Vector[ITemplataI[R]]): IStructNameI
 //  override def makeCitizenName(templateArgs: Vector[ITemplataI[R]]):
 //  ICitizenNameI = {
 //    makeStructName(templateArgs)
 //  }
 }
-sealed trait IInterfaceTemplateNameI[R <: IRegionsModeI] extends ICitizenTemplateNameI[R] with ISuperKindTemplateNameI[R] {
+sealed trait IInterfaceTemplateNameI[+R <: IRegionsModeI] extends ICitizenTemplateNameI[R] with ISuperKindTemplateNameI[R] {
 //  def makeInterfaceName(templateArgs: Vector[ITemplataI[R]]): IInterfaceNameI
 }
-sealed trait ISuperKindNameI[R <: IRegionsModeI] extends IInstantiationNameI[R] {
+sealed trait ISuperKindNameI[+R <: IRegionsModeI] extends IInstantiationNameI[R] {
   def template: ISuperKindTemplateNameI[R]
   def templateArgs: Vector[ITemplataI[R]]
 }
-sealed trait ISubKindNameI[R <: IRegionsModeI] extends IInstantiationNameI[R] {
+sealed trait ISubKindNameI[+R <: IRegionsModeI] extends IInstantiationNameI[R] {
   def template: ISubKindTemplateNameI[R]
   def templateArgs: Vector[ITemplataI[R]]
 }
-sealed trait ICitizenNameI[R <: IRegionsModeI] extends ISubKindNameI[R] {
+sealed trait ICitizenNameI[+R <: IRegionsModeI] extends ISubKindNameI[R] {
   def template: ICitizenTemplateNameI[R]
   def templateArgs: Vector[ITemplataI[R]]
 }
-sealed trait IStructNameI[R <: IRegionsModeI] extends ICitizenNameI[R] with ISubKindNameI[R] {
+sealed trait IStructNameI[+R <: IRegionsModeI] extends ICitizenNameI[R] with ISubKindNameI[R] {
   override def template: IStructTemplateNameI[R]
   override def templateArgs: Vector[ITemplataI[R]]
 }
-sealed trait IInterfaceNameI[R <: IRegionsModeI] extends ICitizenNameI[R] with ISubKindNameI[R] with ISuperKindNameI[R] {
+sealed trait IInterfaceNameI[+R <: IRegionsModeI] extends ICitizenNameI[R] with ISubKindNameI[R] with ISuperKindNameI[R] {
   override def template: InterfaceTemplateNameI[R]
   override def templateArgs: Vector[ITemplataI[R]]
 }
-sealed trait IImplTemplateNameI[R <: IRegionsModeI] extends ITemplateNameI[R] {
+sealed trait IImplTemplateNameI[+R <: IRegionsModeI] extends ITemplateNameI[R] {
 //  def makeImplName(templateArgs: Vector[ITemplataI[R]], subCitizen: ICitizenIT): IImplNameI
 }
-sealed trait IImplNameI[R <: IRegionsModeI] extends IInstantiationNameI[R] {
+sealed trait IImplNameI[+R <: IRegionsModeI] extends IInstantiationNameI[R] {
   def template: IImplTemplateNameI[R]
 }
 
-sealed trait IRegionNameI[R <: IRegionsModeI] extends INameI[R]
+sealed trait IRegionNameI[+R <: IRegionsModeI] extends INameI[R]
 
-case class RegionNameI[R <: IRegionsModeI](rune: IRuneS) extends IRegionNameI[R]
-case class DenizenDefaultRegionNameI[R <: IRegionsModeI]() extends IRegionNameI[R]
+case class RegionNameI[+R <: IRegionsModeI](rune: IRuneS) extends IRegionNameI[R]
+case class DenizenDefaultRegionNameI[+R <: IRegionsModeI]() extends IRegionNameI[R]
 
-case class ExportTemplateNameI[R <: IRegionsModeI](codeLoc: CodeLocationS) extends ITemplateNameI[R]
-case class ExportNameI[R <: IRegionsModeI](
+case class ExportTemplateNameI[+R <: IRegionsModeI](codeLoc: CodeLocationS) extends ITemplateNameI[R]
+case class ExportNameI[+R <: IRegionsModeI](
   template: ExportTemplateNameI[R],
   region: RegionTemplataI[R]
 ) extends IInstantiationNameI[R] {
   override def templateArgs: Vector[ITemplataI[R]] = Vector(region)
 }
 
-case class ExternTemplateNameI[R <: IRegionsModeI](codeLoc: CodeLocationS) extends ITemplateNameI[R]
-case class ExternNameI[R <: IRegionsModeI](
+case class ExternTemplateNameI[+R <: IRegionsModeI](codeLoc: CodeLocationS) extends ITemplateNameI[R]
+case class ExternNameI[+R <: IRegionsModeI](
   template: ExternTemplateNameI[R],
   region: RegionTemplataI[R]
 ) extends IInstantiationNameI[R] {
   override def templateArgs: Vector[ITemplataI[R]] = Vector(region)
 }
 
-case class ImplTemplateNameI[R <: IRegionsModeI](codeLocationS: CodeLocationS) extends IImplTemplateNameI[R] {
+case class ImplTemplateNameI[+R <: IRegionsModeI](codeLocationS: CodeLocationS) extends IImplTemplateNameI[R] {
   vpass()
 //  override def makeImplName(templateArgs: Vector[ITemplataI[R]], subCitizen: ICitizenIT): ImplNameI = {
 //    ImplNameI(this, templateArgs, subCitizen)
 //  }
 }
-case class ImplNameI[R <: IRegionsModeI](
+case class ImplNameI[+R <: IRegionsModeI](
   template: IImplTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   // The instantiator wants this so it can know the struct type up-front before monomorphizing the
@@ -156,12 +154,12 @@ case class ImplNameI[R <: IRegionsModeI](
   vpass()
 }
 
-case class ImplBoundTemplateNameI[R <: IRegionsModeI](codeLocationS: CodeLocationS) extends IImplTemplateNameI[R] {
+case class ImplBoundTemplateNameI[+R <: IRegionsModeI](codeLocationS: CodeLocationS) extends IImplTemplateNameI[R] {
 //  override def makeImplName(templateArgs: Vector[ITemplataI[R]], subCitizen: ICitizenIT): ImplBoundNameI = {
 //    ImplBoundNameI(this, templateArgs)
 //  }
 }
-case class ImplBoundNameI[R <: IRegionsModeI](
+case class ImplBoundNameI[+R <: IRegionsModeI](
   template: ImplBoundTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]]
 ) extends IImplNameI[R] {
@@ -170,15 +168,15 @@ case class ImplBoundNameI[R <: IRegionsModeI](
 
 //// The name of an impl that is subclassing some interface. To find all impls subclassing an interface,
 //// look for this name.
-//case class ImplImplementingSuperInterfaceNameI[R <: IRegionsModeI](superInterface: FullNameI[IInterfaceTemplateNameI]) extends IImplTemplateNameI
+//case class ImplImplementingSuperInterfaceNameI[+R <: IRegionsModeI](superInterface: FullNameI[IInterfaceTemplateNameI]) extends IImplTemplateNameI
 //// The name of an impl that is augmenting some sub citizen. To find all impls subclassing an interface,
 //// look for this name.
-//case class ImplAugmentingSubCitizenNameI[R <: IRegionsModeI](subCitizen: FullNameI[ICitizenTemplateNameI]) extends IImplTemplateNameI
+//case class ImplAugmentingSubCitizenNameI[+R <: IRegionsModeI](subCitizen: FullNameI[ICitizenTemplateNameI]) extends IImplTemplateNameI
 
-case class LetNameI[R <: IRegionsModeI](codeLocation: CodeLocationS) extends INameI[R]
-case class ExportAsNameI[R <: IRegionsModeI](codeLocation: CodeLocationS) extends INameI[R]
+case class LetNameI[+R <: IRegionsModeI](codeLocation: CodeLocationS) extends INameI[R]
+case class ExportAsNameI[+R <: IRegionsModeI](codeLocation: CodeLocationS) extends INameI[R]
 
-case class RawArrayNameI[R <: IRegionsModeI](
+case class RawArrayNameI[+R <: IRegionsModeI](
   mutability: MutabilityI,
   elementType: CoordTemplataI[R],
   selfRegion: RegionTemplataI[R]
@@ -191,9 +189,9 @@ case class RawArrayNameI[R <: IRegionsModeI](
   }
 }
 
-case class ReachablePrototypeNameI[R <: IRegionsModeI](num: Int) extends INameI[R]
+case class ReachablePrototypeNameI[+R <: IRegionsModeI](num: Int) extends INameI[R]
 
-case class StaticSizedArrayTemplateNameI[R <: IRegionsModeI]() extends ICitizenTemplateNameI[R] {
+case class StaticSizedArrayTemplateNameI[+R <: IRegionsModeI]() extends ICitizenTemplateNameI[R] {
 //  override def makeCitizenName(templateArgs: Vector[ITemplataI[R]]): ICitizenNameI = {
 //    vassert(templateArgs.size == 5)
 //    val size = expectIntegerTemplata(templateArgs(0)).value
@@ -205,7 +203,7 @@ case class StaticSizedArrayTemplateNameI[R <: IRegionsModeI]() extends ICitizenT
 //  }
 }
 
-case class StaticSizedArrayNameI[R <: IRegionsModeI](
+case class StaticSizedArrayNameI[+R <: IRegionsModeI](
   template: StaticSizedArrayTemplateNameI[R],
   size: Long,
   variability: VariabilityI,
@@ -221,7 +219,7 @@ case class StaticSizedArrayNameI[R <: IRegionsModeI](
   }
 }
 
-case class RuntimeSizedArrayTemplateNameI[R <: IRegionsModeI]() extends ICitizenTemplateNameI[R] {
+case class RuntimeSizedArrayTemplateNameI[+R <: IRegionsModeI]() extends ICitizenTemplateNameI[R] {
 //  override def makeCitizenName(templateArgs: Vector[ITemplataI[R]]): ICitizenNameI = {
 //    vassert(templateArgs.size == 3)
 //    val mutability = expectMutabilityTemplata(templateArgs(0)).mutability
@@ -231,7 +229,7 @@ case class RuntimeSizedArrayTemplateNameI[R <: IRegionsModeI]() extends ICitizen
 //  }
 }
 
-case class RuntimeSizedArrayNameI[R <: IRegionsModeI](
+case class RuntimeSizedArrayNameI[+R <: IRegionsModeI](
   template: RuntimeSizedArrayTemplateNameI[R],
   arr: RawArrayNameI[R]
 ) extends ICitizenNameI[R] {
@@ -243,7 +241,7 @@ case class RuntimeSizedArrayNameI[R <: IRegionsModeI](
 }
 
 // See NNSPAFOC.
-case class OverrideDispatcherTemplateNameI[R <: IRegionsModeI](
+case class OverrideDispatcherTemplateNameI[+R <: IRegionsModeI](
   implId: IdI[R, IImplTemplateNameI[R]]
 ) extends IFunctionTemplateNameI[R] {
 //  override def makeFunctionName(
@@ -256,7 +254,7 @@ case class OverrideDispatcherTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class OverrideDispatcherNameI[R <: IRegionsModeI](
+case class OverrideDispatcherNameI[+R <: IRegionsModeI](
   template: OverrideDispatcherTemplateNameI[R],
   // This will have placeholders in it after the typing pass.
   templateArgs: Vector[ITemplataI[R]],
@@ -265,7 +263,7 @@ case class OverrideDispatcherNameI[R <: IRegionsModeI](
   vpass()
 }
 
-case class OverrideDispatcherCaseNameI[R <: IRegionsModeI](
+case class OverrideDispatcherCaseNameI[+R <: IRegionsModeI](
   // These are the templatas for the independent runes from the impl, like the <ZZ> for Milano, see
   // OMCNAGP.
   independentImplTemplateArgs: Vector[ITemplataI[R]]
@@ -274,34 +272,34 @@ case class OverrideDispatcherCaseNameI[R <: IRegionsModeI](
   override def templateArgs: Vector[ITemplataI[R]] = independentImplTemplateArgs
 }
 
-sealed trait IVarNameI[R <: IRegionsModeI] extends INameI[R]
-case class TypingPassBlockResultVarNameI[R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
-case class TypingPassFunctionResultVarNameI[R <: IRegionsModeI]() extends IVarNameI[R]
-case class TypingPassTemporaryVarNameI[R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
-case class TypingPassPatternMemberNameI[R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
-case class TypingIgnoredParamNameI[R <: IRegionsModeI](num: Int) extends IVarNameI[R]
-case class TypingPassPatternDestructureeNameI[R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
-case class UnnamedLocalNameI[R <: IRegionsModeI](codeLocation: CodeLocationS) extends IVarNameI[R]
-case class ClosureParamNameI[R <: IRegionsModeI](codeLocation: CodeLocationS) extends IVarNameI[R]
-case class ConstructingMemberNameI[R <: IRegionsModeI](name: StrI) extends IVarNameI[R]
-case class WhileCondResultNameI[R <: IRegionsModeI](range: RangeS) extends IVarNameI[R]
-case class IterableNameI[R <: IRegionsModeI](range: RangeS) extends IVarNameI[R] {  }
-case class IteratorNameI[R <: IRegionsModeI](range: RangeS) extends IVarNameI[R] {  }
-case class IterationOptionNameI[R <: IRegionsModeI](range: RangeS) extends IVarNameI[R] {  }
-case class MagicParamNameI[R <: IRegionsModeI](codeLocation2: CodeLocationS) extends IVarNameI[R]
-case class CodeVarNameI[R <: IRegionsModeI](name: StrI) extends IVarNameI[R]
+sealed trait IVarNameI[+R <: IRegionsModeI] extends INameI[R]
+case class TypingPassBlockResultVarNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
+case class TypingPassFunctionResultVarNameI[+R <: IRegionsModeI]() extends IVarNameI[R]
+case class TypingPassTemporaryVarNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
+case class TypingPassPatternMemberNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
+case class TypingIgnoredParamNameI[+R <: IRegionsModeI](num: Int) extends IVarNameI[R]
+case class TypingPassPatternDestructureeNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
+case class UnnamedLocalNameI[+R <: IRegionsModeI](codeLocation: CodeLocationS) extends IVarNameI[R]
+case class ClosureParamNameI[+R <: IRegionsModeI](codeLocation: CodeLocationS) extends IVarNameI[R]
+case class ConstructingMemberNameI[+R <: IRegionsModeI](name: StrI) extends IVarNameI[R]
+case class WhileCondResultNameI[+R <: IRegionsModeI](range: RangeS) extends IVarNameI[R]
+case class IterableNameI[+R <: IRegionsModeI](range: RangeS) extends IVarNameI[R] {  }
+case class IteratorNameI[+R <: IRegionsModeI](range: RangeS) extends IVarNameI[R] {  }
+case class IterationOptionNameI[+R <: IRegionsModeI](range: RangeS) extends IVarNameI[R] {  }
+case class MagicParamNameI[+R <: IRegionsModeI](codeLocation2: CodeLocationS) extends IVarNameI[R]
+case class CodeVarNameI[+R <: IRegionsModeI](name: StrI) extends IVarNameI[R]
 // We dont use CodeVarName2(0), CodeVarName2(1) etc because we dont want the user to address these members directly.
-case class AnonymousSubstructMemberNameI[R <: IRegionsModeI](index: Int) extends IVarNameI[R]
-case class PrimitiveNameI[R <: IRegionsModeI](humanName: StrI) extends INameI[R]
+case class AnonymousSubstructMemberNameI[+R <: IRegionsModeI](index: Int) extends IVarNameI[R]
+case class PrimitiveNameI[+R <: IRegionsModeI](humanName: StrI) extends INameI[R]
 // Only made in typingpass
-case class PackageTopLevelNameI[R <: IRegionsModeI]() extends INameI[R]
-case class ProjectNameI[R <: IRegionsModeI](name: StrI) extends INameI[R]
-case class PackageNameI[R <: IRegionsModeI](name: StrI) extends INameI[R]
-case class RuneNameI[R <: IRegionsModeI](rune: IRuneS) extends INameI[R]
+case class PackageTopLevelNameI[+R <: IRegionsModeI]() extends INameI[R]
+case class ProjectNameI[+R <: IRegionsModeI](name: StrI) extends INameI[R]
+case class PackageNameI[+R <: IRegionsModeI](name: StrI) extends INameI[R]
+case class RuneNameI[+R <: IRegionsModeI](rune: IRuneS) extends INameI[R]
 
 // This is the name of a function that we're still figuring out in the function typingpass.
 // We have its closured variables, but are still figuring out its template args and params.
-case class BuildingFunctionNameWithClosuredsI[R <: IRegionsModeI](
+case class BuildingFunctionNameWithClosuredsI[+R <: IRegionsModeI](
   templateName: IFunctionTemplateNameI[R],
 ) extends INameI[R] {
 
@@ -309,7 +307,7 @@ case class BuildingFunctionNameWithClosuredsI[R <: IRegionsModeI](
 
 }
 
-case class ExternFunctionNameI[R <: IRegionsModeI](
+case class ExternFunctionNameI[+R <: IRegionsModeI](
   humanName: StrI,
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R] with IFunctionTemplateNameI[R] {
@@ -325,13 +323,13 @@ case class ExternFunctionNameI[R <: IRegionsModeI](
   override def templateArgs: Vector[ITemplataI[R]] = Vector.empty
 }
 
-case class FunctionNameIX[R <: IRegionsModeI](
+case class FunctionNameIX[+R <: IRegionsModeI](
   template: FunctionTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R]
 
-case class ForwarderFunctionNameI[R <: IRegionsModeI](
+case class ForwarderFunctionNameI[+R <: IRegionsModeI](
   template: ForwarderFunctionTemplateNameI[R],
   inner: IFunctionNameI[R]
 ) extends IFunctionNameI[R] {
@@ -339,7 +337,7 @@ case class ForwarderFunctionNameI[R <: IRegionsModeI](
   override def parameters: Vector[CoordI[R]] = inner.parameters
 }
 
-case class FunctionBoundTemplateNameI[R <: IRegionsModeI](
+case class FunctionBoundTemplateNameI[+R <: IRegionsModeI](
   humanName: StrI,
   codeLocation: CodeLocationS
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
@@ -348,13 +346,13 @@ case class FunctionBoundTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class FunctionBoundNameI[R <: IRegionsModeI](
+case class FunctionBoundNameI[+R <: IRegionsModeI](
   template: FunctionBoundTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R]
 
-case class FunctionTemplateNameI[R <: IRegionsModeI](
+case class FunctionTemplateNameI[+R <: IRegionsModeI](
     humanName: StrI,
     codeLocation: CodeLocationS
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
@@ -364,7 +362,7 @@ case class FunctionTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class LambdaCallFunctionTemplateNameI[R <: IRegionsModeI](
+case class LambdaCallFunctionTemplateNameI[+R <: IRegionsModeI](
   codeLocation: CodeLocationS,
   paramTypes: Vector[CoordI[R]]
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
@@ -375,13 +373,13 @@ case class LambdaCallFunctionTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class LambdaCallFunctionNameI[R <: IRegionsModeI](
+case class LambdaCallFunctionNameI[+R <: IRegionsModeI](
   template: LambdaCallFunctionTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R]
 
-case class ForwarderFunctionTemplateNameI[R <: IRegionsModeI](
+case class ForwarderFunctionTemplateNameI[+R <: IRegionsModeI](
   inner: IFunctionTemplateNameI[R],
   index: Int
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
@@ -391,7 +389,7 @@ case class ForwarderFunctionTemplateNameI[R <: IRegionsModeI](
 }
 
 
-//case class AbstractVirtualDropFunctionTemplateNameI[R <: IRegionsModeI](
+//case class AbstractVirtualDropFunctionTemplateNameI[+R <: IRegionsModeI](
 //  implName: INameI[R]
 //) extends INameI[R] with IFunctionTemplateNameI {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
@@ -400,13 +398,13 @@ case class ForwarderFunctionTemplateNameI[R <: IRegionsModeI](
 //  }
 //}
 
-//case class AbstractVirtualDropFunctionNameI[R <: IRegionsModeI](
+//case class AbstractVirtualDropFunctionNameI[+R <: IRegionsModeI](
 //  implName: INameI[R],
 //  templateArgs: Vector[ITemplata[ITemplataType]],
 //  parameters: Vector[CoordI]
 //) extends INameI[R] with IFunctionNameI
 
-//case class OverrideVirtualDropFunctionTemplateNameI[R <: IRegionsModeI](
+//case class OverrideVirtualDropFunctionTemplateNameI[+R <: IRegionsModeI](
 //  implName: INameI[R]
 //) extends INameI[R] with IFunctionTemplateNameI {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
@@ -415,26 +413,26 @@ case class ForwarderFunctionTemplateNameI[R <: IRegionsModeI](
 //  }
 //}
 
-//case class OverrideVirtualDropFunctionNameI[R <: IRegionsModeI](
+//case class OverrideVirtualDropFunctionNameI[+R <: IRegionsModeI](
 //  implName: INameI[R],
 //  templateArgs: Vector[ITemplata[ITemplataType]],
 //  parameters: Vector[CoordI]
 //) extends INameI[R] with IFunctionNameI
 
-//case class LambdaTemplateNameI[R <: IRegionsModeI](
+//case class LambdaTemplateNameI[+R <: IRegionsModeI](
 //  codeLocation: CodeLocationS
 //) extends INameI[R] with IFunctionTemplateNameI {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    interner.intern(FunctionNameI(interner.intern(FunctionTemplateNameI(keywords.underscoresCall, codeLocation)), templateArgs, params))
 //  }
 //}
-case class ConstructorTemplateNameI[R <: IRegionsModeI](
+case class ConstructorTemplateNameI[+R <: IRegionsModeI](
   codeLocation: CodeLocationS
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): IFunctionNameI = vimpl()
 }
 
-//case class FreeTemplateNameI[R <: IRegionsModeI](codeLoc: CodeLocationS) extends INameI[R] with IFunctionTemplateNameI {
+//case class FreeTemplateNameI[+R <: IRegionsModeI](codeLoc: CodeLocationS) extends INameI[R] with IFunctionTemplateNameI {
 //  vpass()
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    params match {
@@ -445,7 +443,7 @@ case class ConstructorTemplateNameI[R <: IRegionsModeI](
 //    }
 //  }
 //}
-//case class FreeNameI[R <: IRegionsModeI](
+//case class FreeNameI[+R <: IRegionsModeI](
 //  template: FreeTemplateNameI,
 //  templateArgs: Vector[ITemplata[ITemplataType]],
 //  coordT: CoordI
@@ -454,35 +452,35 @@ case class ConstructorTemplateNameI[R <: IRegionsModeI](
 //}
 
 //// See NSIDN for why we have these virtual names
-//case class AbstractVirtualFreeTemplateNameI[R <: IRegionsModeI](codeLoc: CodeLocationS) extends INameI[R] with IFunctionTemplateNameI {
+//case class AbstractVirtualFreeTemplateNameI[+R <: IRegionsModeI](codeLoc: CodeLocationS) extends INameI[R] with IFunctionTemplateNameI {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    val Vector(CoordI(ShareI, kind)) = params
 //    interner.intern(AbstractVirtualFreeNameI(templateArgs, kind))
 //  }
 //}
 //// See NSIDN for why we have these virtual names
-//case class AbstractVirtualFreeNameI[R <: IRegionsModeI](templateArgs: Vector[ITemplata[ITemplataType]], param: KindI) extends IFunctionNameI {
+//case class AbstractVirtualFreeNameI[+R <: IRegionsModeI](templateArgs: Vector[ITemplata[ITemplataType]], param: KindI) extends IFunctionNameI {
 //  override def parameters: Vector[CoordI] = Vector(CoordI(ShareI, param))
 //}
 //
 //// See NSIDN for why we have these virtual names
-//case class OverrideVirtualFreeTemplateNameI[R <: IRegionsModeI](codeLoc: CodeLocationS) extends INameI[R] with IFunctionTemplateNameI {
+//case class OverrideVirtualFreeTemplateNameI[+R <: IRegionsModeI](codeLoc: CodeLocationS) extends INameI[R] with IFunctionTemplateNameI {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    val Vector(CoordI(ShareI, kind)) = params
 //    interner.intern(OverrideVirtualFreeNameI(templateArgs, kind))
 //  }
 //}
 //// See NSIDN for why we have these virtual names
-//case class OverrideVirtualFreeNameI[R <: IRegionsModeI](templateArgs: Vector[ITemplata[ITemplataType]], param: KindI) extends IFunctionNameI {
+//case class OverrideVirtualFreeNameI[+R <: IRegionsModeI](templateArgs: Vector[ITemplata[ITemplataType]], param: KindI) extends IFunctionNameI {
 //  override def parameters: Vector[CoordI] = Vector(CoordI(ShareI, param))
 //}
 
 // Vale has no Self, its just a convenient first name parameter.
 // See also SelfNameS.
-case class SelfNameI[R <: IRegionsModeI]() extends IVarNameI[R]
-case class ArbitraryNameI[R <: IRegionsModeI]() extends INameI[R]
+case class SelfNameI[+R <: IRegionsModeI]() extends IVarNameI[R]
+case class ArbitraryNameI[+R <: IRegionsModeI]() extends INameI[R]
 
-sealed trait CitizenNameI[R <: IRegionsModeI] extends ICitizenNameI[R] {
+sealed trait CitizenNameI[+R <: IRegionsModeI] extends ICitizenNameI[R] {
   def template: ICitizenTemplateNameI[R]
   def templateArgs: Vector[ITemplataI[R]]
 }
@@ -496,21 +494,21 @@ object CitizenNameI {
   }
 }
 
-case class StructNameI[R <: IRegionsModeI](
+case class StructNameI[+R <: IRegionsModeI](
   template: IStructTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]]
 ) extends IStructNameI[R] with CitizenNameI[R] {
   vpass()
 }
 
-case class InterfaceNameI[R <: IRegionsModeI](
+case class InterfaceNameI[+R <: IRegionsModeI](
   template: InterfaceTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]]
 ) extends IInterfaceNameI[R] with CitizenNameI[R] {
   vpass()
 }
 
-case class LambdaCitizenTemplateNameI[R <: IRegionsModeI](
+case class LambdaCitizenTemplateNameI[+R <: IRegionsModeI](
   codeLocation: CodeLocationS
 ) extends IStructTemplateNameI[R] {
 //  override def makeStructName(templateArgs: Vector[ITemplataI[R]]): IStructNameI = {
@@ -519,14 +517,14 @@ case class LambdaCitizenTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class LambdaCitizenNameI[R <: IRegionsModeI](
+case class LambdaCitizenNameI[+R <: IRegionsModeI](
   template: LambdaCitizenTemplateNameI[R]
 ) extends IStructNameI[R] {
   def templateArgs: Vector[ITemplataI[R]] = Vector.empty
   vpass()
 }
 
-sealed trait CitizenTemplateNameI[R <: IRegionsModeI] extends ICitizenTemplateNameI[R] {
+sealed trait CitizenTemplateNameI[+R <: IRegionsModeI] extends ICitizenTemplateNameI[R] {
   def humanName: StrI
   // We don't include a CodeLocation here because:
   // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
@@ -540,7 +538,7 @@ sealed trait CitizenTemplateNameI[R <: IRegionsModeI] extends ICitizenTemplateNa
 //  }
 }
 
-case class StructTemplateNameI[R <: IRegionsModeI](
+case class StructTemplateNameI[+R <: IRegionsModeI](
   humanName: StrI,
   // We don't include a CodeLocation here because:
   // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
@@ -556,7 +554,7 @@ case class StructTemplateNameI[R <: IRegionsModeI](
 //    interner.intern(StructNameI(this, templateArgs))
 //  }
 }
-case class InterfaceTemplateNameI[R <: IRegionsModeI](
+case class InterfaceTemplateNameI[+R <: IRegionsModeI](
   humanNamee: StrI,
   // We don't include a CodeLocation here because:
   // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
@@ -574,21 +572,21 @@ case class InterfaceTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class AnonymousSubstructImplTemplateNameI[R <: IRegionsModeI](
+case class AnonymousSubstructImplTemplateNameI[+R <: IRegionsModeI](
   interface: IInterfaceTemplateNameI[R]
 ) extends IImplTemplateNameI[R] {
 //  override def makeImplName(templateArgs: Vector[ITemplataI[R]], subCitizen: ICitizenIT): IImplNameI = {
 //    AnonymousSubstructImplNameI(this, templateArgs, subCitizen)
 //  }
 }
-case class AnonymousSubstructImplNameI[R <: IRegionsModeI](
+case class AnonymousSubstructImplNameI[+R <: IRegionsModeI](
   template: AnonymousSubstructImplTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   subCitizen: ICitizenIT[R]
 ) extends IImplNameI[R]
 
 
-case class AnonymousSubstructTemplateNameI[R <: IRegionsModeI](
+case class AnonymousSubstructTemplateNameI[+R <: IRegionsModeI](
   // This happens to be the same thing that appears before this AnonymousSubstructNameI in a FullNameT.
   // This is really only here to help us calculate the imprecise name for this thing.
   interface: IInterfaceTemplateNameI[R]
@@ -597,7 +595,7 @@ case class AnonymousSubstructTemplateNameI[R <: IRegionsModeI](
 //    interner.intern(AnonymousSubstructNameI(this, templateArgs))
 //  }
 }
-case class AnonymousSubstructConstructorTemplateNameI[R <: IRegionsModeI](
+case class AnonymousSubstructConstructorTemplateNameI[+R <: IRegionsModeI](
   substruct: ICitizenTemplateNameI[R]
 ) extends IFunctionTemplateNameI[R] {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): IFunctionNameI = {
@@ -605,13 +603,13 @@ case class AnonymousSubstructConstructorTemplateNameI[R <: IRegionsModeI](
 //  }
 }
 
-case class AnonymousSubstructConstructorNameI[R <: IRegionsModeI](
+case class AnonymousSubstructConstructorNameI[+R <: IRegionsModeI](
   template: AnonymousSubstructConstructorTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R]
 
-case class AnonymousSubstructNameI[R <: IRegionsModeI](
+case class AnonymousSubstructNameI[+R <: IRegionsModeI](
   // This happens to be the same thing that appears before this AnonymousSubstructNameI in a FullNameT.
   // This is really only here to help us calculate the imprecise name for this thing.
   template: AnonymousSubstructTemplateNameI[R],
@@ -619,14 +617,14 @@ case class AnonymousSubstructNameI[R <: IRegionsModeI](
 ) extends IStructNameI[R] {
 
 }
-//case class AnonymousSubstructImplNameI[R <: IRegionsModeI]() extends INameI[R] {
+//case class AnonymousSubstructImplNameI[+R <: IRegionsModeI]() extends INameI[R] {
 //
 //}
 
-case class ResolvingEnvNameI[R <: IRegionsModeI]() extends INameI[R] {
+case class ResolvingEnvNameI[+R <: IRegionsModeI]() extends INameI[R] {
   vpass()
 }
 
-case class CallEnvNameI[R <: IRegionsModeI]() extends INameI[R] {
+case class CallEnvNameI[+R <: IRegionsModeI]() extends INameI[R] {
   vpass()
 }

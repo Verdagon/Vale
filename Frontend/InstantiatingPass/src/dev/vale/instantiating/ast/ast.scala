@@ -232,7 +232,7 @@ case class ParameterI(
 // function headers, because functions don't have to specify their return types and
 // it takes a complete typingpass evaluate to deduce a function's return type.
 
-case class SignatureI[R <: IRegionsModeI](id: IdI[R, IFunctionNameI[R]]) {
+case class SignatureI[+R <: IRegionsModeI](id: IdI[R, IFunctionNameI[R]]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def paramTypes: Vector[CoordI[R]] = id.localName.parameters
 }
@@ -350,7 +350,7 @@ case class FunctionHeaderI(
   }
 }
 
-case class PrototypeI[R <: IRegionsModeI](
+case class PrototypeI[+R <: IRegionsModeI](
     id: IdI[R, IFunctionNameI[R]],
     returnType: CoordI[R]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;

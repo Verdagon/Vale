@@ -355,4 +355,27 @@ class PureTests extends FunSuite with Matchers {
       case VonInt(0) =>
     }
   }
+
+  test("Calling func with element from pure incoming array") {
+    val compile =
+      RunCompilation.test(
+        """
+          |import v.builtins.runtime_sized_array_mut_new.*;
+          |
+          |func bork<r', E>(arr &r'[]<mut>E) int { 0 }
+          |
+          |pure func Display<r'>(board &r'[]<mut>[]<mut>str) {
+          |  row = board[0];
+          |  row.bork();
+          |}
+          |
+          |exported func main() {
+          |  board = [][]str(0);
+          |  Display(&board);
+          |  [] = board;
+          |}
+          |""".stripMargin, false)
+    compile.getHamuts()
+  }
+
 }

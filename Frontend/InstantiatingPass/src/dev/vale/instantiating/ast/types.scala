@@ -70,15 +70,15 @@ case object YonderI extends LocationI {
 sealed trait IRegionsModeI
 // See CCFCTS, these need to have zero members. If we need to have members, we'll need to stop
 // casting from collapsed to subjective ASTs.
-case class sI() extends IRegionsModeI
-case class nI() extends sI // Stands for new. Serves as a starting point for a new instantiation.
-case class cI() extends IRegionsModeI
+class sI() extends IRegionsModeI
+class nI() extends sI // Stands for new. Serves as a starting point for a new instantiation.
+class cI() extends IRegionsModeI
 
 object CoordI {
   def void[R <: IRegionsModeI]: CoordI[R] = CoordI[R](MutableShareI, VoidIT())
 }
 
-case class CoordI[R <: IRegionsModeI](
+case class CoordI[+R <: IRegionsModeI](
   ownership: OwnershipI,
   kind: KindIT[R])  {
 
@@ -102,7 +102,7 @@ case class CoordI[R <: IRegionsModeI](
   }
 }
 
-sealed trait KindIT[R <: IRegionsModeI] {
+sealed trait KindIT[+R <: IRegionsModeI] {
   // Note, we don't have a mutability: Mutability in here because this Kind
   // should be enough to uniquely identify a type, and no more.
   // We can always get the mutability for a struct from the coutputs.
@@ -132,7 +132,7 @@ sealed trait KindIT[R <: IRegionsModeI] {
 }
 
 // like Scala's Nothing. No instance of this can ever happen.
-case class NeverIT[R <: IRegionsModeI](
+case class NeverIT[+R <: IRegionsModeI](
   // True if this Never came from a break.
   // While will have to know about this; if IT's a Never from a ret, IT should
   // propagate IT, but if its body is a break never, the while produces a void.
@@ -143,23 +143,23 @@ case class NeverIT[R <: IRegionsModeI](
 }
 
 // Mostly for interoperability with extern functions
-case class VoidIT[R <: IRegionsModeI]() extends KindIT[R] {
+case class VoidIT[+R <: IRegionsModeI]() extends KindIT[R] {
   override def isPrimitive: Boolean = true
 }
 
-case class IntIT[R <: IRegionsModeI](bits: Int) extends KindIT[R] {
+case class IntIT[+R <: IRegionsModeI](bits: Int) extends KindIT[R] {
   override def isPrimitive: Boolean = true
 }
 
-case class BoolIT[R <: IRegionsModeI]() extends KindIT[R] {
+case class BoolIT[+R <: IRegionsModeI]() extends KindIT[R] {
   override def isPrimitive: Boolean = true
 }
 
-case class StrIT[R <: IRegionsModeI]() extends KindIT[R] {
+case class StrIT[+R <: IRegionsModeI]() extends KindIT[R] {
   override def isPrimitive: Boolean = false
 }
 
-case class FloatIT[R <: IRegionsModeI]() extends KindIT[R] {
+case class FloatIT[+R <: IRegionsModeI]() extends KindIT[R] {
   override def isPrimitive: Boolean = true
 }
 
@@ -171,7 +171,7 @@ object contentsStaticSizedArrayIT {
   }
 }
 
-case class StaticSizedArrayIT[R <: IRegionsModeI](
+case class StaticSizedArrayIT[+R <: IRegionsModeI](
   name: IdI[R, StaticSizedArrayNameI[R]]
 ) extends KindIT[R] {
   vassert(name.initSteps.isEmpty)
@@ -189,7 +189,7 @@ object contentsRuntimeSizedArrayIT {
     Some((mutability, coord, selfRegion))
   }
 }
-case class RuntimeSizedArrayIT[R <: IRegionsModeI](
+case class RuntimeSizedArrayIT[+R <: IRegionsModeI](
   name: IdI[R, RuntimeSizedArrayNameI[R]]
 ) extends KindIT[R] {
   override def isPrimitive: Boolean = false
@@ -209,20 +209,20 @@ object ICitizenIT {
 }
 
 // Structs, interfaces, and placeholders
-sealed trait ISubKindIT[R <: IRegionsModeI] extends KindIT[R] {
+sealed trait ISubKindIT[+R <: IRegionsModeI] extends KindIT[R] {
   def id: IdI[R, ISubKindNameI[R]]
 }
 // Interfaces and placeholders
-sealed trait ISuperKindIT[R <: IRegionsModeI] extends KindIT[R] {
+sealed trait ISuperKindIT[+R <: IRegionsModeI] extends KindIT[R] {
   def id: IdI[R, ISuperKindNameI[R]]
 }
 
-sealed trait ICitizenIT[R <: IRegionsModeI] extends ISubKindIT[R] {
+sealed trait ICitizenIT[+R <: IRegionsModeI] extends ISubKindIT[R] {
   def id: IdI[R, ICitizenNameI[R]]
 }
 
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
-case class StructIT[R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends ICitizenIT[R] {
+case class StructIT[+R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends ICitizenIT[R] {
   override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(StructTemplateNameI(_)), StructNameI(_, _)) => vfail()
@@ -230,7 +230,7 @@ case class StructIT[R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends ICi
   }
 }
 
-case class InterfaceIT[R <: IRegionsModeI](id: IdI[R, IInterfaceNameI[R]]) extends ICitizenIT[R] with ISuperKindIT[R] {
+case class InterfaceIT[+R <: IRegionsModeI](id: IdI[R, IInterfaceNameI[R]]) extends ICitizenIT[R] with ISuperKindIT[R] {
   override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(InterfaceTemplateNameI(_)), InterfaceNameI(_, _)) => vfail()
