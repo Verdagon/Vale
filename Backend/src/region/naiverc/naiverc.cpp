@@ -554,6 +554,7 @@ LLVMValueRef NaiveRC::checkValidReference(
 Ref NaiveRC::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* sourceType,
     Reference* targetType,
     LoadResult sourceLoadResult,
@@ -789,7 +790,7 @@ Ref NaiveRC::loadMember(
             globalState, functionState, builder, &kindStructs, structRefMT, structRef,
             memberIndex, expectedMemberType, targetType, memberName);
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
+        functionState, builder, regionInstanceRef, expectedMemberType, targetType, unupgradedMemberLE, false);
   }
 }
 

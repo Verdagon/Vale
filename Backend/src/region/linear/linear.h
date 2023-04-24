@@ -266,6 +266,7 @@ public:
   Ref upgradeLoadResultToRefWithTargetOwnership(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Ref regionInstanceRef,
       Reference* sourceType,
       Reference* targetType,
       LoadResult sourceRef,

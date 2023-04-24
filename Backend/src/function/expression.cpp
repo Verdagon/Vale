@@ -685,6 +685,9 @@ Ref translateExpressionInner(
     auto arrayRegionInstanceRef =
         // At some point, look up the actual region instance, perhaps from the FunctionState?
         globalState->getRegion(arrayType)->createRegionInstanceLocal(functionState, builder);
+    auto elementRegionInstanceRef =
+        // At some point, look up the actual region instance, perhaps from the FunctionState?
+        globalState->getRegion(staticSizedArrayLoad->resultType)->createRegionInstanceLocal(functionState, builder);
 
     auto arrayLiveRef =
         globalState->getRegion(arrayType)
@@ -709,7 +712,7 @@ Ref translateExpressionInner(
     auto resultRef =
         globalState->getRegion(staticSizedArrayLoad->resultType)
             ->upgradeLoadResultToRefWithTargetOwnership(
-                functionState, builder, elementType, staticSizedArrayLoad->resultType, loadResult, false);
+                functionState, builder, elementRegionInstanceRef, elementType, staticSizedArrayLoad->resultType, loadResult, false);
     globalState->getRegion(resultType)
         ->checkValidReference(FL(), functionState, builder, false, staticSizedArrayLoad->resultType, resultRef);
     globalState->getRegion(elementType)
@@ -732,6 +735,9 @@ Ref translateExpressionInner(
     auto arrayRegionInstanceRef =
         // At some point, look up the actual region instance, perhaps from the FunctionState?
         globalState->getRegion(arrayType)->createRegionInstanceLocal(functionState, builder);
+    auto elementRegionInstanceRef =
+        // At some point, look up the actual region instance, perhaps from the FunctionState?
+        globalState->getRegion(elementType)->createRegionInstanceLocal(functionState, builder);
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
 
@@ -762,7 +768,7 @@ Ref translateExpressionInner(
     auto resultRef =
         globalState->getRegion(elementType)
             ->upgradeLoadResultToRefWithTargetOwnership(
-                functionState, builder, elementType, resultType, loadResult, false);
+                functionState, builder, elementRegionInstanceRef, elementType, resultType, loadResult, false);
 
     globalState->getRegion(resultType)
         ->alias(FL(), functionState, builder, resultType, resultRef);

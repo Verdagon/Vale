@@ -137,11 +137,11 @@ object RegionCollapserIndividual {
   def collapseRuntimeSizedArray(
     rsa: RuntimeSizedArrayIT[sI]):
   RuntimeSizedArrayIT[cI] = {
-    val RuntimeSizedArrayIT(ssaId) = rsa
+    val RuntimeSizedArrayIT(rsaId) = rsa
     val map = RegionCounter.countRuntimeSizedArray(rsa)
     RuntimeSizedArrayIT(
       collapseId[RuntimeSizedArrayNameI[sI], RuntimeSizedArrayNameI[cI]](
-        ssaId,
+        rsaId,
         { case RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(), RawArrayNameI(mutability, elementType, selfRegion)) =>
           RuntimeSizedArrayNameI(
             RuntimeSizedArrayTemplateNameI(),

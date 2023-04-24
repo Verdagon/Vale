@@ -3047,10 +3047,15 @@ class Instantiator(
     coord: CoordT):
   CoordTemplataI[sI] = {
     val CoordT(outerOwnership, outerRegion, kind) = coord
-    val regionI =
+    val outerRegionI =
       translateTemplata(
         denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion)
           .expectRegionTemplata()
+
+    // strt here, somethings weird.
+    // // its possible the ownership from the substitution is messing with us.
+    // // the ownership should
+
     kind match {
       case KindPlaceholderT(placeholderFullName) => {
         // Let's get the index'th placeholder from the top level denizen.
@@ -3070,8 +3075,13 @@ class Instantiator(
                 case _ => {
                   ((outerOwnership, innerOwnership) match {
                     case (OwnT, OwnI) => OwnI
-                    case (OwnT, ImmutableShareI) => ImmutableShareI
-                    case (OwnT | BorrowT, MutableShareI) => {
+                    // case (OwnT, ImmutableShareI) => ImmutableShareI
+                    case (OwnT | BorrowT, MutableShareI | ImmutableShareI) => {
+                      // We disregard whether it's a MutableShareI or ImmutableShareI because
+                      // that was likely calculated under different circumstances from a
+                      // different perspective region.
+                      // We'll recalculate it now with out own perspective region.
+                      // See IPOMFIC.
                       if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
                         MutableShareI
                       } else {
@@ -3095,7 +3105,7 @@ class Instantiator(
                 }
               }
 //            vassert(innerRegion == translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
-            CoordTemplataI(regionI, CoordI(combinedOwnership, kind))
+            CoordTemplataI(outerRegionI, CoordI(combinedOwnership, kind))
           }
           case KindTemplataI(kind) => {
 //            val newOwnership =
@@ -3103,7 +3113,7 @@ class Instantiator(
 //                case ImmutableT => ShareT
 //                case MutableT => outerOwnership
 //              }
-            CoordTemplataI(regionI, CoordI(vimpl(/*newOwnership*/), vimpl(kind)))
+            CoordTemplataI(outerRegionI, CoordI(vimpl(/*newOwnership*/), vimpl(kind)))
           }
         }
       }
@@ -3150,7 +3160,7 @@ class Instantiator(
             }
           }
 //        val newRegion = expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
-        CoordTemplataI(regionI, CoordI(newOwnership, translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other)))
+        CoordTemplataI(outerRegionI, CoordI(newOwnership, kind))
       }
     }
   }
@@ -3320,13 +3330,13 @@ class Instantiator(
     denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: IdT[RegionPlaceholderNameT],
-    ssaTT: RuntimeSizedArrayTT):
+      rsaTT: RuntimeSizedArrayTT):
   RuntimeSizedArrayIT[sI] = {
     val RuntimeSizedArrayTT(
       IdT(
       packageCoord,
       initSteps,
-      RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(), RawArrayNameT(mutabilityT, elementTypeT, rsaRegionT)))) = ssaTT
+      RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(), RawArrayNameT(mutabilityT, elementTypeT, rsaRegionT)))) = rsaTT
 
     val newPerspectiveRegionT =
       rsaRegionT match {

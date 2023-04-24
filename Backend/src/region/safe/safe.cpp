@@ -1179,6 +1179,7 @@ LLVMValueRef Safe::checkValidReference(
 Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* sourceType,
     Reference* targetType,
     LoadResult sourceLoadResult,
@@ -1190,11 +1191,34 @@ Ref Safe::upgradeLoadResultToRefWithTargetOwnership(
   auto targetLocation = targetType->location;
 //  assert(sourceLocation == targetLocation); // unimplemented
 
-  if (sourceOwnership == Ownership::MUTABLE_SHARE || sourceOwnership == Ownership::IMMUTABLE_SHARE) {
+  if (sourceOwnership == Ownership::MUTABLE_SHARE) {
     if (sourceLocation == Location::INLINE) {
       return sourceRef;
     } else {
+      if (targetOwnership == Ownership::MUTABLE_SHARE) {
+        return sourceRef;
+      } else if (targetOwnership == Ownership::IMMUTABLE_SHARE) {
+        return wrap(
+            globalState, targetType,
+            immutabilify(
+                FL(), functionState, builder, regionInstanceRef, sourceType, sourceRef, targetType));
+      } else {
+        assert(false);
+      }
+    }
+  } else if (sourceOwnership == Ownership::IMMUTABLE_SHARE) {
+    if (sourceLocation == Location::INLINE) {
+      assert(false); // curious
       return sourceRef;
+    } else {
+      if (targetOwnership == Ownership::MUTABLE_SHARE) {
+        return sourceRef;
+      } else if (targetOwnership == Ownership::IMMUTABLE_SHARE) {
+        return mutabilify(
+            FL(), functionState, builder, regionInstanceRef, sourceType, sourceRef, targetType);
+      } else {
+        assert(false);
+      }
     }
   } else if (sourceOwnership == Ownership::OWN) {
     if (targetOwnership == Ownership::OWN) {
@@ -1484,7 +1508,7 @@ Ref Safe::loadMember(
             LLVMBuildExtractValue(
                 builder, structRefLE, memberIndex, memberName.c_str()))};
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
+        functionState, builder, regionInstanceRef, expectedMemberType, targetType, unupgradedMemberLE, false);
   } else {
     WrapperPtrLE structWPtrLE =
         getWrapperPtrLive(FL(), functionState, builder, structRefMT, structLiveRef);
@@ -1501,7 +1525,7 @@ Ref Safe::loadMember(
             expectedMemberType,
             memberName);
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, memberLoadedLE, false);
+        functionState, builder, regionInstanceRef, expectedMemberType, targetType, memberLoadedLE, false);
   }
 }
 

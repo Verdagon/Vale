@@ -181,12 +181,6 @@ case class RawArrayNameI[+R <: IRegionsModeI](
   elementType: CoordTemplataI[R],
   selfRegion: RegionTemplataI[R]
 ) extends INameI[R] {
-  this match {
-    case RawArrayNameI(MutableI,CoordTemplataI(RegionTemplataI(0),CoordI(MutableShareI,IntIT(32))),RegionTemplataI(-1)) => {
-      vpass()
-    }
-    case _ =>
-  }
 }
 
 case class ReachablePrototypeNameI[+R <: IRegionsModeI](num: Int) extends INameI[R]

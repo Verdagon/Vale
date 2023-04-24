@@ -110,7 +110,7 @@ Ref translateDestroySSAIntoLocals(
             functionState, builder, structRegionInstanceRef, destroySSAIntoLocalsM->arrayType, ssaKind, structLiveRef, inBoundsIndexLE);
     auto memberLE =
         globalState->getRegion(destroySSAIntoLocalsM->arrayType)->upgradeLoadResultToRefWithTargetOwnership(
-            functionState, builder, ssaM->elementType, ssaM->elementType, memberLoadResult, false);
+            functionState, builder, structRegionInstanceRef, ssaM->elementType, ssaM->elementType, memberLoadResult, false);
     makeHammerLocal(
         globalState, functionState, blockState, builder, destroySSAIntoLocalsM->localIndices[i], memberLE, false);
     buildFlare(FL(), globalState, functionState, builder);

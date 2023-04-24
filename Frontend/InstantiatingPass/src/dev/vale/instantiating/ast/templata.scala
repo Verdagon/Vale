@@ -102,6 +102,12 @@ case class CoordTemplataI[+R <: IRegionsModeI](
 ) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
+  this match {
+    case CoordTemplataI(RegionTemplataI(-1), CoordI(ImmutableShareI, StrIT())) => {
+      vpass()
+    }
+    case _ =>
+  }
 
   vpass()
 }
