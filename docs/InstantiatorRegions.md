@@ -260,6 +260,10 @@ The collapsed type is something they can both simplify to, in this case `0'List<
 
 We use negative numbers just as a convention: negative for function incoming regions that are immutable, zero for mutable at call-time. The default scope for the function will then be zero, which seems nice.
 
+Note that when we create the actual types in the instantiated AST, a lot of the regions are lost. They only seem to appear where there were explicit lifetime parameters, like in `func moo<x', y', T>(...)` etc (including the default region). I'm not sure if this will lead to collisions in the backend, or if it happens to work theoretically perfectly to collapse a bunch of equivalent functions.
+
+In RegionCollapser, we recursively collapse things. First we establish ("count") a region map, for example (7, 5, 7, 0) becomes (7 -> -2, 5 -> -1, 0 -> 0). We then use that for our *immediate* members, like the ownerships of coords and the values of RegionTemplatas. We dont use it for anything else, we let everything else under us do its own counting. Not sure if this is the right way to go though, it might be skipping some important steps and losing some detail. It's hard to say.
+
 
 # Handling Collapsed Coords and Subjective Coords Simultaneously (HCCSCS)
 

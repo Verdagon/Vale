@@ -97,7 +97,7 @@ class TypeHammer(
         val name = nameHammer.translateFullName(hinputs, hamuts, ssaIT.name)
         val contentsStaticSizedArrayIT(_, mutabilityI, variabilityI, memberType, arrRegion) = ssaIT
         vregionmut(arrRegion) // what do with arrRegion?
-        val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
+        val memberReferenceH = translateCoord(hinputs, hamuts, memberType.coord)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityI)
         val variability = Conversions.evaluateVariabilityTemplata(variabilityI)
         val size = ssaIT.size
@@ -115,7 +115,7 @@ class TypeHammer(
         val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaIT.name)
         val contentsRuntimeSizedArrayIT(mutabilityI, memberType, arrRegion) = rsaIT
         vregionmut(arrRegion) // what do with arrRegion?
-        val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
+        val memberReferenceH = translateCoord(hinputs, hamuts, memberType.coord)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityI)
         //    val variability = Conversions.evaluateVariability(variabilityI)
         val definition = RuntimeSizedArrayDefinitionHT(nameH, mutability, memberReferenceH)

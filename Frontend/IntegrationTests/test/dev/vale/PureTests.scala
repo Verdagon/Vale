@@ -77,7 +77,7 @@ class PureTests extends FunSuite with Matchers {
         }).headOption)
     ssal.elementType match {
       // See RMLRMO for why this is OwnI
-      case CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordI(MutableShareI,IntIT(32)),RegionTemplataI(0)))))) =>
+      case CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordTemplataI(RegionTemplataI(0),CoordI(MutableShareI,IntIT(32))),RegionTemplataI(0)))))) =>
     }
 
     val xType =
@@ -113,7 +113,11 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("x")), _, coord), _, _) => coord
       })
     xType match {
-      case CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordI(MutableShareI,IntIT(32)),RegionTemplataI(0)))))),RegionTemplataI(0)))))) =>
+      case CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordTemplataI(RegionTemplataI(0),CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,elementType,RegionTemplataI(0))))))),RegionTemplataI(0)))))) => {
+        elementType match {
+          case CoordTemplataI(RegionTemplataI(0),CoordI(MutableShareI,IntIT(32))) =>
+        }
+      }
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -133,7 +137,11 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("x")), _, coord), _, _) => coord
       })
     xType match {
-      case CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordI(MutableShareI,IntIT(32)),RegionTemplataI(0)))))),RegionTemplataI(0)))))) =>
+     case CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,CoordTemplataI(RegionTemplataI(0),CoordI(OwnI,StaticSizedArrayIT(IdI(_,_,StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(),2,FinalI,RawArrayNameI(MutableI,elementType,RegionTemplataI(0))))))),RegionTemplataI(0)))))) => {
+       elementType match {
+         case CoordTemplataI(RegionTemplataI(0), CoordI(MutableShareI, IntIT(32))) =>
+       }
+     }
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -170,17 +178,23 @@ class PureTests extends FunSuite with Matchers {
               StaticSizedArrayTemplateNameI(),2,FinalI,
               RawArrayNameI(
                 MutableI,
-                CoordI(
-                  OwnI,
-                  StaticSizedArrayIT(
-                    IdI(_,_,
-                      StaticSizedArrayNameI(
-                        StaticSizedArrayTemplateNameI(),2,FinalI,
-                        RawArrayNameI(
-                          MutableI,
-                          CoordI(MutableShareI,IntIT(32)),
-                          RegionTemplataI(0)))))),
-                RegionTemplataI(0)))))) =>
+                CoordTemplataI(
+                  RegionTemplataI(0),
+                  CoordI(
+                    OwnI,
+                    StaticSizedArrayIT(
+                      IdI(_,_,
+                        StaticSizedArrayNameI(
+                          StaticSizedArrayTemplateNameI(),2,FinalI,
+                          RawArrayNameI(
+                            MutableI,
+                            elementType,
+                            RegionTemplataI(0))))))),
+                RegionTemplataI(0)))))) => {
+        elementType match {
+          case CoordTemplataI(RegionTemplataI(0), CoordI(MutableShareI, IntIT(32))) =>
+        }
+      }
     }
 
     vassert(callArg == funcParam)
@@ -189,7 +203,7 @@ class PureTests extends FunSuite with Matchers {
   }
 
   test("Pure function returning a runtime sized array") {
-    // In other words, calling a constructor. All the default constructors are pure functions.
+    // In other words, calling a constructor. All the defaul qt constructors are pure functions.
 
     val compile =
       RunCompilation.test(
@@ -202,7 +216,12 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("x")), _, coord), _, _) => coord
       })
     xType match {
-      case CoordI(OwnI,RuntimeSizedArrayIT(IdI(_,_,RuntimeSizedArrayNameI(_,RawArrayNameI(MutableI,CoordI(OwnI,RuntimeSizedArrayIT(IdI(_,_,RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(),RawArrayNameI(MutableI,CoordI(MutableShareI,IntIT(32)),RegionTemplataI(0)))))),RegionTemplataI(0)))))) =>
+      case CoordI(OwnI,RuntimeSizedArrayIT(IdI(_,_,RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(),RawArrayNameI(MutableI,CoordTemplataI(RegionTemplataI(0),CoordI(OwnI,RuntimeSizedArrayIT(IdI(_,_,RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(),RawArrayNameI(MutableI,elementType,RegionTemplataI(0))))))),RegionTemplataI(0)))))) => {
+        elementType match {
+          case CoordTemplataI(RegionTemplataI(0), CoordI(MutableShareI, IntIT(32))) =>
+        }
+      }
+//      case CoordI(OwnI,RuntimeSizedArrayIT(IdI(_,_,RuntimeSizedArrayNameI(_,RawArrayNameI(MutableI,CoordI(OwnI,RuntimeSizedArrayIT(IdI(_,_,RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(),RawArrayNameI(MutableI,CoordI(MutableShareI,IntIT(32)),RegionTemplataI(0)))))),RegionTemplataI(0)))))) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(42) => }
@@ -282,5 +301,58 @@ class PureTests extends FunSuite with Matchers {
         false)
     val main = compile.getMonouts().lookupFunction("main")
     compile.evalForKind(Vector()) match { case VonInt(42) => }
+  }
+
+  test("Test imm array length") {
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |import v.builtins.runtime_sized_array_len.*;
+        |pure func pureLen<r', T>(x &r'[]T) int {
+        |  return len(x);
+        |}
+        |exported func main() int {
+        |  a = []int(0);
+        |  l = pureLen(&a);
+        |  [] = a;
+        |  return l;
+        |}
+    """.stripMargin, false)
+    val pureLenI = compile.getMonouts().lookupFunction("pureLen")
+
+    {
+      // Check the actual parameter coming in
+      val CoordI(arrOwnership, arrKind) =
+        pureLenI.header.id.localName.parameters(0)
+      val RuntimeSizedArrayIT(IdI(_, _, RuntimeSizedArrayNameI(_, RawArrayNameI(arrMutability, elementType, arrSelfRegion)))) =
+        arrKind
+      arrOwnership shouldEqual ImmutableBorrowI
+      arrMutability shouldEqual MutableI
+      // Everything is the 0th region to itself
+      arrSelfRegion shouldEqual RegionTemplataI(0)
+      val CoordTemplataI(elementOuterRegion, CoordI(elementOwnership, elementKind)) = elementType
+      // The element is in the same region as the array
+      elementOuterRegion shouldEqual RegionTemplataI(0)
+      elementOwnership shouldEqual MutableShareI
+      elementKind shouldEqual IntIT(32)
+    }
+
+    // Check the generic arg for the region r'
+    val RegionTemplataI(-1) = pureLenI.header.id.localName.templateArgs(0)
+
+    {
+      // Check the generic arg for the element T
+      val CoordTemplataI(elementOuterRegion, elementType) = pureLenI.header.id.localName.templateArgs(1)
+      val CoordI(elementOwnership, elementKind) = elementType
+      // Not sure if this is right. It kind of makes sense.
+      // It's -1 from the perspective of this function; it's 1 pure block away (collapsed).
+      elementOuterRegion shouldEqual RegionTemplataI(-1)
+      elementOwnership shouldEqual MutableShareI
+      elementKind shouldEqual IntIT(32)
+    }
+
+    compile.evalForKind(Vector()) match {
+      case VonInt(0) =>
+    }
   }
 }

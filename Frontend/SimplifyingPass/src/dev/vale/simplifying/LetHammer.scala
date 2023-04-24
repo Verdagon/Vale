@@ -361,7 +361,7 @@ class LetHammer(
       destinationReferenceLocalVariables
         .map(destinationReferenceLocalVariable => {
           val (memberRefTypeH) =
-            typeHammer.translateCoord(hinputs, hamuts, arrSeqI.elementType)
+            typeHammer.translateCoord(hinputs, hamuts, arrSeqI.elementType.coord)
           val varIdNameH =
             nameHammer.translateFullName(
               hinputs, hamuts, currentFunctionHeader.id.addStep(destinationReferenceLocalVariable.name))

@@ -582,16 +582,21 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 
-
   test("Test array length") {
     val compile = RunCompilation.test(
-        """import array.make.*;
-          |exported func main() int {
-          |  a = MakeArray<int>(11, {_});
-          |  return len(&a);
-          |}
-        """.stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(11) => }
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |import v.builtins.runtime_sized_array_len.*;
+        |exported func main() int {
+        |  a = []int(0);
+        |  l = len(&a);
+        |  [] = a;
+        |  return l;
+        |}
+      """.stripMargin, false)
+    compile.evalForKind(Vector()) match {
+      case VonInt(0) =>
+    }
   }
 
   test("Map using array construct") {

@@ -274,7 +274,11 @@ sealed trait IGenericParameterTypeS {
 case class RegionGenericParameterTypeS(mutability: IRegionMutabilityS) extends IGenericParameterTypeS {
   def tyype: ITemplataType = RegionTemplataType()
 }
-case class CoordGenericParameterTypeS(coordRegion: Option[RuneUsage], mutable: Boolean) extends IGenericParameterTypeS {
+case class CoordGenericParameterTypeS(
+    coordRegion: Option[RuneUsage],
+    kindMutable: Boolean,
+    regionMutable: Boolean
+) extends IGenericParameterTypeS {
   vassert(coordRegion.isEmpty) // not implemented yet
 
   def tyype: ITemplataType = CoordTemplataType()

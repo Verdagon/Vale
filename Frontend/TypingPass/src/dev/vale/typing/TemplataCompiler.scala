@@ -93,9 +93,9 @@ object TemplataCompiler {
     // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
     genericParam.tyype match {
       case OtherGenericParameterTypeS(_) => None
-      case CoordGenericParameterTypeS(coordRegion, mutable) => {
+      case CoordGenericParameterTypeS(coordRegion, kindMutable, regionMutable) => {
         if (coordRegion.nonEmpty) vimpl()
-        if (mutable) Some(0) else None
+        if (regionMutable) Some(0) else None
       }
       case RegionGenericParameterTypeS(mutability) => {
         mutability match {
@@ -1286,21 +1286,23 @@ class TemplataCompiler(
 
     runeType match {
       case KindTemplataType() => {
-        val immutable =
+        val (kindMutable, regionMutable) =
           genericParam.tyype match {
-            case CoordGenericParameterTypeS(coordRegion, mutable) => !mutable
-            case _ => false
+            case CoordGenericParameterTypeS(coordRegion, kindMutable, regionMutable) => {
+              (if (kindMutable) OwnT else ShareT, regionMutable)
+            }
+            case _ => (OwnT, false)
           }
         createKindPlaceholderInner(
-          coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+          coutputs, env, namePrefix, index, rune, kindMutable, registerWithCompilerOutputs)
       }
       case CoordTemplataType() => {
-        val (kindImmutable, regionMutability) =
+        val (kindMutable, regionMutability) =
           genericParam.tyype match {
-            case CoordGenericParameterTypeS(coordRegion, mutable) => {
-              (!mutable, if (mutable) ReadWriteRegionS else ReadOnlyRegionS)
+            case CoordGenericParameterTypeS(coordRegion, kindMutable, regionMutable) => {
+              (if (kindMutable) OwnT else ShareT, if (regionMutable) ReadWriteRegionS else ReadOnlyRegionS)
             }
-            case _ => (false, ReadOnlyRegionS)
+            case _ => (OwnT, ReadOnlyRegionS)
           }
         createCoordPlaceholderInner(
           coutputs,
@@ -1310,7 +1312,7 @@ class TemplataCompiler(
           rune,
           currentHeight,
           regionMutability,
-          kindImmutable,
+          kindMutable,
           registerWithCompilerOutputs)
       }
       case RegionTemplataType() => {
@@ -1361,7 +1363,7 @@ class TemplataCompiler(
     rune: IRuneS,
     currentHeight: Option[Int],
     regionMutability: IRegionMutabilityS,
-    immutable: Boolean,
+    kindOwnership: OwnershipT,
     registerWithCompilerOutputs: Boolean
   ): CoordTemplataT = {
     // Not sure this really matters, because we can't mutate a generic argument. We can only
@@ -1371,10 +1373,9 @@ class TemplataCompiler(
         namePrefix, index, rune, currentHeight, regionMutability)
     val kindPlaceholderT =
       createKindPlaceholderInner(
-        coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+        coutputs, env, namePrefix, index, rune, kindOwnership, registerWithCompilerOutputs)
 
-    val ownership = if (immutable) ShareT else OwnT
-    CoordTemplataT(CoordT(ownership, regionPlaceholderTemplata, kindPlaceholderT.kind))
+    CoordTemplataT(CoordT(kindOwnership, regionPlaceholderTemplata, kindPlaceholderT.kind))
   }
 
   def createKindPlaceholderInner(
@@ -1383,7 +1384,7 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    immutable: Boolean,
+    kindOwnership: OwnershipT,
     registerWithCompilerOutputs: Boolean):
   KindTemplataT = {
     val kindPlaceholderId =
@@ -1396,7 +1397,12 @@ class TemplataCompiler(
     if (registerWithCompilerOutputs) {
       coutputs.declareType(kindPlaceholderTemplateId)
 
-      val mutability = MutabilityTemplataT(if (immutable) ImmutableT else MutableT)
+      val mutability =
+        MutabilityTemplataT(
+          kindOwnership match {
+            case OwnT => MutableT
+            case ShareT => ImmutableT
+          })
       coutputs.declareTypeMutability(kindPlaceholderTemplateId, mutability)
 
       val placeholderEnv = GeneralEnvironment.childOf(interner, env, kindPlaceholderTemplateId)

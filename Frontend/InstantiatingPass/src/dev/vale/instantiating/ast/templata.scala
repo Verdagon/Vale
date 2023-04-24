@@ -16,14 +16,14 @@ import scala.collection.immutable.List
 object ITemplataI {
   def expectCoord[R <: IRegionsModeI](templata: ITemplataI[R]): ITemplataI[R] = {
     templata match {
-      case t @ CoordTemplataI(_) => t
+      case t @ CoordTemplataI(_, _) => t
       case other => vfail(other)
     }
   }
 
   def expectCoordTemplata[R <: IRegionsModeI](templata: ITemplataI[R]): CoordTemplataI[R] = {
     templata match {
-      case t @ CoordTemplataI(_) => t
+      case t @ CoordTemplataI(_, _) => t
       case other => vfail(other)
     }
   }
@@ -72,7 +72,21 @@ object ITemplataI {
 
 }
 
-sealed trait ITemplataI[R <: IRegionsModeI]
+sealed trait ITemplataI[R <: IRegionsModeI] {
+  def expectCoordTemplata(): CoordTemplataI[R] = {
+    this match {
+      case c@CoordTemplataI(_, _) => c
+      case other => vwat(other)
+    }
+  }
+
+  def expectRegionTemplata(): RegionTemplataI[R] = {
+    this match {
+      case c@RegionTemplataI(_) => c
+      case other => vwat(other)
+    }
+  }
+}
 
 //// The typing phase never makes one of these, they're purely abstract and conceptual in the
 //// typing phase. The monomorphizer is the one that actually makes these templatas.
@@ -82,7 +96,10 @@ sealed trait ITemplataI[R <: IRegionsModeI]
 //
 //}
 
-case class CoordTemplataI[R <: IRegionsModeI](coord: CoordI[R]) extends ITemplataI[R] {
+case class CoordTemplataI[R <: IRegionsModeI](
+    region: RegionTemplataI[R],
+    coord: CoordI[R]
+) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 

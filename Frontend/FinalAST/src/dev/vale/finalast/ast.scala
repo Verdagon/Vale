@@ -247,6 +247,8 @@ case class IdH(
   shortenedName: String,
   // Most precise name, without shortening.
   fullyQualifiedName: String) {
+  vpass()
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def equals(obj: Any): Boolean = {

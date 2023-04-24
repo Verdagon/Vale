@@ -39,8 +39,8 @@ object InstantiatedHumanizer {
       case PrototypeTemplataI(range, prototype) => {
         humanizeId(codeMap, prototype.id)
       }
-      case CoordTemplataI(coord) => {
-        humanizeCoord(codeMap, coord)
+      case CoordTemplataI(region, coord) => {
+        humanizeTemplata(codeMap, region) + "'" + humanizeCoord(codeMap, coord)
       }
       case KindTemplataI(kind) => {
         humanizeKind(codeMap, kind)
@@ -164,7 +164,7 @@ object InstantiatedHumanizer {
         ("[]<" +
           (mutability match { case ImmutableI => "i" case MutableI => "m" }) + "," +
           humanizeTemplata(codeMap, region) + ">" +
-          humanizeTemplata(codeMap, CoordTemplataI(elementType)))
+          humanizeTemplata(codeMap, elementType))
       }
       case StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(), size, variability, RawArrayNameI(mutability, elementType, region)) => {
         ("[]<" +
@@ -172,7 +172,7 @@ object InstantiatedHumanizer {
           humanizeTemplata(codeMap, MutabilityTemplataI(mutability)) + "," +
           humanizeTemplata(codeMap, VariabilityTemplataI(variability)) + "," +
           humanizeTemplata(codeMap, region) + ">" +
-          humanizeTemplata(codeMap, CoordTemplataI(elementType)))
+          humanizeTemplata(codeMap, elementType))
       }
       case AnonymousSubstructNameI(interface, templateArgs) => {
         humanizeName(codeMap, interface) +

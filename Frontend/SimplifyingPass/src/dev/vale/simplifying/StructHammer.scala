@@ -174,7 +174,7 @@ class StructHammer(
         Vector[INameI[cI]](),
         StructNameI[cI](
           StructTemplateNameI[cI](keywords.BOX_HUMAN_NAME),
-          Vector(CoordTemplataI[cI](type2))))
+          Vector(CoordTemplataI[cI](vimpl(), type2))))
     val boxFullNameH = nameHammer.translateFullName(hinputs, hamuts, boxFullName2)
     hamuts.structDefs.find(_.id == boxFullNameH) match {
       case Some(structDefH) => (structDefH.getRef)

@@ -139,7 +139,10 @@ object RegionCounter {
     templata: ITemplataI[sI]):
   Unit = {
     templata match {
-      case CoordTemplataI(coord) => countCoord(counter, coord)
+      case CoordTemplataI(region, coord) => {
+        countTemplata(counter, region)
+        countCoord(counter, coord)
+      }
       case KindTemplataI(kind) => countKind(counter, kind)
       case r @ RegionTemplataI(_) => counter.count(r)
       case MutabilityTemplataI(mutability) =>
@@ -178,7 +181,7 @@ object RegionCounter {
           counter,
           ssaId,
           { case StaticSizedArrayNameI(template, size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
-            countCoord(elementType)
+            countTemplata(elementType)
             counter.count(selfRegion)
           })
       }
@@ -187,7 +190,7 @@ object RegionCounter {
           counter,
           ssaId,
           { case RuntimeSizedArrayNameI(template, RawArrayNameI(mutability, elementType, selfRegion)) =>
-            countCoord(elementType)
+            countTemplata(elementType)
             counter.count(selfRegion)
           })
       }
@@ -203,7 +206,7 @@ object RegionCounter {
       counter,
       rsaId,
       { case RuntimeSizedArrayNameI(template, RawArrayNameI(mutability, elementType, selfRegion)) =>
-        countCoord(elementType)
+        countTemplata(counter, elementType)
         counter.count(selfRegion)
       })
   }
@@ -217,7 +220,7 @@ object RegionCounter {
       counter,
       ssaId,
       { case StaticSizedArrayNameI(template, size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
-        countCoord(elementType)
+        countTemplata(elementType)
         counter.count(selfRegion)
       })
   }
@@ -341,6 +344,14 @@ object RegionCounter {
   Map[Int, Int] = {
     val counter = new RegionCounter.Counter()
     RegionCounter.countFunctionName(counter, name)
+    counter.assembleMap()
+  }
+
+  def countTemplata(
+      name: ITemplataI[sI]):
+  Map[Int, Int] = {
+    val counter = new RegionCounter.Counter()
+    RegionCounter.countTemplata(counter, name)
     counter.assembleMap()
   }
 }
