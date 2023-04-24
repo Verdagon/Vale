@@ -260,9 +260,34 @@ The collapsed type is something they can both simplify to, in this case `0'List<
 
 We use negative numbers just as a convention: negative for function incoming regions that are immutable, zero for mutable at call-time. The default scope for the function will then be zero, which seems nice.
 
+## RegionCollapser (ICRHRC)
+
 Note that when we create the actual types in the instantiated AST, a lot of the regions are lost. They only seem to appear where there were explicit lifetime parameters, like in `func moo<x', y', T>(...)` etc (including the default region). I'm not sure if this will lead to collisions in the backend, or if it happens to work theoretically perfectly to collapse a bunch of equivalent functions.
 
 In RegionCollapser, we recursively collapse things. First we establish ("count") a region map, for example (7, 5, 7, 0) becomes (7 -> -2, 5 -> -1, 0 -> 0). We then use that for our *immediate* members, like the ownerships of coords and the values of RegionTemplatas. We dont use it for anything else, we let everything else under us do its own counting. Not sure if this is the right way to go though, it might be skipping some important steps and losing some detail. It's hard to say.
+
+Note from later: Wait, it seems like we don't really do it for coords, because those come in with their ownership already figured out. It looks like we're doing it for just things with generic parameters.
+
+
+##
+
+we want to be able to do some mapping if we can. that might be hard though. we have to 
+
+we need to reduce the things that we're sending in for evaluation. reduce them when we send it in for evaluation. just for naming purposes. everything else will still in parallel do the collapsing.
+
+interestingly, collapsed *is* enough for naming purposes. its still unique.
+but we do need the reduced version for kicking off the right stuff for the new instantiations.
+
+
+
+# Ignore Previous Ownerships Mutabilities From Instantiated Coords (IPOMFIC)
+
+When we have a substitutions array that contains, for example, `E = -1'*#Thing` (an immutable share reference to something in region height -1), that substitution was calculated from the perspective of the containing function.
+
+But if we have an array of them, like `-1'[]E`, then when we substitute it, it really needs to be mutable again.
+
+So, when we're substituting that `E` into that `-1'[]E`, we ignore whatever ownership mutability it had and just recalculate it (in this case, it will be a mutable share, `*MyThing`).
+
 
 
 # Handling Collapsed Coords and Subjective Coords Simultaneously (HCCSCS)

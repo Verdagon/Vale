@@ -626,6 +626,7 @@ LLVMValueRef ResilientV3::checkValidReference(
 Ref ResilientV3::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState *functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference *sourceType,
     Reference *targetType,
     LoadResult sourceLoadResult,
@@ -893,7 +894,7 @@ Ref ResilientV3::loadMember(
                   globalState, functionState, builder, &kindStructs, structRefMT, structLiveRef,
                   memberIndex, expectedMemberType, targetType, memberName);
           return upgradeLoadResultToRefWithTargetOwnership(
-              functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
+              functionState, builder, regionInstanceRef, expectedMemberType, targetType, unupgradedMemberLE, false);
         }
         default:
           assert(false);

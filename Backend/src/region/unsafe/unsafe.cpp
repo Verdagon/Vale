@@ -535,6 +535,7 @@ LLVMValueRef Unsafe::checkValidReference(
 Ref Unsafe::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* sourceType,
     Reference* targetType,
     LoadResult sourceLoadResult,
@@ -793,7 +794,7 @@ Ref Unsafe::loadMember(
             globalState, functionState, builder, &kindStructs, structRefMT, structRef,
             memberIndex, expectedMemberType, targetType, memberName);
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
+        functionState, builder, regionInstanceRef, expectedMemberType, targetType, unupgradedMemberLE, false);
   }
 }
 

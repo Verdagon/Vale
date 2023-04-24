@@ -362,7 +362,7 @@ Ref RCImm::loadMember(
           targetMemberType, memberName);
   auto resultRef =
       upgradeLoadResultToRefWithTargetOwnership(
-          functionState, builder, expectedMemberType, targetMemberType, memberLE, false);
+          functionState, builder, regionInstanceRef, expectedMemberType, targetMemberType, memberLE, false);
   return resultRef;
 }
 
@@ -544,6 +544,7 @@ LLVMValueRef RCImm::checkValidReference(
 Ref RCImm::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* sourceType,
     Reference* targetType,
     LoadResult sourceLoad,
@@ -558,7 +559,7 @@ Ref RCImm::upgradeLoadResultToRefWithTargetOwnership(
   if (sourceLocation == Location::INLINE) {
     return sourceRef;
   } else {
-    return sourceRef;
+    return transmutePtr(globalState, functionState, builder, true, sourceType, targetType, sourceRef);
   }
 }
 

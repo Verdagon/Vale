@@ -1051,6 +1051,7 @@ LLVMValueRef SafeFastest::checkValidReference(
 Ref SafeFastest::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* sourceType,
     Reference* targetType,
     LoadResult sourceLoadResult,
@@ -1348,7 +1349,7 @@ Ref SafeFastest::loadMember(
             LLVMBuildExtractValue(
                 builder, structRefLE, memberIndex, memberName.c_str()))};
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, unupgradedMemberLE, false);
+        functionState, builder, regionInstanceRef, expectedMemberType, targetType, unupgradedMemberLE, false);
   } else {
     WrapperPtrLE structWPtrLE =
         getWrapperPtrLive(FL(), functionState, builder, structRefMT, structLiveRef);
@@ -1365,7 +1366,7 @@ Ref SafeFastest::loadMember(
             expectedMemberType,
             memberName);
     return upgradeLoadResultToRefWithTargetOwnership(
-        functionState, builder, expectedMemberType, targetType, memberLoadedLE, false);
+        functionState, builder, regionInstanceRef, expectedMemberType, targetType, memberLoadedLE, false);
   }
 }
 

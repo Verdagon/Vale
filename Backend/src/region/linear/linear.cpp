@@ -482,7 +482,7 @@ Ref Linear::loadMember(
 
   auto resultRef =
       upgradeLoadResultToRefWithTargetOwnership(
-          functionState, builder, expectedMemberType, targetMemberType, memberLE, false);
+          functionState, builder, regionInstanceRef, expectedMemberType, targetMemberType, memberLE, false);
   return resultRef;
 }
 
@@ -733,6 +733,7 @@ LLVMValueRef Linear::checkValidReference(
 Ref Linear::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* sourceType,
     Reference* targetType,
     LoadResult sourceLoad,

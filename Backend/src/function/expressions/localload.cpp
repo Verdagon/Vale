@@ -24,6 +24,10 @@ Ref translateLocalLoad(
       globalState->metalCache->getReference(
           targetOwnership, targetLocation, localType->kind);
 
+  auto regionInstanceRef =
+      // At some point, look up the actual region instance, perhaps from the FunctionState?
+      globalState->getRegion(localType)->createRegionInstanceLocal(functionState, builder);
+
   buildFlare(FL(), globalState, functionState, builder);
 
   auto localAddr = blockState->getLocalAddr(localId);
@@ -32,7 +36,7 @@ Ref translateLocalLoad(
 
   auto resultRef =
       globalState->getRegion(localType)->upgradeLoadResultToRefWithTargetOwnership(
-          functionState, builder, localType, resultType, LoadResult{sourceRef}, false);
+          functionState, builder, regionInstanceRef, localType, resultType, LoadResult{sourceRef}, false);
   globalState->getRegion(resultType)->alias(FL(), functionState, builder, resultType, resultRef);
 
   return resultRef;
