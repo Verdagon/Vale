@@ -276,16 +276,22 @@ object PostParser {
     val genericParamTypeS =
       typeS match {
         case CoordTemplataType() => {
-          val (immutableAttrs, remainingAttributesP) =
+          val (immutableAttrs, remainingAttributes1P) =
             U.extract[IRuneAttributeP, Unit](originalAttributesP, {
               case ImmutableRuneAttributeP(rangeP) => Unit
             })
-          if (remainingAttributesP.nonEmpty) {
-            val first = remainingAttributesP.head
+          val (mutableAttrs, remainingAttributes0P) =
+            U.extract[IRuneAttributeP, Unit](originalAttributesP, {
+              case MutableRuneAttributeP(rangeP) => Unit
+            })
+          if (remainingAttributes0P.nonEmpty) {
+            val first = remainingAttributes0P.head
             throw CompileErrorExceptionS(BadRuneAttributeErrorS(evalRange(env.file, first.range), first))
           }
-          val mutable = immutableAttrs.isEmpty
-          CoordGenericParameterTypeS(None, mutable)
+          // DO NOT SUBMIT we really need to figure out this kind immutable stuff.
+          val kindMutable = immutableAttrs.isEmpty
+          val regionMutable = mutableAttrs.nonEmpty
+          CoordGenericParameterTypeS(None, kindMutable, regionMutable)
         }
         case RegionTemplataType() => {
           val (mutabilityAttrsS, remainingAttributesP) =

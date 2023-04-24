@@ -71,6 +71,7 @@ sealed trait IRegionsModeI
 // See CCFCTS, these need to have zero members. If we need to have members, we'll need to stop
 // casting from collapsed to subjective ASTs.
 case class sI() extends IRegionsModeI
+case class nI() extends sI // Stands for new. Serves as a starting point for a new instantiation.
 case class cI() extends IRegionsModeI
 
 object CoordI {
@@ -164,7 +165,7 @@ case class FloatIT[R <: IRegionsModeI]() extends KindIT[R] {
 
 object contentsStaticSizedArrayIT {
   def unapply[R <: IRegionsModeI](ssa: StaticSizedArrayIT[R]):
-  Option[(Long, MutabilityI, VariabilityI, CoordI[R], RegionTemplataI[R])] = {
+  Option[(Long, MutabilityI, VariabilityI, CoordTemplataI[R], RegionTemplataI[R])] = {
     val IdI(_, _, StaticSizedArrayNameI(_, size, variability, RawArrayNameI(mutability, coord, selfRegion))) = ssa.name
     Some((size, mutability, variability, coord, selfRegion))
   }
@@ -183,7 +184,7 @@ case class StaticSizedArrayIT[R <: IRegionsModeI](
 
 object contentsRuntimeSizedArrayIT {
   def unapply[R <: IRegionsModeI](rsa: RuntimeSizedArrayIT[R]):
-  Option[(MutabilityI, CoordI[R], RegionTemplataI[R])] = {
+  Option[(MutabilityI, CoordTemplataI[R], RegionTemplataI[R])] = {
     val IdI(_, _, RuntimeSizedArrayNameI(_, RawArrayNameI(mutability, coord, selfRegion))) = rsa.name
     Some((mutability, coord, selfRegion))
   }

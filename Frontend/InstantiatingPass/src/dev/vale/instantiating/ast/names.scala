@@ -180,9 +180,16 @@ case class ExportAsNameI[R <: IRegionsModeI](codeLocation: CodeLocationS) extend
 
 case class RawArrayNameI[R <: IRegionsModeI](
   mutability: MutabilityI,
-  elementType: CoordI[R],
+  elementType: CoordTemplataI[R],
   selfRegion: RegionTemplataI[R]
-) extends INameI[R]
+) extends INameI[R] {
+  this match {
+    case RawArrayNameI(MutableI,CoordTemplataI(RegionTemplataI(0),CoordI(MutableShareI,IntIT(32))),RegionTemplataI(-1)) => {
+      vpass()
+    }
+    case _ =>
+  }
+}
 
 case class ReachablePrototypeNameI[R <: IRegionsModeI](num: Int) extends INameI[R]
 
@@ -210,7 +217,7 @@ case class StaticSizedArrayNameI[R <: IRegionsModeI](
       IntegerTemplataI(size),
       MutabilityTemplataI(arr.mutability),
       VariabilityTemplataI(variability),
-      CoordTemplataI(arr.elementType))
+      arr.elementType)
   }
 }
 
@@ -231,7 +238,7 @@ case class RuntimeSizedArrayNameI[R <: IRegionsModeI](
   override def templateArgs: Vector[ITemplataI[R]] = {
     Vector(
       MutabilityTemplataI(arr.mutability),
-      CoordTemplataI(arr.elementType))
+      arr.elementType)
   }
 }
 

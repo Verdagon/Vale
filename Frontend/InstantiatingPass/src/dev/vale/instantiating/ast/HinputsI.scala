@@ -104,9 +104,9 @@ case class HinputsI(
 //    vassertSome(interfaces.find(_.templateName.localName == interfaceTemplateName))
 //  }
 
-  def lookupFunction(signature2: SignatureI[cI]): Option[FunctionDefinitionI] = {
-    functions.find(_.header.toSignature == signature2).headOption
-  }
+  // def lookupFunction(signature2: SignatureI[cI]): Option[FunctionDefinitionI] = {
+  //   functions.find(_.header.toSignature == signature2).headOption
+  // }
 
   def lookupFunction(funcTemplateName: IFunctionTemplateNameI[cI]): Option[FunctionDefinitionI] = {
     functions.find(_.header.id.localName.template == funcTemplateName).headOption

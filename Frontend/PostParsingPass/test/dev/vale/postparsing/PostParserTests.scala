@@ -114,10 +114,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case Vector(
 //        // See MNRFGC for why this implicit region param is here
 //        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp1a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
-        GenericParameterS(_, RuneUsage(_, mp1b @ MagicParamRuneS(_)), CoordGenericParameterTypeS(None, true), None),
+        GenericParameterS(_, RuneUsage(_, mp1b @ MagicParamRuneS(_)), CoordGenericParameterTypeS(None, false, false), None),
 //        // See MNRFGC for why this implicit region param is here
 //        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp2a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
-        GenericParameterS(_, RuneUsage(_, mp2b @ MagicParamRuneS(_)), CoordGenericParameterTypeS(None, true), None),
+        GenericParameterS(_, RuneUsage(_, mp2b @ MagicParamRuneS(_)), CoordGenericParameterTypeS(None, false, false), None),
         _) => {
         vassert(mp1b != mp2b) // Two different runes
 

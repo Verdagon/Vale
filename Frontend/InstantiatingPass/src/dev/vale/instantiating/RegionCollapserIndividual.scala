@@ -1,59 +1,58 @@
 package dev.vale.instantiating
 
 import dev.vale.instantiating.ast._
-import dev.vale.instantiating.RegionCollapser._
 import dev.vale.{vassertSome, vimpl, vwat}
 
 import scala.collection.immutable.Map
 
-object RegionCollapser {
-  def collapsePrototype(map: Map[Int, Int], prototype: PrototypeI[sI]): PrototypeI[cI] = {
+// See ICRHRC for why/when we count the regions.
+// This one will collapse every node based on only the things it contains.
+// It creates a new collapsing map for each one.
+object RegionCollapserIndividual {
+  def collapsePrototype(prototype: PrototypeI[sI]): PrototypeI[cI] = {
     val PrototypeI(id, returnType) = prototype
     PrototypeI(
-      collapseFunctionId(map, id),
-      collapseCoord(map, returnType))
+      collapseFunctionId(id),
+      collapseCoord(returnType))
   }
 
   def collapseId[T <: INameI[sI], Y <: INameI[cI]](
-    map: Map[Int, Int],
     id: IdI[sI, T],
     func: T => Y):
   IdI[cI, Y] = {
     val IdI(packageCoord, initSteps, localName) = id
     IdI(
       packageCoord,
-      initSteps.map(x => collapseName(map, x)),
+      initSteps.map(x => collapseName(x)),
       func(localName))
   }
 
   def collapseFunctionId(
-    map: Map[Int, Int],
     id: IdI[sI, IFunctionNameI[sI]]):
   IdI[cI, IFunctionNameI[cI]] = {
     collapseId[IFunctionNameI[sI], IFunctionNameI[cI]](
-      map,
       id,
-      x => collapseFunctionName(map, x))
+      x => collapseFunctionName(x))
   }
 
   def collapseFunctionName(
-    map: Map[Int, Int],
     name: IFunctionNameI[sI]):
   IFunctionNameI[cI] = {
     name match {
-      case FunctionNameIX(FunctionTemplateNameI(humanName, codeLocation), templateArgs, parameters) => {
+      case n @ FunctionNameIX(FunctionTemplateNameI(humanName, codeLocation), templateArgs, parameters) => {
+        val map = RegionCounter.countFunctionName(n)
         val templateC = FunctionTemplateNameI[cI](humanName, codeLocation)
         val templateArgsC = templateArgs.map(collapseTemplata(map, _))
         val paramsC =
           parameters.map(param => {
-            collapseCoord(RegionCounter.countCoord(param), param)
+            collapseCoord(param)
           })
         FunctionNameIX[cI](templateC, templateArgsC, paramsC)
       }
       case ExternFunctionNameI(humanName, parameters) => {
         val paramsC =
           parameters.map(param => {
-            collapseCoord(RegionCounter.countCoord(param), param)
+            collapseCoord(param)
           })
         ExternFunctionNameI[cI](humanName, paramsC)
       }
@@ -61,7 +60,6 @@ object RegionCollapser {
   }
 
   def collapseVarName(
-    map: Map[Int, Int],
     name: IVarNameI[sI]):
   IVarNameI[cI] = {
     name match {
@@ -73,16 +71,23 @@ object RegionCollapser {
   }
 
   def collapseName(
-    map: Map[Int, Int],
     name: INameI[sI]):
   INameI[cI] = {
     name match {
       case n @ FunctionNameIX(_, _, _) => {
-        collapseFunctionName(map, n)
+        collapseFunctionName(n)
       }
       case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
       case other => vimpl(other)
     }
+  }
+
+  def collapseCoordTemplata(
+      map: Map[Int, Int],
+      templata: CoordTemplataI[sI]):
+  CoordTemplataI[cI] = {
+    val CoordTemplataI(region, coord) = templata
+    CoordTemplataI(collapseRegionTemplata(map, region), collapseCoord(coord))
   }
 
   def collapseTemplata(
@@ -90,8 +95,8 @@ object RegionCollapser {
     templata: ITemplataI[sI]):
   ITemplataI[cI] = {
     templata match {
-      case CoordTemplataI(coord) => CoordTemplataI(collapseCoord(map, coord))
-      case KindTemplataI(kind) => KindTemplataI(collapseKind(map, kind))
+      case c @ CoordTemplataI(_, _) => collapseCoordTemplata(map, c)
+      case KindTemplataI(kind) => KindTemplataI(collapseKind(kind))
       case r @ RegionTemplataI(_) => collapseRegionTemplata(map, r)
       case MutabilityTemplataI(mutability) => MutabilityTemplataI(mutability)
       case other => vimpl(other)
@@ -106,17 +111,14 @@ object RegionCollapser {
     RegionTemplataI[cI](vassertSome(map.get(oldPureHeight)))
   }
 
-
   def collapseCoord(
-    map: Map[Int, Int],
     coord: CoordI[sI]):
   CoordI[cI] = {
     val CoordI(ownership, kind) = coord
-    CoordI(ownership, collapseKind(map, kind))
+    CoordI(ownership, collapseKind(kind))
   }
 
   def collapseKind(
-    map: Map[Int, Int],
     kind: KindIT[sI]):
   KindIT[cI] = {
     kind match {
@@ -126,39 +128,37 @@ object RegionCollapser {
       case BoolIT() => BoolIT()
       case FloatIT() => FloatIT()
       case StrIT() => StrIT()
-      case StructIT(id) => StructIT(collapseStructId(map, id))
-      case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(map, ssa)
-      case rsa @ RuntimeSizedArrayIT(_) => collapseRuntimeSizedArray(map, rsa)
+      case StructIT(id) => StructIT(collapseStructId(id))
+      case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(ssa)
+      case rsa @ RuntimeSizedArrayIT(_) => collapseRuntimeSizedArray(rsa)
     }
   }
 
   def collapseRuntimeSizedArray(
-    map: Map[Int, Int],
     rsa: RuntimeSizedArrayIT[sI]):
   RuntimeSizedArrayIT[cI] = {
     val RuntimeSizedArrayIT(ssaId) = rsa
+    val map = RegionCounter.countRuntimeSizedArray(rsa)
     RuntimeSizedArrayIT(
       collapseId[RuntimeSizedArrayNameI[sI], RuntimeSizedArrayNameI[cI]](
-        map,
         ssaId,
         { case RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(), RawArrayNameI(mutability, elementType, selfRegion)) =>
           RuntimeSizedArrayNameI(
             RuntimeSizedArrayTemplateNameI(),
             RawArrayNameI(
               mutability,
-              collapseCoord(map, elementType),
+              collapseTemplata(map, elementType).expectCoordTemplata(),
               collapseRegionTemplata(map, selfRegion)))
         }))
   }
 
   def collapseStaticSizedArray(
-    map: Map[Int, Int],
     ssa: StaticSizedArrayIT[sI]):
   StaticSizedArrayIT[cI] = {
     val StaticSizedArrayIT(ssaId) = ssa
+    val map = RegionCounter.countStaticSizedArray(ssa)
     StaticSizedArrayIT(
       collapseId[StaticSizedArrayNameI[sI], StaticSizedArrayNameI[cI]](
-        map,
         ssaId,
         { case StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(), size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
           StaticSizedArrayNameI(
@@ -167,21 +167,20 @@ object RegionCollapser {
             variability,
             RawArrayNameI(
               mutability,
-              collapseCoord(map, elementType),
+              collapseTemplata(map, elementType).expectCoordTemplata(),
               collapseRegionTemplata(map, selfRegion)))
         }))
   }
 
   def collapseStructId(
-    map: Map[Int, Int],
     structId: IdI[sI, IStructNameI[sI]]):
   IdI[cI, IStructNameI[cI]] = {
+    val map = RegionCounter.countStructId(structId)
     collapseId[IStructNameI[sI], IStructNameI[cI]](
-      map,
       structId,
       { case StructNameI(template, templateArgs) =>
         StructNameI(
-          collapseStructTemplateName(map, template),
+          collapseStructTemplateName(template),
           templateArgs.map(collapseTemplata(map, _)))
       })
   }
@@ -191,7 +190,6 @@ object RegionCollapser {
     structId: IdI[sI, ExportNameI[sI]]):
   IdI[cI, ExportNameI[cI]] = {
     collapseId[ExportNameI[sI], ExportNameI[cI]](
-      map,
       structId,
       { case ExportNameI(ExportTemplateNameI(codeLoc), templateArg) =>
         ExportNameI(
@@ -205,7 +203,6 @@ object RegionCollapser {
     structId: IdI[sI, ExternNameI[sI]]):
   IdI[cI, ExternNameI[cI]] = {
     collapseId[ExternNameI[sI], ExternNameI[cI]](
-      map,
       structId,
       { case ExternNameI(ExternTemplateNameI(codeLoc), templateArg) =>
         ExternNameI(
@@ -215,7 +212,6 @@ object RegionCollapser {
   }
 
   def collapseStructTemplateName(
-    map: Map[Int, Int],
     structName: IStructTemplateNameI[sI]):
   IStructTemplateNameI[cI] = {
     structName match {
@@ -228,7 +224,6 @@ object RegionCollapser {
     structId: IdI[sI, IImplNameI[sI]]):
   IdI[cI, IImplNameI[cI]] = {
     collapseId[IImplNameI[sI], IImplNameI[cI]](
-      map,
       structId,
       { case ImplNameI(template, templateArgs, subCitizen) =>
         ImplNameI[cI](

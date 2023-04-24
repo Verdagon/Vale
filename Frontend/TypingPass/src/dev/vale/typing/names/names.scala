@@ -1,6 +1,6 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, IRegionMutabilityS, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, IRegionMutabilityS, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, ReadWriteRegionS, RegionTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironmentT
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
@@ -277,7 +277,14 @@ case class RegionPlaceholderNameT(
   // If None, it comes from a template parameter
   height: Option[Int],
   originalMutability: IRegionMutabilityS
-) extends IRegionNameT with IPlaceholderNameT
+) extends IRegionNameT with IPlaceholderNameT {
+  this match {
+    case RegionPlaceholderNameT(0,CodeRuneS(StrI("E")),Some(0),ReadWriteRegionS) => {
+      vpass()
+    }
+    case _ =>
+  }
+}
 
 // See NNSPAFOC.
 case class OverrideDispatcherTemplateNameT(

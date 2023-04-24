@@ -608,7 +608,7 @@ class ArrayCompiler(
         templateFullName, 2, CodeRuneS(interner.intern(StrI("V"))), VariabilityTemplataType())
     val elementPlaceholder =
       templataCompiler.createCoordPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS, false, true)
+        coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS, OwnT, true)
     // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
     val regionPlaceholder =
       templataCompiler.createRegionPlaceholderInner(
@@ -687,7 +687,7 @@ class ArrayCompiler(
         templateFullName, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
     val elementPlaceholder =
       templataCompiler.createCoordPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS,false, true)
+        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS,OwnT, true)
     // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
     val regionPlaceholder =
       templataCompiler.createRegionPlaceholderInner(
