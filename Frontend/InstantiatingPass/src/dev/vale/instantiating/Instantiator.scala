@@ -78,7 +78,7 @@ class InstantiatedOutputs() {
   val newImpls: mutable.Queue[(IdT[IImplNameT], IdI[cI, IImplNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
   // The int is a virtual index
   val newAbstractFuncs: mutable.Queue[(PrototypeT, PrototypeI[cI], Int, IdI[cI, IInterfaceNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
-  val newFunctions: mutable.Queue[(PrototypeT, PrototypeI[cI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgI])] = mutable.Queue()
+  val newFunctions: mutable.Queue[(PrototypeT, PrototypeI[nI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgI])] = mutable.Queue()
 
   def addMethodToVTable(
     implId: IdI[cI, IImplNameI[cI]],
@@ -897,7 +897,7 @@ class Instantiator(
     hinputs: HinputsT,
     monouts: InstantiatedOutputs,
     desiredPrototypeT: PrototypeT,
-    desiredPrototypeC: PrototypeI[cI],
+    desiredPrototypeN: PrototypeI[nI],
     suppliedBoundArgs: InstantiationBoundArgumentsI,
     // This is only Some if this is a lambda. This will contain the prototypes supplied to the top
     // level denizen by its own caller, see LCNBAFA.
@@ -905,7 +905,9 @@ class Instantiator(
   FunctionDefinitionI = {
     // This works because the sI/cI are never actually used in these instances, they are just a
     // compile-time type-system bit of tracking, see CCFCTS.
-    val desiredPrototypeI: PrototypeI[sI] = desiredPrototypeC.asInstanceOf[PrototypeI[sI]]
+    val desiredPrototypeI: PrototypeI[sI] = desiredPrototypeN
+    val desiredPrototypeC =
+      RegionCollapserIndividual.collapsePrototype(desiredPrototypeI)
 
     val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredPrototypeT.id)
 
@@ -1301,18 +1303,21 @@ class Instantiator(
 //          oldRegionPureHeights.zipWithIndex.map({ case (oldRegionPureHeight, index) =>
 //            (oldRegionPureHeight, index - (oldRegionPureHeights.length - 1))
 //          }).toMap
+
         val desiredPrototypeC =
           RegionCollapserIndividual.collapsePrototype(desiredPrototypeS)
-        //
-        // val desiredPrototypeN =
-        //   RegionCollapserConsistent.collapsePrototype(
-        //     RegionCounter.countPrototype(desiredPrototypeS),
-        //     desiredPrototypeS)
+
+        val desiredPrototypeN =
+          RegionCollapserConsistent.collapsePrototype(
+            RegionCounter.countPrototype(desiredPrototypeS),
+            desiredPrototypeS)
+
+        vassert(RegionCollapserIndividual.collapsePrototype(desiredPrototypeN) == desiredPrototypeC)
 
         monouts.newFunctions.enqueue(
           (
             desiredPrototypeT,
-            desiredPrototypeC,
+            desiredPrototypeN,
             runeToBoundArgsForCall,
             // We need to supply our bounds to our lambdas, see LCCPGB and LCNBAFA.
             if (desiredPrototypeS.id.steps.startsWith(denizenName.steps)) {
@@ -1578,6 +1583,7 @@ class Instantiator(
 
     if (newHeader.toPrototype != desiredPrototypeC) {
       translateFunctionHeader(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, headerT)
+      vfail()
     }
 
     val startingEnv = NodeEnvironment(None)

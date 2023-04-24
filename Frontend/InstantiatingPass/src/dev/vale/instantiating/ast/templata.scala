@@ -72,7 +72,7 @@ object ITemplataI {
 
 }
 
-sealed trait ITemplataI[R <: IRegionsModeI] {
+sealed trait ITemplataI[+R <: IRegionsModeI] {
   def expectCoordTemplata(): CoordTemplataI[R] = {
     this match {
       case c@CoordTemplataI(_, _) => c
@@ -90,13 +90,13 @@ sealed trait ITemplataI[R <: IRegionsModeI] {
 
 //// The typing phase never makes one of these, they're purely abstract and conceptual in the
 //// typing phase. The monomorphizer is the one that actually makes these templatas.
-//case class RegionTemplataI[R <: IRegionsModeI](pureHeight: Int) extends ITemplataI[R] {
+//case class RegionTemplataI[+R <: IRegionsModeI](pureHeight: Int) extends ITemplataI[R] {
 //  vpass()
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //
 //}
 
-case class CoordTemplataI[R <: IRegionsModeI](
+case class CoordTemplataI[+R <: IRegionsModeI](
     region: RegionTemplataI[R],
     coord: CoordI[R]
 ) extends ITemplataI[R] {
@@ -116,22 +116,22 @@ case class CoordTemplataI[R <: IRegionsModeI](
 //  }
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //}
-case class KindTemplataI[R <: IRegionsModeI](kind: KindIT[R]) extends ITemplataI[R] {
+case class KindTemplataI[+R <: IRegionsModeI](kind: KindIT[R]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class RuntimeSizedArrayTemplateTemplataI[R <: IRegionsModeI]() extends ITemplataI[R] {
+case class RuntimeSizedArrayTemplateTemplataI[+R <: IRegionsModeI]() extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class StaticSizedArrayTemplateTemplataI[R <: IRegionsModeI]() extends ITemplataI[R] {
+case class StaticSizedArrayTemplateTemplataI[+R <: IRegionsModeI]() extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
 
 
 
-case class FunctionTemplataI[R <: IRegionsModeI](
+case class FunctionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, FunctionTemplateNameI[R]]
 ) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -141,23 +141,23 @@ case class FunctionTemplataI[R <: IRegionsModeI](
   def getTemplateName(): IdI[R, INameI[R]] = vimpl()
 }
 
-case class StructDefinitionTemplataI[R <: IRegionsModeI](
+case class StructDefinitionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, StructTemplateNameI[R]],
   tyype: TemplateTemplataType
 ) extends CitizenDefinitionTemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
-sealed trait CitizenDefinitionTemplataI[R <: IRegionsModeI] extends ITemplataI[R]
+sealed trait CitizenDefinitionTemplataI[+R <: IRegionsModeI] extends ITemplataI[R]
 
-case class InterfaceDefinitionTemplataI[R <: IRegionsModeI](
+case class InterfaceDefinitionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, InterfaceTemplateNameI[R]],
   tyype: TemplateTemplataType
 ) extends CitizenDefinitionTemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
-case class ImplDefinitionTemplataI[R <: IRegionsModeI](
+case class ImplDefinitionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, INameI[R]]
 //  // The paackage this interface was declared in.
 //  // See TMRE for more on these environments.
@@ -177,49 +177,49 @@ case class ImplDefinitionTemplataI[R <: IRegionsModeI](
 
 }
 
-case class OwnershipTemplataI[R <: IRegionsModeI](ownership: OwnershipI) extends ITemplataI[R] {
+case class OwnershipTemplataI[+R <: IRegionsModeI](ownership: OwnershipI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class VariabilityTemplataI[R <: IRegionsModeI](variability: VariabilityI) extends ITemplataI[R] {
+case class VariabilityTemplataI[+R <: IRegionsModeI](variability: VariabilityI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class MutabilityTemplataI[R <: IRegionsModeI](mutability: MutabilityI) extends ITemplataI[R] {
+case class MutabilityTemplataI[+R <: IRegionsModeI](mutability: MutabilityI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class LocationTemplataI[R <: IRegionsModeI](location: LocationI) extends ITemplataI[R] {
+case class LocationTemplataI[+R <: IRegionsModeI](location: LocationI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
 
-case class BooleanTemplataI[R <: IRegionsModeI](value: Boolean) extends ITemplataI[R] {
+case class BooleanTemplataI[+R <: IRegionsModeI](value: Boolean) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class IntegerTemplataI[R <: IRegionsModeI](value: Long) extends ITemplataI[R] {
+case class IntegerTemplataI[+R <: IRegionsModeI](value: Long) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class StringTemplataI[R <: IRegionsModeI](value: String) extends ITemplataI[R] {
+case class StringTemplataI[+R <: IRegionsModeI](value: String) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class PrototypeTemplataI[R <: IRegionsModeI](declarationRange: RangeS, prototype: PrototypeI[R]) extends ITemplataI[R] {
+case class PrototypeTemplataI[+R <: IRegionsModeI](declarationRange: RangeS, prototype: PrototypeI[R]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class IsaTemplataI[R <: IRegionsModeI](declarationRange: RangeS, implName: IdI[R, IImplNameI[R]], subKind: KindT, superKind: KindIT[R]) extends ITemplataI[R] {
+case class IsaTemplataI[+R <: IRegionsModeI](declarationRange: RangeS, implName: IdI[R, IImplNameI[R]], subKind: KindT, superKind: KindIT[R]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
-case class CoordListTemplataI[R <: IRegionsModeI](coords: Vector[CoordI[R]]) extends ITemplataI[R] {
+case class CoordListTemplataI[+R <: IRegionsModeI](coords: Vector[CoordI[R]]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   vpass()
 }
-case class RegionTemplataI[R <: IRegionsModeI](pureHeight: Int) extends ITemplataI[R] {
+case class RegionTemplataI[+R <: IRegionsModeI](pureHeight: Int) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
@@ -231,7 +231,7 @@ case class RegionTemplataI[R <: IRegionsModeI](pureHeight: Int) extends ITemplat
 // These should probably be renamed from Extern to something else... they could be supplied
 // by plugins, but theyre also used internally.
 
-case class ExternFunctionTemplataI[R <: IRegionsModeI](header: FunctionHeaderI) extends ITemplataI[R] {
+case class ExternFunctionTemplataI[+R <: IRegionsModeI](header: FunctionHeaderI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }

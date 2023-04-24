@@ -156,7 +156,7 @@ class StructHammer(
         }
       }
     StructMemberH(
-      nameHammer.translateFullName(hinputs, hamuts, structName.addStep(member2.name)),
+      nameHammer.translateFullName(hinputs, hamuts, INameI.addStep(structName, member2.name)),
       Conversions.evaluateVariability(variability),
       memberType)
   }

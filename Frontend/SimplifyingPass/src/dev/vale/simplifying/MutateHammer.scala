@@ -148,7 +148,7 @@ class MutateHammer(
 
     // We're storing into a struct's member that is a box. The stack is also
     // pointing at this box. First, get the box, then mutate what's inside.
-    val nameH = nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(memberName))
+    val nameH = nameHammer.translateFullName(hinputs, hamuts, INameI.addStep(currentFunctionHeader.id, memberName))
     val loadResultType =
       CoordH(
         vimpl(/*BorrowH*/),
@@ -202,7 +202,7 @@ class MutateHammer(
           destinationResultLine.expectStructAccess(),
           memberIndex,
           sourceExprResultLine,
-          nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(memberName)))
+          nameHammer.translateFullName(hinputs, hamuts, INameI.addStep(currentFunctionHeader.id, memberName)))
     (storeNode, destinationDeferreds)
   }
 
@@ -225,7 +225,7 @@ class MutateHammer(
 
     // This means we're trying to mutate a local variable that holds a box.
     // We need to load the box, then mutate its contents.
-    val nameH = nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(varId))
+    val nameH = nameHammer.translateFullName(hinputs, hamuts, INameI.addStep(currentFunctionHeader.id, varId))
     val loadBoxNode =
       LocalLoadH(
         local,
@@ -255,7 +255,7 @@ class MutateHammer(
         LocalStoreH(
           local,
           sourceExprResultLine,
-          nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(varId)))
+          nameHammer.translateFullName(hinputs, hamuts, INameI.addStep(currentFunctionHeader.id, varId)))
     (newStoreNode, Vector.empty)
   }
 }
