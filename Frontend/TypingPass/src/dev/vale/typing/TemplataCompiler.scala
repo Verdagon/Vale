@@ -1041,10 +1041,6 @@ class TemplataCompiler(
     val CoordT(targetOwnership, targetRegion, targetType) = targetPointerType;
     val CoordT(sourceOwnership, sourceRegion, sourceType) = sourcePointerType;
 
-    if (sourceRegion != targetRegion) {
-      return false
-    }
-
     // Note the Never case will short-circuit a true, regardless of the other checks (ownership)
 
     (sourceType, targetType) match {
@@ -1078,6 +1074,10 @@ class TemplataCompiler(
       case _ => {
         vfail("Dont know if we can convert from " + sourceType + " to " + targetType)
       }
+    }
+
+    if (sourceRegion != targetRegion) {
+      return false
     }
 
     (sourceOwnership, targetOwnership) match {
