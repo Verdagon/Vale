@@ -288,8 +288,8 @@ object CompilerErrorHumanizer {
       case CodeVarNameS(name) => name.str
       case TopLevelCitizenDeclarationNameS(name, codeLocation) => name.str
       case LambdaDeclarationNameS(codeLocation) => codeMap(codeLocation) + ": " + "(lambda)"
-      case FunctionNameS(name, codeLocation) => codeMap(codeLocation) + ": " + name
-      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => codeMap(range.begin) + ": " + name
+      case FunctionNameS(name, codeLocation) => codeMap(codeLocation) + ": " + name.str
+      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => codeMap(range.begin) + ": " + name.str
       case ImmConcreteDestructorNameS(_) => vimpl()
       case ImmInterfaceDestructorNameS(_) => vimpl()
 //      case DropNameS(_) => vimpl()
