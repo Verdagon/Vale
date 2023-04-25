@@ -1897,23 +1897,20 @@ LiveRef Safe::immutabilify(
     Ref sourceRef,
     Reference* targetRefMT) {
   assert(refMT->ownership == Ownership::MUTABLE_BORROW);
-  auto liveRef =
-    preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, sourceRef, false);
+  if (globalState->opt->elideChecksForRegions) {
+    auto liveRef =
+        preCheckBorrow(
+            checkerAFL, functionState, builder, regionInstanceRef, refMT, sourceRef, false);
 
-  // DO NOT SUBMIT
-  // it seems things have been a bit broken.
-  // PreCheckBorrow isnt being generated, so we need to fix that.
-  // we also need to make it so immutabilify actually makes a raw pointer.
-
-  // doesnt work, because immutable refs should be pointers
-//  auto ref = wrap(globalState, refMT, liveRef);
-//  return toLiveRef(
-//      checkerAFL, globalState, functionState, builder, targetRefMT,
-//      transmutePtr(globalState, functionState, builder, true, refMT, targetRefMT, ref));
-
-  auto wrapperPtrLE =
-    getWrapperPtrLive(checkerAFL, functionState, builder, refMT, liveRef);
-  auto transmuted =
-      kindStructs.makeWrapperPtr(checkerAFL, functionState, builder, targetRefMT, wrapperPtrLE.refLE);
-  return toLiveRef(transmuted);
+    auto wrapperPtrLE =
+        getWrapperPtrLive(checkerAFL, functionState, builder, refMT, liveRef);
+    auto transmuted =
+        kindStructs.makeWrapperPtr(
+            checkerAFL, functionState, builder, targetRefMT, wrapperPtrLE.refLE);
+    return toLiveRef(transmuted);
+  } else {
+    return toLiveRef(
+        checkerAFL, globalState, functionState, builder, targetRefMT,
+        transmutePtr(globalState, functionState, builder, false, refMT, targetRefMT, sourceRef));
+  }
 }

@@ -1722,10 +1722,14 @@ LiveRef SafeFastest::immutabilify(
     LLVMBuilderRef builder,
     Ref regionInstanceRef,
     Reference* refMT,
-    Ref ref,
+    Ref sourceRef,
     Reference* targetRefMT) {
   assert(refMT->ownership == Ownership::MUTABLE_BORROW);
   auto liveRef =
-      preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, ref, false);
-  return liveRef;
+      preCheckBorrow(checkerAFL, functionState, builder, regionInstanceRef, refMT, sourceRef, false);
+  auto wrapperPtrLE =
+      getWrapperPtrLive(checkerAFL, functionState, builder, refMT, liveRef);
+  auto transmuted =
+      kindStructs.makeWrapperPtr(checkerAFL, functionState, builder, targetRefMT, wrapperPtrLE.refLE);
+  return toLiveRef(transmuted);
 }
