@@ -1246,7 +1246,7 @@ class ExpressionCompiler(
 //          vassert(!thenBodySE.pure)
           val uncoercedThenBlock2 = BlockTE(thenExpressionsWithResult)
 
-          val thenUnstackifiedAncestorLocals = thenFate.snapshot.getEffectsSince(nenv.snapshot)
+          val (thenUnstackifiedAncestorLocals, thenRestackifiedAncestorLocals) = thenFate.snapshot.getEffectsSince(nenv.snapshot)
           val thenContinues =
             uncoercedThenBlock2.result.coord.kind match {
               case NeverT(_) => false
@@ -1270,7 +1270,7 @@ class ExpressionCompiler(
           val uncoercedElseBlock2 =
             BlockTE(elseExpressionsWithResult)
 
-          val elseUnstackifiedAncestorLocals = elseFate.snapshot.getEffectsSince(nenv.snapshot)
+          val (elseUnstackifiedAncestorLocals, elseRestackifiedAncestorLocals) = elseFate.snapshot.getEffectsSince(nenv.snapshot)
           val elseContinues =
             uncoercedElseBlock2.result.coord.kind match {
               case NeverT(_) => false
@@ -1368,20 +1368,26 @@ class ExpressionCompiler(
                   "\nFrom else branch: " +
                   elseUnstackifiedAncestorLocals))
             }
+            if (thenRestackifiedAncestorLocals != elseRestackifiedAncestorLocals) {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Must reinitialize same variables from inside branches!\nFrom then branch: " + thenUnstackifiedAncestorLocals + "\nFrom else branch: " + elseUnstackifiedAncestorLocals))
+            }
             thenUnstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
+            thenRestackifiedAncestorLocals.foreach(nenv.markLocalRestackified)
           } else {
             // One of them continues and the other does not.
             if (thenContinues) {
               thenUnstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
+              thenRestackifiedAncestorLocals.foreach(nenv.markLocalRestackified)
             } else if (elseContinues) {
               elseUnstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
+              elseRestackifiedAncestorLocals.foreach(nenv.markLocalRestackified)
             } else vfail()
           }
 
-
-          val ifBlockUnstackifiedAncestorLocals = nenv.snapshot.getEffectsSince(nenv.snapshot)
+          val (ifBlockUnstackifiedAncestorLocals, ifBlockRestackifiedAncestorLocals) =
+            nenv.snapshot.getEffectsSince(nenv.snapshot)
           ifBlockUnstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
-
+          ifBlockRestackifiedAncestorLocals.foreach(nenv.markLocalRestackified)
 
           (ifExpr2, returnsFromCondition ++ thenReturnsFromExprs ++ elseReturnsFromExprs)
         }
@@ -1410,12 +1416,16 @@ class ExpressionCompiler(
           uncoercedBodyBlock2.kind match {
             case NeverT(_) =>
             case _ => {
-              val bodyUnstackifiedAncestorLocals =
+              val (bodyUnstackifiedAncestorLocals, bodyRestackifiedAncestorLocals) =
                 loopBlockFate.snapshot.getEffectsSince(nenv.snapshot)
+
               if (bodyUnstackifiedAncestorLocals.nonEmpty) {
                 throw CompileErrorExceptionT(
                   CantUnstackifyOutsideLocalFromInsideWhile(
                     range :: parentRanges, bodyUnstackifiedAncestorLocals.head))
+              }
+              if (bodyRestackifiedAncestorLocals.nonEmpty) {
+                throw CompileErrorExceptionT(CantRestackifyOutsideLocalFromInsideWhile(range :: parentRanges, bodyUnstackifiedAncestorLocals.head))
               }
             }
           }
@@ -1519,12 +1529,13 @@ class ExpressionCompiler(
                   localHelper.unletLocalWithoutDropping(nenv, iterationResultLocal)))
             val bodyTE = BlockTE(Compiler.consecutive(Vector(letIterationResultTE, addCall)))
 
-            val bodyUnstackifiedAncestorLocals = loopBlockFate.snapshot.getEffectsSince(nenv
-              .snapshot)
+            val (bodyUnstackifiedAncestorLocals, bodyRestackifiedAncestorLocals) =
+              loopBlockFate.snapshot.getEffectsSince(nenv.snapshot)
             if (bodyUnstackifiedAncestorLocals.nonEmpty) {
-              throw CompileErrorExceptionT(CantUnstackifyOutsideLocalFromInsideWhile(
-                range ::
-                  parentRanges, bodyUnstackifiedAncestorLocals.head))
+              throw CompileErrorExceptionT(CantUnstackifyOutsideLocalFromInsideWhile(range :: parentRanges, bodyUnstackifiedAncestorLocals.head))
+            }
+            if (bodyRestackifiedAncestorLocals.nonEmpty) {
+              throw CompileErrorExceptionT(CantRestackifyOutsideLocalFromInsideWhile(range :: parentRanges, bodyRestackifiedAncestorLocals.head))
             }
 
             val whileTE = WhileTE(bodyTE)
@@ -1603,9 +1614,13 @@ class ExpressionCompiler(
             evaluateAndCoerceToReferenceExpression(
               coutputs, nenv, life + 0, parentRanges, callLocation, newRegion, inner);
 
-          val unstackifiedAncestorLocals = nenv.snapshot.getEffectsSince(nenv.snapshot)
+          val (unstackifiedAncestorLocals, restackifiedAncestorLocals) =
+            nenv.snapshot.getEffectsSince(nenv.snapshot)
           if (unstackifiedAncestorLocals.nonEmpty) {
             vimpl("Unstackifying from inside pure blocks unimplemented!")
+          }
+          if (restackifiedAncestorLocals.nonEmpty) {
+            vimpl("Restackifying from inside pure blocks unimplemented!")
           }
           if (returnsFromExprs.nonEmpty) {
             vimpl("Returning from pure blocks unimplemented")
@@ -1640,8 +1655,10 @@ class ExpressionCompiler(
               b)
           val block2 = BlockTE(expressionsWithResult)
 
-          val unstackifiedAncestorLocals = childEnvironment.snapshot.getEffectsSince(nenv.snapshot)
+          val (unstackifiedAncestorLocals, restackifiedAncestorLocals) =
+            childEnvironment.snapshot.getEffectsSince(nenv.snapshot)
           unstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
+          restackifiedAncestorLocals.foreach(nenv.markLocalRestackified)
 
           (block2, returnsFromExprs)
         }
