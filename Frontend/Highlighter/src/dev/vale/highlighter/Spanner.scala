@@ -421,7 +421,7 @@ object Spanner {
     makeSpan(
       Pat,
       range,
-      capture.toVector.map(forCapture) ++
+      capture.toVector.map(_.decl).map(forCapture) ++
       templex.toVector.map(forTemplex) ++
       maybeDestructure.toVector.map(forDestructure))
   }

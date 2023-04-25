@@ -45,7 +45,7 @@ class CaptureAndTypeTests extends FunSuite with Matchers with Collector with Tes
   test("Capture with borrow tame") {
     compile("arr &R") shouldHave {
       case PatternPP(_,
-        Some(LocalNameDeclarationP(NameP(_, StrI("arr")))),
+        Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("arr"))), None)),
         Some(InterpretedPT(_,Some(OwnershipPT(_, BorrowP)), None, NameOrRunePT(NameP(_, StrI("R"))))),
         None) =>
     }
@@ -53,7 +53,7 @@ class CaptureAndTypeTests extends FunSuite with Matchers with Collector with Tes
   test("Capture with self. in front") {
     compile("self.arr &&R") shouldHave {
       case PatternPP(_,
-        Some(ConstructingMemberNameDeclarationP(NameP(_, StrI("arr")))),
+        Some(DestinationLocalP(ConstructingMemberNameDeclarationP(NameP(_, StrI("arr"))), None)),
         Some(InterpretedPT(_,Some(OwnershipPT(_, WeakP)), None, NameOrRunePT(NameP(_, StrI("R"))))),
         None) =>
     }

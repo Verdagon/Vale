@@ -494,7 +494,7 @@ class AnonymousInterfaceMacro(
             outerRegionRune,
             AtomSP(
               abstractParamRange,
-              Some(CaptureS(interner.intern(SelfNameS()))),
+              Some(CaptureS(interner.intern(SelfNameS()), false)),
               Some(RuneUsage(abstractParamCoordRune.range, selfCoordRune)),
               None))
         }

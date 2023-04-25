@@ -1,9 +1,9 @@
 package dev.vale.parsing.patterns
 
 import dev.vale.{Collector, StrI, vimpl}
-import dev.vale.parsing.ast.{DestructureP, LocalNameDeclarationP, NameOrRunePT, NameP, PatternPP, TuplePT}
-import dev.vale.parsing.ast.Patterns._
+import dev.vale.parsing.ast.{DestinationLocalP, DestructureP, LocalNameDeclarationP, NameOrRunePT, NameP, PatternPP, TuplePT}
 import dev.vale.parsing._
+import dev.vale.parsing.ast.Patterns.capturedWithType
 import dev.vale.parsing.ast.{DestructureP, LocalNameDeclarationP, NameOrRunePT, NameP, PatternPP, TuplePT}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -16,7 +16,7 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector w
   test("Capture with destructure with type inside") {
     compile("a [a int, b bool]") shouldHave {
       case PatternPP(_,
-          Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+          Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),
           None,
           Some(
           DestructureP(_,
@@ -37,13 +37,13 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector w
   test("capture with empty destructure") {
     // Needs the space between the braces, see https://github.com/ValeLang/Vale/issues/434
     compile("a [ ]") shouldHave {
-      case PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,Some(DestructureP(_,Vector()))) =>
+      case PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),None,Some(DestructureP(_,Vector()))) =>
     }
   }
   test("Destructure with nested atom") {
     compile("a [b int]") shouldHave {
       case PatternPP(_,
-          Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+          Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),
           None,
           Some(
             DestructureP(_,

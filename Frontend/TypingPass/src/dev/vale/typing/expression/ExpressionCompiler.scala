@@ -125,6 +125,7 @@ class ExpressionCompiler(
     inferCompiler,
     arrayCompiler,
     convertHelper,
+    nameTranslator,
     destructorCompiler,
     localHelper)
   val blockCompiler = new BlockCompiler(

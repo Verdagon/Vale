@@ -230,10 +230,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val BlockSE(_, _, ConsecutorSE(things)) = block
     val lambdas = Collector.all(things, { case f @ FunctionSE(_) => f }).toList
     lambdas.head.function.params match {
-      case Vector(_, ParameterS(_, _, false, _, AtomSP(_, Some(CaptureS(MagicParamNameS(_))), Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
+      case Vector(_, ParameterS(_, _, false, _, AtomSP(_, Some(CaptureS(MagicParamNameS(_), false)), Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
     }
     lambdas.last.function.params match {
-      case Vector(_, ParameterS(_, _, false, _, AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")))), Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
+      case Vector(_, ParameterS(_, _, false, _, AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")), false)), Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
     }
   }
 
@@ -257,13 +257,13 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     Collector.only(exprs, {
       case LetSE(_,
       _,
-      AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")))), _, None),
+      AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")), false)), _, None),
       ConstantIntSE(_, 4, _)) =>
     })
     Collector.only(exprs, {
       case LetSE(_,
         _,
-        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")))), _, None),
+        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")), false)), _, None),
         ConstantBoolSE(_, true)) =>
     })
     Collector.only(exprs, {
@@ -375,12 +375,12 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     Collector.only(block, {
       case LetSE(_, _,
-        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")))), _, None),
+        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("x")), false)), _, None),
         ConstantIntSE(_, 4, _)) =>
     })
     Collector.only(block, {
       case LetSE(_, _,
-        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")))), _, None),
+        AtomSP(_, Some(CaptureS(ConstructingMemberNameS(StrI("y")), false)), _, None),
         LocalLoadSE(_, ConstructingMemberNameS(StrI("x")), LoadAsBorrowP)) =>
     })
     Collector.only(block, {
@@ -415,12 +415,12 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(IterableNameS(_))),None,None),
+        AtomSP(_,Some(CaptureS(IterableNameS(_), false)),None,None),
         OutsideLoadSE(_,_,CodeNameS(StrI("myList")),None,UseP)) =>
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(IteratorNameS(_))),None,None),
+        AtomSP(_,Some(CaptureS(IteratorNameS(_), false)),None,None),
         FunctionCallSE(_,_,
           OutsideLoadSE(_,_,CodeNameS(StrI("begin")),None,LoadAsBorrowP),
           Vector(LocalLoadSE(_,IterableNameS(_),LoadAsBorrowP)))) =>
@@ -430,7 +430,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(IterationOptionNameS(_))),None,None),
+        AtomSP(_,Some(CaptureS(IterationOptionNameS(_), false)),None,None),
         FunctionCallSE(_,_,
           OutsideLoadSE(_,_,CodeNameS(StrI("next")),None,LoadAsBorrowP),
           Vector(
@@ -447,7 +447,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
     body.block shouldHave {
       case LetSE(_,_,
-        AtomSP(_,Some(CaptureS(CodeVarNameS(StrI("i")))),None,None),
+        AtomSP(_,Some(CaptureS(CodeVarNameS(StrI("i")), false)),None,None),
         FunctionCallSE(_,_,
           OutsideLoadSE(_,_,CodeNameS(StrI("get")),None,LoadAsBorrowP),
           Vector(LocalLoadSE(_,IterationOptionNameS(_),UseP)))) =>
