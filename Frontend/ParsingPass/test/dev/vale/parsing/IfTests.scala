@@ -29,7 +29,7 @@ class IfTests extends FunSuite with Matchers with Collector with TestParseUtils 
             Some(
               DestructureP(_,
                 Vector(
-                  PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("u")))),None,None))))),
+                  PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("u"))), None)),None,None))))),
           LookupPE(LookupNameP(NameP(_, StrI("a"))),None)),
         BlockPE(_,None,None,VoidPE(_)),
         BlockPE(_,None,None,VoidPE(_))) =>
@@ -41,7 +41,7 @@ class IfTests extends FunSuite with Matchers with Collector with TestParseUtils 
       case IfPE(_,
         ConsecutorPE(
           Vector(
-            LetPE(_,PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("x")))),None,None),ConstantIntPE(_,4,None)),
+            LetPE(_,PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("x"))), None)),None,None),ConstantIntPE(_,4,None)),
             NotPE(_,MethodCallPE(_,LookupPE(LookupNameP(NameP(_, StrI("x"))),None),_,LookupPE(LookupNameP(NameP(_, StrI("isEmpty"))),None),Vector())))),
         BlockPE(_,None,None,VoidPE(_)),
         BlockPE(_,None,None,VoidPE(_))) =>
@@ -54,7 +54,7 @@ class IfTests extends FunSuite with Matchers with Collector with TestParseUtils 
       case ConsecutorPE(
         Vector(
           LetPE(_,
-            PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("newLen")))),None,None),
+            PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("newLen"))), None)),None,None),
             IfPE(_,
               BinaryCallPE(_,NameP(_,StrI("==")),LookupPE(LookupNameP(NameP(_, StrI("num"))),None),ConstantIntPE(_,0,_)),
               BlockPE(_,None,None,ConstantIntPE(_,1,_)),

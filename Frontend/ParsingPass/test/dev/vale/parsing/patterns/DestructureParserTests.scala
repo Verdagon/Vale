@@ -1,10 +1,9 @@
 package dev.vale.parsing.patterns
 
 import dev.vale.{Collector, StrI}
-import dev.vale.parsing.ast.{DestructureP, IgnoredLocalNameDeclarationP, LocalNameDeclarationP, NameOrRunePT, NameP, PatternPP}
+import dev.vale.parsing.ast.{DestinationLocalP, DestructureP, IgnoredLocalNameDeclarationP, LocalNameDeclarationP, NameOrRunePT, NameP, PatternPP}
 import dev.vale.parsing.ast.Patterns._
 import dev.vale.parsing._
-import dev.vale.parsing.ast.IgnoredLocalNameDeclarationP
 import dev.vale.Collector
 import org.scalatest.{FunSuite, Matchers}
 
@@ -38,13 +37,13 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
     compile("[_, b]") shouldHave {
       case PatternPP(_,
           None,None,
-          Some(DestructureP(_,Vector(PatternPP(_,Some(IgnoredLocalNameDeclarationP(_)), None, None), capture("b"))))) =>
+          Some(DestructureP(_,Vector(PatternPP(_,Some(DestinationLocalP(IgnoredLocalNameDeclarationP(_), None)), None, None), capture("b"))))) =>
     }
   }
   test("Capture with destructure") {
     compile("a [x, y]") shouldHave {
       case PatternPP(_,
-        Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+        Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),
         None,
         Some(DestructureP(_,Vector(capture("x"), capture("y"))))) =>
     }
@@ -60,7 +59,7 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
   test("Capture and type with destructure") {
     compile("a A[x, y]") shouldHave {
       case PatternPP(_,
-        Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+        Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),
         Some(NameOrRunePT(NameP(_, StrI("A")))),
         Some(DestructureP(_,Vector(capture("x"), capture("y"))))) =>
     }
@@ -68,7 +67,7 @@ class DestructureParserTests extends FunSuite with Matchers with Collector with 
   test("Capture with types inside") {
     compile("a [_ int, _ bool]") shouldHave {
       case PatternPP(_,
-          Some(LocalNameDeclarationP(NameP(_, StrI("a")))),
+          Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),
           None,
           Some(DestructureP(_,Vector(fromEnv("int"), fromEnv("bool"))))) =>
     }

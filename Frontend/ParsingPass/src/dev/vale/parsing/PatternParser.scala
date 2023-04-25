@@ -10,85 +10,6 @@ import scala.collection.mutable
 
 class PatternParser(interner: Interner, keywords: Keywords, templexParser: TemplexParser) {
 
-//  // Remember, for pattern parsers, something *must* be present, don't match empty.
-//  // Luckily, for this rule, we always have the expr identifier.
-//  private[parser] def patternCapture: Parser[INameDeclarationP] = {
-//    (pos <~ "&") ~ ("this"|"self") ~ pos ^^ {
-//      case begin ~ name ~ end => LocalNameDeclarationP(NameP(RangeP(begin, end), name))
-//    } |
-//      pos ~ existsMW("this.") ~ (exprIdentifier <~ opt("!")) ~ pos ^^ {
-//        case begin ~ None ~ name ~ end => LocalNameDeclarationP(name)
-//        case begin ~ Some(thisdot) ~ name ~ end => ConstructingMemberNameDeclarationP(NameP(ast.RangeP(begin, name.range.end), name.str))
-//      }
-//  }
-
-  def parsePatternCapture(iter: ScrambleIterator): Result[INameDeclarationP, IParseError] = {
-    vimpl()
-//    val begin = iter.getPos()
-//
-//    if (iter.trySkip(() => "^_\\b".r)) {
-//      return Ok(IgnoredLocalNameDeclarationP(RangeP(begin, iter.getPos())))
-//    }
-//
-//    if (iter.trySkip(() => "^&self".r)) {
-//      return Ok(LocalNameDeclarationP(NameP(RangeP(begin, iter.getPos()), "self")))
-//    }
-//
-//    if (iter.trySkip(() => "^self\\.".r)) {
-//      val name =
-//        Parser.parseLocalOrMemberName(iter) match {
-//          case None => return Err(BadLocalName(iter.getPos()))
-//          case Some(n) => n
-//        }
-//      return Ok(ConstructingMemberNameDeclarationP(NameP(ast.RangeP(begin, name.range.end), name.str)))
-//    }
-//
-//    if (iter.trySkip(() => "^let".r)) {
-//      iter.consumeWhitespace()
-//
-//      if (iter.trySkip(() => "^mut".r)) {
-//        iter.consumeWhitespace()
-//      }
-//    }
-//
-//    val name =
-//      Parser.parseLocalOrMemberName(iter) match {
-//        case None => return Err(BadLocalName(iter.getPos()))
-//        case Some(n) => n
-//      }
-//    iter.trySkip(() => "^!".r)
-//    return Ok(LocalNameDeclarationP(name))
-  }
-
-  def parseDestructure(iter: ScrambleIterator): Result[DestructureP, IParseError] = {
-    vimpl()
-//    val begin = iter.getPos()
-//
-//    if (!iter.trySkip(() => "^\\[".r)) {
-//      return Err(RangedInternalErrorP(iter.getPos(), "No [ ?"))
-//    }
-//    iter.consumeWhitespace()
-//
-//    val destructurees = mutable.ArrayBuffer[PatternPP]()
-//    if (iter.trySkip(() => "^\\s*\\]".r)) {
-//      return Ok(DestructureP(RangeL(begin, iter.getPos()), Vector()))
-//    }
-//    while ({
-//      val destructuree = parsePattern(iter) match { case Err(e) => return Err(e) case Ok(p) => p }
-//      destructurees += destructuree
-//      if (iter.trySkip(() => "^\\s*,".r)) {
-//        iter.consumeWhitespace()
-//        true
-//      } else if (iter.trySkip(() => "^\\s*]".r)) {
-//        false
-//      } else {
-//        return Err(BadDestructureError(iter.getPos()))
-//      }
-//    }) {}
-//
-//    Ok(DestructureP(RangeL(begin, iter.getPos()), destructurees.toVector))
-  }
-
   def parseParameter(iter: ScrambleIterator, index: Int, isInCitizen: Boolean, isInFunction: Boolean, isInLambda: Boolean): Result[ParameterP, IParseError] = {
     val patternBegin = iter.getPos()
     val patternRange = iter.range
@@ -161,10 +82,12 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
         case _ => false
       }
 
-    val maybeName =
+    val maybeMutate = iter.trySkipWord(keywords.set)
+
+    val maybeDestinationLocal =
       maybeNameFromParameter match {
         case Some(WordLE(range, str)) => {
-          Some(LocalNameDeclarationP(NameP(range, str)))
+          Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None))
         }
         case None => {
           val nameIsNext =
@@ -186,12 +109,12 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
               case Some(WordLE(range, str)) => {
                 iter.advance()
                 if (str == keywords.UNDERSCORE) {
-                  Some(IgnoredLocalNameDeclarationP(range))
+                  Some(DestinationLocalP(IgnoredLocalNameDeclarationP(range), maybeMutate))
                 } else {
                   if (isConstructing) {
-                    Some(ConstructingMemberNameDeclarationP(NameP(range, str)))
+                    Some(DestinationLocalP(ConstructingMemberNameDeclarationP(NameP(range, str)), maybeMutate))
                   } else {
-                    Some(LocalNameDeclarationP(NameP(range, str)))
+                    Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), maybeMutate))
                   }
                 }
               }
@@ -271,7 +194,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       Ok(
         PatternPP(
           RangeL(patternBegin, iter.getPrevEndPos()),
-          maybeName, maybeType, maybeDestructure))
+          maybeDestinationLocal, maybeType, maybeDestructure))
   }
 
   //    pos ~

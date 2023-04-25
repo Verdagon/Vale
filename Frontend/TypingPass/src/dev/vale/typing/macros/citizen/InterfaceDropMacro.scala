@@ -98,7 +98,7 @@ class InterfaceDropMacro(
             vimpl(),
             AtomSP(
               range(-1340),
-              Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)))),
+              Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)), false)),
               Some(use(-64002, selfCoordRune)),
               None))),
         Some(use(-64002, voidCoordRune)),

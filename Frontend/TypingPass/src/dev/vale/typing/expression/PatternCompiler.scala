@@ -3,13 +3,14 @@ package dev.vale.typing.expression
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.parsing.ast.LoadAsBorrowP
 import dev.vale.postparsing._
+import dev.vale.postparsing.patterns._
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassert, vassertSome, vfail, vimpl}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, InferCompiler, InitialSend, RangedInternalErrorT, TypingPassOptions, WrongNumberOfDestructuresError}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
 import dev.vale.typing.env.{ILocalVariableT, NodeEnvironmentBox, TemplataEnvEntry}
 import dev.vale.typing.function.DestructorCompiler
-import dev.vale.typing.names.{IRegionNameT, IdT, RuneNameT}
+import dev.vale.typing.names.{IRegionNameT, IdT, NameTranslator, RuneNameT}
 import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -31,10 +32,11 @@ class PatternCompiler(
     opts: TypingPassOptions,
 
     interner: Interner,
-  keywords: Keywords,
-  inferCompiler: InferCompiler,
+    keywords: Keywords,
+    inferCompiler: InferCompiler,
     arrayCompiler: ArrayCompiler,
     convertHelper: ConvertHelper,
+    nameTranslator: NameTranslator,
     destructorCompiler: DestructorCompiler,
     localHelper: LocalHelper) {
   // Note: This will unlet/drop the input expressions. Be warned.
@@ -227,10 +229,27 @@ class PatternCompiler(
     val (maybeCaptureLocalVarT, exprToDestructureOrDropOrPassTE) =
       maybeCaptureLocalVarA match {
         case None => (None, inputExpr)
-        case Some(captureS) => {
-          val localS = vassertSome(vassertSome(nenv.nearestBlockEnv())._2.locals.find(_.varName == captureS.name))
-          val localT = localHelper.makeUserLocalVariable(coutputs, nenv, range :: parentRanges, localS, inputExpr.result.coord)
-          currentInstructions = currentInstructions :+ LetNormalTE(localT, inputExpr)
+        case Some(CaptureS(localNameS, mutate)) => {
+          val localNameT = nameTranslator.translateVarNameStep(localNameS)
+          val localT =
+            if (mutate) {
+              val localT =
+                nenv.declaredLocals.find(_.name == localNameT) match {
+                  case Some(rlv@ReferenceLocalVariableT(_, _, _)) => rlv
+                }
+              nenv.markLocalRestackified(localNameT)
+              currentInstructions =
+                currentInstructions :+
+                    RestackifyTE(localT, inputExpr)
+              localT
+            } else {
+              val localS = vassertSome(vassertSome(nenv.nearestBlockEnv())._2.locals.find(_.varName == localNameS))
+              val localT = localHelper.makeUserLocalVariable(coutputs, nenv, range :: parentRanges, localS, inputExpr.result.coord)
+              currentInstructions =
+                currentInstructions :+
+                    LetNormalTE(localT, inputExpr)
+              localT
+            }
           val capturedLocalAliasTE =
             localHelper.softLoad(nenv, range :: parentRanges, LocalLookupTE(range, localT), LoadAsBorrowP, region)
           (Some(localT), capturedLocalAliasTE)

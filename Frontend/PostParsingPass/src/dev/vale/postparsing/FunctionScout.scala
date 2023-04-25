@@ -249,7 +249,7 @@ class FunctionScout(
                 val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
                 runeToExplicitType += ((rune.rune, CoordTemplataType()))
                 val patternS =
-                  AtomSP(rangeS, Some(CaptureS(CodeVarNameS(keywords.self))), Some(rune), None)
+                  AtomSP(rangeS, Some(CaptureS(CodeVarNameS(keywords.self), false)), Some(rune), None)
                 ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, defaultRegionRuneS, patternS)
               }
               case (None, Some(patternP)) => {
@@ -586,7 +586,7 @@ class FunctionScout(
         None,
         RuneUsage(closureParamRange, closureStructCoordRune))
 
-    val capture = CaptureS(closureParamName)
+    val capture = CaptureS(closureParamName, false)
     val closurePattern =
       AtomSP(closureParamRange, Some(capture), Some(closureParamTypeRune), None)
     ParameterS(closureParamRange, None, false, vimpl(), closurePattern)
@@ -611,7 +611,7 @@ class FunctionScout(
             vimpl(),
             AtomSP(
               magicParamRange,
-              Some(patterns.CaptureS(mpn)), Some(magicParamRune), None))
+              Some(patterns.CaptureS(mpn, false)), Some(magicParamRune), None))
         paramS
       }
     })

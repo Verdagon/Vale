@@ -209,7 +209,7 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
           FunctionP(_,
             FunctionHeaderP(_,
               None,Vector(),None,None,
-              Some(ParamsP(_,Vector(ParameterP(_,None,None,None,Some(PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None)))))),
+              Some(ParamsP(_,Vector(ParameterP(_,None,None,None,Some(PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("x"))), None)),None,None)))))),
               FunctionReturnP(_,None)),
             Some(BlockPE(_,_,_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
@@ -222,7 +222,7 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
           FunctionP(_,
             FunctionHeaderP(_,
               None,Vector(),None,None,
-              Some(ParamsP(_,Vector(ParameterP(_,None,None,None,Some(PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None)))))),
+              Some(ParamsP(_,Vector(ParameterP(_,None,None,None,Some(PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("x"))), None)),None,None)))))),
               FunctionReturnP(_,None)),
             Some(BlockPE(_,_,_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
@@ -235,7 +235,7 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
           FunctionP(_,
             FunctionHeaderP(_,
               None,Vector(),None,None,
-              Some(ParamsP(_,Vector(ParameterP(_,None,None,None,Some(PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),Some(NameOrRunePT(NameP(_,StrI("int")))), None)))))),
+              Some(ParamsP(_,Vector(ParameterP(_,None,None,None,Some(PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("x"))), None)),Some(NameOrRunePT(NameP(_,StrI("int")))), None)))))),
               _),
           _)) =>
       }
@@ -264,8 +264,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
               Some(
                 ParamsP(_,
                   Vector(
-                    ParameterP(_,None,None,None,Some(PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None))),
-                    ParameterP(_,None,None,None,Some(PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("y")))),None,None)))))),
+                    ParameterP(_,None,None,None,Some(PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("x"))), None)),None,None))),
+                    ParameterP(_,None,None,None,Some(PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("y"))), None)),None,None)))))),
               FunctionReturnP(_,None)),
             Some(BlockPE(_,_,_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
@@ -290,8 +290,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
                           Some(
                             DestructureP(_,
                               Vector(
-                                PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None),
-                                PatternPP(_,Some(LocalNameDeclarationP(NameP(_,StrI("y")))),None,None)))))))))),
+                                PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("x"))), None)),None,None),
+                                PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_,StrI("y"))), None)),None,None)))))))))),
               FunctionReturnP(_,None)),
             Some(BlockPE(_,_,_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
@@ -606,7 +606,7 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
       case FunctionCallPE(_, _, SubExpressionPE(_, LambdaPE(_, _)), Vector(ConstantIntPE(_, 3, _))) =>
     }
     program shouldHave {
-      case PatternPP(_,Some(LocalNameDeclarationP(NameP(_, StrI("a")))),None,None) =>
+      case PatternPP(_,Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("a"))), None)),None,None) =>
     }
     program shouldHave {
       case BinaryCallPE(_, NameP(_, StrI("+")), LookupPE(LookupNameP(NameP(_, StrI("a"))), None), LookupPE(LookupNameP(NameP(_, StrI("a"))), None)) =>
