@@ -387,7 +387,7 @@ case class NodeEnvironmentT(
 
   // Gets the effects that this environment had on the outside world (on its parent
   // environments). In other words, parent locals that were unstackified.
-  def getEffectsSince(earlierNodeEnv: NodeEnvironmentT): Set[IVarNameT] = {
+  def getEffectsSince(earlierNodeEnv: NodeEnvironmentT): (Set[IVarNameT], Set[IVarNameT]) = {
     vassert(parentFunctionEnv == earlierNodeEnv.parentFunctionEnv)
 
     // We may have unstackified outside locals from inside the block, make sure
@@ -401,7 +401,10 @@ case class NodeEnvironmentT(
       declaredLocals.map(_.name).filter(x => !earlierNodeEnvLiveLocals.contains(x))
 
     val unstackifiedAncestorLocals = unstackifiedLocals -- liveLocalsIntroducedSinceEarlier
-    unstackifiedAncestorLocals
+
+    val restackifiedAncestorLocals = restackifiedLocals -- liveLocalsIntroducedSinceEarlier
+
+    (unstackifiedAncestorLocals, restackifiedAncestorLocals)
   }
 
   def getLiveVariablesIntroducedSince(

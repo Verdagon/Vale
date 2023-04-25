@@ -30,7 +30,7 @@ Ref translateLocalLoad(
 
   buildFlare(FL(), globalState, functionState, builder);
 
-  auto localAddr = blockState->getLocalAddr(localId);
+  auto localAddr = blockState->getLocalAddr(localId, true);
 
   auto sourceRef = globalState->getRegion(localType)->loadLocal(functionState, builder, local, localAddr);
 
