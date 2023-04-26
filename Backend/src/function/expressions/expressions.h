@@ -156,4 +156,6 @@ Ref translatePreCheckBorrow(
     LLVMBuilderRef builder,
     PreCheckBorrow *preCheckBorrowM);
 
+bool exprResultKnownLive(GlobalState* globalState, Expression* expr);
+
 #endif

@@ -321,6 +321,14 @@ case class ImmutabilifyIE(
   vassert(inner.result.kind == result.kind)
   vassert(inner.result.ownership == MutableBorrowI || inner.result.ownership == MutableShareI)
   vassert(result.ownership == ImmutableBorrowI || result.ownership == ImmutableShareI)
+  inner match {
+    case SoftLoadIE(_, _, _) => {
+      // The SoftLoadIE should be immutabilifying on its own.
+      // We should have code that looks for this and simplifies it away.
+      vwat()
+    }
+    case _ =>
+  }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
@@ -786,8 +794,11 @@ case class SoftLoadIE(
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
-  vassert((targetOwnership == MutableShareI) == (expr.result.ownership == MutableShareI))
-  vassert((targetOwnership == ImmutableShareI) == (expr.result.ownership == ImmutableShareI))
+  vassert(targetOwnership == result.ownership)
+
+  if (targetOwnership == MutableShareI) {
+    vassert(expr.result.ownership != ImmutableShareI)
+  }
   vassert(targetOwnership != OwnI) // need to unstackify or destroy to get an owning reference
   // This is just here to try the asserts inside Coord's constructor
   CoordI[cI](targetOwnership, expr.result.kind)

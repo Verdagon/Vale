@@ -2016,11 +2016,11 @@ class Instantiator(
               val (argIT, argCE) =
                 translateRefExpr(
                   denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)
-              if (pure && argIT.ownership == MutableBorrowI) {
-                PreCheckBorrowIE(argCE)
-              } else {
+              // if (pure && argIT.ownership == MutableBorrowI) {
+              //   PreCheckBorrowIE(argCE)
+              // } else {
                 argCE
-              }
+              // }
             })
 
           if (!pure) {
@@ -2081,20 +2081,7 @@ class Instantiator(
                     FunctionCallIE(
                       prototypeC,
                       innersIE.map(innerIE => {
-                        innerIE.result.ownership match {
-                          case OwnI => innerIE // These are being moved into the receiver's region
-                          case ImmutableBorrowI | ImmutableShareI => innerIE
-                          case MutableBorrowI => {
-                            ImmutabilifyIE(innerIE, innerIE.result.copy(ownership = ImmutableBorrowI))
-                          }
-                          case MutableShareI => {
-                            if (innerIE.result.kind.isPrimitive) {
-                              innerIE // These are conceptually moved into the receiver's region
-                            } else {
-                              ImmutabilifyIE(innerIE, innerIE.result.copy(ownership = ImmutableShareI))
-                            }
-                          }
-                        }
+                        maybeImmutabilify(innerIE)
                       }),
                       returnCoordCT)
                   (returnCoordIT, callCE)
@@ -2771,6 +2758,34 @@ class Instantiator(
     //      vassert(Collector.all(resultRefExpr, { case PlaceholderNameT(_) => }).isEmpty)
     //    }
     (resultIT, resultCE)
+  }
+
+  private def maybeImmutabilify(innerIE: ReferenceExpressionIE): ReferenceExpressionIE = {
+    innerIE.result.kind match {
+      case x if x.isPrimitive => {
+        return innerIE // These are conceptually moved into the receiver's region
+      }
+      case _ => // continue
+    }
+    innerIE match {
+      case SoftLoadIE(expr, MutableBorrowI, result) => {
+        return SoftLoadIE(expr, ImmutableBorrowI, result.copy(ownership = ImmutableBorrowI))
+      }
+      case SoftLoadIE(expr, MutableShareI, result) => {
+        return SoftLoadIE(expr, ImmutableShareI, result.copy(ownership = ImmutableShareI))
+      }
+      case _ => //continue
+    }
+    innerIE.result.ownership match {
+      case OwnI => innerIE // These are being moved into the receiver's region
+      case ImmutableBorrowI | ImmutableShareI => innerIE
+      case MutableBorrowI => {
+        ImmutabilifyIE(innerIE, innerIE.result.copy(ownership = ImmutableBorrowI))
+      }
+      case MutableShareI => {
+        ImmutabilifyIE(innerIE, innerIE.result.copy(ownership = ImmutableShareI))
+      }
+    }
   }
 
   private def runInNewPureRegion[T](

@@ -14,6 +14,23 @@
 #include "expressions/shared/members.h"
 #include "expression.h"
 
+// DO NOT SUBMIT do something more like catalyst instead
+bool exprResultKnownLive(GlobalState* globalState, Expression* expr) {
+  if (globalState->opt->overrideKnownLiveTrue) {
+    return true;
+  }
+  if (auto localLoad = dynamic_cast<LocalLoad*>(expr)) {
+    if (localLoad->local->type->ownership == Ownership::OWN) {
+      return true;
+    }
+  } else if (auto immutabilify = dynamic_cast<Immutabilify*>(expr)) {
+    return exprResultKnownLive(globalState, immutabilify->sourceExpr);
+  } else if (auto preCheckBorrow = dynamic_cast<PreCheckBorrow*>(expr)) {
+    return exprResultKnownLive(globalState, preCheckBorrow->sourceExpr);
+  }
+  return false;
+}
+
 Ref translateExpressionInner(
     GlobalState* globalState,
     FunctionState* constraintRef,
@@ -310,7 +327,7 @@ Ref translateExpressionInner(
     auto mutability = ownershipToMutability(memberLoad->structType->ownership);
     auto memberIndex = memberLoad->memberIndex;
     auto memberName = memberLoad->memberName;
-    bool structKnownLive = memberLoad->structKnownLive || globalState->opt->overrideKnownLiveTrue;
+    bool structKnownLive = exprResultKnownLive(globalState, memberLoad->structExpr);
 
     auto structRegionInstanceRef =
         // At some point, look up the actual region instance, perhaps from the FunctionState?
@@ -786,7 +803,7 @@ Ref translateExpressionInner(
     auto arrayExpr = runtimeSizedArrayStore->arrayExpr;
     auto indexExpr = runtimeSizedArrayStore->indexExpr;
     auto arrayKind = runtimeSizedArrayStore->arrayKind;
-    bool arrayKnownLive = runtimeSizedArrayStore->arrayKnownLive || globalState->opt->overrideKnownLiveTrue;
+    bool arrayKnownLive = exprResultKnownLive(globalState, runtimeSizedArrayStore->arrayExpr);
 
     auto elementType = globalState->program->getRuntimeSizedArray(arrayKind)->elementType;
 
