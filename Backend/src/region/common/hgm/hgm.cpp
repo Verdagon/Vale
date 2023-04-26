@@ -268,6 +268,7 @@ LiveRef HybridGenerationalMemory::lockGenFatPtr(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* refM,
     Ref ref,
     bool knownLive) {
@@ -286,18 +287,25 @@ LiveRef HybridGenerationalMemory::lockGenFatPtr(
     }
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, refM, weakFatPtrLE, knownLive);
     buildIfV(
-        globalState, functionState, builder, isZeroLE(builder, isAliveLE),
+        globalState, functionState, builder, LLVMBuildNot(builder, isAliveLE, "notAlive"),
         [this, from](LLVMBuilderRef thenBuilder) {
           fastPanic(globalState, from, thenBuilder);
         });
 //  }
-  return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
+  auto refLE =
+      fatWeaks.getInnerRefFromWeakRef(
+          functionState, builder, refM,
+          kindStructs->makeWeakFatPtr(
+              refM, ::checkValidReference(FL(), globalState, functionState, builder, true, refM, ref)));
+  auto wPtrLE = kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
+  return ::toLiveRef(FL(), globalState, functionState, builder, regionInstanceRef, refM, wPtrLE.refLE);
 }
 
 LiveRef HybridGenerationalMemory::preCheckFatPtr(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* refM,
     Ref ref,
     bool knownLive) {
@@ -310,7 +318,7 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
 
   if (knownLive && elideChecksForKnownLive) {
     // Do nothing, just wrap it and return it.
-    return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
+    return toLiveRef(FL(), globalState, functionState, builder, regionInstanceRef, refM, ref, true);
   } else {
     if (globalState->opt->printMemOverhead) {
       adjustCounterV(
@@ -329,7 +337,7 @@ LiveRef HybridGenerationalMemory::preCheckFatPtr(
             [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
               return ref;
             });
-    return toLiveRef(FL(), globalState, functionState, builder, refM, resultRef);
+    return toLiveRef(FL(), globalState, functionState, builder, regionInstanceRef, refM, resultRef, true);
   }
 }
 
@@ -422,8 +430,10 @@ LLVMValueRef HybridGenerationalMemory::getIsAliveFromWeakFatPtr(
           globalState, functionState, builder, isLiveLE, 116, "knownLive is true, but object is dead!");
     }
 
+    assert(LLVMTypeOf(isLiveLE) == LLVMInt1TypeInContext(globalState->context));
     return isLiveLE;
   }
+  assert(false);
 }
 
 Ref HybridGenerationalMemory::getIsAliveFromWeakRef(

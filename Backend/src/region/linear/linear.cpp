@@ -1549,10 +1549,10 @@ LiveRef Linear::callSerialize(
     auto ref =
         buildInterfaceCall(
             globalState, functionState, builder, prototype, methodFunctionPtrLE, {regionInstanceRef, sourceRegionInstanceRef, objectRef, dryRunBoolRef}, 2);
-    return toLiveRef(FL(), globalState, functionState, builder, prototype->returnType, ref);
+    return checkRefLive(FL(), functionState, builder, regionInstanceRef, prototype->returnType, ref, true);
   } else {
     auto ref = buildCallV(globalState, functionState, builder, prototype, {regionInstanceRef, sourceRegionInstanceRef, objectRef, dryRunBoolRef});
-    return toLiveRef(FL(), globalState, functionState, builder, prototype->returnType, ref);
+    return checkRefLive(FL(), functionState, builder, regionInstanceRef, prototype->returnType, ref, true);
   }
 }
 
@@ -1630,17 +1630,17 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
                 FL(), functionState, builder, true, sourceMemberRefMT, sourceMemberRef);
         if (sourceMemberRefMT == globalState->metalCache->i64Ref) {
           auto ref = wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE);
-          return toLiveRef(FL(), globalState, functionState, builder, targetMemberRefMT, ref);
+          return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
         } else if (sourceMemberRefMT == globalState->metalCache->i32Ref) {
           auto ref = wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE);
-          return toLiveRef(FL(), globalState, functionState, builder, targetMemberRefMT, ref);
+          return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
         } else if (sourceMemberRefMT == globalState->metalCache->boolRef) {
           auto resultLE = LLVMBuildZExt(builder, sourceMemberLE, LLVMInt8TypeInContext(globalState->context), "boolAsI8");
           auto ref = wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, resultLE);
-          return toLiveRef(FL(), globalState, functionState, builder, targetMemberRefMT, ref);
+          return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
         } else if (sourceMemberRefMT == globalState->metalCache->floatRef) {
           auto ref = wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE);
-          return toLiveRef(FL(), globalState, functionState, builder, targetMemberRefMT, ref);
+          return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
         } else if (
             dynamic_cast<Str*>(sourceMemberRefMT->kind) ||
             dynamic_cast<StructKind*>(sourceMemberRefMT->kind) ||
@@ -2412,7 +2412,7 @@ LiveRef Linear::getDestinationRef(
       translateBetweenBufferAddressAndPointer(
           functionState, builder, regionInstanceRef, desiredRefMT, unadjustedDestinationPtrLE, false);
   buildFlare(FL(), globalState, functionState, builder);
-  return toLiveRef(FL(), globalState, functionState, builder, desiredRefMT, adjustedDestinationPtr);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, desiredRefMT, adjustedDestinationPtr);
 }
 
 void Linear::bumpDestinationOffset(
@@ -2442,7 +2442,19 @@ LiveRef Linear::checkRefLive(
     bool refKnownLive) {
   // I think this is all we really need?
   assert(refMT->ownership == Ownership::MUTABLE_SHARE);
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
+}
+
+LiveRef Linear::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  assert(translateType(refMT) == LLVMTypeOf(ref));
+  return LiveRef(refMT, ref);
 }
 
 LiveRef Linear::preCheckBorrow(
@@ -2455,7 +2467,7 @@ LiveRef Linear::preCheckBorrow(
     bool refKnownLive) {
   // I think this is all we really need?
   assert(refMT->ownership == Ownership::MUTABLE_BORROW);
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  return checkRefLive(FL(), functionState, builder, regionInstanceRef, refMT, ref, true);
 }
 
 Ref Linear::mutabilify(

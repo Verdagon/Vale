@@ -1040,7 +1040,19 @@ LiveRef Unsafe::checkRefLive(
     Ref ref,
     bool refKnownLive) {
   // The whole point of unsafe is to get around such notions of liveness, so just return a LiveRef.
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
+}
+
+LiveRef Unsafe::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  assert(translateType(refMT) == LLVMTypeOf(ref));
+  return LiveRef(refMT, ref);
 }
 
 LiveRef Unsafe::preCheckBorrow(
@@ -1052,7 +1064,8 @@ LiveRef Unsafe::preCheckBorrow(
     Ref ref,
     bool refKnownLive) {
   // The whole point of unsafe is to get around such notions of liveness, so just return a LiveRef.
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
 }
 Ref Unsafe::mutabilify(
     AreaAndFileAndLine checkerAFL,

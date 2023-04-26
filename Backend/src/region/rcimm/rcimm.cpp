@@ -1276,7 +1276,7 @@ void RCImm::defineConcreteUnserializeFunction(Kind* valeKind) {
         auto hostRegionInstanceRef =
             wrap(globalState->linearRegion, hostRegionRefMT, LLVMGetParam(functionState->containingFuncL, 1 + 1)); // DO NOT SUBMIT
         auto hostObjectRef =
-            toLiveRef(FL(), globalState, functionState, builder, hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
+            toLiveRef(FL(), globalState, functionState, builder, hostRegionInstanceRef, hostObjectRefMT, LLVMGetParam(functionState->containingFuncL, 2 + 1)); // DO NOT SUBMIT
 
         if (auto valeStructKind = dynamic_cast<StructKind *>(valeObjectRefMT->kind)) {
           auto hostStructKind = dynamic_cast<StructKind *>(hostObjectRefMT->kind);
@@ -1682,7 +1682,19 @@ LiveRef RCImm::checkRefLive(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
+}
+
+LiveRef RCImm::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  assert(translateType(refMT) == LLVMTypeOf(ref));
+  return LiveRef(refMT, ref);
 }
 
 LiveRef RCImm::preCheckBorrow(
@@ -1694,7 +1706,7 @@ LiveRef RCImm::preCheckBorrow(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  return checkRefLive(FL(), functionState, builder, regionInstanceRef, refMT, ref, true);
 }
 
 Ref RCImm::mutabilify(
@@ -1716,8 +1728,10 @@ LiveRef RCImm::immutabilify(
     Reference* refMT,
     Ref ref,
     Reference* targetRefMT) {
-  return toLiveRef(
-      checkerAFL, globalState, functionState, builder, targetRefMT,
-      // Imm and mut refs in RC are the same, so we can just do a transmute.
-      transmutePtr(globalState, functionState, builder, true, refMT, targetRefMT, ref));
+  // Imm and mut refs in RC are the same, so we can just do a transmute.
+  auto transmutedRef =
+      transmutePtr(globalState, functionState, builder, true, refMT, targetRefMT, ref);
+  auto transmutedRefLE =
+      checkValidReference(FL(), functionState, builder, true, targetRefMT, transmutedRef);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, targetRefMT, transmutedRefLE);
 }

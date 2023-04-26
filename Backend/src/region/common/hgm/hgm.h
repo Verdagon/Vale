@@ -107,6 +107,7 @@ public:
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Ref regionInstanceRef,
       Reference* refM,
       Ref ref,
       bool weakRefKnownLive);
@@ -115,6 +116,7 @@ public:
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      Ref regionInstanceRef,
       Reference* refM,
       Ref ref,
       bool weakRefKnownLive);

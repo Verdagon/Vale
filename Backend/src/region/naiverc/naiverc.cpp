@@ -1069,7 +1069,19 @@ LiveRef NaiveRC::checkRefLive(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
+}
+
+LiveRef NaiveRC::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  assert(LLVMTypeOf(ref) == translateType(refMT));
+  return LiveRef(refMT, ref);
 }
 
 LiveRef NaiveRC::preCheckBorrow(
@@ -1081,7 +1093,8 @@ LiveRef NaiveRC::preCheckBorrow(
     Ref ref,
     bool refKnownLive) {
   // Everything is always known live in an RC world.
-  return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+  auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+  return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
 }
 
 Ref NaiveRC::mutabilify(

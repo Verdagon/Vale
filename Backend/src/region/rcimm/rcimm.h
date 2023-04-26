@@ -213,6 +213,14 @@ public:
       Ref ref,
       bool refKnownLive) override;
 
+    LiveRef wrapToLiveRef(
+        AreaAndFileAndLine checkerAFL,
+        FunctionState* functionState,
+        LLVMBuilderRef builder,
+        Ref regionInstanceRef,
+        Reference* refMT,
+        LLVMValueRef ref) override;
+
   LiveRef preCheckBorrow(
       AreaAndFileAndLine checkerAFL,
       FunctionState* functionState,
