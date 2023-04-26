@@ -504,7 +504,8 @@ static LiveRef preCheckFatPtr(
 
   if (skipCheck && !globalState->opt->census) {
     // Do nothing, just wrap it and return it.
-    return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
+    auto refLE = ::checkValidReference(FL(), globalState, functionState, builder, true, refM, ref);
+    return LiveRef(refM, refLE);
   } else {
     if (globalState->opt->printMemOverhead) {
       adjustCounterV(
@@ -532,7 +533,8 @@ static LiveRef preCheckFatPtr(
                 return ref;
               }
             });
-    return toLiveRef(FL(), globalState, functionState, builder, refM, resultRef);
+    auto refLE = ::checkValidReference(FL(), globalState, functionState, builder, true, refM, resultRef);
+    return LiveRef(refM, refLE);
   }
 }
 
@@ -544,37 +546,7 @@ static WrapperPtrLE getWrapperPtr(
     LLVMBuilderRef builder,
     Reference* refM,
     LiveRef liveRef) {
-  auto ref = wrap(globalState, refM, liveRef);
-  auto refLE =
-      globalState->getRegion(refM)->checkValidReference(
-          FL(), functionState, builder, false, refM, ref);
-  switch (refM->ownership) {
-    case Ownership::OWN:
-      return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
-    case Ownership::IMMUTABLE_BORROW: {
-      if (globalState->opt->elideChecksForRegions) {
-        return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
-      } else {
-        auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
-        auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
-        globalState->getRegion(refM)
-            ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-        return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
-      }
-      break;
-    }
-    case Ownership::MUTABLE_BORROW: {
-      auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
-      auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
-      globalState->getRegion(refM)
-          ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-      return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
-    }
-    default:
-      assert(false);
-      break;
-  }
-  assert(false);
+  return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, liveRef.refLE);
 }
 
 static WrapperPtrLE lockGenFatPtr(
@@ -583,6 +555,7 @@ static WrapperPtrLE lockGenFatPtr(
         FunctionState* functionState,
         KindStructs* kindStructs,
         LLVMBuilderRef builder,
+        Ref regionInstanceRef,
         Reference* refM,
         Ref ref,
         bool knownLive) {
@@ -617,8 +590,12 @@ static WrapperPtrLE lockGenFatPtr(
         });
   }
   // Because we just checked
-  auto liveRef = toLiveRef(FL(), globalState, functionState, builder, refM, ref);
-  return getWrapperPtr(globalState, kindStructs, FL(), functionState, builder, refM, liveRef);
+  auto refLE =
+      getInnerRefFromWeakRef(
+          functionState, builder, refM,
+          kindStructs->makeWeakFatPtr(
+              refM, ::checkValidReference(FL(), globalState, functionState, builder, true, refM, ref)));
+  return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
 }
 
 Safe::Safe(GlobalState* globalState_) :
@@ -1791,17 +1768,23 @@ LiveRef Safe::checkRefLive(
         // Immutable borrows aren't really live, but we can dereference them as if they are. If they
         // don't point to a live object, they'll point at a protected address instead, and
         // dereferencing will safely fault.
-        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+        auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+        return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
       } else {
-        lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
-        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+        auto wrapperPtrLE =
+            lockGenFatPtr(
+                globalState, FL(), functionState, &kindStructs, builder, regionInstanceRef, refMT, ref, refKnownLive);
+        return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, wrapperPtrLE.refLE);
       }
     case Ownership::OWN: {
-      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+      auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+      return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
     }
     case Ownership::MUTABLE_BORROW: {
-      lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
-      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+      auto wrapperPtrLE =
+          lockGenFatPtr(
+              globalState, FL(), functionState, &kindStructs, builder, regionInstanceRef, refMT, ref, refKnownLive);
+      return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, wrapperPtrLE.refLE);
     }
     case Ownership::WEAK: {
       assert(false);
@@ -1811,6 +1794,17 @@ LiveRef Safe::checkRefLive(
       assert(false);
       break;
   }
+}
+
+LiveRef Safe::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, ref); // To trigger its asserts
+  return LiveRef(refMT, ref);
 }
 
 LiveRef Safe::preCheckBorrow(
@@ -1909,8 +1903,11 @@ LiveRef Safe::immutabilify(
             checkerAFL, functionState, builder, targetRefMT, wrapperPtrLE.refLE);
     return toLiveRef(transmuted);
   } else {
-    return toLiveRef(
-        checkerAFL, globalState, functionState, builder, targetRefMT,
-        transmutePtr(globalState, functionState, builder, false, refMT, targetRefMT, sourceRef));
+    auto transmutedRef =
+        transmutePtr(globalState, functionState, builder, false, refMT, targetRefMT, sourceRef);
+    auto transmutedRefLE =
+        checkValidReference(FL(), functionState, builder, false, refMT, transmutedRef);
+    return wrapToLiveRef(
+        checkerAFL, functionState, builder, regionInstanceRef, targetRefMT, transmutedRefLE);
   }
 }

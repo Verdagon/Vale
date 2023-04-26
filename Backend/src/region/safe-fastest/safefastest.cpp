@@ -461,6 +461,7 @@ static LiveRef preCheckFatPtr(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     KindStructs* kindStructs,
     Reference* refM,
     Ref ref,
@@ -474,7 +475,8 @@ static LiveRef preCheckFatPtr(
 
   if (knownLive) {
     // Do nothing, just wrap it and return it.
-    return toLiveRef(FL(), globalState, functionState, builder, refM, ref);
+    auto refLE = ::checkValidReference(FL(), globalState, functionState, builder, true, refM, ref);
+    return ::toLiveRef(FL(), globalState, functionState, builder, regionInstanceRef, refM, refLE);
   } else {
     auto isAliveLE = getIsAliveFromWeakFatPtr(globalState, functionState, builder, kindStructs, refM, weakFatPtrLE, knownLive);
     auto resultRef =
@@ -488,7 +490,8 @@ static LiveRef preCheckFatPtr(
             [from, ref](LLVMBuilderRef elseBuilder) -> Ref {
               return ref;
             });
-    return toLiveRef(FL(), globalState, functionState, builder, refM, resultRef);
+    auto resultRefLE = ::checkValidReference(FL(), globalState, functionState, builder, true, refM, resultRef);
+    return toLiveRef(FL(), globalState, functionState, builder, regionInstanceRef, refM, resultRefLE);
   }
 }
 
@@ -500,26 +503,7 @@ static WrapperPtrLE getWrapperPtr(
     LLVMBuilderRef builder,
     Reference* refM,
     LiveRef liveRef) {
-  auto ref = wrap(globalState, refM, liveRef);
-  auto refLE =
-      globalState->getRegion(refM)->checkValidReference(
-          FL(), functionState, builder, false, refM, ref);
-  switch (refM->ownership) {
-    case Ownership::OWN:
-    case Ownership::IMMUTABLE_BORROW:
-      return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
-    case Ownership::MUTABLE_BORROW: {
-      auto weakFatPtrLE = kindStructs->makeWeakFatPtr(refM, refLE);
-      auto innerLE = getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
-      globalState->getRegion(refM)
-          ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-      return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, innerLE);
-    }
-    default:
-      assert(false);
-      break;
-  }
-  assert(false);
+  return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, liveRef.refLE);
 }
 
 static WrapperPtrLE lockGenFatPtr(
@@ -528,6 +512,7 @@ static WrapperPtrLE lockGenFatPtr(
     FunctionState* functionState,
     KindStructs* kindStructs,
     LLVMBuilderRef builder,
+    Ref regionInstanceRef,
     Reference* refM,
     Ref ref,
     bool knownLive) {
@@ -549,8 +534,12 @@ static WrapperPtrLE lockGenFatPtr(
         });
   }
   // Because we just checked
-  auto liveRef = toLiveRef(FL(), globalState, functionState, builder, refM, ref);
-  return getWrapperPtr(globalState, kindStructs, FL(), functionState, builder, refM, liveRef);
+  auto refLE =
+      getInnerRefFromWeakRef(
+          functionState, builder, refM,
+          kindStructs->makeWeakFatPtr(
+              refM, ::checkValidReference(FL(), globalState, functionState, builder, true, refM, ref)));
+  return kindStructs->makeWrapperPtr(FL(), functionState, builder, refM, refLE);
 }
 
 SafeFastest::SafeFastest(GlobalState* globalState_) :
@@ -1101,7 +1090,7 @@ Ref SafeFastest::upgradeLoadResultToRefWithTargetOwnership(
     if (targetOwnership == Ownership::IMMUTABLE_BORROW) {
       auto prechecked =
           preCheckFatPtr(
-              FL(), globalState, functionState, builder, &kindStructs, sourceType, sourceRef, resultKnownLive);
+              FL(), globalState, functionState, builder, regionInstanceRef, &kindStructs, sourceType, sourceRef, resultKnownLive);
       return wrap(globalState, regionRefMT, prechecked);
     } else {
       assert(
@@ -1627,17 +1616,23 @@ LiveRef SafeFastest::checkRefLive(
     case Ownership::IMMUTABLE_SHARE:
     case Ownership::MUTABLE_SHARE:
       assert(false); // curious
-    case Ownership::IMMUTABLE_BORROW:
+    case Ownership::IMMUTABLE_BORROW: {
       // Immutable borrows aren't really live, but we can dereference them as if they are. If they
       // don't point to a live object, they'll point at a protected address instead, and
       // dereferencing will safely fault.
-      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+      auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+      return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
+    }
     case Ownership::OWN: {
-      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+      auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+      return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
     }
     case Ownership::MUTABLE_BORROW: {
-      lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, refMT, ref, refKnownLive);
-      return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+      lockGenFatPtr(globalState, FL(), functionState, &kindStructs, builder, regionInstanceRef, refMT, ref, refKnownLive);
+      auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+      return wrapToLiveRef(
+          FL(), functionState, builder, regionInstanceRef, refMT,
+          getInnerRefFromWeakRef(functionState, builder, refMT, kindStructs.makeWeakFatPtr(refMT, refLE)));
     }
     case Ownership::WEAK: {
       assert(false);
@@ -1647,6 +1642,17 @@ LiveRef SafeFastest::checkRefLive(
       assert(false);
       break;
   }
+}
+
+LiveRef SafeFastest::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, ref); // To trigger its asserts
+  return LiveRef(refMT, ref);
 }
 
 LiveRef SafeFastest::preCheckBorrow(
@@ -1666,7 +1672,7 @@ LiveRef SafeFastest::preCheckBorrow(
       break;
     }
     case Ownership::MUTABLE_BORROW: {
-      return preCheckFatPtr(FL(), globalState, functionState, builder, &kindStructs, refMT, ref, refKnownLive);
+      return preCheckFatPtr(FL(), globalState, functionState, builder, regionInstanceRef, &kindStructs, refMT, ref, refKnownLive);
     }
     case Ownership::WEAK: {
       assert(false);

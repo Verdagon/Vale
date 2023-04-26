@@ -178,7 +178,7 @@ exported func main() int {
     include_regions.add("naive-rc");
     include_regions.add("resilient-v3");
     include_regions.add("safe");
-    include_regions.add("safe-baseline");
+    include_regions.add("safe-fastest");
     include_regions.add("unsafe-fast");
   }
 

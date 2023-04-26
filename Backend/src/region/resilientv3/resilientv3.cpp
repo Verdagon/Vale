@@ -520,14 +520,16 @@ LiveRef ResilientV3::checkRefLive(
         // Immutable borrows aren't really live, but we can dereference them as if they are. If they
         // don't point to a live object, they'll point at a protected address instead, and
         // dereferencing will safely fault.
-        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+        auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+        return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
     }
     case Ownership::OWN: {
-        return toLiveRef(FL(), globalState, functionState, builder, refMT, ref);
+      auto refLE = checkValidReference(FL(), functionState, builder, true, refMT, ref);
+      return wrapToLiveRef(FL(), functionState, builder, regionInstanceRef, refMT, refLE);
     }
 //    case Ownership::IMMUTABLE_BORROW:
     case Ownership::MUTABLE_BORROW: {
-        return LiveRef(hgmWeaks.lockGenFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive));
+      return hgmWeaks.lockGenFatPtr(FL(), functionState, builder, regionInstanceRef, refMT, ref, refKnownLive);
     }
     case Ownership::WEAK: {
       assert(false);
@@ -537,6 +539,17 @@ LiveRef ResilientV3::checkRefLive(
       assert(false);
       break;
   }
+}
+
+LiveRef ResilientV3::wrapToLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refMT,
+    LLVMValueRef ref) {
+  kindStructs.makeWrapperPtr(FL(), functionState, builder, refMT, ref); // To trigger its asserts
+  return LiveRef(refMT, ref);
 }
 
 LiveRef ResilientV3::preCheckBorrow(
@@ -556,7 +569,7 @@ LiveRef ResilientV3::preCheckBorrow(
       break;
     }
     case Ownership::MUTABLE_BORROW: {
-      return hgmWeaks.preCheckFatPtr(FL(), functionState, builder, refMT, ref, refKnownLive);
+      return hgmWeaks.preCheckFatPtr(FL(), functionState, builder, regionInstanceRef, refMT, ref, refKnownLive);
     }
     case Ownership::WEAK: {
       assert(false);
@@ -868,17 +881,13 @@ Ref ResilientV3::loadMember(
     Reference *expectedMemberType,
     Reference *targetType,
     const std::string &memberName) {
-  auto structRef = wrap(globalState, structRefMT, structLiveRef);
-
   if (structRefMT->ownership == Ownership::MUTABLE_SHARE || structRefMT->ownership == Ownership::IMMUTABLE_SHARE) {
     assert(false);
   } else {
     if (structRefMT->location == Location::INLINE) {
-      auto structRefLE =
-          checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
       return wrap(globalState->getRegion(expectedMemberType), expectedMemberType,
           LLVMBuildExtractValue(
-              builder, structRefLE, memberIndex, memberName.c_str()));
+              builder, structLiveRef.refLE, memberIndex, memberName.c_str()));
     } else {
       switch (structRefMT->ownership) {
         case Ownership::IMMUTABLE_SHARE:
@@ -887,8 +896,6 @@ Ref ResilientV3::loadMember(
         case Ownership::MUTABLE_BORROW:
         case Ownership::IMMUTABLE_BORROW:
         case Ownership::OWN: {
-          globalState->getRegion(structRefMT)
-              ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
           auto unupgradedMemberLE =
               regularLoadMember(
                   globalState, functionState, builder, &kindStructs, structRefMT, structLiveRef,

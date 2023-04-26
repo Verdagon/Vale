@@ -178,7 +178,10 @@ private:
   Ref ref;
 };
 
-// A Ref that we're sure is alive right now.
+// A LLVM value that we're sure is alive right now, and safe* to dereference.
+// (* Safe could mean NULL if the OS protects us from that.)
+// This isn't necessarily the same LLVMValueRef as would be in a Ref. It's up to the particular
+// region to decide what would be in here. It's probably either a WrapperPtrLE or a raw pointer.
 struct LiveRef {
   Reference* const refM;
   // TODO rename to ptrLE
@@ -199,8 +202,15 @@ Ref wrap(GlobalState* globalState, Reference* refM, LiveRef exprLE);
 WrapperPtrLE toWrapperPtr(FunctionState* functionState, LLVMBuilderRef builder, KindStructs* kindStructs, Reference* refMT, LiveRef liveRef);
 
 LiveRef toLiveRef(WrapperPtrLE wrapperPtrLE);
-LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, LLVMValueRef ptrLE);
-LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Reference* refM, Ref ref);
+LiveRef toLiveRef(
+    AreaAndFileAndLine checkerAFL,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* refM,
+    LLVMValueRef untrustedRefLE);
+LiveRef toLiveRef(AreaAndFileAndLine checkerAFL, GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, Ref regionInstanceRef, Reference* refM, Ref ref, bool knownLive);
 
 
 

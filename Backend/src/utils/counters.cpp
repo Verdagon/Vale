@@ -57,6 +57,7 @@ LLVMValueRef adjustCounterVReturnOld(
 }
 
 LLVMValueRef isZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE) {
+  assert(LLVMGetTypeKind(LLVMTypeOf(intLE)) == LLVMIntegerTypeKind);
   return LLVMBuildICmp(
       builder,
       LLVMIntEQ,
