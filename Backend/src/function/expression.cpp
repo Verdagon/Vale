@@ -966,7 +966,7 @@ Ref translateExpressionInner(
     auto memberName = memberStore->memberName;
     auto structType = memberStore->structType;
     auto memberType = structDefM->members[memberIndex]->type;
-    bool structKnownLive = memberStore->structKnownLive || globalState->opt->overrideKnownLiveTrue;
+    bool structKnownLive = exprResultKnownLive(globalState, memberStore->structExpr);
 
     auto sourceExpr =
         translateExpression(
