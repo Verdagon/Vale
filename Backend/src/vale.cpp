@@ -4,6 +4,9 @@
 #include <llvm-c/Analysis.h>
 #include <llvm-c/IRReader.h>
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/Transforms/IPO/Inliner.h"
+#include "llvm/IR/LegacyPassManager.h"
+
 
 #include <sys/stat.h>
 
@@ -1263,10 +1266,19 @@ LLVMTargetMachineRef createMachine(ValeOptions *opt) {
 
   LLVMCodeGenOptLevel opt_level = LLVMCodeGenLevelNone;
   switch (opt->optLevel) {
-    case 0: opt_level = LLVMCodeGenLevelNone; break;
-    case 1: opt_level = LLVMCodeGenLevelLess; break;
-    case 2: opt_level = LLVMCodeGenLevelDefault; break;
-    case 3: opt_level = LLVMCodeGenLevelAggressive; break;
+    case ValeOptimizationLevel::O0:
+      opt_level = LLVMCodeGenLevelNone;
+      break;
+    case ValeOptimizationLevel::O1:
+      opt_level = LLVMCodeGenLevelLess;
+      break;
+    case ValeOptimizationLevel::O2:
+    case ValeOptimizationLevel::O2i:
+      opt_level = LLVMCodeGenLevelDefault;
+      break;
+    case ValeOptimizationLevel::O3:
+      opt_level = LLVMCodeGenLevelAggressive;
+      break;
     default: assert(false); break;
   }
 
@@ -1360,7 +1372,7 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
     }
   }
 
-  if (globalState->opt->optLevel > 0) {
+  if (globalState->opt->optLevel != ValeOptimizationLevel::O0) {
     if (globalState->opt->flares) {
       std::cout << "Warning: Running release optimizations with flares enabled!" << std::endl;
     }
@@ -1369,11 +1381,22 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
 
     llvm::OptimizationLevel opt_level = llvm::OptimizationLevel::O0;
     switch (globalState->opt->optLevel) {
-      case 0: opt_level = llvm::OptimizationLevel::O0; break;
-      case 1: opt_level = llvm::OptimizationLevel::O1; break;
-      case 2: opt_level = llvm::OptimizationLevel::O2; break;
-      case 3: opt_level = llvm::OptimizationLevel::O3; break;
-      default: assert(false); break;
+      case ValeOptimizationLevel::O0:
+        opt_level = llvm::OptimizationLevel::O0;
+        break;
+      case ValeOptimizationLevel::O1:
+        opt_level = llvm::OptimizationLevel::O1;
+        break;
+      case ValeOptimizationLevel::O2:
+      case ValeOptimizationLevel::O2i:
+        opt_level = llvm::OptimizationLevel::O2;
+        break;
+      case ValeOptimizationLevel::O3:
+        opt_level = llvm::OptimizationLevel::O3;
+        break;
+      default:
+        assert(false);
+        break;
     }
 
     // Create the analysis managers.
@@ -1396,8 +1419,26 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
     PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
     // Create the pass manager.
-    // This one corresponds to a typical -O3 optimization pipeline.
+    // This one corresponds to a typical -O0, O3, etc optimization pipeline.
     llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(opt_level);
+
+//    llvm::FunctionPassManager FPM;
+//    FPM.addPass(llvm::InlinerPass());
+//    MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
+
+    if (globalState->opt->optLevel == ValeOptimizationLevel::O2i) {
+      llvm::CGSCCPassManager CGPM;
+      CGPM.addPass(llvm::InlinerPass());
+      MPM.addPass(createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
+    }
+
+//    MPM.addPass(llvm::InlinerPass());
+
+//    PB.registerPipelineStartEPCallback(
+//        [&](llvm::ModulePassManager &MPM, llvm::OptimizationLevel Level) {
+//          MPM.addPass(llvm::InlinerPass());
+//        });
+
 
     // Optimize the IR!
     MPM.run(*llvm::unwrap(globalState->mod), MAM);
