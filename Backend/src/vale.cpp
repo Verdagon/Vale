@@ -117,6 +117,8 @@ void makeExternOrExportFunction(
     Prototype *prototype,
     bool isExport);
 
+void optimize(GlobalState *globalState);
+
 void initInternalExterns(GlobalState* globalState) {
 //  auto voidLT = LLVMVoidTypeInContext(globalState->context);
   auto int1LT = LLVMInt1TypeInContext(globalState->context);
@@ -1379,69 +1381,8 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
     std::cout << "Running release optimizations..." << std::endl;
 
 
-    llvm::OptimizationLevel opt_level = llvm::OptimizationLevel::O0;
-    switch (globalState->opt->optLevel) {
-      case ValeOptimizationLevel::O0:
-        opt_level = llvm::OptimizationLevel::O0;
-        break;
-      case ValeOptimizationLevel::O1:
-        opt_level = llvm::OptimizationLevel::O1;
-        break;
-      case ValeOptimizationLevel::O2:
-      case ValeOptimizationLevel::O2i:
-        opt_level = llvm::OptimizationLevel::O2;
-        break;
-      case ValeOptimizationLevel::O3:
-        opt_level = llvm::OptimizationLevel::O3;
-        break;
-      default:
-        assert(false);
-        break;
-    }
-
-    // Create the analysis managers.
-    llvm::LoopAnalysisManager LAM;
-    llvm::FunctionAnalysisManager FAM;
-    llvm::CGSCCAnalysisManager CGAM;
-    llvm::ModuleAnalysisManager MAM;
-
-    // Create the new pass manager builder.
-    // Take a look at the PassBuilder constructor parameters for more
-    // customization, e.g. specifying a TargetMachine or various debugging
-    // options.
-    llvm::PassBuilder PB;
-
-    // Register all the basic analyses with the managers.
-    PB.registerModuleAnalyses(MAM);
-    PB.registerCGSCCAnalyses(CGAM);
-    PB.registerFunctionAnalyses(FAM);
-    PB.registerLoopAnalyses(LAM);
-    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
-
-    // Create the pass manager.
-    // This one corresponds to a typical -O0, O3, etc optimization pipeline.
-    llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(opt_level);
-
-//    llvm::FunctionPassManager FPM;
-//    FPM.addPass(llvm::InlinerPass());
-//    MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
-
-    if (globalState->opt->optLevel == ValeOptimizationLevel::O2i) {
-      llvm::CGSCCPassManager CGPM;
-      CGPM.addPass(llvm::InlinerPass());
-      MPM.addPass(createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
-    }
-
-//    MPM.addPass(llvm::InlinerPass());
-
-//    PB.registerPipelineStartEPCallback(
-//        [&](llvm::ModulePassManager &MPM, llvm::OptimizationLevel Level) {
-//          MPM.addPass(llvm::InlinerPass());
-//        });
-
-
-    // Optimize the IR!
-    MPM.run(*llvm::unwrap(globalState->mod), MAM);
+    optimize(globalState);
+    optimize(globalState);
   }
 //
 //  // Optimize the generated LLVM IR
@@ -1486,6 +1427,72 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
 
   LLVMDisposeModule(globalState->mod);
   // LLVMContextDispose(gen.context);  // Only need if we created a new context
+}
+
+void optimize(GlobalState *globalState) {
+  llvm::OptimizationLevel opt_level = llvm::OptimizationLevel::O0;
+  switch (globalState->opt->optLevel) {
+    case ValeOptimizationLevel::O0:
+      opt_level = llvm::OptimizationLevel::O0;
+      break;
+    case ValeOptimizationLevel::O1:
+      opt_level = llvm::OptimizationLevel::O1;
+      break;
+    case ValeOptimizationLevel::O2:
+    case ValeOptimizationLevel::O2i:
+      opt_level = llvm::OptimizationLevel::O2;
+      break;
+    case ValeOptimizationLevel::O3:
+      opt_level = llvm::OptimizationLevel::O3;
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+  // Create the analysis managers.
+  llvm::LoopAnalysisManager LAM;
+  llvm::FunctionAnalysisManager FAM;
+  llvm::CGSCCAnalysisManager CGAM;
+  llvm::ModuleAnalysisManager MAM;
+
+  // Create the new pass manager builder.
+// Take a look at the PassBuilder constructor parameters for more
+// customization, e.g. specifying a TargetMachine or various debugging
+// options.
+  llvm::PassBuilder PB;
+
+  // Register all the basic analyses with the managers.
+  PB.registerModuleAnalyses(MAM);
+  PB.registerCGSCCAnalyses(CGAM);
+  PB.registerFunctionAnalyses(FAM);
+  PB.registerLoopAnalyses(LAM);
+  PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+  // Create the pass manager.
+// This one corresponds to a typical -O0, O3, etc optimization pipeline.
+  llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(opt_level);
+
+//    llvm::FunctionPassManager FPM;
+//    FPM.addPass(llvm::InlinerPass());
+//    MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
+
+  if (globalState->opt->optLevel == ValeOptimizationLevel::O2i) {
+    llvm::CGSCCPassManager CGPM;
+    CGPM.addPass(llvm::InlinerPass());
+    MPM.addPass(createModuleToPostOrderCGSCCPassAdaptor(std::move(CGPM)));
+  }
+
+//    MPM.addPass(llvm::InlinerPass());
+
+//    PB.registerPipelineStartEPCallback(
+//        [&](llvm::ModulePassManager &MPM, llvm::OptimizationLevel Level) {
+//          MPM.addPass(llvm::InlinerPass());
+//        });
+
+
+  // Optimize the IR!
+  MPM.run(*llvm::unwrap(globalState->mod), MAM);
 }
 
 // Setup LLVM generation, ensuring we know intended target
