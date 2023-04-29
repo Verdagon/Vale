@@ -14,10 +14,14 @@
 
 ControlBlock makeResilientV3WeakableControlBlock(GlobalState* globalState) {
   ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "mutControlBlock"));
-  controlBlock.addMember(ControlBlockMember::GENERATION_32B);
-  // This is where we put the size in the current generational heap, we can use it for something
-  // else until we get rid of that.
-  controlBlock.addMember(ControlBlockMember::UNUSED_32B);
+  if (globalState->opt->generationSize == 64) {
+    controlBlock.addMember(ControlBlockMember::GENERATION_64B);
+  } else {
+    controlBlock.addMember(ControlBlockMember::GENERATION_32B);
+    // This is where we put the size in the current generational heap, we can use it for something
+    // else until we get rid of that.
+    controlBlock.addMember(ControlBlockMember::UNUSED_32B);
+  }
   if (globalState->opt->census) {
     controlBlock.addMember(ControlBlockMember::CENSUS_TYPE_STR);
     controlBlock.addMember(ControlBlockMember::CENSUS_OBJ_ID);
