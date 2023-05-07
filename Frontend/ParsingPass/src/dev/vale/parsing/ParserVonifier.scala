@@ -972,6 +972,15 @@ object ParserVonifier {
             VonMember("targetOwnership", vonifyOwnership(targetOwnership)),
             VonMember("inner", vonifyExpression(inner))))
       }
+      case TransmigratePE(range, targetRegion, inner) => {
+        VonObject(
+          "Transmigrate",
+          None,
+          Vector(
+            VonMember("range", vonifyRange(range)),
+            VonMember("targetRegion", vonifyName(targetRegion)),
+            VonMember("inner", vonifyExpression(inner))))
+      }
       case LetPE(range, pattern, source) => {
         VonObject(
           "Let",

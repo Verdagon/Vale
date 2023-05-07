@@ -314,7 +314,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               }
             })
 
-      val maybeDefaultRegionP = vregion(None)
+      val maybeDefaultRegionP = vregionmut(None)
 
       val interface =
         InterfaceP(

@@ -415,6 +415,12 @@ class ParsedLoader(interner: Interner) {
           loadOwnership(getObjectField(jobj, "targetOwnership")),
           loadExpression(getObjectField(jobj, "inner")))
       }
+      case "Transmigrate" => {
+        TransmigratePE(
+          loadRange(getObjectField(jobj, "range")),
+          loadName(getObjectField(jobj, "targetRegion")),
+          loadExpression(getObjectField(jobj, "inner")))
+      }
       case "Mutate" => {
         MutatePE(
           loadRange(getObjectField(jobj, "range")),

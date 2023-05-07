@@ -288,6 +288,12 @@ object Spanner {
           range,
           Vector(forExpression(expr)))
       }
+      case TransmigratePE(range, targetRegion, expr) => {
+        makeSpan(
+          Point,
+          range,
+          Vector(forExpression(expr)))
+      }
       case IndexPE(range, callableExpr, argExprs) => {
         val callableSpan = forExpression(callableExpr)
         val argSpans = argExprs.map(forExpression)
@@ -510,6 +516,12 @@ object Spanner {
       case VariabilityPT(range, variability) => {
         makeSpan(
           Rune,
+          range,
+          Vector())
+      }
+      case OwnershipPT(range, variability) => {
+        makeSpan(
+          Ownership,
           range,
           Vector())
       }

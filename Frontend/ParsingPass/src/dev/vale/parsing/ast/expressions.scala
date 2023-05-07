@@ -234,6 +234,18 @@ case class AugmentPE(
   vpass()
 }
 
+case class TransmigratePE(
+    range: RangeL,
+    targetRegion: NameP,
+    inner: IExpressionPE
+) extends IExpressionPE {
+
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious();
+  override def needsSemicolonBeforeNextStatement: Boolean = true
+  override def producesResult(): Boolean = true
+  vpass()
+}
+
 case class BinaryCallPE(
   range: RangeL,
   functionName: NameP,

@@ -554,6 +554,12 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
       { case TuplePE(_,Vector(ConstantIntPE(_,3,_), ConstantIntPE(_,4,_), ConstantIntPE(_,5,_))) => }
   }
 
+  test("Transmigrate") {
+    compileExpressionExpect("a'x") shouldHave {
+      case TransmigratePE(_,NameP(_,StrI("a")),LookupPE(LookupNameP(NameP(_,StrI("x"))),None)) =>
+    }
+  }
+
   test("Call callable expr") {
     compileExpressionExpect("(something.callable)(3)") shouldHave
       {
