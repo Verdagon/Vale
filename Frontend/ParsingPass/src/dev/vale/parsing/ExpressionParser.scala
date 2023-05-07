@@ -48,10 +48,14 @@ class ScrambleIterator(
   }
 
   def range: RangeL = {
-    vassert(index < end)
-    RangeL(
-      scramble.elements(index).range.begin,
-      scramble.elements(end - 1).range.end)
+    if (index < end) {
+      RangeL(
+        scramble.elements(index).range.begin,
+        scramble.elements(end - 1).range.end)
+    } else {
+      vassert(index == end)
+      RangeL(scramble.range.end, scramble.range.end)
+    }
   }
 
   def getPos(): Int = {
@@ -1431,6 +1435,22 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       case Err(e) => return Err(e)
       case Ok(Some(x)) => return Ok(x)
       case Ok(None) =>
+    }
+
+    iter.peek2() match {
+      case (Some(WordLE(regionRange, region)), Some(SymbolLE(_, '\''))) => {
+        iter.advance()
+        iter.advance()
+        val regionName = NameP(regionRange, region)
+        val innerPE =
+          parseAtomAndTightSuffixes(iter, stopOnCurlied) match {
+            case Err(err) => return Err(err)
+            case Ok(e) => e
+          }
+        val transmigratePE = TransmigratePE(RangeL(begin, iter.getPrevEndPos()), regionName, innerPE)
+        return Ok(transmigratePE)
+      }
+      case _ =>
     }
 
     val maybeTargetOwnership =

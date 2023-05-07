@@ -44,18 +44,22 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
         Ok(ParameterP(patternRange, maybeVirtual, None, maybeSelfBorrow, None))
       }
       case None => {
-        val name =
-          iter.peek() match {
-            case Some(w @ WordLE(range, str)) => {
+        val maybeName =
+          iter.peek2() match {
+            case (Some(w@WordLE(_, _)), Some(SquaredLE(_, _))) => {
+              // This is a destructure parameter with no name, like func moo(Vec3[a, b, c])
+              None
+            }
+            case (Some(w @ WordLE(range, str)), _) => {
               iter.advance()
-              w
+              Some(w)
             }
             case _ => return Err(BadLocalName(iter.getPos()))
           }
 
         val maybePreChecked = iter.trySkipWord(keywords.pre)
 
-        parsePattern(iter, index, isInCitizen, isInFunction, isInLambda, Some(name)) match {
+        parsePattern(iter, index, isInCitizen, isInFunction, isInLambda, maybeName) match {
           case Ok(pattern) => Ok(ParameterP(patternRange, maybeVirtual, maybePreChecked, maybeSelfBorrow, Some(pattern)))
           case Err(x) => Err(x)
         }
@@ -68,7 +72,18 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
     val patternRange = iter.range
 
     if (!iter.hasNext) {
-      return Err(EmptyPattern(patternBegin))
+      maybeNameFromParameter match {
+        case None => return Err(EmptyPattern(patternBegin))
+        case Some(WordLE(range, str)) => {
+          Ok(
+            PatternPP(
+              patternRange,
+              Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None)),
+              None,
+              None))
+        }
+      }
+
     }
 
     val isConstructing =
