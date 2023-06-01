@@ -280,7 +280,7 @@ object Spanner {
         makeSpan(
           MemberAccess,
           range,
-          Vector(forExpression(left), makeSpan(MemberAccess, operatorRange)) :+ makeSpan(Lookup, member.range, Vector.empty))
+          Vector(forExpression(left), makeSpan(MemberAccess, operatorRange), makeSpan(Lookup, member.range, Vector.empty)))
       }
       case AugmentPE(range, targetOwnership, expr) => {
         makeSpan(
@@ -500,6 +500,12 @@ object Spanner {
           TplArgs,
           range,
           Vector(forTemplex(template)) ++ args.map(forTemplex))
+      }
+      case TuplePT(range, elements) => {
+        makeSpan(
+          TplArgs,
+          range,
+          elements.map(forTemplex))
       }
       case MutabilityPT(range, _) => {
         makeSpan(

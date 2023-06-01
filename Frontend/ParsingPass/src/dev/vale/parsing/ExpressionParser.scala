@@ -1112,6 +1112,8 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       if (isMapCall) { false }
       else iter.trySkipSymbol('.')
 
+    val operatorEnd = iter.getPrevEndPos()
+
     if (isMethodCall || isMapCall) {
       val nameBegin = iter.getPos()
       val name =
@@ -1165,9 +1167,9 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           return Ok(
             Some(
               MethodCallPE(
-                range,
+                RangeL(operatorBegin, range.end),
                 exprSoFar,
-                RangeL(operatorBegin, iter.getPrevEndPos()),
+                RangeL(operatorBegin, operatorEnd),
                 LookupPE(LookupNameP(name), maybeTemplateArgs),
                 x)))
         }
@@ -1181,7 +1183,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
               DotPE(
                 RangeL(spreeBegin, iter.getPrevEndPos()),
                 exprSoFar,
-                RangeL(operatorBegin, iter.getPrevEndPos()),
+                RangeL(operatorBegin, operatorEnd),
                 name)))
         }
       }
