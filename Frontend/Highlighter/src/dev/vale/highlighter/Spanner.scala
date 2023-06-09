@@ -432,6 +432,14 @@ object Spanner {
       maybeDestructure.toVector.map(forDestructure))
   }
 
+  // def forPattern(p: PatternPP): Span = {
+  //   val PatternPP(range, maybePreBorrow, destLocal, templex, maybeDestructure, virtuality) = p
+  //   makeSpan(
+  //     Pat,
+  //     range,
+  //     maybePreBorrow.toVector.map(b => makeSpan(Point, b, Vector.empty)) ++
+  //         destLocal.toVector.map(_.decl).map(forCapture) ++
+
   def forDestructure(d: DestructureP): Span = {
     val DestructureP(range, patterns) = d
     makeSpan(

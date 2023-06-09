@@ -1039,9 +1039,12 @@ Ref Linear::innerMallocStr(
                 functionState, thenBuilder, regionInstanceRef, mutLinearStrRefMT, strPtrLE, true);
         assert(LLVMPointerType(LLVMTypeOf(strWithLenValLE), 0) == LLVMTypeOf(adjustedStrPtrLE));
 
+        LLVMBuildStore(thenBuilder, strWithLenValLE, adjustedStrPtrLE); assert(false);//doublecheck
+
         auto charsBeginPtr =
-            getStringBytesPtr(
-                functionState, thenBuilder, mutLinearStrRefMT, regionInstanceRef, strLiveRef);
+            structs.getStringBytesPtr(functionState, thenBuilder, adjustedStrPtrLE); assert(false); //doublecheck
+//            getStringBytesPtr(
+//                functionState, thenBuilder, mutLinearStrRefMT, regionInstanceRef, strLiveRef);
 
         std::vector<LLVMValueRef> argsLE = {charsBeginPtr, sourceCharsPtrLE, lenI64LE};
         globalState->externs->strncpy.call(thenBuilder, argsLE, "");
