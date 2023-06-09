@@ -1371,6 +1371,9 @@ class ExpressionCompiler(
             if (thenRestackifiedAncestorLocals != elseRestackifiedAncestorLocals) {
               throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Must reinitialize same variables from inside branches!\nFrom then branch: " + thenUnstackifiedAncestorLocals + "\nFrom else branch: " + elseUnstackifiedAncestorLocals))
             }
+            if (thenRestackifiedAncestorLocals != elseRestackifiedAncestorLocals) {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Must reinitialize same variables from inside branches!\nFrom then branch: " + thenUnstackifiedAncestorLocals + "\nFrom else branch: " + elseUnstackifiedAncestorLocals))
+            }
             thenUnstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
             thenRestackifiedAncestorLocals.foreach(nenv.markLocalRestackified)
           } else {
@@ -1423,6 +1426,9 @@ class ExpressionCompiler(
                 throw CompileErrorExceptionT(
                   CantUnstackifyOutsideLocalFromInsideWhile(
                     range :: parentRanges, bodyUnstackifiedAncestorLocals.head))
+              }
+              if (bodyRestackifiedAncestorLocals.nonEmpty) {
+                throw CompileErrorExceptionT(CantRestackifyOutsideLocalFromInsideWhile(range :: parentRanges, bodyUnstackifiedAncestorLocals.head))
               }
               if (bodyRestackifiedAncestorLocals.nonEmpty) {
                 throw CompileErrorExceptionT(CantRestackifyOutsideLocalFromInsideWhile(range :: parentRanges, bodyUnstackifiedAncestorLocals.head))
