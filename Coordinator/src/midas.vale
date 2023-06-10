@@ -4,6 +4,7 @@ func invoke_backend(
   vast_files &List<Path>,
   output_dir &Path,
   maybe_region_override &Opt<str>,
+  maybe_opt_level &Opt<str>,
   maybe_cpu &Opt<str>,
   executable_name str,
   flares bool,
@@ -22,7 +23,7 @@ func invoke_backend(
   elide_checks_for_regions bool,
   use_atomic_rc bool,
   gen_size int,
-  override_known_live_true bool,
+  force_all_known_live bool,
   include_bounds_checks bool)
 Subprocess {
   //backend_program_name = if (IsWindows()) { "backend.exe" } else { "backend" };
@@ -40,6 +41,10 @@ Subprocess {
   if not maybe_region_override.isEmpty() {
     command_line_args.add("--region_override");
     command_line_args.add(maybe_region_override.get());
+  }
+  if not maybe_opt_level.isEmpty() {
+    command_line_args.add("--opt_level");
+    command_line_args.add(maybe_opt_level.get());
   }
   if not maybe_cpu.isEmpty() {
     command_line_args.add("--cpu");
@@ -85,14 +90,14 @@ Subprocess {
   if (print_mem_overhead) {
     command_line_args.add("--print_mem_overhead=true");
   }
-  if (not elide_checks_for_known_live) {
+  if not elide_checks_for_known_live {
     command_line_args.add("--elide_checks_for_known_live=false");
   }
   if (not elide_checks_for_regions) {
     command_line_args.add("--elide_checks_for_regions=false");
   }
-  if override_known_live_true {
-    command_line_args.add("--override_known_live_true");
+  if force_all_known_live {
+    command_line_args.add("--force_all_known_live");
   }
   if not include_bounds_checks {
     command_line_args.add("--include_bounds_checks=false");

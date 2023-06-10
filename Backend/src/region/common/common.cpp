@@ -1291,6 +1291,8 @@ LiveRef constructRuntimeSizedArray(
   auto capacityLE =
       globalState->getRegion(globalState->metalCache->i32Ref)->checkValidReference(FL(),
           functionState, builder, true, globalState->metalCache->i32Ref, capacityRef);
+  buildFlare(FL(), globalState, functionState, builder, "RSA capacity: ", capacityLE);
+
   auto ptrLE = mallocRuntimeSizedArray(globalState, builder, rsaWrapperPtrLT, rsaElementLT, capacityLE);
   auto rsaWrapperPtrLE =
       kindStructs->makeWrapperPtr(FL(), functionState, builder, rsaMT, ptrLE);
