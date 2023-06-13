@@ -36,7 +36,7 @@ LLVMValueRef adjustCounterReturnOld(
     LLVMBuilderRef builder,
     LLVMTypeRef type,
     LLVMValueRef counterPtrLE,
-    int adjustAmount) {
+    int64_t adjustAmount) {
   auto prevValLE = LLVMBuildLoad2(builder, type, counterPtrLE, "counterPrevVal");
   auto adjustByLE = LLVMConstInt(type, adjustAmount, true);
   assert(LLVMTypeOf(prevValLE) == LLVMTypeOf(adjustByLE));
@@ -108,6 +108,6 @@ LLVMValueRef roundUp(
         constI64LE(globalState, 1), "subd2");
   } else {
     // implement
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }

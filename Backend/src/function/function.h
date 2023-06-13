@@ -45,7 +45,7 @@ public:
     if (maybeParentBlockState) {
       return maybeParentBlockState->getLocalAddr(varId, expectValid);
     } else {
-      assert(false);
+      { assert(false); throw 1337; }
     }
   }
 
@@ -107,7 +107,7 @@ public:
       if (unstackifiedLocalIds.count(localId) == 0) {
         std::cerr << "Un-unstackified local: " << localId->height
             << localId->maybeName << std::endl;
-        assert(false);
+        { assert(false); throw 1337; }
       }
     }
   }
@@ -141,6 +141,12 @@ public:
   }
 };
 
+// Alias for an integer, to keep straight the difference between an LLVM arg and a user arg.
+struct UserArgIndex { int userArgIndex; };
+
+//// Alias for an integer, to keep straight the difference between an LLVM arg and a user arg.
+//struct LlvmArgIndex { int llvmArgIndex; };
+
 class FunctionState {
 public:
   std::string containingFuncName;
@@ -151,6 +157,7 @@ public:
   LLVMBuilderRef localsBuilder;
   int nextBlockNumber = 1;
   int instructionDepthInAst = 0;
+  // Ptr to the "next generation number", see RPPFNG.
   std::optional<LLVMValueRef> nextGenPtrLE;
 
   FunctionState(
@@ -168,6 +175,8 @@ public:
   std::string nextBlockName() {
     return std::string("block") + std::to_string(nextBlockNumber++);
   }
+
+  LLVMValueRef getParam(UserArgIndex userArgIndex);
 };
 
 void translateFunction(
