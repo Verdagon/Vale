@@ -59,6 +59,7 @@
 // This is 0x27100000 in hex.
 // This number was chosen because it ends in zeroes either way, so it should be a bit more
 // recognizable.
+// TODO(#598): Use a random starting value.
 constexpr int FIRST_GEN = 655360000;
 
 // for convenience
@@ -468,7 +469,7 @@ void generateExports(GlobalState* globalState, Prototype* mainM) {
         resultC << defString;
       } else {
         std::cerr << "Unknown exportee: " << typeid(*kind).name() << std::endl;
-        assert(false);
+        { assert(false); throw 1337; }
         exit(1);
       }
     }
@@ -497,7 +498,7 @@ void generateExports(GlobalState* globalState, Prototype* mainM) {
   }
   if (globalState->opt->outputDir.empty()) {
     std::cerr << "Must specify --output-dir!" << std::endl;
-    assert(false);
+    { assert(false); throw 1337; }
   }
   auto outputDir = globalState->opt->outputDir;
 
@@ -694,7 +695,7 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       std::cout << "Region override: safe-fastest" << std::endl;
       break;
     default:
-      assert(false);
+      { assert(false); throw 1337; }
       break;
   }
 
@@ -866,7 +867,7 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       globalState->mutRegion = new SafeFastest(globalState);
       break;
     default:
-      assert(false);
+      { assert(false); throw 1337; }
       break;
   }
   globalState->regions.emplace(globalState->mutRegion->getRegionId(), globalState->mutRegion);
@@ -1281,7 +1282,7 @@ LLVMTargetMachineRef createMachine(ValeOptions *opt) {
     case ValeOptimizationLevel::O3:
       opt_level = LLVMCodeGenLevelAggressive;
       break;
-    default: assert(false); break;
+    default: { assert(false); throw 1337; } break;
   }
 
   LLVMRelocMode reloc = (opt->pic || opt->library)? LLVMRelocPIC : LLVMRelocDefault;
@@ -1381,6 +1382,7 @@ void generateModule(std::vector<std::string>& inputFilepaths, GlobalState *globa
     std::cout << "Running release optimizations..." << std::endl;
 
 
+    // TODO(#599): Perhaps take one of these out.
     optimize(globalState);
     optimize(globalState);
   }
@@ -1446,7 +1448,7 @@ void optimize(GlobalState *globalState) {
       opt_level = llvm::OptimizationLevel::O3;
       break;
     default:
-      assert(false);
+      { assert(false); throw 1337; }
       break;
   }
 

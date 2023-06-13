@@ -62,7 +62,7 @@ int64_t readI64(MetalCache* cache, const json& name) {
     return l;
   } else {
     std::cerr << "Couldn't read number in json!" << std::endl;
-    assert(false);
+    { assert(false); throw 1337; }
     exit(1);
   }
 }
@@ -170,7 +170,7 @@ Kind* readKind(MetalCache* cache, const json& kind) {
     return readInterfaceKind(cache, kind);
   } else {
     std::cerr << "Unrecognized kind: " << kind["__type"] << std::endl;
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }
 
@@ -196,7 +196,7 @@ Mutability readMutability(const json& mutability) {
   } else if (mutability["__type"].get<std::string>() == "Immutable") {
     return Mutability::IMMUTABLE;
   } else {
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }
 
@@ -207,7 +207,7 @@ Variability readVariability(const json& variability) {
   } else if (variability["__type"].get<std::string>() == "Final") {
     return Variability::FINAL;
   } else {
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }
 
@@ -233,7 +233,7 @@ Ownership readUnconvertedOwnership(MetalCache* cache, const json& ownership) {
   } else if (ownership["__type"].get<std::string>() == "Weak") {
     return Ownership::WEAK;
   } else {
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }
 
@@ -245,7 +245,7 @@ Location readLocation(MetalCache* cache, const json& location) {
   } else if (location["__type"].get<std::string>() == "Yonder") {
     return Location::YONDER;
   } else {
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }
 
@@ -282,18 +282,14 @@ Local* readLocal(MetalCache* cache, const json& local) {
   assert(local["__type"] == "Local");
   auto varId = readVariableId(cache, local["id"]);
   auto ref = readReference(cache, local["type"]);
-  bool keepAlive = false;//local["keepAlive"]; // DO NOT SUBMIT remove everywhere
 
   return makeIfNotPresent(
       &makeIfNotPresent(
-          &makeIfNotPresent(
-              &cache->locals,
-              varId,
-              [&](){ return MetalCache::LocalByKeepAliveByReferenceMap (0, cache->addressNumberer->makeHasher<Reference*>()); }),
-          ref,
-          [&](){ return MetalCache::LocalByKeepAliveMap(); }),
-      keepAlive,
-      [&](){ return new Local(varId, ref, keepAlive); });
+          &cache->locals,
+          varId,
+          [&](){ return MetalCache::LocalByReferenceMap (0, cache->addressNumberer->makeHasher<Reference*>()); }),
+      ref,
+      [&](){ return new Local(varId, ref); });
 }
 
 Expression* readExpression(MetalCache* cache, const json& expression) {
@@ -608,7 +604,7 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readInterfaceKind(cache, expression["resultResultKind"]));
   } else {
     std::cerr << "Unexpected instruction: " << type << std::endl;
-    assert(false);
+    { assert(false); throw 1337; }
   }
 }
 

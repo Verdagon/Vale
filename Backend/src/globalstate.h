@@ -26,11 +26,6 @@ class Determinism;
 constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_GEN = 0;
 constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_NEXT_FREE = 1;
 
-// DO NOT SUBMIT
-// Prime so that we don't increase the possibility of collisions.
-// Below 2^32 so that it fits in an assembly immediate.
-constexpr uint32_t GEN_PRIME_INCREMENT = 742208041;
-
 class GlobalState {
 public:
   GlobalState(AddressNumberer* addressNumberer);
@@ -137,6 +132,8 @@ public:
   // This keeps us from adding more edges or interfaces after we've already started compiling them.
   bool interfacesOpen = true;
 
+  uint64_t nextGenerationAddend = 0;
+
   UniversalRefStructLT* getUniversalRefStructLT() { return universalRefStructLT.get(); }
 
   void addInterfaceExtraMethod(InterfaceKind* interfaceKind, InterfaceMethod* method) {
@@ -208,7 +205,7 @@ public:
       }
     }
     std::cerr << "Couldn't find method " << prototype->name->name << " in interface " << interfaceKindM->fullName->name << std::endl;
-    assert(false);
+    { assert(false); throw 1337; }
   }
 
   Weakability getKindWeakability(Kind* kind);
