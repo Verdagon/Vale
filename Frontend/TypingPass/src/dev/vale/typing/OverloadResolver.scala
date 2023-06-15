@@ -241,23 +241,25 @@ class OverloadResolver(
                 val explicitTemplateArgRuneToType =
                 explicitTemplateArgRunesS.zip(identifyingRuneTemplataTypes).toMap
 
+
+                val runeTypeSolveEnv =
+                  new IRuneTypeSolverEnv {
+                    override def lookup(range: RangeS, nameS: IImpreciseNameS):
+                    Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+                      callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+                        case Some(x) => Ok(TemplataLookupResult(x.tyype))
+                        case None => Err(RuneTypingCouldntFindType(range, nameS))
+                      }
+                    }
+                  }
+
                 // And now that we know the types that are expected of these template arguments, we can
                 // run these template argument templexes through the solver so it can evaluate them in
                 // context of the current environment and spit out some templatas.
                 runeTypeSolver.solve(
                   opts.globalOptions.sanityCheck,
                   opts.globalOptions.useOptimizedSolver,
-                  (nameS: IImpreciseNameS) => {
-                    callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                      case Some(x) => x.tyype
-                      case None => {
-                        throw CompileErrorExceptionT(
-                          RangedInternalErrorT(
-                            callRange,
-                            "Couldn't find a: " + PostParserErrorHumanizer.humanizeImpreciseName(nameS)))
-                      }
-                    }
-                  },
+                  runeTypeSolveEnv,
                   callRange,
                   false,
                   explicitTemplateArgRulesS,

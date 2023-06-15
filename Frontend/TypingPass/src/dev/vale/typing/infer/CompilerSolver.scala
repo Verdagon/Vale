@@ -400,7 +400,7 @@ class CompilerRuleSolver(
                 case AugmentSR(range, resultRune, ownership, innerRune)
                   if resultRune.rune == receiver => {
                   types.CoordT(
-                    Conversions.evaluateOwnership(ownership),
+                    Conversions.evaluateOwnership(vassertSome(ownership)),
                     receiverInstantiationKind)
                 }
               }) ++
@@ -831,18 +831,18 @@ class CompilerRuleSolver(
             val newCoord =
               delegate.getMutability(state, initialCoord.kind) match {
                 case PlaceholderTemplata(_, MutabilityTemplataType()) => {
-                  if (augmentOwnership == ShareP) {
+                  if (vassertSome(augmentOwnership) == ShareP) {
                     return Err(CantSharePlaceholder(initialCoord.kind))
                   }
                   initialCoord
-                    .copy(ownership = Conversions.evaluateOwnership(augmentOwnership))
+                    .copy(ownership = Conversions.evaluateOwnership(vassertSome(augmentOwnership)))
                 }
                 case MutabilityTemplata(MutableT) => {
-                  if (augmentOwnership == ShareP) {
+                  if (vassertSome(augmentOwnership) == ShareP) {
                     return Err(CantShareMutable(initialCoord.kind))
                   }
                   initialCoord
-                    .copy(ownership = Conversions.evaluateOwnership(augmentOwnership))
+                    .copy(ownership = Conversions.evaluateOwnership(vassertSome(augmentOwnership)))
                 }
                 case MutabilityTemplata(ImmutableT) => initialCoord
               }
@@ -854,11 +854,11 @@ class CompilerRuleSolver(
             val newCoord =
               delegate.getMutability(state, initialCoord.kind) match {
                 case PlaceholderTemplata(_, _) | MutabilityTemplata(MutableT) => {
-                  if (augmentOwnership == ShareP) {
+                  if (vassertSome(augmentOwnership) == ShareP) {
                     return Err(CantShareMutable(initialCoord.kind))
                   }
-                  if (initialCoord.ownership != Conversions.evaluateOwnership(augmentOwnership)) {
-                    return Err(OwnershipDidntMatch(initialCoord, Conversions.evaluateOwnership(augmentOwnership)))
+                  if (initialCoord.ownership != Conversions.evaluateOwnership(vassertSome(augmentOwnership))) {
+                    return Err(OwnershipDidntMatch(initialCoord, Conversions.evaluateOwnership(vassertSome(augmentOwnership))))
                   }
                   initialCoord.copy(ownership = OwnT)
                 }

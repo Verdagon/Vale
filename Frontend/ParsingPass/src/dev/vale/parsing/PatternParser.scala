@@ -10,7 +10,7 @@ import scala.collection.mutable
 
 class PatternParser(interner: Interner, keywords: Keywords, templexParser: TemplexParser) {
 
-  def parsePattern(iter: ScrambleIterator, index: Int, isInCitizen: Boolean, isInFunction: Boolean, isInLambda: Boolean): Result[PatternPP, IParseError] = {
+  def parseParameter(iter: ScrambleIterator, index: Int, isInCitizen: Boolean, isInFunction: Boolean, isInLambda: Boolean): Result[ParameterP, IParseError] = {
     val patternBegin = iter.getPos()
     val patternRange = iter.range
 
@@ -28,15 +28,63 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
         case Some(_) => None
       }
 
-    val maybePreBorrow =
-      iter.peek() match {
-        case None => return Err(EmptyParameter(patternRange.begin))
-        case Some(SymbolLE(range, '&')) => {
+    val maybeSelfBorrow =
+      iter.peek(2) match {
+        case Vector() => return Err(EmptyParameter(patternRange.begin))
+        case Vector(None) => return Err(EmptyParameter(patternRange.begin))
+        case Vector(None, None) => return Err(EmptyParameter(patternRange.begin))
+        case Vector(Some(SymbolLE(RangeL(begin, _), '&')), Some(WordLE(RangeL(_, end), s))) if s == keywords.self => {
           iter.advance()
-          Some(range)
+          Some(RangeL(begin, end))
         }
-        case Some(_) => None
+        case _ => None
       }
+    maybeSelfBorrow match {
+      case Some(_) => {
+        Ok(ParameterP(patternRange, maybeVirtual, None, maybeSelfBorrow, None))
+      }
+      case None => {
+        val maybeName =
+          iter.peek2() match {
+            case (Some(w@WordLE(_, _)), Some(SquaredLE(_, _))) => {
+              // This is a destructure parameter with no name, like func moo(Vec3[a, b, c])
+              None
+            }
+            case (Some(w @ WordLE(range, str)), _) => {
+              iter.advance()
+              Some(w)
+            }
+            case _ => return Err(BadLocalName(iter.getPos()))
+          }
+
+        val maybePreChecked = iter.trySkipWord(keywords.pre)
+
+        parsePattern(iter, index, isInCitizen, isInFunction, isInLambda, maybeName) match {
+          case Ok(pattern) => Ok(ParameterP(patternRange, maybeVirtual, maybePreChecked, maybeSelfBorrow, Some(pattern)))
+          case Err(x) => Err(x)
+        }
+      }
+    }
+  }
+
+  def parsePattern(iter: ScrambleIterator, index: Int, isInCitizen: Boolean, isInFunction: Boolean, isInLambda: Boolean, maybeNameFromParameter: Option[WordLE]): Result[PatternPP, IParseError] = {
+    val patternBegin = iter.getPos()
+    val patternRange = iter.range
+
+    if (!iter.hasNext) {
+      maybeNameFromParameter match {
+        case None => return Err(EmptyPattern(patternBegin))
+        case Some(WordLE(range, str)) => {
+          Ok(
+            PatternPP(
+              patternRange,
+              Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None)),
+              None,
+              None))
+        }
+      }
+
+    }
 
     val isConstructing =
       iter.peek2() match {
@@ -49,45 +97,49 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
         case _ => false
       }
 
-    // A hack so we can highlight &self
-    iter.trySkipSymbol('&')
-
     val maybeMutate = iter.trySkipWord(keywords.set)
 
-    val nameIsNext =
-      iter.peek2() match {
-        case (None, None) => vwat() // impossible
-        case (Some(_), None) => true
-        case (Some(first), Some(second)) => {
-          if (first.range.end < second.range.begin) {
-            // There's a space after the first thing, so it's a name.
-            true
-          } else {
-            // There's no space after the first thing, so not a name.
-            false
-          }
-        }
-      }
     val maybeDestinationLocal =
-      if (nameIsNext) {
-        iter.peek() match {
-          case Some(WordLE(range, str)) => {
-            iter.advance()
-            if (str == keywords.UNDERSCORE) {
-              Some(DestinationLocalP(IgnoredLocalNameDeclarationP(range), maybeMutate))
-            } else {
-              if (isConstructing) {
-                Some(DestinationLocalP(ConstructingMemberNameDeclarationP(NameP(range, str)), maybeMutate))
-              } else {
-                Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), maybeMutate))
+      maybeNameFromParameter match {
+        case Some(WordLE(range, str)) => {
+          Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None))
+        }
+        case None => {
+          val nameIsNext =
+            iter.peek2() match {
+              case (None, None) => vwat() // impossible
+              case (Some(_), None) => true
+              case (Some(first), Some(second)) => {
+                if (first.range.end < second.range.begin) {
+                  // There's a space after the first thing, so it's a name.
+                  true
+                } else {
+                  // There's no space after the first thing, so not a name.
+                  false
+                }
               }
             }
+          if (nameIsNext) {
+            iter.peek() match {
+              case Some(WordLE(range, str)) => {
+                iter.advance()
+                if (str == keywords.UNDERSCORE) {
+                  Some(DestinationLocalP(IgnoredLocalNameDeclarationP(range), maybeMutate))
+                } else {
+                  if (isConstructing) {
+                    Some(DestinationLocalP(ConstructingMemberNameDeclarationP(NameP(range, str)), maybeMutate))
+                  } else {
+                    Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), maybeMutate))
+                  }
+                }
+              }
+              case Some(SquaredLE(_, _)) => None
+              case _ => return Err(BadLocalName(iter.getPos()))
+            }
+          } else {
+            None
           }
-          case Some(SquaredLE(_, _)) => None
-          case _ => return Err(BadLocalName(iter.getPos()))
         }
-      } else {
-        None
       }
 
     // We look ahead so we dont parse "in" as a type in: foreach x in myList { ... }
@@ -143,7 +195,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
               U.mapWithIndex[ScrambleIterator, PatternPP](
                 new ScrambleIterator(destructureElements).splitOnSymbol(',', false),
                 (index, destructureElementIter) => {
-                  parsePattern(destructureElementIter, index, false, false, false) match {
+                  parsePattern(destructureElementIter, index, false, false, false, None) match {
                     case Err(e) => return Err(e)
                     case Ok(x) => x
                   }
@@ -157,7 +209,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       Ok(
         PatternPP(
           RangeL(patternBegin, iter.getPrevEndPos()),
-          maybePreBorrow, maybeDestinationLocal, maybeType, maybeDestructure, maybeVirtual))
+          maybeDestinationLocal, maybeType, maybeDestructure))
   }
 
   //    pos ~
@@ -181,12 +233,12 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
   //        // Yes capture, no type, no destructure:
   //        underscoreOr(patternCapture) ^^ { case capture => (None, capture, None, None) } |
   //        // Hacked in for highlighting, still need to incorporate into the above
-  //        existsMW("*") ~ existsMW("!") ~ underscoreOr(patternCapture) ^^ { case preBorrow ~ readwrite ~ capture => (preBorrow, capture, None, None) }
+  //        existsMW("*") ~ existsMW("!") ~ underscoreOr(patternCapture) ^^ { case selfBorrow ~ readwrite ~ capture => (selfBorrow, capture, None, None) }
   //    ) ~
   //    opt(white ~> "impl" ~> white ~> templex) ~
   //    pos ^^ {
-  //      case begin ~ maybeVirtual ~ maybePreBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure ~ maybeInterface ~ end => {
-  //        val (maybePreBorrow, maybeCapture, maybeType, maybeDestructure) = maybePreBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure
+  //      case begin ~ maybeVirtual ~ maybeselfBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure ~ maybeInterface ~ end => {
+  //        val (maybeselfBorrow, maybeCapture, maybeType, maybeDestructure) = maybeselfBorrowAndMaybeCaptureAndMaybeTypeAndMaybeDestructure
   //        val maybeVirtuality =
   //          (maybeVirtual, maybeInterface) match {
   //            case (None, None) => None
@@ -194,7 +246,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
   //            case (None, Some(interface)) => Some(OverrideP(ast.RangeP(begin, end), interface))
   //            case (Some(_), Some(_)) => vfail()
   //          }
-  //        ast.PatternPP(ast.RangeP(begin, end), maybePreBorrow, maybeCapture, maybeType, maybeDestructure, maybeVirtuality)
+  //        ast.PatternPP(ast.RangeP(begin, end), maybeselfBorrow, maybeCapture, maybeType, maybeDestructure, maybeVirtuality)
   //      }
   //    }
 }

@@ -21,7 +21,9 @@ object PostParserErrorHumanizer {
         case RuneExplicitTypeConflictS(range, rune, types) => "Too many explicit types for rune " + humanizeRune(rune) + ": " + types.map(humanizeTemplataType).mkString(", ")
         case RangedInternalErrorS(range, message) => " " + message
         case UnknownRuleFunctionS(range, name) => ": Unknown rule function name: "+ name
+        case UnknownRegionError(range, name) => ": Unknown region: " + name
         case UnimplementedExpression(range, expressionName) => s": ${expressionName} not supported yet.\n"
+        case CouldntFindRuneS(range, name) => ": Couldn't find generic parameter \"" + name + "\".\n"
         case CouldntFindVarToMutateS(range, name) => s": No variable named ${name}. Try declaring it above, like `${name} = 42;`\n"
         case CantOwnershipInterfaceInImpl(range) => s": Can only impl a plain interface, remove symbol."
         case CantOwnershipStructInImpl(range) => s": Only a plain struct/interface can be in an impl, remove symbol."
@@ -80,6 +82,9 @@ object PostParserErrorHumanizer {
     error: IRuneTypeRuleError):
   String = {
     error match {
+      case FoundTemplataDidntMatchExpectedType(range, expectedType, actualType) => {
+        "Expected " + humanizeTemplataType(expectedType) + " but found " + humanizeTemplataType(actualType)
+      }
       case other => vimpl(other)
     }
   }
@@ -109,6 +114,7 @@ object PostParserErrorHumanizer {
       case FunctionNameS(name, codeLocation) => name.str
       case AnonymousSubstructTemplateNameS(tlcd) => humanizeName(tlcd) + ".anonymous"
       case TopLevelCitizenDeclarationNameS(name, range) => name.str
+      case RuntimeSizedArrayDeclarationNameS() => "__rsa"
     }
   }
 
@@ -168,11 +174,15 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructMethodInheritedRuneS(interface, method, inner) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ":" + humanizeRune(inner)
       case AnonymousSubstructMethodSelfOwnCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".ownself"
       case AnonymousSubstructMethodSelfBorrowCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".borrowself"
+      case DenizenDefaultRegionRuneS(denizenName) => humanizeName(denizenName) + "'"
+      case ExternDefaultRegionRuneS(denizenName) => humanizeName(denizenName) + "'"
       case AnonymousSubstructVoidKindRuneS() => "anon.void.kind"
       case AnonymousSubstructVoidCoordRuneS() => "anon.void"
       case ImplicitCoercionOwnershipRuneS(_, inner) => humanizeRune(inner) + ".own"
       case ImplicitCoercionKindRuneS(_, inner) => humanizeRune(inner) + ".kind"
       case ImplicitCoercionTemplateRuneS(_, inner) => humanizeRune(inner) + ".gen"
+      case ImplicitRegionRuneS(originalRune) => humanizeRune(originalRune) + ".region"
+      case CallRegionRuneS(lid) => "_" + lid.path.mkString("") + ".pcall"
       case other => vimpl(other)
     }
   }
@@ -183,6 +193,7 @@ object PostParserErrorHumanizer {
       case CoordTemplataType() => "Type"
       case FunctionTemplataType() => "Func"
       case IntegerTemplataType() => "Int"
+      case RegionTemplataType() => "Region"
       case BooleanTemplataType() => "Bool"
       case MutabilityTemplataType() => "Mut"
       case PrototypeTemplataType() => "Prot"
@@ -216,10 +227,12 @@ object PostParserErrorHumanizer {
       case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => resultRune.map(r => humanizeRune(r.rune)).getOrElse("_") + " = " + humanizeRune(subRune.rune) + " call-isa " + humanizeRune(superRune.rune)
       case CoordSendSR(range, senderRune, receiverRune) => humanizeRune(senderRune.rune) + " -> " + humanizeRune(receiverRune.rune)
       case CoerceToCoordSR(range, coordRune, kindRune) => "coerceToCoord(" + humanizeRune(coordRune.rune) + ", " + humanizeRune(kindRune.rune) + ")"
+      case MaybeCoercingCallSR(range, resultRune, templateRune, argRunes) => humanizeRune(resultRune.rune) + " = " + humanizeRune(templateRune.rune) + "<" + argRunes.map(_.rune).map(humanizeRune).mkString(", ") + ">"
+      case MaybeCoercingLookupSR(range, rune, name) => humanizeRune(rune.rune) + " = " + "\"" + humanizeImpreciseName(name) + "\""
       case CallSR(range, resultRune, templateRune, argRunes) => humanizeRune(resultRune.rune) + " = " + humanizeRune(templateRune.rune) + "<" + argRunes.map(_.rune).map(humanizeRune).mkString(", ") + ">"
-      case LookupSR(range, rune, name) => humanizeRune(rune.rune) + " = " + humanizeImpreciseName(name)
+      case LookupSR(range, rune, name) => humanizeRune(rune.rune) + " = \"" + humanizeImpreciseName(name) + "\""
       case LiteralSR(range, rune, literal) => humanizeRune(rune.rune) + " = " + humanizeLiteral(literal)
-      case AugmentSR(range, resultRune, ownership, innerRune) => humanizeRune(resultRune.rune) + " = " + humanizeOwnership(ownership) + humanizeRune(innerRune.rune)
+      case AugmentSR(range, resultRune, ownership, innerRune) => humanizeRune(resultRune.rune) + " = " + ownership.map(humanizeOwnership).getOrElse("") + humanizeRune(innerRune.rune)
       case EqualsSR(range, left, right) => humanizeRune(left.rune) + " = " + humanizeRune(right.rune)
       case RuneParentEnvLookupSR(range, rune) => "inherit " + humanizeRune(rune.rune)
       case PackSR(range, resultRune, members) => humanizeRune(resultRune.rune) + " = (" + members.map(x => humanizeRune(x.rune)).mkString(", ") + ")"
@@ -274,5 +287,9 @@ object PostParserErrorHumanizer {
       case BorrowP => "&"
       case WeakP => "&&"
     }
+  }
+
+  def humanizeRegion(r: RuneUsage) = {
+    vimpl(r)
   }
 }

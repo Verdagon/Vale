@@ -188,12 +188,7 @@ class PatternCompiler(
   ReferenceExpressionTE = {
     vassert(previousLiveCaptureLocals.map(_.name) == previousLiveCaptureLocals.map(_.name).distinct)
 
-    val AtomSP(range, maybeCaptureLocalVarA, maybeVirtuality, coordRuneA, maybeDestructure) = pattern
-
-    if (maybeVirtuality.nonEmpty) {
-      // This is actually to be expected for when we translate the patterns from the
-      // function's parameters. Ignore them.
-    }
+    val AtomSP(range, maybeCaptureLocalVarA, coordRuneA, maybeDestructure) = pattern
 
     // We make it here instead of down in the maybeDestructure clauses because whether we destructure it or not
     // is unrelated to whether we destructure it.
