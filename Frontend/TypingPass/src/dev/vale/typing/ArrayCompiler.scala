@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vimpl}
+import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vimpl}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
@@ -50,7 +50,15 @@ class ArrayCompiler(
     callableTE: ReferenceExpressionTE,
     verifyConclusions: Boolean):
   StaticArrayFromCallableTE = {
-//    val builtinNamespaceCoord =
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(range: RangeS, nameS: IImpreciseNameS):
+        Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          vimpl()
+          //          vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype
+        }
+      }
+    //    val builtinNamespaceCoord =
 //      interner.intern(PackageCoordinate(keywords.emptyString, Vector.empty))
 //    val declaringEnv =
 //      PackageEnvironment.makeTopLevelEnvironment(callingEnv.globalEnv, builtinNamespaceCoord)
@@ -58,7 +66,7 @@ class ArrayCompiler(
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
-        (nameS: IImpreciseNameS) => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
+        runeTypingEnv,
         range,
         false,
         rulesWithImplicitlyCoercingLookupsS,
@@ -114,7 +122,7 @@ class ArrayCompiler(
   def evaluateRuntimeSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: NodeEnvironment,
-    range: List[RangeS],
+      parentRanges: List[RangeS],
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
@@ -122,20 +130,42 @@ class ArrayCompiler(
     maybeCallableTE: Option[ReferenceExpressionTE],
     verifyConclusions: Boolean):
   ReferenceExpressionTE = {
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+            range: RangeS,
+            nameS: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
+          callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+            case Some(CitizenDefinitionTemplata(environment, a)) => {
+              Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
+            }
+            case Some(x) => Ok(TemplataLookupResult(x.tyype))
+            case None => Err(RuneTypingCouldntFindType(range, nameS))
+          }
+          //          name match {
+          //            case CodeNameS(n) if n == keywords.int => Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType()))
+          //            case other => vwat(other)
+          //          }
+        }
+      }
+
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
-        nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
-        range,
+        runeTypingEnv,
+        parentRanges,
         false,
         rulesWithImplicitlyCoercingLookupsS,
         List(),
         true,
         Map(mutabilityRune -> MutabilityTemplataType()) ++
-          maybeElementTypeRune.map(_ -> CoordTemplataType())) match {
+            maybeElementTypeRune.map(_ -> CoordTemplataType())) match {
         case Ok(r) => r
-        case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
+        case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(parentRanges, e))
       }
 
     val runeAToType =
@@ -152,14 +182,14 @@ class ArrayCompiler(
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeAToType.toMap, range, Vector(), Vector(), true, true, Vector())
+        InferEnv(callingEnv, parentRanges, callingEnv), coutputs, rulesA, runeAToType.toMap, parentRanges, Vector(), Vector(), true, true, Vector())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
 
     if (maybeElementTypeRune.isEmpty) {
       // Temporary until we can figure out MSAE.
-      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Must specify element for arrays."))
+      throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Must specify element for arrays."))
     }
 
     mutability match {
@@ -168,20 +198,20 @@ class ArrayCompiler(
         val callableTE =
           maybeCallableTE match {
             case None => {
-              throw CompileErrorExceptionT(NewImmRSANeedsCallable(range))
+              throw CompileErrorExceptionT(NewImmRSANeedsCallable(parentRanges))
             }
             case Some(c) => c
           }
 
         val prototype =
           overloadResolver.getArrayGeneratorPrototype(
-            coutputs, callingEnv, range, callableTE, true)
+            coutputs, callingEnv, parentRanges, callableTE, true)
         val rsaMT = resolveRuntimeSizedArray(prototype.returnType, mutability)
 
         maybeElementTypeRune.foreach(elementTypeRuneA => {
           val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
           if (prototype.returnType != expectedElementType) {
-            throw CompileErrorExceptionT(UnexpectedArrayElementType(range, expectedElementType, prototype.returnType))
+            throw CompileErrorExceptionT(UnexpectedArrayElementType(parentRanges, expectedElementType, prototype.returnType))
           }
         })
 
@@ -208,12 +238,12 @@ class ArrayCompiler(
                 (interner.intern(RuneNameT(e)), TemplataEnvEntry(CoordTemplata(getArrayElementType(templatas, e))))
               })),
             coutputs,
-            range,
+            parentRanges,
             interner.intern(CodeNameS(keywords.Array)),
             Vector(
-              RuneParentEnvLookupSR(range.head, RuneUsage(range.head, CodeRuneS(keywords.M)))) ++
+              RuneParentEnvLookupSR(parentRanges.head, RuneUsage(parentRanges.head, CodeRuneS(keywords.M)))) ++
             maybeElementTypeRune.map(e => {
-              RuneParentEnvLookupSR(range.head, RuneUsage(range.head, e))
+              RuneParentEnvLookupSR(parentRanges.head, RuneUsage(parentRanges.head, e))
             }),
             Vector(CodeRuneS(keywords.M)) ++ maybeElementTypeRune,
             Vector(sizeTE.result.coord) ++
@@ -221,7 +251,7 @@ class ArrayCompiler(
             Vector(),
             true,
             true) match {
-            case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
+            case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(parentRanges, e))
             case Ok(x) => x
           }
 
@@ -229,19 +259,19 @@ class ArrayCompiler(
           prototype.prototype.returnType.kind match {
             case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, elementType)))) => {
               if (mutability != MutabilityTemplata(MutableT)) {
-                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong mutability!"))
+                throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Array function returned wrong mutability!"))
               }
               elementType
             }
             case _ => {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong type!"))
+              throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Array function returned wrong type!"))
             }
           }
         maybeElementTypeRune.foreach(elementTypeRuneA => {
           val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
           if (elementType != expectedElementType) {
             throw CompileErrorExceptionT(
-              UnexpectedArrayElementType(range, expectedElementType, prototype.prototype.returnType))
+              UnexpectedArrayElementType(parentRanges, expectedElementType, prototype.prototype.returnType))
           }
         })
         vassert(coutputs.getInstantiationBounds(prototype.prototype.fullName).nonEmpty)
@@ -265,11 +295,25 @@ class ArrayCompiler(
       exprs2: Vector[ReferenceExpressionTE],
       verifyConclusions: Boolean):
    StaticArrayFromValuesTE = {
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+            range: RangeS,
+            name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          vimpl()
+          //          Ok(
+          //            TemplataLookupResult(
+          //              vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
+        }
+      }
+
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
-        nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
+        runeTypingEnv,
         range,
         false,
         rulesWithImplicitlyCoercingLookupsS,
@@ -279,10 +323,10 @@ class ArrayCompiler(
           sizeRuneA -> IntegerTemplataType(),
           mutabilityRuneA -> MutabilityTemplataType(),
           variabilityRuneA -> VariabilityTemplataType()) ++
-          (maybeElementTypeRuneA match {
-            case Some(rune) => Map(rune -> CoordTemplataType())
-            case None => Map()
-          })) match {
+            (maybeElementTypeRuneA match {
+              case Some(rune) => Map(rune -> CoordTemplataType())
+              case None => Map()
+            })) match {
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }

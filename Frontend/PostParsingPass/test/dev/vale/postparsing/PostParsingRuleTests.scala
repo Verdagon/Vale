@@ -4,7 +4,6 @@ import dev.vale.{Err, FileCoordinateMap, Interner, Ok, RangeS, SourceCodeUtils, 
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing._
 import dev.vale.postparsing._
-import dev.vale.postparsing.patterns.AbstractSP
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.List
@@ -81,12 +80,13 @@ class PostParsingRuleTests extends FunSuite with Matchers {
       compile(
         """
           |func main<T>(a T)
-          |where T = Ref[O, K], O Ownership, K Kind {}
+          |where T = Ref[O, R, K], O Ownership, R Region, K Kind {}
           |""".stripMargin, interner)
     val main = program.lookupFunction("main")
 
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("T"))))) shouldEqual CoordTemplataType()
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("O"))))) shouldEqual OwnershipTemplataType()
+    vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("R"))))) shouldEqual RegionTemplataType()
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("K"))))) shouldEqual KindTemplataType()
   }
 

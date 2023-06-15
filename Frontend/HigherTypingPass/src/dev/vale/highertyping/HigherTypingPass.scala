@@ -461,6 +461,16 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     rulesS: Vector[IRulexSR],
     env: Environment):
   Map[IRuneS, ITemplataType] = {
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+            range: RangeS,
+            name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          Ok(TemplataLookupResult(lookupType(astrouts, env, rangeS, name)))
+        }
+      }
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
         paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType())).toMap
@@ -468,12 +478,21 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       new RuneTypeSolver(interner).solve(
         globalOptions.sanityCheck,
         globalOptions.useOptimizedSolver,
-        (n) => lookupType(astrouts, env, rangeS, n),
+        runeTypingEnv,
         List(rangeS),
         false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
         case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
       }
+      // new RuneTypeSolver(interner).solve(
+      //   globalOptions.sanityCheck,
+      //   globalOptions.useOptimizedSolver,
+      //   (n) => lookupType(astrouts, env, rangeS, n),
+      //   List(rangeS),
+      //   false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
+      //   case Ok(t) => t
+      //   case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
+      // }
     runeSToType
   }
 

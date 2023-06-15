@@ -132,7 +132,10 @@ case class ExportAsA(
   }
 }
 
-sealed trait CitizenA
+sealed trait CitizenA {
+  def tyype: TemplateTemplataType
+  def genericParameters: Vector[GenericParameterS]
+}
 
 case class InterfaceA(
     range: RangeS,
