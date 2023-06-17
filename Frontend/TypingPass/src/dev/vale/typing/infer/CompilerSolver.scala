@@ -170,7 +170,7 @@ class CompilerSolver(
       val sanityChecked: Vector[RuneUsage] =
         rule match {
           case LookupSR(range, rune, literal) => Vector(rune)
-          case LookupSR(range, rune, literal) => Vector(rune)
+          case MaybeCoercingLookupSR(range, rune, literal) => Vector(rune)
           case RuneParentEnvLookupSR(range, rune) => Vector(rune)
           case EqualsSR(range, left, right) => Vector(left, right)
           case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
@@ -207,6 +207,7 @@ class CompilerSolver(
     rule match {
       // This means we can solve this puzzle and dont need anything to do it.
       case LookupSR(range, _, _) => Vector(Vector())
+      case MaybeCoercingLookupSR(range, _, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => Vector(Vector())
       case CallSR(range, resultRune, templateRune, args) => {
         Vector(
@@ -813,6 +814,15 @@ class CompilerRuleSolver(
         Ok(())
       }
       case LookupSR(range, rune, name) => {
+        val result =
+          delegate.lookupTemplataImprecise(env, state, range :: env.parentRanges, name) match {
+            case None => return Err(LookupFailed(name))
+            case Some(x) => x
+          }
+        stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, result)
+        Ok(())
+      }
+      case MaybeCoercingLookupSR(range, rune, name) => {
         val result =
           delegate.lookupTemplataImprecise(env, state, range :: env.parentRanges, name) match {
             case None => return Err(LookupFailed(name))
