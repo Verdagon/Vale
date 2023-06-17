@@ -109,7 +109,7 @@ struct ListNode<T> {
 
 when we try to resolve the `Opt<ListNode<T>>` it will try to resolve the `ListNode<T>` which runs all these rules _again_, and goes into an infinite loop.
 
-The answer is to not run the innars' rules when we're resolving. Only run the innards when compiling the definition.
+The answer is to not run the innards' rules when we're resolving. Only run the innards when compiling the definition.
 
 
 # Require Explicit Multiple Upcasting to Indirect Descendants and Ancestors (REMUIDDA)
