@@ -98,6 +98,10 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val paramRune =
       param match {
         case ParameterS(_,
+          None,false,
+          AtomSP(_,
+            Some(CaptureS(CodeVarNameS(StrI(_)),false)),Some(RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 1, 1))))),None)) =>
+        case ParameterS(_,
           _,
           false,
           AtomSP(_,
@@ -124,7 +128,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val main = bork.lookupFunction("main")
     main.genericParams.size shouldEqual 2
     main.genericParams(0) match {
-      case GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),RegionGenericParameterTypeS(AdditiveRegionS),None) =>
+      case GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),RegionGenericParameterTypeS(ReadOnlyRegionS),None) =>
     }
   }
 

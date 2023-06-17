@@ -1,9 +1,11 @@
 package dev.vale.postparsing
 
-import dev.vale.vcurious
+import dev.vale.{vcurious, vpass}
 
 sealed trait ITemplataType
-case class RegionTemplataType() extends ITemplataType
+case class RegionTemplataType() extends ITemplataType {
+  vpass()
+}
 case class CoordTemplataType() extends ITemplataType
 case class ImplTemplataType() extends ITemplataType
 case class KindTemplataType() extends ITemplataType

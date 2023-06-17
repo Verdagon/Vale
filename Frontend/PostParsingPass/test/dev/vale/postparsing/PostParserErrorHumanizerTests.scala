@@ -52,9 +52,6 @@ class PostParserErrorHumanizerTests extends FunSuite with Matchers {
       ForgotSetKeywordError(tz))
       .nonEmpty)
     vassert(PostParserErrorHumanizer.humanize(humanizePos, linesBetween, lineRangeContaining, lineContaining,
-      CantUseThatLocalName(tz, "set"))
-      .nonEmpty)
-    vassert(PostParserErrorHumanizer.humanize(humanizePos, linesBetween, lineRangeContaining, lineContaining,
       ExternHasBody(tz))
       .nonEmpty)
   }

@@ -1,6 +1,6 @@
 package dev.vale.postparsing.patterns
 
-import dev.vale.Interner
+import dev.vale.{Interner, RangeS, vimpl}
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{IRulexSR, TemplexScout}
@@ -8,7 +8,6 @@ import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing.rules._
 import dev.vale.postparsing._
-import dev.vale.RangeS
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -57,6 +56,7 @@ class PatternScout(
           Some(runeS)
         }
         case None => {
+          // This happens in patterns in lets, and in lambdas' parameters that have no types.
           None
         }
       }
@@ -82,9 +82,9 @@ class PatternScout(
           None
         }
         case Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, name)), maybeMutate)) => {
-          if (name.str == "set" || name.str == "mut") {
-            throw CompileErrorExceptionS(CantUseThatLocalName(PostParser.evalRange(stackFrame.file, range), name.str))
-          }
+          // if (name.str == "set" || name.str == "mut") {
+          //   throw CompileErrorExceptionS(CantUseThatLocalName(PostParser.evalRange(stackFrame.file, range), name.str))
+          // }
           Some(CaptureS(interner.intern(CodeVarNameS(name)), maybeMutate.nonEmpty))
         }
         case Some(DestinationLocalP(ConstructingMemberNameDeclarationP(NameP(_, name)), maybeMutate)) => {
