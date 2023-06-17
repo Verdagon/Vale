@@ -153,7 +153,7 @@ class TemplexScout(
                 rules.MaybeCoercingCallSR(
                   rangeS,
                   resultRuneS,
-                  RuneUsage(RangeS(rangeS.begin, rangeS.begin), contextRegion),
+                  translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, template),
                   args.map(translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, _)))
               resultRuneS
             }

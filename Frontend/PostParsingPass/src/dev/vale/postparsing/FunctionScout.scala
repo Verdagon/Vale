@@ -157,6 +157,7 @@ class FunctionScout(
         case None => {
           val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
           val rune = DenizenDefaultRegionRuneS(funcName)
+          vassert(!runeToExplicitType.exists(_._1 == rune))
           runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(
@@ -253,13 +254,22 @@ class FunctionScout(
                 ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternS)
               }
               case (None, Some(patternP)) => {
-                val patternS =
+                val patternPerhapsWithoutCoordRuneS =
                   patternScout.translatePattern(
                     myStackFrameWithoutParams,
                     lidb.child(),
                     ruleBuilder,
                     runeToExplicitType,
                     patternP)
+                val patternS =
+                  patternPerhapsWithoutCoordRuneS.coordRune match {
+                    case None => {
+                      val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+                      runeToExplicitType += ((rune.rune, CoordTemplataType()))
+                      patternPerhapsWithoutCoordRuneS.copy(coordRune = Some(rune))
+                    }
+                    case Some(_) => patternPerhapsWithoutCoordRuneS
+                  }
                 ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternS)
               }
             }

@@ -313,7 +313,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         }) match {
         case None => return Err(BadForeachInError(iter.getPos()))
         case Some((in, patternIter)) => {
-          patternParser.parsePattern(patternIter, 0, false, false, false, None) match {
+          patternParser.parsePattern(patternIter, patternIter.getPos(), 0, false, false, false, None) match {
             case Err(cpe) => return Err(cpe)
             case Ok(result) => (in.range, result)
           }
@@ -500,7 +500,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     stopOnCurlied: Boolean):
   Result[LetPE, IParseError] = {
     val pattern =
-      patternParser.parsePattern(patternIter, 0, false, false, false, None) match {
+      patternParser.parsePattern(patternIter, patternIter.getPos(), 0, false, false, false, None) match {
         case Ok(result) => result
         case Err(e) => return Err(e)
       }

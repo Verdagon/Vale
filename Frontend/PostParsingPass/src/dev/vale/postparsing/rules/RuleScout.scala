@@ -73,7 +73,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
             if (componentsP.size != 3) {
               vfail("Ref rule should have three components! Found: " + componentsP.size)
             }
-            val Vector(ownershipRuneS, kindRuneS) =
+            val Vector(ownershipRuneS, regionRuneS, kindRuneS) =
               translateRulexes(env, lidb.child(), builder, runeToExplicitType, contextRegion, componentsP)
             builder +=
               CoordComponentsSR(

@@ -2,9 +2,8 @@ package dev.vale.postparsing.patterns
 
 import dev.vale.postparsing.IVarNameS
 import dev.vale.postparsing.rules.RuneUsage
-import dev.vale.{RangeS, vcurious, vpass}
+import dev.vale.{RangeS, StrI, vcurious, vpass, vwat}
 import dev.vale.postparsing._
-import dev.vale.RangeS
 
 import scala.collection.immutable.List
 
@@ -27,4 +26,9 @@ case class AtomSP(
   destructure: Option[Vector[AtomSP]]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
+
+  name match {
+    case Some(CaptureS(CodeVarNameS(StrI("_")), _)) => vwat()
+    case _ =>
+  }
 }

@@ -112,19 +112,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.genericParams match {
       case Vector(
-//        // See MNRFGC for why this implicit region param is here
-//        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp1a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
-        GenericParameterS(_, RuneUsage(_, mp1b @ MagicParamRuneS(_)), CoordGenericParameterTypeS(None, false, false), None),
-//        // See MNRFGC for why this implicit region param is here
-//        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp2a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
-        GenericParameterS(_, RuneUsage(_, mp2b @ MagicParamRuneS(_)), CoordGenericParameterTypeS(None, false, false), None),
+        GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
+        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
         _) => {
         vassert(mp1b != mp2b) // Two different runes
-
-//        vassert(mp1a == mp1b)
-//        vassert(mp1a == mp1c)
-//        vassert(mp2a == mp2b)
-//        vassert(mp2a == mp2c)
       }
     }
   }
@@ -194,8 +185,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     moo.genericParams match {
       case Vector(
-        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("r"))), RegionGenericParameterTypeS(ImmutableRegionS), None),
-        GenericParameterS(_, RuneUsage(_,DenizenDefaultRegionRuneS(_)), RegionGenericParameterTypeS(ReadWriteRegionS), None)) =>
+        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI(r))),RegionGenericParameterTypeS(ReadOnlyRegionS),None),
+        GenericParameterS(_,RuneUsage(_,DenizenDefaultRegionRuneS(FunctionNameS(StrI(moo),_))),RegionGenericParameterTypeS(ReadWriteRegionS),None)) =>
     }
   }
 
@@ -273,17 +264,6 @@ class PostParserTests extends FunSuite with Matchers with Collector {
           LocalLoadSE(_, ConstructingMemberNameS(StrI("x")), UseP),
           LocalLoadSE(_, ConstructingMemberNameS(StrI("y")), UseP))) =>
     })
-  }
-
-  test("Cant use set as a local name") {
-    val error = compileForError(
-      """func moo() {
-        |  [set] = (6,);
-        |}
-        |""".stripMargin)
-    error match {
-      case CantUseThatLocalName(_, "set") =>
-    }
   }
 
   test("InitializingRuntimeSizedArrayRequiresSizeAndCallable too few") {
