@@ -23,7 +23,10 @@ case class CompileErrorExceptionS(err: ICompileErrorS) extends RuntimeException 
 
 sealed trait ICompileErrorS { def range: RangeS }
 case class UnknownRuleFunctionS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class BadRuneAttributeErrorS(range: RangeS, attr: IRuneAttributeP) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class BadRuneAttributeErrorS(range: RangeS, attr: IRuneAttributeP) extends ICompileErrorS {
+  vpass()
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+}
 case class CantHaveMultipleMutabilitiesS(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class UnimplementedExpression(range: RangeS, expressionName: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindVarToMutateS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
@@ -283,7 +286,7 @@ object PostParser {
               case ImmutableRuneAttributeP(rangeP) => Unit
             })
           val (mutableAttrs, remainingAttributes0P) =
-            U.extract[IRuneAttributeP, Unit](originalAttributesP, {
+            U.extract[IRuneAttributeP, Unit](remainingAttributes1P, {
               case MutableRuneAttributeP(rangeP) => Unit
             })
           if (remainingAttributes0P.nonEmpty) {
@@ -444,7 +447,8 @@ class PostParser(
     {
       val regionRange = RangeS(rangeS.end, rangeS.end)
       val rune = DenizenDefaultRegionRuneS(implName)
-      runeToExplicitType += ((rune, RegionTemplataType()))
+      // Put back in when we have regions DO NOT SUBMIT
+      // runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
       (regionRange, rune, Some(implicitRegionGenericParam))
@@ -609,7 +613,8 @@ class PostParser(
         case None => {
           val regionRange = RangeS(bodyRangeS.begin, bodyRangeS.begin)
           val rune = DenizenDefaultRegionRuneS(structName)
-          headerRuneToExplicitType += ((rune, RegionTemplataType()))
+          // Put back in when we have regions DO NOT SUBMIT
+          // headerRuneToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, rune, Some(implicitRegionGenericParam))
@@ -634,8 +639,9 @@ class PostParser(
 //    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
     val genericParametersS =
-      structUserSpecifiedGenericParametersS ++
-        maybeRegionGenericParam
+      structUserSpecifiedGenericParametersS
+        // Put back in when we have regions DO NOT SUBMIT
+        //++ maybeRegionGenericParam
         //++ userSpecifiedRunesImplicitRegionRunesS
 
     ruleScout.translateRulexes(structEnv, lidb.child(), headerRuleBuilder, headerRuneToExplicitType, defaultRegionRuneS, templateRulesP)
@@ -814,7 +820,8 @@ class PostParser(
         case None => {
           val regionRange = RangeS(bodyRangeS.begin, bodyRangeS.begin)
           val rune = DenizenDefaultRegionRuneS(interfaceFullName)
-          runeToExplicitType += ((rune, RegionTemplataType()))
+          // Put this back in when we have regions DO NOT SUBMIT
+          // runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, rune, Some(implicitRegionGenericParam))

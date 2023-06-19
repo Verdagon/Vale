@@ -40,14 +40,18 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""func main<T>(moo T) { }""")
     val main = program1.lookupFunction("main")
 
+    // Take out with regions DO NOT SUBMIT
     // Should have T, the default region, and the return rune
-    vassert(main.runeToPredictedType.size == 3)
+    vassert(main.runeToPredictedType.size == 2)
+    // // Should have T, the default region, and the return rune
+    // vassert(main.runeToPredictedType.size == 3)
 
     main.genericParams match {
       case Vector(
-        GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), CoordGenericParameterTypeS(_, _, _), None),
-        // implicit default region
-        _) =>
+        GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), CoordGenericParameterTypeS(_, _, _), None)
+        // Put this back in when we have regions DO NOT SUBMIT
+        // , _ // implicit default region
+        ) =>
 //      case Vector(
 //        GenericParameterS(
 //          RangeS(_:10, _:11),RuneUsage(RangeS(_:0, _:23),CodeRuneS(StrI(T))),CoordTemplataType(),None,Vector(),None),
@@ -115,22 +119,24 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  test("Regioned pure function") {
-    val bork = compile("pure func main<r', t'>(ship &r'Spaceship) t'{ }")
+  // Put back in with regions DO NOT SUBMIT
+  // test("Regioned pure function") {
+  //   val bork = compile("pure func main<r', t'>(ship &r'Spaceship) t'{ }")
+  //
+  //   val main = bork.lookupFunction("main")
+  //   main.genericParams.size shouldEqual 2
+  // }
+  // Put back in with regions DO NOT SUBMIT
 
-    val main = bork.lookupFunction("main")
-    main.genericParams.size shouldEqual 2
-  }
-
-  test("Regioned additive function") {
-    val bork = compile("additive func main<r', t'>(ship &r'Spaceship) t'{ }")
-
-    val main = bork.lookupFunction("main")
-    main.genericParams.size shouldEqual 2
-    main.genericParams(0) match {
-      case GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),RegionGenericParameterTypeS(ReadOnlyRegionS),None) =>
-    }
-  }
+  // test("Regioned additive function") {
+  //   val bork = compile("additive func main<r', t'>(ship &r'Spaceship) t'{ }")
+  //
+  //   val main = bork.lookupFunction("main")
+  //   main.genericParams.size shouldEqual 2
+  //   main.genericParams(0) match {
+  //     case GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),RegionGenericParameterTypeS(ReadOnlyRegionS),None) =>
+  //   }
+  // }
 
   test("Test param-less lambda identifying runes") {
     val bork = compile(
@@ -139,9 +145,15 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")
-    main.genericParams.size shouldEqual 1 // only the default region
+    // Put this back in when we have regions DO NOT SUBMIT
+    // main.genericParams.size shouldEqual 1 // only the default region
+    // Take this out when we have regions
+    main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    lambda.function.genericParams.size shouldEqual 1 // only the default region
+    // Put this back in when we have regions DO NOT SUBMIT
+    // lambda.function.genericParams.size shouldEqual 1 // only the default region
+    // Take this out when we have regions
+    lambda.function.genericParams.size shouldEqual 0
   }
 
   test("Test one-param lambda identifying runes") {
@@ -151,10 +163,16 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")
-    main.genericParams.size shouldEqual 1 // Only the default region
+    // Put this back in when we have regions DO NOT SUBMIT
+    // main.genericParams.size shouldEqual 1 // Only the default region
+    // Take this out when we have regions
+    main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    // magic param + default region
-    lambda.function.genericParams.size shouldEqual 2
+    // Put this back in when we have regions DO NOT SUBMIT
+    // // magic param + default region
+    // lambda.function.genericParams.size shouldEqual 2
+    // Take this out when we have regions
+    lambda.function.genericParams.size shouldEqual 1
   }
 
   test("Report that default region must be mentioned in generic params") {

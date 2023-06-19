@@ -41,7 +41,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment,
-    range: List[RangeS],
+    parentRanges: List[RangeS],
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
     sizeRuneA: IRuneS,
@@ -67,14 +67,14 @@ class ArrayCompiler(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
         runeTypingEnv,
-        range,
+        parentRanges,
         false,
         rulesWithImplicitlyCoercingLookupsS,
         List(),
         true,
         Map()) match {
         case Ok(r) => r
-        case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
+        case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(parentRanges, e))
       }
 
     val runeAToType =
@@ -85,17 +85,21 @@ class ArrayCompiler(
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     explicifyLookups(
-      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+      runeTypingEnv,
+      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: parentRanges, name))
+      case Ok(()) =>
+    }
     val rulesA = ruleBuilder.toVector
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv),
+        InferEnv(callingEnv, parentRanges, callingEnv),
         coutputs,
         rulesA,
         runeAToType.toMap,
-        range,
+        parentRanges,
         Vector(),
         Vector(),
         true,
@@ -105,13 +109,13 @@ class ArrayCompiler(
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRune)))
-    val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, callingEnv, range, callableTE, true)
+    val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, callingEnv, parentRanges, callableTE, true)
     val ssaMT = resolveStaticSizedArray(mutability, variability, size, prototype.returnType)
 
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (prototype.returnType != expectedElementType) {
-        throw CompileErrorExceptionT(UnexpectedArrayElementType(range, expectedElementType, prototype.returnType))
+        throw CompileErrorExceptionT(UnexpectedArrayElementType(parentRanges, expectedElementType, prototype.returnType))
       }
     })
 
@@ -176,8 +180,12 @@ class ArrayCompiler(
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     explicifyLookups(
-      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+      runeTypingEnv,
+      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: parentRanges, name))
+      case Ok(()) =>
+    }
     val rulesA = ruleBuilder.toVector
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
@@ -286,7 +294,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromValues(
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment,
-      range: List[RangeS],
+      parentRanges: List[RangeS],
       rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
       maybeElementTypeRuneA: Option[IRuneS],
       sizeRuneA: IRuneS,
@@ -299,13 +307,12 @@ class ArrayCompiler(
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
         override def lookup(
-            range: RangeS,
-            name: IImpreciseNameS
-        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          vimpl()
-          //          Ok(
-          //            TemplataLookupResult(
-          //              vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
+          range: RangeS,
+          name: IImpreciseNameS):
+        Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+           Ok(
+             TemplataLookupResult(
+               vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
         }
       }
 
@@ -314,7 +321,7 @@ class ArrayCompiler(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
         runeTypingEnv,
-        range,
+        parentRanges,
         false,
         rulesWithImplicitlyCoercingLookupsS,
         List(),
@@ -328,11 +335,11 @@ class ArrayCompiler(
               case None => Map()
             })) match {
         case Ok(r) => r
-        case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
+        case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(parentRanges, e))
       }
     val memberTypes = exprs2.map(_.result.coord).toSet
     if (memberTypes.size > 1) {
-      throw CompileErrorExceptionT(ArrayElementsHaveDifferentTypes(range, memberTypes))
+      throw CompileErrorExceptionT(ArrayElementsHaveDifferentTypes(parentRanges, memberTypes))
     }
     val memberType = memberTypes.head
 
@@ -344,17 +351,21 @@ class ArrayCompiler(
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     explicifyLookups(
-      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+      runeTypingEnv,
+      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: parentRanges, name))
+      case Ok(()) =>
+    }
     val rulesA = ruleBuilder.toVector
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeAToType.toMap, range, Vector(), Vector(), true, true, Vector())
+        InferEnv(callingEnv, parentRanges, callingEnv), coutputs, rulesA, runeAToType.toMap, parentRanges, Vector(), Vector(), true, true, Vector())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
-        throw CompileErrorExceptionT(UnexpectedArrayElementType(range, expectedElementType, memberType))
+        throw CompileErrorExceptionT(UnexpectedArrayElementType(parentRanges, expectedElementType, memberType))
       }
     })
 

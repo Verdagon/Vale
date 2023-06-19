@@ -88,6 +88,28 @@ case class StructA(
 
   vpass()
 
+  vassert(
+    !genericParameters.exists({ case x =>
+      x.rune.rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+  vassert(
+    !headerRuneToType.exists({ case (rune, _) =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+  vassert(
+    !membersRuneToType.exists({ case (rune, _) =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[StructA]) { return false }
     val that = obj.asInstanceOf[StructA]
@@ -121,7 +143,6 @@ case class ImplA(
 case class ExportAsA(
   range: RangeS,
   exportedName: StrI,
-  defaultRegionRune: IRuneS,
   rules: Vector[IRulexSR],
   runeToType: Map[IRuneS, ITemplataType],
   typeRune: RuneUsage)
@@ -161,6 +182,22 @@ case class InterfaceA(
   // See IMRFDI
   internalMethods: Vector[FunctionA]
 ) extends CitizenA {
+
+  vassert(
+    !genericParameters.exists({ case x =>
+      x.rune.rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+  vassert(
+    !runeToType.exists({ case (rune, _) =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -231,6 +268,18 @@ case class FunctionA(
 ) {
   val hash = range.hashCode() + name.hashCode()
   vpass()
+
+  vassert(
+    !genericParameters.exists({ case x =>
+      x.rune.rune match { case DenizenDefaultRegionRuneS(_) => true case _ => false }
+    }))
+  vassert(
+    !runeToType.exists({ case (rune, _) =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
 
   vassert(range.begin.file.packageCoordinate == name.packageCoordinate)
 

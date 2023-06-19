@@ -39,18 +39,20 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  test("Every function gets region generic param") {
-    val program1 = compile("func moo() int { 3 }")
-
-    val moo = program1.lookupFunction("moo")
-    moo.genericParams match {
-      case Vector(
-        GenericParameterS(_,
-          RuneUsage(_,DenizenDefaultRegionRuneS(_)),
-          RegionGenericParameterTypeS(ReadWriteRegionS),
-          None)) =>
-    }
-  }
+  // DO NOT SUBMIT
+  // put this back in with regions
+  // test("Every function gets region generic param") {
+  //   val program1 = compile("func moo() int { 3 }")
+  //
+  //   val moo = program1.lookupFunction("moo")
+  //   moo.genericParams match {
+  //     case Vector(
+  //       GenericParameterS(_,
+  //         RuneUsage(_,DenizenDefaultRegionRuneS(_)),
+  //         RegionGenericParameterTypeS(ReadWriteRegionS),
+  //         None)) =>
+  //   }
+  // }
 
   // See: User Must Specify Enough Identifying Runes (UMSEIR)
   test("Test UMSEIR") {
@@ -113,8 +115,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     lambda.genericParams match {
       case Vector(
         GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
-        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
-        _) => {
+        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None)
+        // Put this back in when we have regions DO NOT SUBMIT
+        // , _
+        ) => {
         vassert(mp1b != mp2b) // Two different runes
       }
     }
@@ -179,31 +183,35 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, CodeNameS(StrI("shout")), _, _), Vector(LocalLoadSE(_,CodeVarNameS(StrI("x")), UseP))) => })
   }
 
-  test("Pure regioned function") {
-    val program1 = compile("pure func moo<r'>(ship &r'Spaceship) { }")
-    val moo = program1.lookupFunction("moo")
+  // Put this back in with regions DO NOT SUBMIT
+  // test("Pure regioned function") {
+  //   val program1 = compile("pure func moo<r'>(ship &r'Spaceship) { }")
+  //   val moo = program1.lookupFunction("moo")
+  //
+  //   moo.genericParams match {
+  //     case Vector(
+  //       GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI(r))),RegionGenericParameterTypeS(ReadOnlyRegionS),None)
+  //       // Put this back in when we have regions DO NOT SUBMIT
+  //       // ,GenericParameterS(_,RuneUsage(_,DenizenDefaultRegionRuneS(FunctionNameS(StrI("moo"),_))),RegionGenericParameterTypeS(ReadWriteRegionS),None)
+  //     ) =>
+  //   }
+  // }
 
-    moo.genericParams match {
-      case Vector(
-        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI(r))),RegionGenericParameterTypeS(ReadOnlyRegionS),None),
-        GenericParameterS(_,RuneUsage(_,DenizenDefaultRegionRuneS(FunctionNameS(StrI(moo),_))),RegionGenericParameterTypeS(ReadWriteRegionS),None)) =>
-    }
-  }
-
-  test("Pure regioned function with explicit self region") {
-    val program1 = compile("pure func moo<r', t' rw>(ship &r'Spaceship) t'{ }")
-    val moo = program1.lookupFunction("moo")
-
-    moo.genericParams match {
-//      case Vector(
-//        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),Vector(),None),
-//        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("t"))),Vector(),None),
-//        GenericParameterS(_,RuneUsage(_,DefaultRegionRuneS()),Vector(ReadWriteRuneAttributeS(_)),None)) (of class scala.collection.immutable.Vector)
-      case Vector(
-        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))), RegionGenericParameterTypeS(ReadOnlyRegionS), None),
-        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("t"))), RegionGenericParameterTypeS(ReadWriteRegionS), None)) =>
-    }
-  }
+  // Put this back in with regions DO NOT SUBMIT
+//   test("Pure regioned function with explicit self region") {
+//     val program1 = compile("pure func moo<r', t' rw>(ship &r'Spaceship) t'{ }")
+//     val moo = program1.lookupFunction("moo")
+//
+//     moo.genericParams match {
+// //      case Vector(
+// //        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),Vector(),None),
+// //        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("t"))),Vector(),None),
+// //        GenericParameterS(_,RuneUsage(_,DefaultRegionRuneS()),Vector(ReadWriteRuneAttributeS(_)),None)) (of class scala.collection.immutable.Vector)
+//       case Vector(
+//         GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))), RegionGenericParameterTypeS(ReadOnlyRegionS), None),
+//         GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("t"))), RegionGenericParameterTypeS(ReadWriteRegionS), None)) =>
+//     }
+//   }
 
   test("Function with magic lambda and regular lambda") {
     // There was a bug that confused the two, and an underscore would add a magic param to every lambda after it
