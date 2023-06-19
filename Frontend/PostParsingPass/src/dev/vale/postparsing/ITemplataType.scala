@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{vcurious, vpass}
+import dev.vale.{vassert, vcurious, vpass}
 
 sealed trait ITemplataType
 case class RegionTemplataType() extends ITemplataType {
@@ -33,5 +33,7 @@ case class TemplateTemplataType(
   paramTypes: Vector[ITemplataType],
   returnType: ITemplataType
 ) extends ITemplataType {
+  vassert(!paramTypes.contains(RegionTemplataType()))
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }

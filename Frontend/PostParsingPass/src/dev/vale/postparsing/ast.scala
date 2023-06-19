@@ -96,6 +96,24 @@ case class StructS(
 
     members: Vector[IStructMemberS]
 ) extends ICitizenS {
+
+  vassert(
+    !genericParams.exists({ case x =>
+      x.rune.rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+  vassert(
+    !(membersRuneToExplicitType ++ membersPredictedRuneToType ++ headerRuneToExplicitType ++ headerPredictedRuneToType)
+        .keys
+        .exists({ case rune =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
 //  vassert(isTemplate == identifyingRunes.nonEmpty)
@@ -142,11 +160,31 @@ case class InterfaceS(
   // See IMRFDI
   internalMethods: Vector[FunctionS]
 ) extends ICitizenS {
+
+  vassert(
+    !genericParams.exists({ case x =>
+      x.rune.rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+  vassert(
+    !(runeToExplicitType ++ predictedRuneToType).exists({ case (rune, _) =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   internalMethods.foreach(internalMethod => {
-    // .init because every method has a default region as the last region param.
-    vassert(genericParams == internalMethod.genericParams.init)
+    // DO NOT SUBMIT
+    // Put this back in when we have regions
+    // // .init because every method has a default region as the last region param.
+    // vassert(genericParams == internalMethod.genericParams.init)
+    // Take this out when we have regions
+    vassert(genericParams == internalMethod.genericParams)
   })
 
 }
@@ -319,8 +357,21 @@ case class FunctionS(
 ) {
   vpass()
 
-  // Every function needs a region generic parameter, see DRIAGP.
-  vassert(genericParams.nonEmpty)
+  // Put this back in when we have regions
+  // // Every function needs a region generic parameter, see DRIAGP.
+  // vassert(genericParams.nonEmpty)
+  // Take this out when we have regions
+  vassert(
+    !genericParams.exists({ case x =>
+      x.rune.rune match { case DenizenDefaultRegionRuneS(_) => true case _ => false }
+    }))
+  vassert(
+    !runeToPredictedType.exists({ case (rune, _) =>
+      rune match {
+        case DenizenDefaultRegionRuneS(_) => true
+        case _ => false
+      }
+    }))
 
   body match {
     case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => {

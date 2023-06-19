@@ -1035,11 +1035,12 @@ class TemplataCompiler(
     runeToType: Map[IRuneS, ITemplataType],
     registerWithCompilerOutputs: Boolean):
   ITemplata[ITemplataType] = {
-    val immutable = vimpl()
-      // genericParam.attributes.exists({
-      //   case ImmutableRuneAttributeS(_) => true
-      //   case _ => false
-      // })
+    val immutable =
+      // DO NOT SUBMIT different regions
+      genericParam.tyype match {
+        case CoordGenericParameterTypeS(coordRegion, kindMutable, regionMutable) => !kindMutable
+        case _ => true
+      }
     val runeType = vassertSome(runeToType.get(genericParam.rune.rune))
     createPlaceholderInner(
       coutputs, env, namePrefix, index, genericParam.rune.rune, runeType, immutable, registerWithCompilerOutputs)

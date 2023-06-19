@@ -70,10 +70,16 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         runeToExplicitType += ((rune.rune, translateType(tyype)))
         tyype match {
           case CoordTypePR => {
-            if (componentsP.size != 3) {
-              vfail("Ref rule should have three components! Found: " + componentsP.size)
+            // Put back in with regions DO NOT SUBMIT
+            // if (componentsP.size != 3) {
+            //   vfail("Ref rule should have three components! Found: " + componentsP.size)
+            // }
+            if (componentsP.size != 2) {
+              vfail("Ref rule should have two components! Found: " + componentsP.size)
             }
-            val Vector(ownershipRuneS, regionRuneS, kindRuneS) =
+            // DO NOT SUBMIT regions
+            // val Vector(ownershipRuneS, regionRuneS, kindRuneS) =
+            val Vector(ownershipRuneS, kindRuneS) =
               translateRulexes(env, lidb.child(), builder, runeToExplicitType, contextRegion, componentsP)
             builder +=
               CoordComponentsSR(
@@ -248,6 +254,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case CoordComponentsSR(_, resultRune, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
     case KindComponentsSR(_, resultRune, _) =>
     case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
+    case CallSR(range, resultRune, templateRune, args) =>
     case MaybeCoercingCallSR(range, resultRune, templateRune, args) =>
     case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) =>
     case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) =>

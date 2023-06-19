@@ -189,6 +189,7 @@ class CompilerSolver(
           case LiteralSR(range, rune, literal) => Vector(rune)
           case AugmentSR(range, resultRune, ownership, innerRune) => Vector(resultRune, innerRune)
           case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
+          case MaybeCoercingCallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
 //          case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
           case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
 //          case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
@@ -210,6 +211,16 @@ class CompilerSolver(
       case MaybeCoercingLookupSR(range, _, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => Vector(Vector())
       case CallSR(range, resultRune, templateRune, args) => {
+        Vector(
+          Vector(templateRune.rune) ++ args.map(_.rune),
+          // Do we really need to do
+          //   Vector(resultRune.rune, templateRune.rune),
+          // Because if we have X = T<A> and we know that X is a Moo<int>
+          // then we can know T = Moo and A = int.
+          // So maybe one day we can not require templateRune here.
+          Vector(resultRune.rune, templateRune.rune))
+      }
+      case MaybeCoercingCallSR(range, resultRune, templateRune, args) => {
         Vector(
           Vector(templateRune.rune) ++ args.map(_.rune),
           // Do we really need to do
@@ -369,8 +380,12 @@ class CompilerRuleSolver(
               // case DefinitionCoordIsaSR(range, _, s, r) if r.rune == receiver => s.rune
               case CallSiteCoordIsaSR(range, _, s, r) if r.rune == receiver => s.rune
             }))
-        val callRules =
-          unsolvedRules.collect({ case z @ CallSR(range, r, _, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => z })
+        val callRulesTemplateRunes =
+          unsolvedRules
+              .collect({
+                case z @ CallSR(range, r, templateRune, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => templateRune
+                case z @ MaybeCoercingCallSR(range, r, templateRune, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => templateRune
+              })
         val senderConclusions =
           runesSendingToThisReceiver
             .flatMap(senderRune => solverState.getConclusion(senderRune).map(senderRune -> _))
@@ -381,14 +396,14 @@ class CompilerRuleSolver(
             .toVector
         val callTemplates =
           equivalencies.getKindEquivalentRunes(
-            callRules.map(_.templateRune.rune))
+            callRulesTemplateRunes.map(_.rune))
             .flatMap(solverState.getConclusion)
             .toVector
         vassert(callTemplates.distinct.size <= 1)
         // If true, there are some senders/constraints we don't know yet, so lets be
         // careful to not assume between any possibilities below.
         val allSendersKnown = senderConclusions.size == runesSendingToThisReceiver.size
-        val allCallsKnown = callRules.size == callTemplates.size
+        val allCallsKnown = callRulesTemplateRunes.size == callTemplates.size
         solveReceives(env, state, senderConclusions, callTemplates, allSendersKnown, allCallsKnown) match {
           case Err(e) => return Err(RuleError(e))
           case Ok(None) => None
@@ -970,197 +985,212 @@ class CompilerRuleSolver(
         Ok(())
       }
       case CallSR(range, resultRune, templateRune, argRunes) => {
-        stepState.getConclusion(resultRune.rune) match {
-          case Some(result) => {
-            val template = vassertSome(stepState.getConclusion(templateRune.rune))
-            template match {
-              case RuntimeSizedArrayTemplateTemplata() => {
-                result match {
-                  case CoordTemplata(CoordT(ShareT | OwnT, contentsRuntimeSizedArrayTT(mutability, memberType))) => {
-                    if (argRunes.size != 2) {
-                      return Err(WrongNumberOfTemplateArgs(2))
-                    }
-                    val Vector(mutabilityRune, elementRune) = argRunes
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    Ok(())
-                  }
-                  case KindTemplata(contentsRuntimeSizedArrayTT(mutability, memberType)) => {
-                    val Vector(mutabilityRune, elementRune) = argRunes
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    Ok(())
-                  }
-                  case _ => return Err(CallResultWasntExpectedType(template, result))
+        solveCallRule(env, stepState, range, state, resultRune, templateRune, argRunes)
+      }
+      case MaybeCoercingCallSR(range, resultRune, templateRune, argRunes) => {
+        solveCallRule(env, stepState, range, state, resultRune, templateRune, argRunes)
+      }
+    }
+  }
+
+  private def solveCallRule(
+      env: InferEnv,
+      stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]],
+      range: RangeS,
+      state: CompilerOutputs,
+      resultRune: RuneUsage,
+      templateRune: RuneUsage,
+      argRunes: Vector[RuneUsage]):
+  Result[Unit, ITypingPassSolverError] = {
+    stepState.getConclusion(resultRune.rune) match {
+      case Some(result) => {
+        val template = vassertSome(stepState.getConclusion(templateRune.rune))
+        template match {
+          case RuntimeSizedArrayTemplateTemplata() => {
+            result match {
+              case CoordTemplata(CoordT(ShareT | OwnT, contentsRuntimeSizedArrayTT(mutability, memberType))) => {
+                if (argRunes.size != 2) {
+                  return Err(WrongNumberOfTemplateArgs(2))
                 }
+                val Vector(mutabilityRune, elementRune) = argRunes
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
+                Ok(())
               }
-              case StaticSizedArrayTemplateTemplata() => {
-                result match {
-                  case CoordTemplata(CoordT(ShareT | OwnT, contentsStaticSizedArrayTT(size, mutability, variability, memberType))) => {
-                    if (argRunes.size != 4) {
-                      return Err(WrongNumberOfTemplateArgs(4))
-                    }
-                    val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune) = argRunes
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    Ok(())
-                  }
-                  case KindTemplata(contentsStaticSizedArrayTT(size, mutability, variability, memberType)) => {
-                    if (argRunes.size != 4) {
-                      return Err(WrongNumberOfTemplateArgs(4))
-                    }
-                    val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune) = argRunes
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    Ok(())
-                  }
-                  case _ => return Err(CallResultWasntExpectedType(template, result))
-                }
+              case KindTemplata(contentsRuntimeSizedArrayTT(mutability, memberType)) => {
+                val Vector(mutabilityRune, elementRune) = argRunes
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
+                Ok(())
               }
-              case it@InterfaceDefinitionTemplata(_, _) => {
-                result match {
-                  case KindTemplata(interface@InterfaceTT(_)) => {
-                    if (!delegate.kindIsFromTemplate(state, interface, it)) {
-                      return Err(CallResultWasntExpectedType(it, result))
-                    }
-                    vassert(argRunes.size == interface.fullName.localName.templateArgs.size)
-                    argRunes.zip(interface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case CoordTemplata(CoordT(OwnT | ShareT, interface@InterfaceTT(_))) => {
-                    if (!delegate.kindIsFromTemplate(state, interface, it)) {
-                      return Err(CallResultWasntExpectedType(it, result))
-                    }
-                    vassert(argRunes.size == interface.fullName.localName.templateArgs.size)
-                    argRunes.zip(interface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case _ => return Err(CallResultWasntExpectedType(template, result))
-                }
-              }
-              case it@KindTemplata(templateInterface@InterfaceTT(_)) => {
-                result match {
-                  case KindTemplata(instantiationInterface@InterfaceTT(_)) => {
-                    if (templateInterface != instantiationInterface) {
-                      return Err(CallResultWasntExpectedType(it, result))
-                    }
-                    argRunes.zip(instantiationInterface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface@InterfaceTT(_))) => {
-                    if (templateInterface != instantiationInterface) {
-                      return Err(CallResultWasntExpectedType(it, result))
-                    }
-                    argRunes.zip(instantiationInterface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case _ => return Err(CallResultWasntExpectedType(template, result))
-                }
-              }
-              case st@StructDefinitionTemplata(_, _) => {
-                result match {
-                  case KindTemplata(struct@StructTT(_)) => {
-                    if (!delegate.kindIsFromTemplate(state, struct, st)) {
-                      return Err(CallResultWasntExpectedType(st, result))
-                    }
-                    vassert(argRunes.size == struct.fullName.localName.templateArgs.size)
-                    argRunes.zip(struct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case CoordTemplata(CoordT(OwnT | ShareT, struct@StructTT(_))) => {
-                    if (!delegate.kindIsFromTemplate(state, struct, st)) {
-                      return Err(CallResultWasntExpectedType(st, result))
-                    }
-                    vassert(argRunes.size == struct.fullName.localName.templateArgs.size)
-                    argRunes.zip(struct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case _ => return Err(CallResultWasntExpectedType(template, result))
-                }
-              }
-              case it@KindTemplata(structTT@StructTT(_)) => {
-                result match {
-                  case KindTemplata(instantiationStruct@StructTT(_)) => {
-                    if (structTT != instantiationStruct) {
-                      return Err(CallResultWasntExpectedType(it, result))
-                    }
-                    argRunes.zip(instantiationStruct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationStruct@StructTT(_))) => {
-                    if (structTT != instantiationStruct) {
-                      return Err(CallResultWasntExpectedType(it, result))
-                    }
-                    argRunes.zip(instantiationStruct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
-                    })
-                    Ok(())
-                  }
-                  case _ => return Err(CallResultWasntExpectedType(template, result))
-                }
-              }
+              case _ => return Err(CallResultWasntExpectedType(template, result))
             }
           }
-          case None => {
-            val template = vassertSome(stepState.getConclusion(templateRune.rune))
-            template match {
-              case RuntimeSizedArrayTemplateTemplata() => {
-                val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val Vector(m, CoordTemplata(coord)) = args
-                val mutability = ITemplata.expectMutability(m)
-                val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability)
-                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
+          case StaticSizedArrayTemplateTemplata() => {
+            result match {
+              case CoordTemplata(CoordT(ShareT | OwnT, contentsStaticSizedArrayTT(size, mutability, variability, memberType))) => {
+                if (argRunes.size != 4) {
+                  return Err(WrongNumberOfTemplateArgs(4))
+                }
+                val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune) = argRunes
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
                 Ok(())
               }
-              case StaticSizedArrayTemplateTemplata() => {
-                val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val Vector(s, m, v, CoordTemplata(coord)) = args
-                val size = ITemplata.expectInteger(s)
-                val mutability = ITemplata.expectMutability(m)
-                val variability = ITemplata.expectVariability(v)
-                val rsaKind = delegate.predictStaticSizedArrayKind(env, state, mutability, variability, size, coord)
-                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
+              case KindTemplata(contentsStaticSizedArrayTT(size, mutability, variability, memberType)) => {
+                if (argRunes.size != 4) {
+                  return Err(WrongNumberOfTemplateArgs(4))
+                }
+                val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune) = argRunes
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
                 Ok(())
               }
-              case it @ StructDefinitionTemplata(_, _) => {
-                val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                // See SFWPRL for why we're calling predictStruct instead of resolveStruct
-                val kind = delegate.predictStruct(env, state, it, args.toVector)
-                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
-                Ok(())
-              }
-              case it @ InterfaceDefinitionTemplata(_, _) => {
-                val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                // See SFWPRL for why we're calling predictInterface instead of resolveInterface
-                val kind = delegate.predictInterface(env, state, it, args.toVector)
-                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
-                Ok(())
-              }
-              case kt @ KindTemplata(_) => {
-                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, kt)
-                Ok(())
-              }
-              case other => vimpl(other)
+              case _ => return Err(CallResultWasntExpectedType(template, result))
             }
           }
+          case it@InterfaceDefinitionTemplata(_, _) => {
+            result match {
+              case KindTemplata(interface@InterfaceTT(_)) => {
+                if (!delegate.kindIsFromTemplate(state, interface, it)) {
+                  return Err(CallResultWasntExpectedType(it, result))
+                }
+                vassert(argRunes.size == interface.fullName.localName.templateArgs.size)
+                argRunes.zip(interface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case CoordTemplata(CoordT(OwnT | ShareT, interface@InterfaceTT(_))) => {
+                if (!delegate.kindIsFromTemplate(state, interface, it)) {
+                  return Err(CallResultWasntExpectedType(it, result))
+                }
+                vassert(argRunes.size == interface.fullName.localName.templateArgs.size)
+                argRunes.zip(interface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case _ => return Err(CallResultWasntExpectedType(template, result))
+            }
+          }
+          case it@KindTemplata(templateInterface@InterfaceTT(_)) => {
+            result match {
+              case KindTemplata(instantiationInterface@InterfaceTT(_)) => {
+                if (templateInterface != instantiationInterface) {
+                  return Err(CallResultWasntExpectedType(it, result))
+                }
+                argRunes.zip(instantiationInterface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface@InterfaceTT(_))) => {
+                if (templateInterface != instantiationInterface) {
+                  return Err(CallResultWasntExpectedType(it, result))
+                }
+                argRunes.zip(instantiationInterface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case _ => return Err(CallResultWasntExpectedType(template, result))
+            }
+          }
+          case st@StructDefinitionTemplata(_, _) => {
+            result match {
+              case KindTemplata(struct@StructTT(_)) => {
+                if (!delegate.kindIsFromTemplate(state, struct, st)) {
+                  return Err(CallResultWasntExpectedType(st, result))
+                }
+                vassert(argRunes.size == struct.fullName.localName.templateArgs.size)
+                argRunes.zip(struct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case CoordTemplata(CoordT(OwnT | ShareT, struct@StructTT(_))) => {
+                if (!delegate.kindIsFromTemplate(state, struct, st)) {
+                  return Err(CallResultWasntExpectedType(st, result))
+                }
+                vassert(argRunes.size == struct.fullName.localName.templateArgs.size)
+                argRunes.zip(struct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case _ => return Err(CallResultWasntExpectedType(template, result))
+            }
+          }
+          case it@KindTemplata(structTT@StructTT(_)) => {
+            result match {
+              case KindTemplata(instantiationStruct@StructTT(_)) => {
+                if (structTT != instantiationStruct) {
+                  return Err(CallResultWasntExpectedType(it, result))
+                }
+                argRunes.zip(instantiationStruct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case CoordTemplata(CoordT(OwnT | ShareT, instantiationStruct@StructTT(_))) => {
+                if (structTT != instantiationStruct) {
+                  return Err(CallResultWasntExpectedType(it, result))
+                }
+                argRunes.zip(instantiationStruct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                })
+                Ok(())
+              }
+              case _ => return Err(CallResultWasntExpectedType(template, result))
+            }
+          }
+        }
+      }
+      case None => {
+        val template = vassertSome(stepState.getConclusion(templateRune.rune))
+        template match {
+          case RuntimeSizedArrayTemplateTemplata() => {
+            val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+            val Vector(m, CoordTemplata(coord)) = args
+            val mutability = ITemplata.expectMutability(m)
+            val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability)
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
+            Ok(())
+          }
+          case StaticSizedArrayTemplateTemplata() => {
+            val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+            val Vector(s, m, v, CoordTemplata(coord)) = args
+            val size = ITemplata.expectInteger(s)
+            val mutability = ITemplata.expectMutability(m)
+            val variability = ITemplata.expectVariability(v)
+            val rsaKind = delegate.predictStaticSizedArrayKind(env, state, mutability, variability, size, coord)
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
+            Ok(())
+          }
+          case it@StructDefinitionTemplata(_, _) => {
+            val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+            // See SFWPRL for why we're calling predictStruct instead of resolveStruct
+            val kind = delegate.predictStruct(env, state, it, args.toVector)
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
+            Ok(())
+          }
+          case it@InterfaceDefinitionTemplata(_, _) => {
+            val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+            // See SFWPRL for why we're calling predictInterface instead of resolveInterface
+            val kind = delegate.predictInterface(env, state, it, args.toVector)
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
+            Ok(())
+          }
+          case kt@KindTemplata(_) => {
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, kt)
+            Ok(())
+          }
+          case other => vimpl(other)
         }
       }
     }

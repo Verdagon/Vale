@@ -1547,7 +1547,10 @@ class ExpressionCompiler(
         Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
           nameS match {
             case LambdaStructImpreciseNameS(_) => {
-              Ok(TemplataLookupResult(TemplateTemplataType(Vector(RegionTemplataType()), KindTemplataType())))
+              // Take out with regions DO NOT SUBMIT
+              Ok(TemplataLookupResult(KindTemplataType()))
+              // Put back in with regions
+              // Ok(TemplataLookupResult(TemplateTemplataType(Vector(RegionTemplataType()), KindTemplataType())))
             }
             case _ => {
               // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
@@ -1581,7 +1584,11 @@ class ExpressionCompiler(
     // what types we *expect* them to be, so we could coerce.
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    explicifyLookups((range, name) => lookupType(name), runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    explicifyLookups(runeTypeSolveEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: parentRanges, name))
+      case Ok(()) =>
+    }
 
     vale.highertyping.FunctionA(
       rangeS,

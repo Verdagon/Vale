@@ -4,7 +4,7 @@ import dev.vale.{Err, Interner, Ok, RangeS, Result, vassert, vassertSome, vfail,
 import dev.vale.postparsing.rules._
 import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, ISolveRule, ISolverError, ISolverState, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale._
-import dev.vale.postparsing.RuneTypeSolver.checkGenericCall
+import dev.vale.postparsing.RuneTypeSolver.{checkGenericCall, checkGenericCallWithoutDefaults}
 import dev.vale.postparsing.rules._
 
 import scala.collection.immutable.Map
@@ -23,17 +23,23 @@ case class FoundTemplataDidntMatchExpectedType(
   range: List[RangeS],
   expectedType: ITemplataType,
   actualType: ITemplataType
-) extends IRuneTypeRuleError
+) extends IRuneTypeRuleError {
+  vpass()
+}
 case class FoundPrimitiveDidntMatchExpectedType(
   range: List[RangeS],
   expectedType: ITemplataType,
   actualType: ITemplataType
-) extends IRuneTypeRuleError
+) extends IRuneTypeRuleError {
+  vpass()
+}
 case class NotEnoughArgumentsForGenericCall(
   range: List[RangeS],
 //  citizen: ICitizenS,
   indexOfNonDefaultingParam: Int
-) extends IRuneTypeRuleError
+) extends IRuneTypeRuleError {
+  vpass()
+}
 case class GenericCallArgTypeMismatch(
   range: List[RangeS],
 //  citizen: ICitizenS,
@@ -313,6 +319,10 @@ class RuneTypeSolver(interner: Interner) {
           case PrimitiveRuneTypeSolverLookupResult(tyype) => {
             expectedType match {
               case CoordTemplataType() | KindTemplataType() => // Either is fine
+              // This could happen for e.g. Array and StaticArray, which are both primitive templates.
+              case x if x == tyype => {
+                // Not an implicit call, and it matches, proceed.
+              }
               case _ => return Err(RuleError(FoundPrimitiveDidntMatchExpectedType(List(range), expectedType, tyype)))
             }
           }
@@ -320,6 +330,13 @@ class RuneTypeSolver(interner: Interner) {
             (actualType, expectedType) match {
               case (x, y) if x == y => // Matches, so is fine
               case (KindTemplataType(), CoordTemplataType()) => // Will convert, so is fine
+              case (TemplateTemplataType(Vector(), KindTemplataType() | CoordTemplataType()), CoordTemplataType() | KindTemplataType()) => {
+                // Then it's an implicit call.
+                checkGenericCallWithoutDefaults(List(range), Vector(), Vector()) match {
+                  case Ok(()) =>
+                  case Err(e) => return Err(RuleError(e))
+                }
+              }
               case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
             }
           }
@@ -425,7 +442,13 @@ class RuneTypeSolver(interner: Interner) {
         } else {
           // Calculate what types we can beforehand, see KVCIE.
           rules.flatMap({
-            case MaybeCoercingLookupSR(range, rune, name) => {
+            case LookupSR(range, rune, name) => {
+              name match {
+                case CodeNameS(StrI("Array")) => {
+                  vpass()
+                }
+                case _ =>
+              }
               env.lookup(range, name) match {
                 case Err(e) => {
                   return Err(
@@ -433,12 +456,55 @@ class RuneTypeSolver(interner: Interner) {
                       List(range),
                       FailedSolve(Vector().toStream, rules.toVector, RuleError(e))))
                 }
-                // We don't know whether we'll interpret these kinds as coords.
-                case Ok(CitizenRuneTypeSolverLookupResult(_, _)) => List()
-                case Ok(PrimitiveRuneTypeSolverLookupResult(_)) => List()
+                // We don't know whether we'll coerce this into a kind or a coord.
+                case Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType())) => List()
+                case Ok(PrimitiveRuneTypeSolverLookupResult(t@TemplateTemplataType(Vector(), _))) => List()
+                // We'll load this as is. If its a call with params, leave it to the call site to figure out how to coerce the return.
+                case Ok(PrimitiveRuneTypeSolverLookupResult(tyype)) => List(rune.rune -> tyype)
+
+                // We don't know whether we'll coerce this into a kind or a coord.
+                case Ok(CitizenRuneTypeSolverLookupResult(TemplateTemplataType(Vector(), KindTemplataType()), _)) => List()
+                // We can't automatically coerce this, so we can use it as is.
+                case Ok(CitizenRuneTypeSolverLookupResult(tyype, _)) => List(rune.rune -> tyype)
+
+                // We don't know whether we'll coerce this into a kind or a coord.
+                case Ok(TemplataLookupResult(TemplateTemplataType(Vector(), KindTemplataType()))) => List()
                 case Ok(TemplataLookupResult(KindTemplataType())) => List()
                 // If it's not a kind, then we'll use it as it is.
-                case Ok(TemplataLookupResult(templata)) => List(rune.rune -> templata)
+                case Ok(TemplataLookupResult(tyype)) => List(rune.rune -> tyype)
+                case _ => vwat()
+              }
+            }
+            case MaybeCoercingLookupSR(range, rune, name) => {
+              name match {
+                case CodeNameS(StrI("Array")) => {
+                  vpass()
+                }
+                case _ =>
+              }
+              env.lookup(range, name) match {
+                case Err(e) => {
+                  return Err(
+                    RuneTypeSolveError(
+                      List(range),
+                      FailedSolve(Vector().toStream, rules.toVector, RuleError(e))))
+                }
+                // We don't know whether we'll coerce this into a kind or a coord.
+                case Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType())) => List()
+                case Ok(PrimitiveRuneTypeSolverLookupResult(t@TemplateTemplataType(Vector(), _))) => List()
+                // We'll load this as is. If its a call with params, leave it to the call site to figure out how to coerce the return.
+                case Ok(PrimitiveRuneTypeSolverLookupResult(tyype)) => List(rune.rune -> tyype)
+
+                // We don't know whether we'll coerce this into a kind or a coord.
+                case Ok(CitizenRuneTypeSolverLookupResult(TemplateTemplataType(Vector(), KindTemplataType()), _)) => List()
+                // We can't automatically coerce this, so we can use it as is.
+                case Ok(CitizenRuneTypeSolverLookupResult(tyype, _)) => List(rune.rune -> tyype)
+
+                // We don't know whether we'll coerce this into a kind or a coord.
+                case Ok(TemplataLookupResult(TemplateTemplataType(Vector(), KindTemplataType()))) => List()
+                case Ok(TemplataLookupResult(KindTemplataType())) => List()
+                // If it's not a kind, then we'll use it as it is.
+                case Ok(TemplataLookupResult(tyype)) => List(rune.rune -> tyype)
                 case _ => vwat()
               }
             }
@@ -498,6 +564,28 @@ class RuneTypeSolver(interner: Interner) {
 }
 
 object RuneTypeSolver {
+  def checkGenericCallWithoutDefaults(
+      range: List[RangeS],
+      paramTypes: Vector[ITemplataType],
+      argTypes: Vector[ITemplataType]):
+  Result[Unit, IRuneTypeRuleError] = {
+    paramTypes.zipWithIndex.foreach({ case (paramType, index) =>
+      if (index < argTypes.length) {
+        val actualType = argTypes(index)
+        // Make sure the given type matches the expected one
+        if (paramType == actualType) {
+          // Matches, proceed.
+        } else {
+          return Err(GenericCallArgTypeMismatch(range, paramType, actualType, index))
+        }
+      } else {
+        return Err(NotEnoughArgumentsForGenericCall(range, index))
+      }
+    })
+
+    Ok(())
+  }
+
   def checkGenericCall(
     range: List[RangeS],
     citizenGenericParams: Vector[GenericParameterS],

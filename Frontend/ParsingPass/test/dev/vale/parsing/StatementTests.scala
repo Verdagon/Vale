@@ -349,6 +349,20 @@ class StatementTests extends FunSuite with Collector with TestParseUtils {
     }
   }
 
+  test("Empty block") {
+    compileBlockContentsExpect(
+      """
+        |block {
+        |}
+        |return 3;
+    """.stripMargin) match {
+      case ConsecutorPE(
+        Vector(
+          BlockPE(_,None,None,VoidPE(_)),
+          ReturnPE(_,ConstantIntPE(_,3,None)), VoidPE(_))) =>
+    }
+  }
+
   test("Cant use set as a local name") {
     val error = compileStatement(
       """[set] = (6,)""".stripMargin).expectErr()
