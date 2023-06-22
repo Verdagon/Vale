@@ -293,7 +293,7 @@ object PostParser {
             val first = remainingAttributes0P.head
             throw CompileErrorExceptionS(BadRuneAttributeErrorS(evalRange(env.file, first.range), first))
           }
-          // DO NOT SUBMIT we really need to figure out this kind immutable stuff.
+          vregionmut() // we really need to figure out this kind immutable stuff.
           val kindMutable = immutableAttrs.isEmpty
           val regionMutable = mutableAttrs.nonEmpty
           CoordGenericParameterTypeS(None, kindMutable, regionMutable)
@@ -447,7 +447,7 @@ class PostParser(
     {
       val regionRange = RangeS(rangeS.end, rangeS.end)
       val rune = DenizenDefaultRegionRuneS(implName)
-      // Put back in when we have regions DO NOT SUBMIT
+      vregionmut() // Put back in when we have regions
       // runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
@@ -613,7 +613,7 @@ class PostParser(
         case None => {
           val regionRange = RangeS(bodyRangeS.begin, bodyRangeS.begin)
           val rune = DenizenDefaultRegionRuneS(structName)
-          // Put back in when we have regions DO NOT SUBMIT
+          vregionmut() // Put back in when we have regions
           // headerRuneToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
@@ -640,7 +640,7 @@ class PostParser(
 
     val genericParametersS =
       structUserSpecifiedGenericParametersS
-        // Put back in when we have regions DO NOT SUBMIT
+        vregionmut() // Put back in when we have regions
         //++ maybeRegionGenericParam
         //++ userSpecifiedRunesImplicitRegionRunesS
 
@@ -820,7 +820,7 @@ class PostParser(
         case None => {
           val regionRange = RangeS(bodyRangeS.begin, bodyRangeS.begin)
           val rune = DenizenDefaultRegionRuneS(interfaceFullName)
-          // Put this back in when we have regions DO NOT SUBMIT
+          vregionmut() // Put this back in when we have regions
           // runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)

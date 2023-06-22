@@ -26,13 +26,7 @@ case class FoundTemplataDidntMatchExpectedType(
 ) extends IRuneTypeRuleError {
   vpass()
 }
-case class FoundPrimitiveDidntMatchExpectedType(
-  range: List[RangeS],
-  expectedType: ITemplataType,
-  actualType: ITemplataType
-) extends IRuneTypeRuleError {
-  vpass()
-}
+
 case class NotEnoughArgumentsForGenericCall(
   range: List[RangeS],
 //  citizen: ICitizenS,
@@ -55,6 +49,20 @@ case class RuneTypingTooManyMatchingTypes(range: RangeS, name: IImpreciseNameS) 
 }
 case class RuneTypingCouldntFindType(range: RangeS, name: IImpreciseNameS) extends IRuneTypingLookupFailedError {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+}
+case class FoundTemplataDidntMatchExpectedTypeA(
+    range: List[RangeS],
+    expectedType: ITemplataType,
+    actualType: ITemplataType
+) extends IRuneTypingLookupFailedError {
+  vpass()
+}
+case class FoundPrimitiveDidntMatchExpectedType(
+  range: List[RangeS],
+  expectedType: ITemplataType,
+  actualType: ITemplataType
+) extends IRuneTypingLookupFailedError {
   vpass()
 }
 
@@ -314,89 +322,15 @@ class RuneTypeSolver(interner: Interner) {
             case Err(e) => return Err(RuleError(e))
             case Ok(x) => x
           }
-        val expectedType = vassertSome(stepState.getConclusion(rune.rune))
-        actualLookupResult match {
-          case PrimitiveRuneTypeSolverLookupResult(tyype) => {
-            expectedType match {
-              case CoordTemplataType() | KindTemplataType() => // Either is fine
-              // This could happen for e.g. Array and StaticArray, which are both primitive templates.
-              case x if x == tyype => {
-                // Not an implicit call, and it matches, proceed.
-              }
-              case _ => return Err(RuleError(FoundPrimitiveDidntMatchExpectedType(List(range), expectedType, tyype)))
-            }
-          }
-          case TemplataLookupResult(actualType) => {
-            (actualType, expectedType) match {
-              case (x, y) if x == y => // Matches, so is fine
-              case (KindTemplataType(), CoordTemplataType()) => // Will convert, so is fine
-              case (TemplateTemplataType(Vector(), KindTemplataType() | CoordTemplataType()), CoordTemplataType() | KindTemplataType()) => {
-                // Then it's an implicit call.
-                checkGenericCallWithoutDefaults(List(range), Vector(), Vector()) match {
-                  case Ok(()) =>
-                  case Err(e) => return Err(RuleError(e))
-                }
-              }
-              case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
-            }
-          }
-          case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
-            expectedType match {
-              case CoordTemplataType() | KindTemplataType() => {
-                // Then it's an implicit call, straight from being looked up.
-                checkGenericCall(List(range), genericParams, Vector()) match {
-                  case Ok(()) =>
-                  case Err(e) => return Err(RuleError(e))
-                }
-              }
-              case x if x == tyype => {
-                // Not an implicit call, and it matches, proceed.
-              }
-              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, tyype)))
-            }
-          }
-        }
-        Ok(())
+        lookup(env, stepState, range, rune, actualLookupResult)
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        // DO NOT SUBMIT combine with code from MaybeCoercingLookupSR
         val actualLookupResult =
           env.lookup(range, interner.intern(RuneNameS(rune.rune))) match {
             case Err(e) => return Err(RuleError(e))
             case Ok(x) => x
           }
-        val expectedType = vassertSome(stepState.getConclusion(rune.rune))
-        actualLookupResult match {
-          case PrimitiveRuneTypeSolverLookupResult(tyype) => {
-            expectedType match {
-              case CoordTemplataType() | KindTemplataType() => // Either is fine
-              case _ => return Err(RuleError(FoundPrimitiveDidntMatchExpectedType(List(range), expectedType, tyype)))
-            }
-          }
-          case TemplataLookupResult(actualType) => {
-            (actualType, expectedType) match {
-              case (x, y) if x == y => // Matches, so is fine
-              case (KindTemplataType(), CoordTemplataType()) => // Will convert, so is fine
-              case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
-            }
-          }
-          case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
-            expectedType match {
-              case CoordTemplataType() | KindTemplataType() => {
-                // Then it's an implicit call, straight from being looked up.
-                checkGenericCall(List(range), genericParams, Vector()) match {
-                  case Ok(()) =>
-                  case Err(e) => return Err(RuleError(e))
-                }
-              }
-              case x if x == tyype => {
-                // Not an implicit call, and it matches, proceed.
-              }
-              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, tyype)))
-            }
-          }
-        }
-        Ok(())
+        lookup(env, stepState, range, rune, actualLookupResult)
       }
       case AugmentSR(range, resultRune, ownership, innerRune) => {
         stepState.concludeRune(List(range), resultRune.rune, CoordTemplataType())
@@ -421,6 +355,58 @@ class RuneTypeSolver(interner: Interner) {
 //        Ok(())
 //      }
     }
+  }
+
+  private def lookup(
+      env: IRuneTypeSolverEnv,
+      stepState: IStepState[IRulexSR, IRuneS, ITemplataType],
+      range: RangeS,
+      rune: RuneUsage,
+      actualLookupResult: IRuneTypeSolverLookupResult):
+  Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
+    val expectedType = vassertSome(stepState.getConclusion(rune.rune))
+    actualLookupResult match {
+      case PrimitiveRuneTypeSolverLookupResult(tyype) => {
+        expectedType match {
+          case CoordTemplataType() | KindTemplataType() => // Either is fine
+          // This could happen for e.g. Array and StaticArray, which are both primitive templates.
+          case x if x == tyype => {
+            // Not an implicit call, and it matches, proceed.
+          }
+          case _ => return Err(RuleError(FoundPrimitiveDidntMatchExpectedType(List(range), expectedType, tyype)))
+        }
+      }
+      case TemplataLookupResult(actualType) => {
+        (actualType, expectedType) match {
+          case (x, y) if x == y => // Matches, so is fine
+          case (KindTemplataType(), CoordTemplataType()) => // Will convert, so is fine
+          case (TemplateTemplataType(Vector(), KindTemplataType() | CoordTemplataType()), CoordTemplataType() | KindTemplataType()) => {
+            // Then it's an implicit call.
+            checkGenericCallWithoutDefaults(List(range), Vector(), Vector()) match {
+              case Ok(()) =>
+              case Err(e) => return Err(RuleError(e))
+            }
+          }
+          case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
+        }
+      }
+      case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
+        expectedType match {
+          case CoordTemplataType() | KindTemplataType() => {
+            // Then it's an implicit call, straight from being looked up.
+            checkGenericCall(List(range), genericParams, Vector()) match {
+              case Ok(()) =>
+              case Err(e) => return Err(RuleError(e))
+            }
+          }
+          case x if x == tyype => {
+            // Not an implicit call, and it matches, proceed.
+          }
+          case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, tyype)))
+        }
+      }
+    }
+    Ok(())
   }
 
   def solve(

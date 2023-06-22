@@ -158,7 +158,7 @@ class FunctionScout(
           val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
           val rune = DenizenDefaultRegionRuneS(funcName)
           vassert(!runeToExplicitType.exists(_._1 == rune))
-          // Put this back in with regions DO NOT SUBMIT
+          vregionmut() // Put this back in with regions
           // runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(
@@ -480,7 +480,8 @@ class FunctionScout(
       extraGenericParamsFromParentS ++
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS// ++
-        //maybeRegionGenericParam DO NOT SUBMIT
+        vregionmut() // Put back in regions
+        //maybeRegionGenericParam
         //++ userSpecifiedRunesImplicitRegionRunesS
 
     val unfilteredRulesArray = ruleBuilder.toVector

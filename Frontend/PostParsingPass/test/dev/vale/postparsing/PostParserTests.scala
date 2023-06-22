@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, SourceCodeUtils, StrI, vassert, vfail}
+import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, SourceCodeUtils, StrI, vassert, vfail, vregionmut}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.{FinalP, LoadAsBorrowP, MutableP, UseP}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
@@ -39,8 +39,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  // DO NOT SUBMIT
-  // put this back in with regions
+  vregionmut() // Put this back in with regions
   // test("Every function gets region generic param") {
   //   val program1 = compile("func moo() int { 3 }")
   //
@@ -116,12 +115,14 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case Vector(
         GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
         GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None)
-        // Put this back in when we have regions DO NOT SUBMIT
+        // Put this back in when we have regions
         // , _
         ) => {
         vassert(mp1b != mp2b) // Two different runes
       }
     }
+
+    vregionmut() // see above
   }
 
   test("Interface") {
@@ -183,7 +184,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, CodeNameS(StrI("shout")), _, _), Vector(LocalLoadSE(_,CodeVarNameS(StrI("x")), UseP))) => })
   }
 
-  // Put this back in with regions DO NOT SUBMIT
+  vregionmut() // Put this back in with regions
   // test("Pure regioned function") {
   //   val program1 = compile("pure func moo<r'>(ship &r'Spaceship) { }")
   //   val moo = program1.lookupFunction("moo")
@@ -191,13 +192,13 @@ class PostParserTests extends FunSuite with Matchers with Collector {
   //   moo.genericParams match {
   //     case Vector(
   //       GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI(r))),RegionGenericParameterTypeS(ReadOnlyRegionS),None)
-  //       // Put this back in when we have regions DO NOT SUBMIT
+  //       // Put this back in when we have regions
   //       // ,GenericParameterS(_,RuneUsage(_,DenizenDefaultRegionRuneS(FunctionNameS(StrI("moo"),_))),RegionGenericParameterTypeS(ReadWriteRegionS),None)
   //     ) =>
   //   }
   // }
 
-  // Put this back in with regions DO NOT SUBMIT
+  vregionmut() // Put this back in with regions
 //   test("Pure regioned function with explicit self region") {
 //     val program1 = compile("pure func moo<r', t' rw>(ship &r'Spaceship) t'{ }")
 //     val moo = program1.lookupFunction("moo")

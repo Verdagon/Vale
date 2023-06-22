@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{PackageCoordinate, RangeS, StrI, vassert, vcurious, vfail, vpass, vwat}
+import dev.vale.{PackageCoordinate, RangeS, StrI, vassert, vcurious, vfail, vpass, vregionmut, vwat}
 import dev.vale.parsing.ast.{IMacroInclusionP, IRuneAttributeP, MutabilityP, VariabilityP}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.parsing._
@@ -179,8 +179,7 @@ case class InterfaceS(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   internalMethods.foreach(internalMethod => {
-    // DO NOT SUBMIT
-    // Put this back in when we have regions
+    vregionmut() // Put this back in when we have regions
     // // .init because every method has a default region as the last region param.
     // vassert(genericParams == internalMethod.genericParams.init)
     // Take this out when we have regions

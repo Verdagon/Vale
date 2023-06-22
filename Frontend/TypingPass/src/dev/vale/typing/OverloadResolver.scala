@@ -273,20 +273,7 @@ class OverloadResolver(
                     // rulesA is the equals rules, but rule typed. Now we'll run them through the solver to get
                     // some actual templatas.
 
-                    val runeTypeSolveEnv =
-                      new IRuneTypeSolverEnv {
-                        override def lookup(range: RangeS, nameS: IImpreciseNameS):
-                        Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-                          // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
-                          callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                            case Some(CitizenDefinitionTemplata(environment, a)) => {
-                              Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
-                            }
-                            case Some(x) => Ok(TemplataLookupResult(x.tyype))
-                            case None => Err(RuneTypingCouldntFindType(range, nameS))
-                          }
-                        }
-                      }
+                    val runeTypeSolveEnv = TemplataCompiler.createRuneTypeSolverEnv(callingEnv)
 
                     val runeAToType =
                       mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)

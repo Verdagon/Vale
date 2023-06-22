@@ -3,7 +3,7 @@ package dev.vale.highertyping
 import dev.vale
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.lexing.{FailedParse, RangeL}
-import dev.vale.{CodeLocationS, Err, FileCoordinateMap, IPackageResolver, Interner, Keywords, Ok, PackageCoordinate, PackageCoordinateMap, Profiler, RangeS, Result, SourceCodeUtils, StrI, highertyping, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{CodeLocationS, Err, FileCoordinateMap, IPackageResolver, Interner, Keywords, Ok, PackageCoordinate, PackageCoordinateMap, Profiler, RangeS, Result, SourceCodeUtils, StrI, highertyping, vassert, vassertSome, vcurious, vfail, vimpl, vregionmut, vwat}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.{FileP, OwnP}
 import dev.vale.postparsing.rules.{IRulexSR, RuleScout}
@@ -95,7 +95,7 @@ object HigherTypingPass {
                 vassert(paramTypes.nonEmpty) // impl, if it's empty we might need to do some coercing.
                 ruleBuilder += LookupSR(range, resultRune, name)
               }
-              case _ => vimpl() // DO NOT SUBMIT // return Err(FoundPrimitiveDidntMatchExpectedType(List(range), desiredType, tyype))
+              case _ => return Err(FoundPrimitiveDidntMatchExpectedType(List(range), desiredType, tyype))
             }
           }
           case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
@@ -112,7 +112,7 @@ object HigherTypingPass {
                 vassert(paramTypes.nonEmpty) // impl, if it's empty we might need to do some coercing.
                 ruleBuilder += LookupSR(range, resultRune, name)
               }
-              case _ => vimpl() // DO NOT SUBMIT // return Err(FoundCitizenDidntMatchExpectedType(List(range), desiredType, citizen))
+              case _ => return Err(FoundTemplataDidntMatchExpectedTypeA(List(range), desiredType, tyype))
             }
           }
           case TemplataLookupResult(actualType) => {
@@ -203,13 +203,14 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       keywords.float -> KindTemplataType(),
       keywords.void -> KindTemplataType(),
       keywords.__Never -> KindTemplataType(),
-      // Take out with regions DO NOT SUBMIT
       keywords.Array -> TemplateTemplataType(Vector(MutabilityTemplataType(), CoordTemplataType()), KindTemplataType()),
       keywords.StaticArray -> TemplateTemplataType(Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType()), KindTemplataType())
       // Put in with regions
       // keywords.Array -> TemplateTemplataType(Vector(MutabilityTemplataType(), CoordTemplataType(), RegionTemplataType()), KindTemplataType()),
       // keywords.StaticArray -> TemplateTemplataType(Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType(), RegionTemplataType()), KindTemplataType())
       )
+
+  vregionmut() // Change the above Array/StaticArray templata types to have regions in them
 
 
 

@@ -92,8 +92,7 @@ object PostParserErrorHumanizer {
         "Not enough arguments for generic call, expected at least " + (indexOfNonDefaultingParam + 1)
       }
       case FoundPrimitiveDidntMatchExpectedType(range, expectedType, actualType) => {
-        // DO NOT SUBMIT better error msgs
-        "Found primitive didnt match expected type. Expected " + expectedType + " but was " + actualType
+        "Found primitive didnt match expected type. Expected " + humanizeTemplataType(expectedType) + " but was " + humanizeTemplataType(actualType)
       }
       case other => vimpl(other)
     }
