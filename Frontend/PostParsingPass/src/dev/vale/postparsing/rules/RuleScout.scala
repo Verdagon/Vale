@@ -3,7 +3,7 @@ package dev.vale.postparsing.rules
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast.{BoolTypePR, BuiltinCallPR, ComponentsPR, CoordListTypePR, CoordTypePR, EqualsPR, IRulexPR, ITypePR, IntPT, IntTypePR, KindTypePR, LocationTypePR, MutabilityTypePR, NameP, OrPR, OwnershipPT, OwnershipTypePR, PrototypeTypePR, TemplexPR, TypedPR, VariabilityTypePR}
 import dev.vale.postparsing._
-import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail, vimpl, vregionmut, vwat}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
@@ -70,14 +70,14 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         runeToExplicitType += ((rune.rune, translateType(tyype)))
         tyype match {
           case CoordTypePR => {
-            // Put back in with regions DO NOT SUBMIT
+            vregionmut() // Put back in with regions
             // if (componentsP.size != 3) {
             //   vfail("Ref rule should have three components! Found: " + componentsP.size)
             // }
             if (componentsP.size != 2) {
               vfail("Ref rule should have two components! Found: " + componentsP.size)
             }
-            // DO NOT SUBMIT regions
+            vregionmut() // Put back in with regions
             // val Vector(ownershipRuneS, regionRuneS, kindRuneS) =
             val Vector(ownershipRuneS, kindRuneS) =
               translateRulexes(env, lidb.child(), builder, runeToExplicitType, contextRegion, componentsP)

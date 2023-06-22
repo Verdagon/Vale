@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, SourceCodeUtils, StrI, vassert, vfail, vimpl}
+import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, SourceCodeUtils, StrI, vassert, vfail, vimpl, vregionmut}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.BorrowP
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
@@ -40,16 +40,17 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""func main<T>(moo T) { }""")
     val main = program1.lookupFunction("main")
 
-    // Take out with regions DO NOT SUBMIT
+    vregionmut() // Take out with regions
     // Should have T, the default region, and the return rune
     vassert(main.runeToPredictedType.size == 2)
     // // Should have T, the default region, and the return rune
     // vassert(main.runeToPredictedType.size == 3)
 
+    vregionmut() // see below
     main.genericParams match {
       case Vector(
         GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), CoordGenericParameterTypeS(_, _, _), None)
-        // Put this back in when we have regions DO NOT SUBMIT
+        // Put this back in when we have regions
         // , _ // implicit default region
         ) =>
 //      case Vector(
@@ -119,15 +120,15 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  // Put back in with regions DO NOT SUBMIT
+  vregionmut() // Put back in with regions
   // test("Regioned pure function") {
   //   val bork = compile("pure func main<r', t'>(ship &r'Spaceship) t'{ }")
   //
   //   val main = bork.lookupFunction("main")
   //   main.genericParams.size shouldEqual 2
   // }
-  // Put back in with regions DO NOT SUBMIT
 
+  vregionmut() // Put back in with regions
   // test("Regioned additive function") {
   //   val bork = compile("additive func main<r', t'>(ship &r'Spaceship) t'{ }")
   //
@@ -145,12 +146,12 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")
-    // Put this back in when we have regions DO NOT SUBMIT
+    vregionmut() // Put this back in when we have regions
     // main.genericParams.size shouldEqual 1 // only the default region
     // Take this out when we have regions
     main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    // Put this back in when we have regions DO NOT SUBMIT
+    vregionmut() // Put this back in when we have regions
     // lambda.function.genericParams.size shouldEqual 1 // only the default region
     // Take this out when we have regions
     lambda.function.genericParams.size shouldEqual 0
@@ -163,12 +164,12 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")
-    // Put this back in when we have regions DO NOT SUBMIT
+    vregionmut() // Put this back in when we have regions
     // main.genericParams.size shouldEqual 1 // Only the default region
     // Take this out when we have regions
     main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    // Put this back in when we have regions DO NOT SUBMIT
+    vregionmut() // Put this back in when we have regions
     // // magic param + default region
     // lambda.function.genericParams.size shouldEqual 2
     // Take this out when we have regions

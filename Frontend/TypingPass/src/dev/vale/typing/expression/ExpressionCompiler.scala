@@ -1541,30 +1541,7 @@ class ExpressionCompiler(
       runeToExplicitType ++
         paramsS.map(_.pattern.coordRune.get.rune -> CoordTemplataType()).toMap
 
-    val runeTypeSolveEnv =
-      new IRuneTypeSolverEnv {
-        override def lookup(range: RangeS, nameS: IImpreciseNameS):
-        Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          nameS match {
-            case LambdaStructImpreciseNameS(_) => {
-              // Take out with regions DO NOT SUBMIT
-              Ok(TemplataLookupResult(KindTemplataType()))
-              // Put back in with regions
-              // Ok(TemplataLookupResult(TemplateTemplataType(Vector(RegionTemplataType()), KindTemplataType())))
-            }
-            case _ => {
-              // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
-              nenv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                case Some(CitizenDefinitionTemplata(environment, a)) => {
-                  Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
-                }
-                case Some(x) => Ok(TemplataLookupResult(x.tyype))
-                case None => Err(RuneTypingCouldntFindType(range, nameS))
-              }
-            }
-          }
-        }
-      }
+    val runeTypeSolveEnv = TemplataCompiler.createRuneTypeSolverEnv(nenv.snapshot)
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       new RuneTypeSolver(interner).solve(

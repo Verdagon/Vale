@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{Err, FileCoordinateMap, Interner, Ok, RangeS, SourceCodeUtils, StrI, vassertSome, vfail}
+import dev.vale.{Err, FileCoordinateMap, Interner, Ok, RangeS, SourceCodeUtils, StrI, vassertSome, vfail, vregionmut}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing._
 import dev.vale.postparsing._
@@ -76,7 +76,7 @@ class PostParsingRuleTests extends FunSuite with Matchers {
 
   test("Predict CoordComponent types") {
     val interner = new Interner()
-    // Put back in with regions DO NOT SUBMIT
+    vregionmut() // Put back in with regions
     // val program =
     //   compile(
     //     """
@@ -94,7 +94,7 @@ class PostParsingRuleTests extends FunSuite with Matchers {
 
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("T"))))) shouldEqual CoordTemplataType()
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("O"))))) shouldEqual OwnershipTemplataType()
-    // Put back in with regions DO NOT SUBMIT
+    vregionmut() // Put back in with regions
     // vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("R"))))) shouldEqual RegionTemplataType()
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("K"))))) shouldEqual KindTemplataType()
   }
