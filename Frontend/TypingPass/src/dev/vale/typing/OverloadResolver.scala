@@ -542,7 +542,8 @@ class OverloadResolver(
             val bounds = Map[IRuneS, PrototypeTemplataT]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-            Ok(ValidPrototypeTemplataCalleeCandidate(vimpl(), None, PrototypeTemplataT(declarationRange, prototype)))
+            // Supplying false here because we don't have any pure bounds yet.
+            Ok(ValidPrototypeTemplataCalleeCandidate(vregionmut(false), None, PrototypeTemplataT(declarationRange, prototype)))
           }
           case Err(fff) => Err(fff)
         }
