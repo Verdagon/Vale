@@ -1,7 +1,7 @@
 package dev.vale.instantiating.ast
 
 import dev.vale.postparsing._
-import dev.vale.typing.env.IInDenizenEnvironment
+import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IPlaceholderNameT, IRegionNameT, IdT, InterfaceTemplateNameT, KindPlaceholderNameT, RegionPlaceholderNameT}
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}

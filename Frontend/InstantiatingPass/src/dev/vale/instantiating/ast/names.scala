@@ -27,11 +27,11 @@ case class IdI[+R <: IRegionsModeI, +I <: INameI[R]](
     }
   }
 
-  def packageFullName: IdI[R, PackageTopLevelNameI[R]] = {
+  def packageId: IdI[R, PackageTopLevelNameI[R]] = {
     IdI(packageCoord, Vector(), PackageTopLevelNameI())
   }
 
-  def initFullName: IdI[R, INameI[R]] = {
+  def initId: IdI[R, INameI[R]] = {
     if (initSteps.isEmpty) {
       IdI(packageCoord, Vector(), PackageTopLevelNameI())
     } else {
@@ -39,7 +39,7 @@ case class IdI[+R <: IRegionsModeI, +I <: INameI[R]](
     }
   }
 
-  def initNonPackageFullName(): Option[IdI[R, INameI[R]]] = {
+  def initNonPackageId(): Option[IdI[R, INameI[R]]] = {
     if (initSteps.isEmpty) {
       None
     } else {

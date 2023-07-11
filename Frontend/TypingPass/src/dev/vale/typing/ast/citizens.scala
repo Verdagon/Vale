@@ -14,7 +14,7 @@ trait CitizenDefinitionT {
   def templateName: IdT[ICitizenTemplateNameT]
   def genericParamTypes: Vector[ITemplataType]
   def instantiatedCitizen: ICitizenTT
-  def defaultRegion: ITemplataT[RegionTemplataType]
+  def defaultRegion: RegionT
 }
 
 case class StructDefinitionT(
@@ -29,10 +29,10 @@ case class StructDefinitionT(
   runeToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
   runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
 ) extends CitizenDefinitionT {
-  def defaultRegion: PlaceholderTemplataT[RegionTemplataType] = {
+  def defaultRegion: RegionT = {
     instantiatedCitizen.id.localName.templateArgs.last match {
-      case PlaceholderTemplataT(fullNameT, RegionTemplataType()) =>  {
-        PlaceholderTemplataT(fullNameT, RegionTemplataType())
+      case PlaceholderTemplataT(idT, RegionTemplataType()) =>  {
+        RegionT(PlaceholderTemplataT(idT, RegionTemplataType()))
       }
     }
   }
@@ -125,10 +125,10 @@ case class InterfaceDefinitionT(
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[(PrototypeT, Int)]
 ) extends CitizenDefinitionT {
-  def defaultRegion: PlaceholderTemplataT[RegionTemplataType] = {
+  def defaultRegion: RegionT = {
     instantiatedInterface.id.localName.templateArgs.last match {
-      case PlaceholderTemplataT(fullNameT, RegionTemplataType()) =>  {
-        PlaceholderTemplataT(fullNameT, RegionTemplataType())
+      case PlaceholderTemplataT(idT, RegionTemplataType()) =>  {
+        RegionT(PlaceholderTemplataT(idT, RegionTemplataType()))
       }
     }
   }

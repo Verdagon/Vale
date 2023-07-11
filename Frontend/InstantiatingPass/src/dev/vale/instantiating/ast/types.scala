@@ -3,7 +3,7 @@ package dev.vale.instantiating.ast
 import dev.vale._
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast._
-import dev.vale.typing.env.IInDenizenEnvironment
+import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.names._
 import dev.vale.highertyping._
 import dev.vale.postparsing._

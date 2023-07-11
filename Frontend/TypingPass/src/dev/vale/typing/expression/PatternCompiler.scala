@@ -53,7 +53,7 @@ class PatternCompiler(
     parentRanges: List[RangeS],
     patternsA: Vector[AtomSP],
     patternInputsTE: Vector[ReferenceExpressionTE],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     // This would be a continuation-ish lambda that evaluates:
     // - The body of an if-let statement
     // - The body of a match's case statement
@@ -75,7 +75,7 @@ class PatternCompiler(
     liveCaptureLocals: Vector[ILocalVariableT],
     patternsA: List[AtomSP],
     patternInputsTE: List[ReferenceExpressionTE],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     // This would be a continuation-ish lambda that evaluates:
     // - The body of an if-let statement
     // - The body of a match's case statement
@@ -113,7 +113,7 @@ class PatternCompiler(
     runeAToTypeWithImplicitlyCoercingLookupsS: Map[IRuneS, ITemplataType],
     pattern: AtomSP,
     unconvertedInputExpr: ReferenceExpressionTE,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     // This would be a continuation-ish lambda that evaluates:
     // - The body of an if-let statement
     // - The body of a match's case statement
@@ -208,7 +208,7 @@ class PatternCompiler(
     pattern: AtomSP,
     previousLiveCaptureLocals: Vector[ILocalVariableT],
     inputExpr: ReferenceExpressionTE,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     // This would be a continuation-ish lambda that evaluates:
     // - The body of an if-let statement
     // - The body of a match's case statement
@@ -294,7 +294,7 @@ class PatternCompiler(
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     inputExpr: ReferenceExpressionTE,
     listOfMaybeDestructureMemberPatterns: Vector[AtomSP],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.name) == initialLiveCaptureLocals.map(_.name).distinct)
@@ -358,7 +358,7 @@ class PatternCompiler(
       liveCaptureLocals: Vector[ILocalVariableT],
       containerTE: ReferenceExpressionTE,
       listOfMaybeDestructureMemberPatterns: Vector[AtomSP],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
       afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals.map(_.name) == liveCaptureLocals.map(_.name).distinct)
@@ -385,7 +385,7 @@ class PatternCompiler(
     containerAliasingExprTE: ReferenceExpressionTE,
     memberIndex: Int,
     listOfMaybeDestructureMemberPatterns: List[AtomSP],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals.map(_.name) == liveCaptureLocals.map(_.name).distinct)
@@ -459,7 +459,7 @@ class PatternCompiler(
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     innerPatternMaybes: Vector[AtomSP],
     inputStructExpr: ReferenceExpressionTE,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     afterDestroySuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.name) == initialLiveCaptureLocals.map(_.name).distinct)
@@ -516,7 +516,7 @@ class PatternCompiler(
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     memberLocalVariables: List[ILocalVariableT],
     innerPatternMaybes: List[AtomSP],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     afterLetsSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.name) == initialLiveCaptureLocals.map(_.name).distinct)
@@ -556,9 +556,9 @@ class PatternCompiler(
 
   private def loadFromStruct(
     coutputs: CompilerOutputs,
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     loadRange: RangeS,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
     index: Int):

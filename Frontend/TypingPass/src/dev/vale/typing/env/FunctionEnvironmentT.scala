@@ -15,16 +15,16 @@ import dev.vale.{Interner, Profiler, vassert, vcurious, vfail, vimpl, vpass, vwa
 
 import scala.collection.immutable.{List, Map, Set}
 
-case class BuildingFunctionEnvironmentWithClosureds(
+case class BuildingFunctionEnvironmentWithClosuredsT(
   globalEnv: GlobalEnvironment,
-  parentEnv: IEnvironment,
+  parentEnv: IEnvironmentT,
   id: IdT[IFunctionTemplateNameT],
 //  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore,
   function: FunctionA,
   variables: Vector[IVariableT],
   isRootCompilingDenizen: Boolean
-) extends IInDenizenEnvironment {
+) extends IInDenizenEnvironmentT {
 
   override def currentHeight: Int = 0
 
@@ -48,21 +48,21 @@ case class BuildingFunctionEnvironmentWithClosureds(
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
-    if (!obj.isInstanceOf[IInDenizenEnvironment]) {
+    if (!obj.isInstanceOf[IInDenizenEnvironmentT]) {
       return false
     }
-    return id.equals(obj.asInstanceOf[IInDenizenEnvironment].id)
+    return id.equals(obj.asInstanceOf[IInDenizenEnvironmentT].id)
   }
 
-  override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
+  override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = {
     if (isRootCompilingDenizen) {
       this
     } else {
       parentEnv match {
-        case PackageEnvironment(_, _, _) => vwat()
+        case PackageEnvironmentT(_, _, _) => vwat()
         case _ => {
           parentEnv match {
-            case parentInDenizenEnv : IInDenizenEnvironment => {
+            case parentInDenizenEnv : IInDenizenEnvironmentT => {
               parentInDenizenEnv.rootCompilingDenizenEnv
             }
             case _ => vwat()
@@ -93,17 +93,17 @@ case class BuildingFunctionEnvironmentWithClosureds(
   }
 }
 
-case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
+case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT(
   globalEnv: GlobalEnvironment,
-  parentEnv: IEnvironment,
+  parentEnv: IEnvironmentT,
   id: IdT[IFunctionTemplateNameT],
   templateArgs: Vector[ITemplataT[ITemplataType]],
   templatas: TemplatasStore,
   function: FunctionA,
   variables: Vector[IVariableT],
   isRootCompilingDenizen: Boolean,
-  defaultRegion: ITemplataT[RegionTemplataType]
-) extends IInDenizenEnvironment {
+  defaultRegion: RegionT
+) extends IInDenizenEnvironmentT {
 
   override def currentHeight: Int = 0
 
@@ -127,21 +127,21 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
-    if (!obj.isInstanceOf[IInDenizenEnvironment]) {
+    if (!obj.isInstanceOf[IInDenizenEnvironmentT]) {
       return false
     }
-    return id.equals(obj.asInstanceOf[IInDenizenEnvironment].id)
+    return id.equals(obj.asInstanceOf[IInDenizenEnvironmentT].id)
   }
 
-  override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
+  override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = {
     if (isRootCompilingDenizen) {
       this
     } else {
       parentEnv match {
-        case PackageEnvironment(_, _, _) => vwat()
+        case PackageEnvironmentT(_, _, _) => vwat()
         case _ => {
           parentEnv match {
-            case parentInDenizenEnv : IInDenizenEnvironment => {
+            case parentInDenizenEnv : IInDenizenEnvironmentT => {
               parentInDenizenEnv.rootCompilingDenizenEnv
             }
             case _ => vwat()
@@ -174,7 +174,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
 }
 
 case class NodeEnvironmentT(
-  parentFunctionEnv: FunctionEnvironment,
+  parentFunctionEnv: FunctionEnvironmentT,
   parentNodeEnv: Option[NodeEnvironmentT],
   node: IExpressionSE,
   life: LocationInFunctionEnvironmentT,
@@ -188,14 +188,14 @@ case class NodeEnvironmentT(
   // This can refer to vars in parent blocks, see UCRTVPE.
   restackifiedLocals: Set[IVarNameT],
 
-  defaultRegion: ITemplataT[RegionTemplataType],
+  defaultRegion: RegionT,
 
   currentHeight: Int,
   // The location-in-denizen of the nearest enclosing pure block, if there is one. Otherwise, None.
   // This is used to know whether a region is currently mutable or immutable.
   pureHeight: Option[Int],
   additiveHeight: Option[Int],
-) extends IInDenizenEnvironment {
+) extends IInDenizenEnvironmentT {
   vassert(declaredLocals.map(_.name) == declaredLocals.map(_.name).distinct)
 
   val hash = id.hashCode() ^ life.hashCode();
@@ -210,7 +210,7 @@ case class NodeEnvironmentT(
 
   override def denizenId: IdT[INameT] = parentFunctionEnv.denizenId
 
-  override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
+  override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = {
 //    parentEnv match {
 //      case PackageEnvironment(_, _, _) => this
 //      case _ => parentEnv.rootCompilingDenizenEnv
@@ -243,7 +243,7 @@ case class NodeEnvironmentT(
 
   def globalEnv: GlobalEnvironment = parentFunctionEnv.globalEnv
 
-  def parentEnv: IInDenizenEnvironment = {
+  def parentEnv: IInDenizenEnvironmentT = {
     parentNodeEnv.getOrElse(parentFunctionEnv)
   }
 
@@ -433,7 +433,7 @@ case class NodeEnvironmentT(
 
   def makeChild(
     node: IExpressionSE,
-    maybeNewDefaultRegion: Option[ITemplataT[RegionTemplataType]],
+    maybeNewDefaultRegion: Option[RegionT],
     maybeNewHeight: Option[Int],
     maybeNewPureHeight: Option[Option[Int]],
     maybeNewAdditiveHeight: Option[Option[Int]]):
@@ -504,7 +504,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
   def snapshot: NodeEnvironmentT = nodeEnvironment
-  def defaultRegion: ITemplataT[RegionTemplataType] = nodeEnvironment.defaultRegion
+  def defaultRegion: RegionT = nodeEnvironment.defaultRegion
   def id: IdT[IFunctionNameT] = nodeEnvironment.parentFunctionEnv.id
   def node: IExpressionSE = nodeEnvironment.node
   def maybeReturnType: Option[CoordT] = nodeEnvironment.parentFunctionEnv.maybeReturnType
@@ -571,7 +571,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
 
   def makeChild(
     node: IExpressionSE,
-    maybeNewDefaultRegion: Option[ITemplataT[RegionTemplataType]],
+    maybeNewDefaultRegion: Option[RegionT],
     maybeNewHeight: Option[Int],
     maybeNewPureHeight: Option[Option[Int]],
     maybeNewAdditiveHeight: Option[Option[Int]]):
@@ -595,11 +595,11 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
   }
 }
 
-case class FunctionEnvironment(
+case class FunctionEnvironmentT(
   // These things are the "environment"; they are the same for every line in a function.
   globalEnv: GlobalEnvironment,
   // This points to the environment containing the function, not parent blocks, see WTHPFE.
-  parentEnv: IEnvironment,
+  parentEnv: IEnvironmentT,
   templateId: IdT[IFunctionTemplateNameT],
   id: IdT[IFunctionNameT], // Includes the name of the function
 
@@ -612,11 +612,11 @@ case class FunctionEnvironment(
 
   isRootCompilingDenizen: Boolean,
 
-  defaultRegion: ITemplataT[RegionTemplataType],
+  defaultRegion: RegionT,
 
   // Eventually we might have a list of imported environments here, pointing at the
   // environments in the global environment.
-) extends IInDenizenEnvironment {
+) extends IInDenizenEnvironmentT {
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
 
   override def currentHeight: Int = 0
@@ -640,21 +640,21 @@ case class FunctionEnvironment(
   override def denizenId: IdT[INameT] = templateId
 
   override def equals(obj: Any): Boolean = {
-    if (!obj.isInstanceOf[IInDenizenEnvironment]) {
+    if (!obj.isInstanceOf[IInDenizenEnvironmentT]) {
       return false
     }
-    return id.equals(obj.asInstanceOf[IInDenizenEnvironment].id)
+    return id.equals(obj.asInstanceOf[IInDenizenEnvironmentT].id)
   }
 
-  override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
+  override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = {
     if (isRootCompilingDenizen) {
       this
     } else {
       parentEnv match {
-        case PackageEnvironment(_, _, _) => vwat()
+        case PackageEnvironmentT(_, _, _) => vwat()
         case _ => {
           parentEnv match {
-            case parentInDenizenEnv : IInDenizenEnvironment => {
+            case parentInDenizenEnv : IInDenizenEnvironmentT => {
               parentInDenizenEnv.rootCompilingDenizenEnv
             }
             case _ => vwat()
@@ -666,8 +666,8 @@ case class FunctionEnvironment(
 
   def templata = FunctionTemplataT(parentEnv, function)
 
-  def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): FunctionEnvironment = {
-    FunctionEnvironment(
+  def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): FunctionEnvironmentT = {
+    FunctionEnvironmentT(
       globalEnv,
       parentEnv,
       templateId,
@@ -679,8 +679,8 @@ case class FunctionEnvironment(
       isRootCompilingDenizen,
       defaultRegion)
   }
-  def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): FunctionEnvironment = {
-    FunctionEnvironment(
+  def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): FunctionEnvironmentT = {
+    FunctionEnvironmentT(
       globalEnv,
       parentEnv,
       templateId,
@@ -745,7 +745,7 @@ case class FunctionEnvironment(
   def getClosuredDeclaredLocals(): Vector[IVariableT] = {
     parentEnv match {
       case n @ NodeEnvironmentT(_, _, _, _, _, _, _, _, _, _, _, _) => n.declaredLocals
-      case f @ FunctionEnvironment(_, _, _, _, _, _, _, _, _, _) => f.getClosuredDeclaredLocals()
+      case f @ FunctionEnvironmentT(_, _, _, _, _, _, _, _, _, _) => f.getClosuredDeclaredLocals()
       case _ => Vector()
     }
   }
@@ -761,7 +761,7 @@ case class FunctionEnvironment(
   // No particular reason we don't have an addFunction like PackageEnvironment does
 }
 
-case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) extends IDenizenEnvironmentBox {
+case class FunctionEnvironmentBoxT(var functionEnvironment: FunctionEnvironmentT) extends IDenizenEnvironmentBoxT {
   override def currentHeight: Int = functionEnvironment.currentHeight
   override def pureHeight: Option[Int] = functionEnvironment.pureHeight
   override def additiveHeight: Option[Int] = functionEnvironment.additiveHeight
@@ -770,7 +770,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
-  override def snapshot: FunctionEnvironment = functionEnvironment
+  override def snapshot: FunctionEnvironmentT = functionEnvironment
   def id: IdT[IFunctionNameT] = functionEnvironment.id
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
@@ -778,7 +778,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 //  override def defaultRegion: ITemplata[RegionTemplataType] = functionEnvironment.defaultRegion
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
   override def templatas: TemplatasStore = functionEnvironment.templatas
-  override def rootCompilingDenizenEnv: IInDenizenEnvironment = functionEnvironment.rootCompilingDenizenEnv
+  override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = functionEnvironment.rootCompilingDenizenEnv
 
   def setReturnType(returnType: Option[CoordT]): Unit = {
     functionEnvironment = functionEnvironment.copy(maybeReturnType = returnType)
@@ -881,9 +881,9 @@ case class ReferenceClosureVariableT(
 
 object EnvironmentHelper {
   def lookupWithNameInner(
-    requestingEnv: IEnvironment,
+    requestingEnv: IEnvironmentT,
     templatas: TemplatasStore,
-    parent: IEnvironment,
+    parent: IEnvironmentT,
 
     name: INameT,
     lookupFilter: Set[ILookupContext],
@@ -898,9 +898,9 @@ object EnvironmentHelper {
   }
 
   def lookupWithImpreciseNameInner(
-    requestingEnv: IEnvironment,
+    requestingEnv: IEnvironmentT,
     templatas: TemplatasStore,
-    parent: IEnvironment,
+    parent: IEnvironmentT,
 
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],

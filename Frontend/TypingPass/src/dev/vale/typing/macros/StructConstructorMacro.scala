@@ -7,7 +7,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, InheritBoundsFromTypeItself, OverloadResolver, TemplataCompiler, TypingPassOptions, UseBoundsFromContainer, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment}
+import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironmentT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, IdT, NameTranslator, KindPlaceholderNameT}
 import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.typing.types._
@@ -16,9 +16,9 @@ import dev.vale.postparsing.ConstructorNameS
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast._
-import dev.vale.typing.env.PackageEnvironment
+import dev.vale.typing.env.PackageEnvironmentT
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+
 import dev.vale.typing.function.{DestructorCompiler, FunctionCompilerCore}
 import dev.vale.typing.infer.CouldntFindFunction
 import dev.vale.typing.templata.ITemplataT.expectMutability
@@ -104,7 +104,7 @@ class StructConstructorMacro(
 
 
   override def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,
@@ -137,8 +137,8 @@ class StructConstructorMacro(
         case VariadicStructMemberT(name, tyype) => vimpl()
       })
 
-    val constructorFullName = env.id
-    vassert(constructorFullName.localName.parameters.size == members.size)
+    val constructorId = env.id
+    vassert(constructorId.localName.parameters.size == members.size)
     val constructorParams =
       members.map({ case (name, coord) => ParameterT(name, None, false, coord) })
 //    val mutability =
@@ -161,7 +161,7 @@ class StructConstructorMacro(
     // not virtual because how could a constructor be virtual
     val header =
       ast.FunctionHeaderT(
-        constructorFullName,
+        constructorId,
         Vector(PureT),
 //        Vector(RegionT(env.defaultRegion.localName, true)),
         constructorParams,

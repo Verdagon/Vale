@@ -4,7 +4,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, PushRuntimeSizedArrayTE, ReturnTE}
-import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{FunctionEnvironmentT, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -21,7 +21,7 @@ class RSAMutablePushMacro(interner: Interner, keywords: Keywords) extends IFunct
   val generatorId: StrI = keywords.vale_runtime_sized_array_push
 
   def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,

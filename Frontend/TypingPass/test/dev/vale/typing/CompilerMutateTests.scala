@@ -280,7 +280,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
         interner.intern(KindPlaceholderNameT(
           interner.intern(KindPlaceholderTemplateNameT(
             0, DenizenDefaultRegionRuneS(FunctionNameS(nameStr, tzCodeLoc)))))))
-    val region = PlaceholderTemplataT(regionName, RegionTemplataType())
+    val region = RegionT(PlaceholderTemplataT(regionName, RegionTemplataType()))
     val fireflyKind = StructTT(IdT(testPackageCoord, Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Firefly")), Vector.empty))))
     val fireflyCoord = CoordT(OwnT,region,fireflyKind)
     val serenityKind = StructTT(IdT(testPackageCoord, Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Serenity")), Vector.empty))))

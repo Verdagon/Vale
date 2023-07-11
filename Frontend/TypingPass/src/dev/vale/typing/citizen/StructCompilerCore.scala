@@ -1,7 +1,7 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.{FunctionA, InterfaceA, StructA}
-import dev.vale.{Interner, Keywords, vassertOne, vcurious, vfail, vimpl, vwat, _}
+import dev.vale._
 import dev.vale.parsing.ast.{CallMacroP, DontCallMacroP}
 import dev.vale.postparsing.rules.RuneUsage
 import dev.vale.postparsing._
@@ -17,7 +17,7 @@ import dev.vale.typing.{ast, _}
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironmentT, FunctionEnvEntry, IInDenizenEnvironmentT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -33,22 +33,22 @@ class StructCompilerCore(
   delegate: IStructCompilerDelegate) {
 
   def compileStruct(
-    outerEnv: IInDenizenEnvironment,
-    structRunesEnv: CitizenEnvironment[IStructNameT, IStructTemplateNameT],
+    outerEnv: IInDenizenEnvironmentT,
+    structRunesEnv: CitizenEnvironmentT[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     structA: StructA):
   Unit = {
     val templateArgs = structRunesEnv.id.localName.templateArgs
-    val templateId = structRunesEnv.templateId
-    val templateNameT = templateId.localName
+    val templateIdT = structRunesEnv.templateId
+    val templateNameT = templateIdT.localName
     val placeholderedNameT = templateNameT.makeStructName(interner, templateArgs)
-    val placeholderedFullNameT = templateId.copy(localName = placeholderedNameT)
+    val placeholderedIdT = templateIdT.copy(localName = placeholderedNameT)
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
-    val placeholderedStructTT = interner.intern(StructTT(placeholderedFullNameT))
+    val placeholderedStructTT = interner.intern(StructTT(placeholderedIdT))
 
     val attributesWithoutExportOrMacros =
       structA.attributes.filter({
@@ -83,12 +83,12 @@ class StructCompilerCore(
       })
 
     val structInnerEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         structRunesEnv.globalEnv,
         structRunesEnv,
-        templateId,
-        placeholderedFullNameT,
-        TemplatasStore(placeholderedFullNameT, Map(), Map()))
+        templateIdT,
+        placeholderedIdT,
+        TemplatasStore(placeholderedIdT, Map(), Map()))
 
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
@@ -145,7 +145,7 @@ class StructCompilerCore(
 
     val structDefT =
       StructDefinitionT(
-        templateId,
+        templateIdT,
         placeholderedStructTT,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         structA.weakable,
@@ -173,22 +173,22 @@ class StructCompilerCore(
   // }
   // which means we need some way to know what T is.
   def compileInterface(
-    outerEnv: IInDenizenEnvironment,
-    interfaceRunesEnv: CitizenEnvironment[IInterfaceNameT, IInterfaceTemplateNameT],
+    outerEnv: IInDenizenEnvironmentT,
+    interfaceRunesEnv: CitizenEnvironmentT[IInterfaceNameT, IInterfaceTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     interfaceA: InterfaceA):
   (InterfaceDefinitionT) = {
     val templateArgs = interfaceRunesEnv.id.localName.templateArgs
-    val templateFullNameT = interfaceRunesEnv.templateId
-    val templateNameT = templateFullNameT.localName
+    val templateIdT = interfaceRunesEnv.templateId
+    val templateNameT = templateIdT.localName
     val placeholderedNameT = templateNameT.makeInterfaceName(interner, templateArgs)
-    val placeholderedFullNameT = templateFullNameT.copy(localName = placeholderedNameT)
+    val placeholderedIdT = templateIdT.copy(localName = placeholderedNameT)
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
-    val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedFullNameT))
+    val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedIdT))
 
     val attributesWithoutExportOrMacros =
       interfaceA.attributes.filter({
@@ -221,7 +221,7 @@ class StructCompilerCore(
 
     val interfaceDef2 =
       InterfaceDefinitionT(
-        templateFullNameT,
+        templateIdT,
         placeholderedInterfaceTT,
         placeholderedInterfaceTT,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
@@ -253,7 +253,7 @@ class StructCompilerCore(
   }
 
   private def makeStructMembers(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     members: Vector[IStructMemberS]):
   Vector[IStructMemberT] = {
@@ -261,7 +261,7 @@ class StructCompilerCore(
   }
 
   private def makeStructMember(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     member: IStructMemberS):
   IStructMemberT = {
@@ -281,8 +281,8 @@ class StructCompilerCore(
       case VariadicStructMemberS(_, variability, coordListRune) => {
         val placeholderTemplata =
           env.lookupNearestWithName(interner.intern(RuneNameT(coordListRune.rune)), Set(TemplataLookupContext)) match {
-            case Some(PlaceholderTemplataT(fullNameT, PackTemplataType(CoordTemplataType()))) => {
-              PlaceholderTemplataT(fullNameT, PackTemplataType(CoordTemplataType()))
+            case Some(PlaceholderTemplataT(idT, PackTemplataType(CoordTemplataType()))) => {
+              PlaceholderTemplataT(idT, PackTemplataType(CoordTemplataType()))
             }
             case _ => vwat()
           }
@@ -345,7 +345,7 @@ class StructCompilerCore(
     // and see the function and use it.
     // See CSFMSEO and SAFHE.
     val structOuterEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         containingFunctionEnv.globalEnv,
         containingFunctionEnv,
         understructTemplatedId,
@@ -364,7 +364,7 @@ class StructCompilerCore(
               interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplataT(understructStructTT)))))
 
     val structInnerEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         structOuterEnv.globalEnv,
         structOuterEnv,
         understructTemplatedId,

@@ -6,17 +6,18 @@ import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, TemplataCompiler, ast}
 import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, InterfaceFunctionCallTE, LocationInFunctionEnvironmentT, ParameterT, ReturnTE}
-import dev.vale.typing.env.{FunctionEnvironment, TemplatasStore}
+import dev.vale.typing.env.{FunctionEnvironmentT, TemplatasStore}
+import dev.vale.typing.function._
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
+
 import dev.vale.typing.templata._
 
 class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver: OverloadResolver) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.abstractBody
 
   override def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,

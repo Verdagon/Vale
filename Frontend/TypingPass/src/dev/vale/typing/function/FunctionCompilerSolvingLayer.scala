@@ -4,23 +4,22 @@ import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, typing, va
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.function.FunctionCompiler.IEvaluateFunctionResult
+
 import dev.vale.postparsing.patterns._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
-import dev.vale.postparsing.{IGenericParameterTypeS, IEnvironmentS => _, _}
+import dev.vale.postparsing.{IEnvironmentS => _, _}
 import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve, Solver}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
-import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
+import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT, BuildingFunctionEnvironmentWithClosuredsT, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.names._
-import dev.vale.typing.templata.ITemplataT.expectRegion
+import dev.vale.typing.templata.ITemplataT.{expectRegion, expectRegionPlaceholder}
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -57,13 +56,13 @@ class FunctionCompilerSolvingLayer(
   // - env is the environment the templated function was made in
   def evaluateTemplatedFunctionFromCallForPrototype(
     // The environment the function was defined in.
-    outerEnv: BuildingFunctionEnvironmentWithClosureds,
+    outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT],
     verifyConclusions: Boolean
   ):
@@ -118,13 +117,13 @@ class FunctionCompilerSolvingLayer(
   // - env is the environment the templated function was made in
   def evaluateTemplatedFunctionFromCallForBanner(
     // The environment the function was defined in.
-    declaringEnv: BuildingFunctionEnvironmentWithClosureds,
+    declaringEnv: BuildingFunctionEnvironmentWithClosuredsT,
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT]
   ):
   (IEvaluateFunctionResult) = {
@@ -177,13 +176,13 @@ class FunctionCompilerSolvingLayer(
   // This assumes it met any type bound restrictions (or, will; not implemented yet)
   def evaluateTemplatedLightBannerFromCall(
     // The environment the function was defined in.
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT]
   ):
   (IEvaluateFunctionResult) = {
@@ -248,7 +247,7 @@ class FunctionCompilerSolvingLayer(
 
   private def checkClosureConcernsHandled(
     // The environment the function was defined in.
-    nearEnv: BuildingFunctionEnvironmentWithClosureds
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsT
   ): Unit = {
     val function = nearEnv.function
     function.body match {
@@ -263,15 +262,15 @@ class FunctionCompilerSolvingLayer(
 
   // IOW, add the necessary data to turn the near env into the runed env.
   private def addRunedDataToNearEnv(
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplataT[ITemplataType]],
     defaultRegionRune: IRuneS,
     reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplataT]
     // I suspect we'll eventually need some impl bounds here
-  ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
-    val BuildingFunctionEnvironmentWithClosureds(
-    globalEnv, parentEnv, fullName, templatas,
+  ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT = {
+    val BuildingFunctionEnvironmentWithClosuredsT(
+    globalEnv, parentEnv, id, templatas,
     function, variables, isRootCompilingDenizen) = nearEnv
 
     val identifyingTemplatas = identifyingRunes.map(templatasByRune)
@@ -286,12 +285,12 @@ class FunctionCompilerSolvingLayer(
           templatasByRune.toVector
             .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) }))
 
-    val defaultRegion = expectRegion(vassertSome(templatasByRune.get(defaultRegionRune)))
+    val defaultRegion = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(templatasByRune.get(defaultRegionRune)))))
 
-    BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
+    BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT(
       globalEnv,
       parentEnv,
-      fullName,
+      id,
       identifyingTemplatas,
       newEntries,
       function,
@@ -308,13 +307,13 @@ class FunctionCompilerSolvingLayer(
   // - env is the environment the templated function was made in
   def evaluateGenericFunctionFromCallForPrototype(
     // The environment the function was defined in.
-    outerEnv: BuildingFunctionEnvironmentWithClosureds,
+    outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[Option[CoordT]]
   ):
   (IEvaluateFunctionResult) = {
@@ -369,7 +368,7 @@ class FunctionCompilerSolvingLayer(
 
                 // If it's the default region rune, then supply the context rune.
                 if (function.defaultRegionRune == genericParam.rune.rune) {
-                  solver.manualStep(Map(genericParam.rune.rune -> contextRegion))
+                  solver.manualStep(Map(genericParam.rune.rune -> contextRegion.region))
                   true
                 } else {
                   false
@@ -415,9 +414,9 @@ class FunctionCompilerSolvingLayer(
 
   def evaluateGenericFunctionParentForPrototype(
     // The environment the function was defined in.
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     args: Vector[Option[CoordT]]
@@ -493,8 +492,7 @@ class FunctionCompilerSolvingLayer(
                 index,
                 function.runeToType,
                 vimpl(),
-                false,
-                vimpl(Vector()))
+                false)
             Some(InitialKnown(genericParam.rune, templata))
           }
         }
@@ -537,7 +535,7 @@ class FunctionCompilerSolvingLayer(
   // - either no closured vars, or they were already added to the env.
   def evaluateGenericFunctionFromNonCall(
     coutputs: CompilerOutputs,
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     verifyConclusions: Boolean
@@ -547,7 +545,7 @@ class FunctionCompilerSolvingLayer(
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
 
-    val functionTemplateFullName =
+    val functionTemplateId =
       nearEnv.parentEnv.id.addStep(
         nameTranslator.translateGenericFunctionName(nearEnv.function.name))
 
@@ -570,7 +568,7 @@ class FunctionCompilerSolvingLayer(
     vassert(IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype).mutability == ReadWriteRegionS)
     val defaultRegionPlaceholderTemplata =
       templataCompiler.createRegionPlaceholderInner(
-        functionTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
+        functionTemplateId, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
         Some(0), defaultRegionGenericParamType.mutability)
         //TemplataCompiler.getRegionPlaceholderPureHeight(defaultRegionGenericParam))
 //        None,
@@ -584,7 +582,7 @@ class FunctionCompilerSolvingLayer(
         envs, coutputs, definitionRules, function.runeToType, range, Vector(), Vector())
 
     // Inform the solver of the default region's placeholder, see SIPWDR.
-    solver.manualStep(Map(defaultRegionGenericParam.rune.rune -> defaultRegionPlaceholderTemplata))
+    solver.manualStep(Map(defaultRegionGenericParam.rune.rune -> defaultRegionPlaceholderTemplata.region))
 
     // Incrementally solve and add placeholders, see IRAGP.
     inferCompiler.incrementallySolve(
@@ -606,7 +604,7 @@ class FunctionCompilerSolvingLayer(
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, placeholderPureHeight, true, LocationInDenizen(Vector()))
+                coutputs, nearEnv, functionTemplateId, genericParam, index, function.runeToType, placeholderPureHeight, true)
             solver.manualStep(Map(genericParam.rune.rune -> templata))
             true
           }
@@ -633,7 +631,7 @@ class FunctionCompilerSolvingLayer(
     // We don't add these here because we aren't instantiating anything here, we're compiling a
     // function
     // not calling it.
-    // coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+    // coutputs.addInstantiationBounds(header.toPrototype.id, runeToFunctionBound)
 
     header
   }

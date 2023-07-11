@@ -8,7 +8,7 @@ import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing._
 import dev.vale.typing.{BodyResultDoesntMatch, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForReturnT, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, LocationInFunctionEnvironmentT, ParameterT, ReferenceExpressionTE, ReturnTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironmentT, NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBoxT, NodeEnvironmentT, NodeEnvironmentBox}
 import dev.vale.typing.names.{IRegionNameT, IdT, NameTranslator}
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -30,7 +30,7 @@ trait IBodyCompilerDelegate {
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -39,7 +39,7 @@ trait IBodyCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
   ReferenceExpressionTE
@@ -58,7 +58,7 @@ class BodyCompiler(
   // - IF we had to infer it, the return type.
   // - The body.
   def declareAndEvaluateFunctionBody(
-    funcOuterEnv: FunctionEnvironmentBox,
+    funcOuterEnv: FunctionEnvironmentBoxT,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
@@ -161,11 +161,11 @@ class BodyCompiler(
   }
 
   private def evaluateFunctionBody(
-    funcOuterEnv: FunctionEnvironmentBox,
+    funcOuterEnv: FunctionEnvironmentBoxT,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     callLocation: LocationInDenizen,
     params1: Vector[ParameterS],
     params2: Vector[ParameterT],
@@ -252,7 +252,7 @@ class BodyCompiler(
       coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
       params1: Vector[ParameterS],
       params2: Vector[ParameterT]):
   ReferenceExpressionTE = {

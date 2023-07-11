@@ -5,7 +5,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, LockWeakTE, ParameterT, ReturnTE}
-import dev.vale.typing.env.FunctionEnvironment
+import dev.vale.typing.env.FunctionEnvironmentT
 import dev.vale.typing.expression.ExpressionCompiler
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -20,7 +20,7 @@ class LockWeakMacro(
   val generatorId: StrI = keywords.vale_lock_weak
 
   def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,
@@ -40,7 +40,7 @@ class LockWeakMacro(
         Some(env.templata))
 
     val borrowCoord = paramCoords.head.tyype.copy(ownership = BorrowT)
-    val (optCoord, someConstructor, noneConstructor, someImplFullName, noneImplFullName) =
+    val (optCoord, someConstructor, noneConstructor, someImplId, noneImplId) =
       expressionCompiler.getOption(coutputs, env, callRange, callLocation, env.defaultRegion, borrowCoord)
     val lockExpr =
       LockWeakTE(
@@ -48,8 +48,8 @@ class LockWeakMacro(
         optCoord,
         someConstructor,
         noneConstructor,
-        someImplFullName,
-        noneImplFullName)
+        someImplId,
+        noneImplId)
 
     vimpl() // pure?
     val body = BlockTE(ReturnTE(lockExpr))

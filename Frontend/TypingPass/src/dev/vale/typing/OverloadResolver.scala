@@ -5,20 +5,20 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.function.FunctionCompiler
+import dev.vale.typing.function.{FunctionCompiler, StampFunctionSuccess}
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.types._
 import dev.vale.highertyping._
+import dev.vale.typing.function._
 import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.solver.FailedSolve
 import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamRegionDoesntMatch}
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.parsing.ast.ReadOnlyRegionRuneAttributeP
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
-import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IDenizenEnvironmentBox, IInDenizenEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBoxT, IDenizenEnvironmentBoxT, IInDenizenEnvironmentT, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.{StampFunctionFailure, StampFunctionSuccess}
 import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT, RegionPlaceholderNameT}
 import dev.vale.typing.templata.ITemplataT.expectRegionPlaceholder
 
@@ -32,7 +32,6 @@ import dev.vale.typing.templata._
 import dev.vale.postparsing.ExplicitTemplateArgRuneS
 import OverloadResolver.{IFindFunctionFailureReason, InferFailure, FindFunctionFailure, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.typing.env._
-import FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
 //import dev.vale.typingpass.infer.infer.{InferSolveFailure, InferSolveSuccess}
 import dev.vale.Profiler
 
@@ -92,16 +91,16 @@ class OverloadResolver(
   val runeTypeSolver = new RuneTypeSolver(interner)
 
   def findFunction(
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironmentT],
     exact: Boolean,
     verifyConclusions: Boolean):
   Result[StampFunctionSuccess, FindFunctionFailure] = {
@@ -131,7 +130,7 @@ class OverloadResolver(
 
   private def paramsMatch(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
     desiredParams: Vector[CoordT],
     candidateParams: Vector[CoordT],
@@ -162,16 +161,16 @@ class OverloadResolver(
 
   case class SearchedEnvironment(
     needle: IImpreciseNameS,
-    environment: IInDenizenEnvironment,
+    environment: IInDenizenEnvironmentT,
     matchingTemplatas: Vector[ITemplataT[ITemplataType]])
 
   private def getCandidateBanners(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     range: List[RangeS],
     functionName: IImpreciseNameS,
     paramFilters: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironmentT],
     searchedEnvs: Accumulator[SearchedEnvironment],
     results: Accumulator[ICalleeCandidate]):
   Unit = {
@@ -183,7 +182,7 @@ class OverloadResolver(
   }
 
   private def getCandidateBannersInner(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     range: List[RangeS],
     functionName: IImpreciseNameS,
@@ -222,13 +221,13 @@ class OverloadResolver(
   }
 
   private def attemptCandidateBanner(
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT],
     candidate: ICalleeCandidate,
     exact: Boolean,
@@ -382,19 +381,20 @@ class OverloadResolver(
                       }
                     }
                   } else {
-                    def makeNewDefaultRegion(newHeight: Int): PlaceholderTemplataT[RegionTemplataType] = {
+                    def makeNewDefaultRegion(newHeight: Int): RegionT = {
                       // The callee is going to reinterpret everything as additive/pure, so we
                       // need to make a new region for it to use as its default region.
-                      PlaceholderTemplataT(
-                        callingEnv.denizenId
-                          .addStep(
-                            interner.intern(RegionPlaceholderNameT(
-                              -1,
-                              CallRegionRuneS(callLocation),
-                              Some(newHeight),
-                              // All context regions are readwrite
-                              ReadWriteRegionS))),
-                        RegionTemplataType())
+                      RegionT(
+                        PlaceholderTemplataT(
+                          callingEnv.denizenId
+                            .addStep(
+                              interner.intern(RegionPlaceholderNameT(
+                                -1,
+                                CallRegionRuneS(callLocation),
+                                Some(newHeight),
+                                // All context regions are readwrite
+                                ReadWriteRegionS))),
+                          RegionTemplataType()))
                     }
 
                     // (This is all for pure merging)
@@ -677,12 +677,12 @@ class OverloadResolver(
 
   // Gets all the environments for all the arguments.
   private def getParamEnvironments(coutputs: CompilerOutputs, range: List[RangeS], paramFilters: Vector[CoordT]):
-  Vector[IInDenizenEnvironment] = {
+  Vector[IInDenizenEnvironmentT] = {
     paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
         case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.id)))
         case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(ir.id)))
-        case KindPlaceholderT(fullName) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getPlaceholderTemplate(fullName)))
+        case KindPlaceholderT(id) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getPlaceholderTemplate(id)))
         case _ => Vector.empty
       })
     })
@@ -696,16 +696,16 @@ class OverloadResolver(
   // might need to take a list of these, same length as the arg types... or combine
   // them somehow.
   def findPotentialFunction(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironmentT],
     exact: Boolean,
     verifyConclusions: Boolean):
   Result[IValidCalleeCandidate, FindFunctionFailure] = {
@@ -746,7 +746,7 @@ class OverloadResolver(
   // - Some(param to needs-conversion)
   private def getBannerParamScores(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
     candidate: IValidCalleeCandidate,
     argTypes: Vector[CoordT]):
@@ -777,7 +777,7 @@ class OverloadResolver(
 
   private def narrowDownCallableOverloads(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     callRange: List[RangeS],
     unfilteredBanners: Iterable[IValidCalleeCandidate],
     argTypes: Vector[CoordT]):
@@ -903,12 +903,12 @@ class OverloadResolver(
   }
 
   def stampPotentialFunctionForBanner(
-    callingEnv: IDenizenEnvironmentBox,
+    callingEnv: IDenizenEnvironmentBoxT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     potentialBanner: IValidCalleeCandidate,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     verifyConclusions: Boolean):
   (PrototypeTemplataT) = {
     potentialBanner match {
@@ -932,11 +932,11 @@ class OverloadResolver(
 
   private def stampPotentialFunctionForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     potentialBanner: IValidCalleeCandidate,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT],
     verifyConclusions: Boolean):
   StampFunctionSuccess = {
@@ -981,11 +981,11 @@ class OverloadResolver(
 
   def getArrayGeneratorPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     callableTE: ReferenceExpressionTE,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
@@ -1003,12 +1003,12 @@ class OverloadResolver(
 
   def getArrayConsumerPrototype(
     coutputs: CompilerOutputs,
-    fate: FunctionEnvironmentBox,
+    fate: FunctionEnvironmentBoxT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     callableTE: ReferenceExpressionTE,
     elementType: CoordT,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))

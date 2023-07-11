@@ -6,12 +6,12 @@ import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.{CantDowncastToInterface, CantDowncastUnrelatedTypes, CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, ReferenceExpressionTE, ReturnTE}
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent}
-import dev.vale.typing.env.FunctionEnvironment
+import dev.vale.typing.env.FunctionEnvironmentT
 import dev.vale.typing.expression.ExpressionCompiler
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.env.FunctionEnvironmentBox
+import dev.vale.typing.env.FunctionEnvironmentBoxT
 import dev.vale.typing.types.InterfaceTT
 import dev.vale.typing.ast
 import dev.vale.typing.function.DestructorCompiler
@@ -24,7 +24,7 @@ class AsSubtypeMacro(
   val generatorId: StrI = keywords.vale_as_subtype
 
   def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,
@@ -65,9 +65,9 @@ class AsSubtypeMacro(
     val subKind = targetKind match { case x : ISubKindTT => x case other => vwat(other) }
     val superKind = incomingKind match { case x : ISuperKindTT => x case other => vwat(other) }
 
-    val implFullName =
+    val implId =
       implCompiler.isParent(coutputs, env, callRange, subKind, superKind) match {
-        case IsParent(_, _, implFullName) => implFullName
+        case IsParent(_, _, implId) => implId
       }
 
     val asSubtypeExpr =
@@ -77,7 +77,7 @@ class AsSubtypeMacro(
         resultCoord,
         okConstructor,
         errConstructor,
-        implFullName,
+        implId,
         okResultImpl,
         errResultImpl)
 

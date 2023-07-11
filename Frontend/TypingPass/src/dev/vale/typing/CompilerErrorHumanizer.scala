@@ -302,11 +302,11 @@ object CompilerErrorHumanizer {
       case BoolT() => "bool"
       case FloatT() => "float"
       case StrT() => "str"
-      case StructTT(f) => printableFullName(f)
+      case StructTT(f) => printableId(f)
     }
   }
-  private def printableFullName(fullName2: IdT[INameT]): String = {
-    fullName2.localName match {
+  private def printableId(id: IdT[INameT]): String = {
+    id.localName match {
       case CitizenNameT(humanName, templateArgs) => humanName + (if (templateArgs.isEmpty) "" else "<" + templateArgs.map(_.toString.mkString) + ">")
       case x => x.toString
     }
@@ -590,7 +590,7 @@ object CompilerErrorHumanizer {
         case BorrowT => "&"
         case WeakT => "&&"
       }
-    val regionStr = humanizeTemplata(codeMap, region)
+    val regionStr = humanizeTemplata(codeMap, region.region)
     val kindStr = humanizeKind(codeMap, kind, Some(region))
     ownershipStr + regionStr + kindStr
   }
@@ -598,7 +598,7 @@ object CompilerErrorHumanizer {
   private def humanizeKind(
     codeMap: CodeLocationS => String,
     kind: KindT,
-    containingRegion: Option[ITemplataT[RegionTemplataType]] = None
+    containingRegion: Option[RegionT] = None
   ) = {
     kind match {
       case IntT(bits) => "i" + bits
@@ -620,7 +620,7 @@ object CompilerErrorHumanizer {
           humanizeTemplata(codeMap, mutability) + ", " +
             humanizeTemplata(codeMap, CoordTemplataT(elementType)) + ", " +
             (containingRegion match {
-              case None => humanizeTemplata(codeMap, region) + "'"
+              case None => humanizeTemplata(codeMap, region.region) + "'"
               case Some(r) => vassert(r == region); "_"
             }) +
             ">"
@@ -633,7 +633,7 @@ object CompilerErrorHumanizer {
           humanizeTemplata(codeMap, variability) + ", " +
           humanizeTemplata(codeMap, CoordTemplataT(elementType)) + ", " +
             (containingRegion match {
-              case None => humanizeTemplata(codeMap, region) + "'"
+              case None => humanizeTemplata(codeMap, region.region) + "'"
               case Some(r) => vassert(r == region); "_"
             }) +
             ">"
@@ -644,7 +644,7 @@ object CompilerErrorHumanizer {
   def humanizeId[T <: INameT](
     codeMap: CodeLocationS => String,
     name: IdT[T],
-    containingRegion: Option[ITemplataT[RegionTemplataType]] = None):
+    containingRegion: Option[RegionT] = None):
   String = {
     (if (name.initSteps.nonEmpty) {
       name.initSteps.map(n => humanizeName(codeMap, n)).mkString(".") + "."
@@ -657,7 +657,7 @@ object CompilerErrorHumanizer {
   def humanizeName(
     codeMap: CodeLocationS => String,
     name: INameT,
-    containingRegion: Option[ITemplataT[RegionTemplataType]] = None):
+    containingRegion: Option[RegionT] = None):
   String = {
     name match {
       case AnonymousSubstructConstructorNameT(template, templateArgs, parameters) => {
@@ -721,7 +721,7 @@ object CompilerErrorHumanizer {
             case MutabilityTemplataT(MutableT) => "mut"
             case other => humanizeTemplata(codeMap, other)
           }) + ", " +
-          humanizeTemplata(codeMap, region) + ">"
+          humanizeTemplata(codeMap, region.region) + ">"
           humanizeTemplata(codeMap, CoordTemplataT(elementType))
       }
       case StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(), size, variability, RawArrayNameT(mutability, elementType, region)) => {
@@ -729,7 +729,7 @@ object CompilerErrorHumanizer {
           humanizeTemplata(codeMap, size) + ", "
           humanizeTemplata(codeMap, mutability) + ", "
           humanizeTemplata(codeMap, variability) + ", "
-          humanizeTemplata(codeMap, region) + ">"
+          humanizeTemplata(codeMap, region.region) + ">"
           humanizeTemplata(codeMap, CoordTemplataT(elementType))
       }
       case AnonymousSubstructNameT(interface, templateArgs) => {
@@ -747,7 +747,7 @@ object CompilerErrorHumanizer {
   private def humanizeGenericArgs(
     codeMap: CodeLocationS => String,
     templateArgs: Vector[ITemplataT[ITemplataType]],
-    containingRegion: Option[ITemplataT[RegionTemplataType]]
+    containingRegion: Option[RegionT]
   ) = {
     (
       if (templateArgs.nonEmpty) {
