@@ -161,10 +161,10 @@ case class EdgeI(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case EdgeI(thatEdgeFullName, thatStruct, thatInterface, _, _, _) => {
+      case EdgeI(thatEdgeId, thatStruct, thatInterface, _, _, _) => {
         val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
-          vassert(edgeId == thatEdgeFullName)
+          vassert(edgeId == thatEdgeId)
         }
         isSame
       }

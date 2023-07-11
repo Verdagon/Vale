@@ -14,13 +14,13 @@ import dev.vale.typing.templata._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TypingPassOptions}
 import dev.vale.typing.ast.{DiscardTE, FunctionCallTE, PrototypeT, ReferenceExpressionTE}
-import dev.vale.typing.env.{GlobalEnvironment, IInDenizenEnvironment, PackageEnvironment}
+import dev.vale.typing.env.{GlobalEnvironment, IInDenizenEnvironmentT, PackageEnvironmentT}
 import dev.vale.typing.names.{IdT, PackageTopLevelNameT}
 import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
+
 import dev.vale.typing.names.PackageTopLevelNameT
 
 import scala.collection.immutable.List
@@ -32,11 +32,11 @@ class DestructorCompiler(
     structCompiler: StructCompiler,
     overloadCompiler: OverloadResolver) {
   def getDropFunction(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     type2: CoordT):
   StampFunctionSuccess = {
     val name = interner.intern(CodeNameS(keywords.drop))
@@ -49,11 +49,11 @@ class DestructorCompiler(
   }
 
   def drop(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     undestructedExpr2: ReferenceExpressionTE):
   (ReferenceExpressionTE) = {
     val resultExpr2 =

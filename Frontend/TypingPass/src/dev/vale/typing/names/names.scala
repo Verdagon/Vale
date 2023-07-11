@@ -64,11 +64,11 @@ case class IdT[+T <: INameT](
     }
   }
 
-  def packageFullName(interner: Interner): IdT[PackageTopLevelNameT] = {
+  def packageId(interner: Interner): IdT[PackageTopLevelNameT] = {
     IdT(packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
   }
 
-  def initFullName(interner: Interner): IdT[INameT] = {
+  def initId(interner: Interner): IdT[INameT] = {
     if (initSteps.isEmpty) {
       IdT(packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
     } else {
@@ -76,7 +76,7 @@ case class IdT[+T <: INameT](
     }
   }
 
-  def initNonPackageFullName(): Option[IdT[INameT]] = {
+  def initNonPackageId(): Option[IdT[INameT]] = {
     if (initSteps.isEmpty) {
       None
     } else {
@@ -157,8 +157,8 @@ case class RegionNameT(rune: IRuneS) extends IRegionNameT
 case class DenizenDefaultRegionNameT() extends IRegionNameT
 
 case class ExportTemplateNameT(codeLoc: CodeLocationS) extends ITemplateNameT
-case class ExportNameT(template: ExportTemplateNameT, region: ITemplataT[RegionTemplataType]) extends IInstantiationNameT {
-  override def templateArgs: Vector[ITemplataT[ITemplataType]] = Vector(region)
+case class ExportNameT(template: ExportTemplateNameT, region: RegionT) extends IInstantiationNameT {
+  override def templateArgs: Vector[ITemplataT[ITemplataType]] = Vector(region.region)
 }
 
 case class ImplTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
@@ -202,7 +202,7 @@ case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
 case class RawArrayNameT(
   mutability: ITemplataT[MutabilityTemplataType],
   elementType: CoordT,
-  selfRegion: ITemplataT[RegionTemplataType]
+  selfRegion: RegionT
 ) extends INameT
 
 case class ReachablePrototypeNameT(num: Int) extends INameT
@@ -214,7 +214,7 @@ case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
     val mutability = expectMutability(templateArgs(1))
     val variability = expectVariability(templateArgs(2))
     val elementType = expectCoordTemplata(templateArgs(3)).coord
-    val selfRegion = expectRegion(templateArgs(4))
+    val selfRegion = RegionT(expectRegionPlaceholder(expectRegion(templateArgs(4))))
     interner.intern(StaticSizedArrayNameT(this, size, variability, interner.intern(RawArrayNameT(mutability, elementType, selfRegion))))
   }
 }
@@ -235,7 +235,7 @@ case class RuntimeSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
     vassert(templateArgs.size == 3)
     val mutability = expectMutability(templateArgs(0))
     val elementType = expectCoordTemplata(templateArgs(1)).coord
-    val region = expectRegion(templateArgs(2))
+    val region = RegionT(expectRegionPlaceholder(expectRegion(templateArgs(2))))
     interner.intern(RuntimeSizedArrayNameT(this, interner.intern(RawArrayNameT(mutability, elementType, region))))
   }
 }
@@ -359,9 +359,9 @@ case class ExternTemplateNameT(
 
 case class ExternNameT(
   template: ExternTemplateNameT,
-  templateArg: ITemplataT[ITemplataType]
+  templateArg: RegionT
 ) extends IInstantiationNameT {
-  override def templateArgs: Vector[ITemplataT[ITemplataType]] = Vector(templateArg)
+  override def templateArgs: Vector[ITemplataT[ITemplataType]] = Vector(templateArg.region)
 }
 
 case class ExternFunctionNameT(

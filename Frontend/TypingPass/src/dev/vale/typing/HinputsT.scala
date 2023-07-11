@@ -77,21 +77,21 @@ case class HinputsT(
     vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 
-  def lookupStructByTemplateFullName(structTemplateId: IdT[IStructTemplateNameT]): StructDefinitionT = {
+  def lookupStructByTemplateId(structTemplateId: IdT[IStructTemplateNameT]): StructDefinitionT = {
     vassertSome(structs.find(_.templateName == structTemplateId))
   }
 
-  def lookupInterfaceByTemplateFullName(interfaceTemplateId: IdT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
+  def lookupInterfaceByTemplateId(interfaceTemplateId: IdT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
     vassertSome(interfaces.find(_.templateName == interfaceTemplateId))
   }
 
-  def lookupCitizenByTemplateFullName(interfaceTemplateId: IdT[ICitizenTemplateNameT]): CitizenDefinitionT = {
+  def lookupCitizenByTemplateId(interfaceTemplateId: IdT[ICitizenTemplateNameT]): CitizenDefinitionT = {
     interfaceTemplateId match {
       case IdT(packageCoord, initSteps, t: IStructTemplateNameT) => {
-        lookupStructByTemplateFullName(IdT(packageCoord, initSteps, t))
+        lookupStructByTemplateId(IdT(packageCoord, initSteps, t))
       }
       case IdT(packageCoord, initSteps, t: IInterfaceTemplateNameT) => {
-        lookupInterfaceByTemplateFullName(IdT(packageCoord, initSteps, t))
+        lookupInterfaceByTemplateId(IdT(packageCoord, initSteps, t))
       }
     }
   }

@@ -46,7 +46,7 @@ class LocalHelper(
     range: List[RangeS],
     callLocation: LocationInDenizen,
     life: LocationInFunctionEnvironmentT,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     r: ReferenceExpressionTE,
     targetOwnership: OwnershipT):
   (DeferTE) = {
@@ -78,7 +78,7 @@ class LocalHelper(
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     variables: Vector[ILocalVariableT]):
   (Vector[ReferenceExpressionTE]) = {
     variables.map({ case variable =>
@@ -146,7 +146,7 @@ class LocalHelper(
     loadRange: List[RangeS],
     a: AddressExpressionTE,
     loadAsP: LoadAsP,
-    region: ITemplataT[RegionTemplataType]):
+    region: RegionT):
   ReferenceExpressionTE = {
     a.result.coord.ownership match {
       case ShareT => {
@@ -229,22 +229,22 @@ class LocalHelper(
         mutability match {
           case MutabilityTemplataT(MutableT) => BorrowT
           case MutabilityTemplataT(ImmutableT) => ShareT
-          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
+          case PlaceholderTemplataT(idT, MutabilityTemplataType()) => BorrowT
         }
       }
       case contentsRuntimeSizedArrayTT(mutability, _, _) => {
         mutability match {
           case MutabilityTemplataT(MutableT) => BorrowT
           case MutabilityTemplataT(ImmutableT) => ShareT
-          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
+          case PlaceholderTemplataT(idT, MutabilityTemplataType()) => BorrowT
         }
       }
-      case p @ KindPlaceholderT(fullName) => {
+      case p @ KindPlaceholderT(id) => {
         val mutability = Compiler.getMutability(coutputs, p)
         mutability match {
           case MutabilityTemplataT(MutableT) => BorrowT
           case MutabilityTemplataT(ImmutableT) => ShareT
-          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
+          case PlaceholderTemplataT(idT, MutabilityTemplataType()) => BorrowT
         }
       }
       case sr2 @ StructTT(_) => {
@@ -252,7 +252,7 @@ class LocalHelper(
         mutability match {
           case MutabilityTemplataT(MutableT) => BorrowT
           case MutabilityTemplataT(ImmutableT) => ShareT
-          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
+          case PlaceholderTemplataT(idT, MutabilityTemplataType()) => BorrowT
         }
       }
       case ir2 @ InterfaceTT(_) => {
@@ -260,7 +260,7 @@ class LocalHelper(
         mutability match {
           case MutabilityTemplataT(MutableT) => BorrowT
           case MutabilityTemplataT(ImmutableT) => ShareT
-          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
+          case PlaceholderTemplataT(idT, MutabilityTemplataType()) => BorrowT
         }
       }
       case OverloadSetT(_, _) => {

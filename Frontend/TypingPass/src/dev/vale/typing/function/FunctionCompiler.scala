@@ -14,12 +14,11 @@ import dev.vale.typing.OverloadResolver.IFindFunctionFailureReason
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, IFunctionGenerator, InferCompiler, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, PrototypeT, ReferenceExpressionTE}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
+import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironmentT, IInDenizenEnvironmentT, NodeEnvironmentT, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
 import dev.vale.typing.names.{IRegionNameT, IdT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -36,7 +35,7 @@ trait IFunctionCompilerDelegate {
     life: LocationInFunctionEnvironmentT,
     ranges: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -45,7 +44,7 @@ trait IFunctionCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironmentT,
     ranges: List[RangeS],
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
   ReferenceExpressionTE
@@ -57,7 +56,7 @@ trait IFunctionCompilerDelegate {
   def generateFunction(
     functionCompilerCore: FunctionCompilerCore,
     generator: IFunctionGenerator,
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
@@ -68,32 +67,31 @@ trait IFunctionCompilerDelegate {
   FunctionHeaderT
 }
 
-object FunctionCompiler {
-  trait IEvaluateFunctionResult
+trait IEvaluateFunctionResult
 
-  case class EvaluateFunctionSuccess(
-    prototype: PrototypeTemplataT,
-    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
-  ) extends IEvaluateFunctionResult
+case class EvaluateFunctionSuccess(
+  prototype: PrototypeTemplataT,
+  inferences: Map[IRuneS, ITemplataT[ITemplataType]]
+) extends IEvaluateFunctionResult
 
-  case class EvaluateFunctionFailure(
-    reason: IFindFunctionFailureReason
-  ) extends IEvaluateFunctionResult
+case class EvaluateFunctionFailure(
+  reason: IFindFunctionFailureReason
+) extends IEvaluateFunctionResult
 
 
-  trait IStampFunctionResult
+trait IStampFunctionResult
 
-  case class StampFunctionSuccess(
-    pure: Boolean,
-    maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
-    prototype: PrototypeTemplataT,
-    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
-  ) extends IStampFunctionResult
+case class StampFunctionSuccess(
+  pure: Boolean,
+  maybeNewRegion: Option[RegionT],
+  prototype: PrototypeTemplataT,
+  inferences: Map[IRuneS, ITemplataT[ITemplataType]]
+) extends IStampFunctionResult
 
-  case class StampFunctionFailure(
-    reason: IFindFunctionFailureReason
-  ) extends IStampFunctionResult
-}
+case class StampFunctionFailure(
+  reason: IFindFunctionFailureReason
+) extends IStampFunctionResult
+
 
 // When typingpassing a function, these things need to happen:
 // - Spawn a local environment for the function
@@ -139,12 +137,12 @@ class FunctionCompiler(
 
   def evaluateTemplatedLightFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplataT,
     alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
@@ -159,12 +157,12 @@ class FunctionCompiler(
 
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplataT,
     alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
@@ -201,10 +199,10 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     functionTemplata: FunctionTemplataT,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     argTypes: Vector[CoordT],
     verifyConclusions: Boolean):
   IEvaluateFunctionResult = {
@@ -236,7 +234,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     functionTemplata: FunctionTemplataT,
     args: Vector[Option[CoordT]]):
   IEvaluateFunctionResult = {
@@ -251,10 +249,10 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     functionTemplata: FunctionTemplataT,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT]):
   IEvaluateFunctionResult = {
     Profiler.frame(() => {

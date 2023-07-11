@@ -4,7 +4,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CompilerOutputs, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, NewMutRuntimeSizedArrayTE, ParameterT, ReturnTE}
-import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{FunctionEnvironmentT, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -14,7 +14,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.DenizenDefaultRegionNameT
-import dev.vale.typing.templata.ITemplataT.expectRegion
+import dev.vale.typing.templata.ITemplataT.{expectRegion, expectRegionPlaceholder}
 import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types.RuntimeSizedArrayTT
 
@@ -28,7 +28,7 @@ class RSAMutableNewMacro(
   val generatorId: StrI = keywords.vale_runtime_sized_array_mut_new
 
   def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,
@@ -59,7 +59,7 @@ class RSAMutableNewMacro(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-    val region = expectRegion(vassertSome(env.id.localName.templateArgs.lastOption))
+    val region = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(env.id.localName.templateArgs.lastOption))))
 
     val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, region)
 

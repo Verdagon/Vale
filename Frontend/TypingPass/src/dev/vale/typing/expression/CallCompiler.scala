@@ -7,13 +7,14 @@ import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironmentBox, NodeEnvironmentT}
+import dev.vale.typing.env.{FunctionEnvironmentBoxT, IInDenizenEnvironmentT, NodeEnvironmentBox, NodeEnvironmentT}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
+import dev.vale.typing.function._
 import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.StampFunctionSuccess
+
 import dev.vale.typing.names.{IRegionNameT, IdT}
 
 import scala.collection.immutable.List
@@ -34,7 +35,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     callableExpr: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -140,7 +141,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     coord: CoordT,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -200,7 +201,7 @@ class CallCompiler(
       mutability match {
         case MutabilityTemplataT(MutableT) => BorrowT
         case MutabilityTemplataT(ImmutableT) => ShareT
-        case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
+        case PlaceholderTemplataT(idT, MutabilityTemplataType()) => BorrowT
       }
     vassert(givenCallableBorrowExpr2.result.coord.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2
@@ -247,7 +248,7 @@ class CallCompiler(
 
   def checkTypes(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
     params: Vector[CoordT],
     args: Vector[CoordT],
@@ -303,7 +304,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     callableReferenceExpr2: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],

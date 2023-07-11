@@ -24,8 +24,8 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val mainLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 0)
     val mainTemplateName = interner.intern(FunctionTemplateNameT(interner.intern(StrI("main")), mainLoc))
     val mainName = interner.intern(FunctionNameT(mainTemplateName, Vector(), Vector()))
-    val fullName = IdT(packageCoord, Vector(), mainName)
-    vassertSome(coutputs.functions.headOption).header.id shouldEqual fullName
+    val id = IdT(packageCoord, Vector(), mainName)
+    vassertSome(coutputs.functions.headOption).header.id shouldEqual id
   }
 
   test("Lambda has correct name") {
@@ -41,26 +41,26 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val mainLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 0)
     val mainTemplateName = interner.intern(FunctionTemplateNameT(interner.intern(StrI("main")), mainLoc))
     val mainName = interner.intern(FunctionNameT(mainTemplateName, Vector(), Vector()))
-    val mainTemplateFullName = IdT(packageCoord, Vector(), mainTemplateName)
-    val mainFullName = IdT(packageCoord, Vector(), mainName)
-//    val region = mainTemplateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
-    val regionName = mainTemplateFullName.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DenizenDefaultRegionRuneS(FunctionNameS(mainTemplateName.humanName, mainTemplateName.codeLocation)))))))
-    val region = PlaceholderTemplataT(regionName, RegionTemplataType())
+    val mainTemplateId = IdT(packageCoord, Vector(), mainTemplateName)
+    val mainId = IdT(packageCoord, Vector(), mainName)
+//    val region = mainTemplateId.addStep(interner.intern(DenizenDefaultRegionNameT()))
+    val regionName = mainTemplateId.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DenizenDefaultRegionRuneS(FunctionNameS(mainTemplateName.humanName, mainTemplateName.codeLocation)))))))
+    val region = RegionT(PlaceholderTemplataT(regionName, RegionTemplataType()))
     vimpl() // fulln to id
 
     val lambdaLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 23)
     val lambdaCitizenTemplateName = interner.intern(LambdaCitizenTemplateNameT(lambdaLoc))
     val lambdaCitizenName = interner.intern(LambdaCitizenNameT(lambdaCitizenTemplateName))
     val lambdaFuncTemplateName = interner.intern(LambdaCallFunctionTemplateNameT(lambdaLoc, Vector(CoordT(ShareT,region,interner.intern(StructTT(IdT(packageCoord, Vector(mainName), lambdaCitizenName)))))))
-    val lambdaCitizenFullName = IdT(packageCoord, Vector(mainName), lambdaCitizenName)
-    val lambdaStruct = interner.intern(StructTT(lambdaCitizenFullName))
+    val lambdaCitizenId = IdT(packageCoord, Vector(mainName), lambdaCitizenName)
+    val lambdaStruct = interner.intern(StructTT(lambdaCitizenId))
     val lambdaShareCoord = CoordT(ShareT, region, lambdaStruct)
     val lambdaFuncName = interner.intern(LambdaCallFunctionNameT(lambdaFuncTemplateName, Vector(), Vector(lambdaShareCoord)))
-    val lambdaFuncFullName =
+    val lambdaFuncId =
       IdT(packageCoord, Vector(mainName, lambdaCitizenTemplateName), lambdaFuncName)
 
     val lamFunc = coutputs.lookupLambdaIn("main")
-    lamFunc.header.id shouldEqual lambdaFuncFullName
+    lamFunc.header.id shouldEqual lambdaFuncId
   }
 
   test("Struct has correct name") {

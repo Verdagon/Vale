@@ -3,7 +3,7 @@ package dev.vale.typing.types
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, StrI, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
-import dev.vale.typing.env.IInDenizenEnvironment
+import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.names._
 import dev.vale.highertyping._
 import dev.vale.postparsing._
@@ -60,7 +60,7 @@ case object YonderT extends LocationT {
 case class CoordT(
   ownership: OwnershipT,
   // Usually these will just be placeholders, but one day we might want to say e.g. host'
-  region: ITemplataT[RegionTemplataType],
+  region: RegionT,
   kind: KindT)  {
 
   vpass()
@@ -71,7 +71,7 @@ case class CoordT(
     }
     case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(_, _, arrRegion)))) => {
       region match {
-        case PlaceholderTemplataT(_, _) => {
+        case RegionT(PlaceholderTemplataT(_, _)) => {
           vassert(arrRegion == region)
         }
         case _ => // In instantiator, the coord region might differ.
@@ -79,7 +79,7 @@ case class CoordT(
     }
     case StaticSizedArrayTT(IdT(_, _, StaticSizedArrayNameT(_, _, _, RawArrayNameT(_, _, arrRegion)))) => {
       region match {
-        case PlaceholderTemplataT(_, _) => {
+        case RegionT(PlaceholderTemplataT(_, _)) => {
           vassert(arrRegion == region)
         }
         case _ => // In instantiator, the coord region might differ.
@@ -87,14 +87,14 @@ case class CoordT(
     }
     case StructTT(IdT(_, _, localName)) => {
       region match {
-        case PlaceholderTemplataT(_, _) => {
-          vassert(localName.templateArgs.last == region)
+        case RegionT(PlaceholderTemplataT(_, _)) => {
+          vassert(localName.templateArgs.last == region.region)
         }
         case _ => // In instantiator, the coord region might differ.
       }
     }
     case InterfaceTT(IdT(_, _, localName)) => {
-      vassert(localName.templateArgs.last == region)
+      vassert(localName.templateArgs.last == region.region)
     }
     case _ =>
   }
@@ -173,7 +173,7 @@ case class FloatT() extends KindT {
 
 object contentsStaticSizedArrayTT {
   def unapply(ssa: StaticSizedArrayTT):
-  Option[(ITemplataT[IntegerTemplataType], ITemplataT[MutabilityTemplataType], ITemplataT[VariabilityTemplataType], CoordT, ITemplataT[RegionTemplataType])] = {
+  Option[(ITemplataT[IntegerTemplataType], ITemplataT[MutabilityTemplataType], ITemplataT[VariabilityTemplataType], CoordT, RegionT)] = {
     val IdT(_, _, StaticSizedArrayNameT(_, size, variability, RawArrayNameT(mutability, coord, selfRegion))) = ssa.name
     Some((size, mutability, variability, coord, selfRegion))
   }
@@ -192,7 +192,7 @@ case class StaticSizedArrayTT(
 
 object contentsRuntimeSizedArrayTT {
   def unapply(rsa: RuntimeSizedArrayTT):
-  Option[(ITemplataT[MutabilityTemplataType], CoordT, ITemplataT[RegionTemplataType])] = {
+  Option[(ITemplataT[MutabilityTemplataType], CoordT, RegionT)] = {
     val IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, coord, selfRegion))) = rsa.name
     Some((mutability, coord, selfRegion))
   }
@@ -250,7 +250,7 @@ case class InterfaceTT(id: IdT[IInterfaceNameT]) extends ICitizenTT with ISuperK
 // See ROS.
 // Lowers to an empty struct.
 case class OverloadSetT(
-  env: IInDenizenEnvironment,
+  env: IInDenizenEnvironmentT,
   // The name to look for in the environment.
   name: IImpreciseNameS
 ) extends KindT with IInterning {

@@ -7,7 +7,7 @@ import dev.vale.postparsing.patterns._
 import dev.vale.typing.{AbstractMethodOutsideOpenInterface, CompileErrorExceptionT, CompilerOutputs, ConvertHelper, FunctionAlreadyExists, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast, env}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, FunctionDefinitionT, ParameterT, PrototypeT, SealedT, SignatureT}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, ExpressionLookupContext, FunctionEnvironment, IInDenizenEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT, ExpressionLookupContext, FunctionEnvironmentT, IInDenizenEnvironmentT, TemplataLookupContext}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, IdT, IFunctionNameT, IFunctionTemplateNameT, NameTranslator, TypingIgnoredParamNameT}
 import dev.vale.typing.templata.CoordTemplataT
@@ -62,7 +62,7 @@ class FunctionCompilerMiddleLayer(
 //  }
 
   private def evaluateMaybeVirtuality(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     paramKind: KindT,
@@ -112,8 +112,8 @@ class FunctionCompilerMiddleLayer(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getOrEvaluateTemplatedFunctionForBanner(
-    outerEnv: BuildingFunctionEnvironmentWithClosureds,
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
@@ -158,8 +158,8 @@ class FunctionCompilerMiddleLayer(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getOrEvaluateFunctionForHeader(
-    outerEnv: BuildingFunctionEnvironmentWithClosureds,
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
@@ -178,16 +178,16 @@ class FunctionCompilerMiddleLayer(
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
 
-    val functionFullName = assembleName(runedEnv.id, runedEnv.templateArgs, paramTypes2)
-    val needleSignature = SignatureT(functionFullName)
+    val functionId = assembleName(runedEnv.id, runedEnv.templateArgs, paramTypes2)
+    val needleSignature = SignatureT(functionId)
     coutputs.lookupFunction(needleSignature) match {
       case Some(FunctionDefinitionT(header, _, _, _)) => {
         (header)
       }
       case None => {
-        coutputs.declareFunction(callRange, functionFullName)
+        coutputs.declareFunction(callRange, functionId)
         coutputs.declareFunctionOuterEnv(outerEnv.id, outerEnv)
-        coutputs.declareFunctionInnerEnv(functionFullName, runedEnv)
+        coutputs.declareFunctionInnerEnv(functionId, runedEnv)
 
         val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
 
@@ -226,8 +226,8 @@ class FunctionCompilerMiddleLayer(
 //    })
 //
 //    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-//    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
-//    val needleSignature = SignatureT(functionFullName)
+//    val functionId = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
+//    val needleSignature = SignatureT(functionId)
 //    val p = vassertSome(coutputs.lookupFunction(needleSignature)).header.toPrototype
 //    PrototypeTemplata(function1.range, p)
 //  }
@@ -271,7 +271,7 @@ class FunctionCompilerMiddleLayer(
 
 
   private def evaluateFunctionParamTypes(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     params1: Vector[ParameterS]):
   Vector[CoordT] = {
     params1.map(param1 => {
@@ -286,7 +286,7 @@ class FunctionCompilerMiddleLayer(
   }
 
   def assembleFunctionParams(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     params1: Vector[ParameterS]):
@@ -312,16 +312,16 @@ class FunctionCompilerMiddleLayer(
   }
 //
 //  private def assembleName(
-//    name: FullNameT[IFunctionTemplateNameT],
+//    name: IdT[IFunctionTemplateNameT],
 //    templateArgs: Vector[ITemplata[ITemplataType]],
 //    params: Vector[CoordT]):
-//  FullNameT[IFunctionNameT] = {
+//  IdT[IFunctionNameT] = {
 //    val newLastStep = name.last.makeFunctionName(interner, keywords, templateArgs, params)
-//    FullNameT(name.packageCoord, name.initSteps, newLastStep)
+//    IdT(name.packageCoord, name.initSteps, newLastStep)
 //  }
 
   private def getMaybeReturnType(
-    nearEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
     maybeRetCoordRune: Option[IRuneS]
   ): Option[CoordT] = {
     maybeRetCoordRune.map(retCoordRuneA => {
@@ -338,7 +338,7 @@ class FunctionCompilerMiddleLayer(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getGenericFunctionBannerFromCall(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     functionTemplata: FunctionTemplataT):
@@ -359,7 +359,7 @@ class FunctionCompilerMiddleLayer(
   }
 
   def getGenericFunctionPrototypeFromCall(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     function1: FunctionA):
@@ -428,8 +428,8 @@ class FunctionCompilerMiddleLayer(
 //    })
 //
 //    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-//    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
-//    val needleSignature = SignatureT(functionFullName)
+//    val functionId = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
+//    val needleSignature = SignatureT(functionId)
 //    coutputs.lookupFunction(needleSignature) match {
 //      case Some(FunctionT(header, _)) => {
 //        (header)
@@ -462,11 +462,11 @@ class FunctionCompilerMiddleLayer(
   }
 
   def makeNamedEnv(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
     paramTypes: Vector[CoordT],
     maybeReturnType: Option[CoordT]):
-  FunctionEnvironment = {
-    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
+  FunctionEnvironmentT = {
+    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT(
       globalEnv,
       parentEnv,
       templateName,
@@ -476,12 +476,12 @@ class FunctionCompilerMiddleLayer(
       variables,
       isRootCompilingDenizen,
       defaultRegion) = runedEnv
-    val fullName = assembleName(templateName, templateArgs, paramTypes)
-    FunctionEnvironment(
+    val id = assembleName(templateName, templateArgs, paramTypes)
+    FunctionEnvironmentT(
       globalEnv,
       parentEnv,
       templateName,
-      fullName,
+      id,
       templatas,
       function,
       maybeReturnType,

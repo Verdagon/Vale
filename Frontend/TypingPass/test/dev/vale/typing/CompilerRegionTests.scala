@@ -57,24 +57,24 @@ class CompilerRegionTests extends FunSuite with Matchers {
         Vector(arg),
         _) => {
         returnType match {
-          case CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()),VoidT()) =>
+          case CoordT(ShareT,RegionT(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType())),VoidT()) =>
         }
         params match {
           case Vector(
             CoordT(
               BorrowT,
-              PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()),
+              RegionT(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType())),
               StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()))))))) =>
         }
         arg.result.coord.region match {
-          case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()) =>
+          case RegionT(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType())) =>
         }
       }
     })
 
     val myFunc = coutputs.lookupFunction("myFunc")
     myFunc.header.params.head.tyype.region match {
-      case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType()) =>
+      case RegionT(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),Some(0),ReadWriteRegionS)),RegionTemplataType())) =>
     }
   }
 
@@ -147,11 +147,11 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val func = coutputs.lookupFunction("CellularAutomata")
     val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("a")), _, c), _) => c })
     intType.region match {
-      case PlaceholderTemplataT(
+      case RegionT(PlaceholderTemplataT(
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-          RegionPlaceholderNameT(1,DenizenDefaultRegionRuneS(_), _, _)),RegionTemplataType()) =>
+          RegionPlaceholderNameT(1,DenizenDefaultRegionRuneS(_), _, _)),RegionTemplataType())) =>
     }
   }
 
@@ -167,12 +167,12 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val func = coutputs.lookupFunction("CellularAutomata")
     val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("a")), _, c), _) => c })
     intType.region match {
-      case PlaceholderTemplataT(
+      case RegionT(PlaceholderTemplataT(
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
           RegionPlaceholderNameT(1,CodeRuneS(StrI("x")), _, _)),
-        RegionTemplataType()) =>
+        RegionTemplataType())) =>
     }
   }
 

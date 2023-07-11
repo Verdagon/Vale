@@ -1,23 +1,23 @@
 package dev.vale.typing
 
 import dev.vale.parsing.ast.MutableP
-import dev.vale.postparsing.{TemplateTemplataType, _}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vcurious, vimpl, vregion, vregionmut, vwat}
+import dev.vale._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
-import OverloadResolver.{FindFunctionFailure, InferFailure}
+import OverloadResolver._
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironmentBox, NodeEnvironmentT, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env._
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, StampFunctionSuccess}
+import dev.vale.typing.function._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -40,9 +40,9 @@ class ArrayCompiler(
 
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     defaultRegionRune: IRuneS,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
@@ -53,11 +53,6 @@ class ArrayCompiler(
     callableTE: ReferenceExpressionTE,
     verifyConclusions: Boolean):
   StaticArrayFromCallableTE = {
-//    val builtinNamespaceCoord =
-//      interner.intern(PackageCoordinate(keywords.emptyString, Vector.empty))
-//    val declaringEnv =
-//      PackageEnvironment.makeTopLevelEnvironment(callingEnv.globalEnv, builtinNamespaceCoord)
-
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
         override def lookup(range: RangeS, nameS: IImpreciseNameS):
@@ -136,7 +131,7 @@ class ArrayCompiler(
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     defaultRegionRune: IRuneS,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
@@ -199,7 +194,7 @@ class ArrayCompiler(
     // Elsewhere we do some incremental solving to fill in default generic param values like the
     // context region, but here I think we can just feed it in directly. There's syntactically no
     // way for the user to hand it in as a generic param.
-    val initialKnowns = Vector(InitialKnown(RuneUsage(parentRanges.head, defaultRegionRune), region))
+    val initialKnowns = Vector(InitialKnown(RuneUsage(parentRanges.head, defaultRegionRune), region.region))
 
 //    val CompleteCompilerSolve(_, templatas, _, Vector()) =
 //      inferCompiler.solveExpectComplete(
@@ -221,7 +216,7 @@ class ArrayCompiler(
       envs, coutputs, solver,
       (solver) => {
         if (solver.getConclusion(defaultRegionRune).isEmpty) {
-          solver.manualStep(Map(defaultRegionRune -> region))
+          solver.manualStep(Map(defaultRegionRune -> region.region))
           true
         } else {
           false
@@ -351,7 +346,7 @@ class ArrayCompiler(
 
   def evaluateStaticSizedArrayFromValues(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
@@ -361,7 +356,7 @@ class ArrayCompiler(
     variabilityRuneA: IRuneS,
     exprs2: Vector[ReferenceExpressionTE],
     defaultRegionRune: IRuneS,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     verifyConclusions: Boolean):
   StaticArrayFromValuesTE = {
 
@@ -424,7 +419,7 @@ class ArrayCompiler(
       Vector(
         InitialKnown(
           RuneUsage(vassertSome(parentRanges.headOption), defaultRegionRune),
-          region))
+          region.region))
 
 //    val CompleteCompilerSolve(_, templatas, _, Vector()) =
 //      inferCompiler.solveExpectComplete(
@@ -446,7 +441,7 @@ class ArrayCompiler(
       envs, coutputs, solver,
       (solver) => {
         if (solver.getConclusion(defaultRegionRune).isEmpty) {
-          solver.manualStep(Map(defaultRegionRune -> region))
+          solver.manualStep(Map(defaultRegionRune -> region.region))
           true
         } else {
           false
@@ -499,12 +494,12 @@ class ArrayCompiler(
 
   def evaluateDestroyStaticSizedArrayIntoCallable(
     coutputs: CompilerOutputs,
-    fate: FunctionEnvironmentBox,
+    fate: FunctionEnvironmentBoxT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     arrTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE,
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   DestroyStaticSizedArrayIntoFunctionTE = {
     val arrayTT =
       arrTE.result.coord match {
@@ -527,12 +522,12 @@ class ArrayCompiler(
 
   def evaluateDestroyRuntimeSizedArrayIntoCallable(
     coutputs: CompilerOutputs,
-    fate: FunctionEnvironmentBox,
+    fate: FunctionEnvironmentBoxT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     arrTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE,
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   DestroyImmRuntimeSizedArrayTE = {
     val arrayTT =
       arrTE.result.coord match {
@@ -577,7 +572,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs):
   Unit = {
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
-    val templateFullName =
+    val templateId =
       IdT(builtinPackage, Vector.empty, interner.intern(StaticSizedArrayTemplateNameT()))
 
     // We declare the function into the environment that we use to compile the
@@ -585,34 +580,34 @@ class ArrayCompiler(
     // and see the function and use it.
     // See CSFMSEO and SAFHE.
     val arrayOuterEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         globalEnv,
-        PackageEnvironment(
-          globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
-        templateFullName,
-        templateFullName,
-        TemplatasStore(templateFullName, Map(), Map()))
-    coutputs.declareType(templateFullName)
-    coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
+        PackageEnvironmentT(
+          globalEnv, templateId, globalEnv.nameToTopLevelEnvironment.values.toVector),
+        templateId,
+        templateId,
+        TemplatasStore(templateId, Map(), Map()))
+    coutputs.declareType(templateId)
+    coutputs.declareTypeOuterEnv(templateId, arrayOuterEnv)
 
     val TemplateTemplataType(types, _) = StaticSizedArrayTemplateTemplataT().tyype
     val Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType(), RegionTemplataType()) = types
     val sizePlaceholder =
       templataCompiler.createNonKindNonRegionPlaceholderInner(
-        templateFullName, 0, CodeRuneS(interner.intern(StrI("N"))), IntegerTemplataType())
+        templateId, 0, CodeRuneS(interner.intern(StrI("N"))), IntegerTemplataType())
     val mutabilityPlaceholder =
       templataCompiler.createNonKindNonRegionPlaceholderInner(
-        templateFullName, 1, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
+        templateId, 1, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
     val variabilityPlaceholder =
       templataCompiler.createNonKindNonRegionPlaceholderInner(
-        templateFullName, 2, CodeRuneS(interner.intern(StrI("V"))), VariabilityTemplataType())
+        templateId, 2, CodeRuneS(interner.intern(StrI("V"))), VariabilityTemplataType())
     val elementPlaceholder =
       templataCompiler.createCoordPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS, OwnT, true)
+        coutputs, arrayOuterEnv, templateId, 3, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS, OwnT, true)
     // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
     val regionPlaceholder =
       templataCompiler.createRegionPlaceholderInner(
-        templateFullName, 4, CodeRuneS(interner.intern(StrI("Z"))), Some(0), ReadWriteRegionS)
+        templateId, 4, CodeRuneS(interner.intern(StrI("Z"))), Some(0), ReadWriteRegionS)
 
     val placeholders =
       Vector(
@@ -620,16 +615,16 @@ class ArrayCompiler(
         mutabilityPlaceholder,
         variabilityPlaceholder,
         elementPlaceholder,
-        regionPlaceholder)
+        regionPlaceholder.region)
 
-    val fullName = templateFullName.copy(localName = templateFullName.localName.makeCitizenName(interner, placeholders))
-    vassert(TemplataCompiler.getTemplate(fullName) == templateFullName)
+    val id = templateId.copy(localName = templateId.localName.makeCitizenName(interner, placeholders))
+    vassert(TemplataCompiler.getTemplate(id) == templateId)
 
     val arrayInnerEnv =
       arrayOuterEnv.copy(
-        id = fullName,
-        templatas = arrayOuterEnv.templatas.copy(templatasStoreName = fullName))
-    coutputs.declareTypeInnerEnv(templateFullName, arrayInnerEnv)
+        id = id,
+        templatas = arrayOuterEnv.templatas.copy(templatasStoreName = id))
+    coutputs.declareTypeInnerEnv(templateId, arrayInnerEnv)
   }
 
   def resolveStaticSizedArray(
@@ -637,7 +632,7 @@ class ArrayCompiler(
     variability: ITemplataT[VariabilityTemplataType],
     size: ITemplataT[IntegerTemplataType],
     type2: CoordT,
-    region: ITemplataT[RegionTemplataType]):
+    region: RegionT):
   (StaticSizedArrayTT) = {
     interner.intern(StaticSizedArrayTT(
       IdT(
@@ -655,7 +650,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs):
   Unit = {
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
-    val templateFullName =
+    val templateId =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
 //    val defaultRegionName =
 //      vimpl()
@@ -669,14 +664,14 @@ class ArrayCompiler(
     // and see the function and use it.
     // See CSFMSEO and SAFHE.
     val arrayOuterEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         globalEnv,
-        PackageEnvironment(globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
-        templateFullName,
-        templateFullName,
-        TemplatasStore(templateFullName, Map(), Map()))
-    coutputs.declareType(templateFullName)
-    coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
+        PackageEnvironmentT(globalEnv, templateId, globalEnv.nameToTopLevelEnvironment.values.toVector),
+        templateId,
+        templateId,
+        TemplatasStore(templateId, Map(), Map()))
+    coutputs.declareType(templateId)
+    coutputs.declareTypeOuterEnv(templateId, arrayOuterEnv)
 
 
 
@@ -684,30 +679,30 @@ class ArrayCompiler(
     val Vector(MutabilityTemplataType(), CoordTemplataType(), RegionTemplataType()) = types
     val mutabilityPlaceholder =
       templataCompiler.createNonKindNonRegionPlaceholderInner(
-        templateFullName, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
+        templateId, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
     val elementPlaceholder =
       templataCompiler.createCoordPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS,OwnT, true)
+        coutputs, arrayOuterEnv, templateId, 1, CodeRuneS(interner.intern(StrI("E"))), None, ReadOnlyRegionS,OwnT, true)
     // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
     val regionPlaceholder =
       templataCompiler.createRegionPlaceholderInner(
-        templateFullName, 2, CodeRuneS(interner.intern(StrI("Z"))), Some(0), ReadWriteRegionS)
+        templateId, 2, CodeRuneS(interner.intern(StrI("Z"))), Some(0), ReadWriteRegionS)
     val placeholders =
-      Vector(mutabilityPlaceholder, elementPlaceholder, regionPlaceholder)
+      Vector(mutabilityPlaceholder, elementPlaceholder, regionPlaceholder.region)
 
-    val fullName = templateFullName.copy(localName = templateFullName.localName.makeCitizenName(interner, placeholders))
+    val id = templateId.copy(localName = templateId.localName.makeCitizenName(interner, placeholders))
 
     val arrayInnerEnv =
       arrayOuterEnv.copy(
-        id = fullName,
-        templatas = arrayOuterEnv.templatas.copy(templatasStoreName = fullName))
-    coutputs.declareTypeInnerEnv(templateFullName, arrayInnerEnv)
+        id = id,
+        templatas = arrayOuterEnv.templatas.copy(templatasStoreName = id))
+    coutputs.declareTypeInnerEnv(templateId, arrayInnerEnv)
   }
 
   def resolveRuntimeSizedArray(
     type2: CoordT,
     mutability: ITemplataT[MutabilityTemplataType],
-    region: ITemplataT[RegionTemplataType]):
+    region: RegionT):
   (RuntimeSizedArrayTT) = {
     interner.intern(RuntimeSizedArrayTT(
       IdT(

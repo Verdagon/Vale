@@ -87,7 +87,7 @@ trait IInfererDelegate {
     state: CompilerOutputs,
     range: List[RangeS],
     templata: ITemplataT[ITemplataType],
-    region: ITemplataT[RegionTemplataType]):
+    region: RegionT):
   ITemplataT[ITemplataType]
 
   def isDescendant(env: InferEnv, state: CompilerOutputs, kind: KindT): Boolean
@@ -101,7 +101,7 @@ trait IInfererDelegate {
     state: CompilerOutputs,
     templata: StructDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]],
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   (KindT)
 
   // See SFWPRL for how this is different from resolveInterface.
@@ -111,7 +111,7 @@ trait IInfererDelegate {
     templata: InterfaceDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   (KindT)
 
   def predictStaticSizedArrayKind(
@@ -121,7 +121,7 @@ trait IInfererDelegate {
     variability: ITemplataT[VariabilityTemplataType],
     size: ITemplataT[IntegerTemplataType],
     element: CoordT,
-    region: ITemplataT[RegionTemplataType]):
+    region: RegionT):
   StaticSizedArrayTT
 
   def predictRuntimeSizedArrayKind(
@@ -129,7 +129,7 @@ trait IInfererDelegate {
     state: CompilerOutputs,
     type2: CoordT,
     arrayMutability: ITemplataT[MutabilityTemplataType],
-    region: ITemplataT[RegionTemplataType]):
+    region: RegionT):
   RuntimeSizedArrayTT
 
   def getAncestors(env: InferEnv, coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean):
@@ -582,7 +582,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
           case None => {
             val OwnershipTemplataT(ownership) = vassertSome(stepState.getConclusion(ownershipRune.rune))
             val KindTemplataT(kind) = vassertSome(stepState.getConclusion(kindRune.rune))
-            val region = expectRegion(vassertSome(stepState.getConclusion(regionRune.rune)))
+            val region = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(regionRune.rune)))))
             val newCoord = CoordT(ownership, region, kind)
             stepState.concludeRune[ITypingPassSolverError](
               range :: env.parentRanges, resultRune.rune, CoordTemplataT(newCoord))
@@ -600,7 +600,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
             val CoordTemplataT(CoordT(ownership, region, kind)) = coord
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, ownershipRune.rune, OwnershipTemplataT(ownership))
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, kindRune.rune, KindTemplataT(kind))
-            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region.region)
             Ok(())
           }
         }
@@ -821,7 +821,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
             coord.ownership match {
               case OwnT | ShareT => {
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, kindRune.rune, KindTemplataT(coord.kind))
-                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, coord.region)
+                stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, coord.region.region)
                 Ok(())
               }
               case _ => {
@@ -831,7 +831,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
           }
           case None => {
             val kind = vassertSome(stepState.getConclusion(kindRune.rune))
-            val region = expectRegion(vassertSome(stepState.getConclusion(regionRune.rune)))
+            val region = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(regionRune.rune)))))
             val coerced = delegate.coerceToCoord(env, state, range :: env.parentRanges, kind, region)
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, coordRune.rune, coerced)
             Ok(())
@@ -895,7 +895,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
               maybeAugmentRegionRune match {
                 case None => outerRegion
                 case Some(augmentRegionRune) => {
-                  stepState.concludeRune(range :: env.parentRanges, augmentRegionRune.rune, outerRegion)
+                  stepState.concludeRune(range :: env.parentRanges, augmentRegionRune.rune, outerRegion.region)
                   env.contextRegion
                 }
               }
@@ -917,7 +917,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
             val newRegion =
               maybeAugmentRegionRune match {
                 case Some(augmentRegionRune) => {
-                  expectRegion(vassertSome(stepState.getConclusion(augmentRegionRune.rune)))
+                  RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(augmentRegionRune.rune)))))
                 }
                 case None => env.contextRegion
               }
@@ -1055,7 +1055,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplataT(memberType))
                     if (argRunes.size >= 3) {
                       val regionRune = argRunes(2)
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region.region)
                     }
                     Ok(())
                   }
@@ -1069,7 +1069,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplataT(memberType))
                     if (argRunes.size >= 3) {
                       val regionRune = argRunes(2)
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region.region)
                     }
                     Ok(())
                   }
@@ -1089,7 +1089,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplataT(memberType))
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region.region)
                     Ok(())
                   }
                   case KindTemplataT(contentsStaticSizedArrayTT(size, mutability, variability, memberType, region)) => {
@@ -1103,7 +1103,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplataT(memberType))
                     // We still have the region rune though, the rule still gives it to us.
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, contextRegionRune.rune, region)
+                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, contextRegionRune.rune, region.region)
                     Ok(())
                   }
                   case _ => return Err(CallResultWasntExpectedType(template, result))
@@ -1247,7 +1247,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
             template match {
               case RuntimeSizedArrayTemplateTemplataT() => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
+                val contextRegion = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))))
                 val Vector(m, CoordTemplataT(coord)) = args
                 val mutability = ITemplataT.expectMutability(m)
                 val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability, contextRegion)
@@ -1256,7 +1256,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
               }
               case StaticSizedArrayTemplateTemplataT() => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
+                val contextRegion = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))))
                 val Vector(s, m, v, CoordTemplataT(coord)) = args
                 val size = ITemplataT.expectInteger(s)
                 val mutability = ITemplataT.expectMutability(m)
@@ -1267,7 +1267,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
               }
               case it @ StructDefinitionTemplataT(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
+                val contextRegion = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))))
                 // See SFWPRL for why we're calling predictStruct instead of resolveStruct
                 val kind = delegate.predictStruct(env, state, it, args.toVector, contextRegion)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplataT(kind))
@@ -1275,7 +1275,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemp
               }
               case it @ InterfaceDefinitionTemplataT(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
+                val contextRegion = RegionT(expectRegionPlaceholder(expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))))
                 // See SFWPRL for why we're calling predictInterface instead of resolveInterface
                 val kind = delegate.predictInterface(env, state, it, args.toVector, contextRegion)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplataT(kind))

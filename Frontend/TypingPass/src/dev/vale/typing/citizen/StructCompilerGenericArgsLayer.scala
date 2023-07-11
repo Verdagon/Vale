@@ -3,7 +3,7 @@ package dev.vale.typing.citizen
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, LocationInDenizen, ReadWriteRegionS, RegionTemplataType, SealedS}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
-import dev.vale.typing.env.IInDenizenEnvironment
+import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.names.{AnonymousSubstructNameT, DenizenDefaultRegionNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IdT, NameTranslator, PackageTopLevelNameT, RuneNameT, StructTemplateNameT}
@@ -33,13 +33,13 @@ class StructCompilerGenericArgsLayer(
 
   def resolveStruct(
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
       val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
@@ -53,7 +53,7 @@ class StructCompilerGenericArgsLayer(
         structA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
           InitialKnown(RuneUsage(callRange.head, genericParam.rune.rune), templateArg)
         }) :+
-          InitialKnown(RuneUsage(vassertSome(callRange.headOption), structA.regionRune), contextRegion)
+          InitialKnown(RuneUsage(vassertSome(callRange.headOption), structA.regionRune), contextRegion.region)
 
       val callSiteRules =
         TemplataCompiler.assembleCallSiteRules(
@@ -96,10 +96,10 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
-      val fullName = declaringEnv.id.addStep(structName)
+      val id = declaringEnv.id.addStep(structName)
 
-      coutputs.addInstantiationBounds(fullName, runeToFunctionBound)
-      val structTT = interner.intern(StructTT(fullName))
+      coutputs.addInstantiationBounds(id, runeToFunctionBound)
+      val structTT = interner.intern(StructTT(id))
 
       ResolveSuccess(structTT)
     })
@@ -108,13 +108,13 @@ class StructCompilerGenericArgsLayer(
   // See SFWPRL for how this is different from resolveInterface.
   def predictInterface(
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     interfaceTemplata: InterfaceDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   (InterfaceTT) = {
     Profiler.frame(() => {
       val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
@@ -161,13 +161,13 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
-      val fullName = declaringEnv.id.addStep(interfaceName)
+      val id = declaringEnv.id.addStep(interfaceName)
 
       // Usually when we make an InterfaceTT we put the instantiation bounds into the coutputs,
       // but we unfortunately can't here because we're just predicting an interface; we'll
       // try to resolve it later and then put the bounds in. Hopefully this InterfaceTT doesn't
       // escape into the wild.
-      val interfaceTT = interner.intern(InterfaceTT(fullName))
+      val interfaceTT = interner.intern(InterfaceTT(id))
       interfaceTT
     })
   }
@@ -175,13 +175,13 @@ class StructCompilerGenericArgsLayer(
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]],
     // The default region is the only implicit generic param, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   (StructTT) = {
     Profiler.frame(() => {
       val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
@@ -195,7 +195,7 @@ class StructCompilerGenericArgsLayer(
         structA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
           InitialKnown(RuneUsage(vassertSome(callRange.headOption), genericParam.rune.rune), templateArg)
         }) :+
-          InitialKnown(RuneUsage(vassertSome(callRange.headOption), structA.regionRune), contextRegion)
+          InitialKnown(RuneUsage(vassertSome(callRange.headOption), structA.regionRune), contextRegion.region)
 
       val callSiteRules =
         TemplataCompiler.assemblePredictRules(
@@ -232,26 +232,26 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
-      val fullName = declaringEnv.id.addStep(structName)
+      val id = declaringEnv.id.addStep(structName)
 
       // Usually when we make an InterfaceTT we put the instantiation bounds into the coutputs,
       // but we unfortunately can't here because we're just predicting an interface; we'll
       // try to resolve it later and then put the bounds in. Hopefully this InterfaceTT doesn't
       // escape into the wild.
-      val structTT = interner.intern(StructTT(fullName))
+      val structTT = interner.intern(StructTT(id))
       structTT
     })
   }
 
   def resolveInterface(
     coutputs: CompilerOutputs,
-    originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
+    originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     interfaceTemplata: InterfaceDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   IResolveOutcome[InterfaceTT] = {
     Profiler.frame(() => {
       val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
@@ -307,10 +307,10 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
-      val fullName = declaringEnv.id.addStep(interfaceName)
+      val id = declaringEnv.id.addStep(interfaceName)
 
-      coutputs.addInstantiationBounds(fullName, runeToFunctionBound)
-      val interfaceTT = interner.intern(InterfaceTT(fullName))
+      coutputs.addInstantiationBounds(id, runeToFunctionBound)
+      val interfaceTT = interner.intern(InterfaceTT(id))
 
       ResolveSuccess(interfaceTT)
     })
@@ -325,11 +325,11 @@ class StructCompilerGenericArgsLayer(
     Profiler.frame(() => {
       val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
-      val structTemplateFullName = declaringEnv.id.addStep(structTemplateName)
+      val structTemplateId = declaringEnv.id.addStep(structTemplateName)
 
       // We declare the struct's outer environment in the precompile stage instead of here because
       // of MDATOEF.
-      val outerEnv = coutputs.getOuterEnvForType(parentRanges, structTemplateFullName)
+      val outerEnv = coutputs.getOuterEnvForType(parentRanges, structTemplateId)
 
       val allRulesS = structA.headerRules ++ structA.memberRules
       val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
@@ -345,7 +345,7 @@ class StructCompilerGenericArgsLayer(
       val defaultRegionGenericParam = structA.genericParameters(defaultRegionGenericParamIndex)
       val defaultRegionPlaceholderTemplata =
         templataCompiler.createRegionPlaceholderInner(
-          structTemplateFullName,
+          structTemplateId,
           defaultRegionGenericParamIndex,
           defaultRegionGenericParam.rune.rune,
           // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
@@ -359,7 +359,7 @@ class StructCompilerGenericArgsLayer(
           envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, Vector(), Vector())
 
       // Inform the solver of the default region's placeholder, see SIPWDR.
-      solver.manualStep(Map(defaultRegionGenericParam.rune.rune -> defaultRegionPlaceholderTemplata))
+      solver.manualStep(Map(defaultRegionGenericParam.rune.rune -> defaultRegionPlaceholderTemplata.region))
 
       // Incrementally solve and add placeholders, see IRAGP.
       inferCompiler.incrementallySolve(
@@ -375,13 +375,12 @@ class StructCompilerGenericArgsLayer(
                 templataCompiler.createPlaceholder(
                   coutputs,
                   outerEnv,
-                  structTemplateFullName,
+                  structTemplateId,
                   genericParam,
                   index,
                   allRuneToType,
                   vimpl(),
-                  true,
-                  LocationInDenizen(Vector()))
+                  true)
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }
@@ -402,28 +401,28 @@ class StructCompilerGenericArgsLayer(
         case None => {
           val mutability =
             ITemplataT.expectMutability(inferences(structA.mutabilityRune.rune))
-          coutputs.declareTypeMutability(structTemplateFullName, mutability)
+          coutputs.declareTypeMutability(structTemplateId, mutability)
         }
         case Some(_) =>
       }
 
       val templateArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
 
-      val fullName = assembleStructName(structTemplateFullName, templateArgs)
+      val id = assembleStructName(structTemplateId, templateArgs)
 
       val innerEnv =
-        CitizenEnvironment(
+        CitizenEnvironmentT(
           outerEnv.globalEnv,
           outerEnv,
-          structTemplateFullName,
-          fullName,
-          TemplatasStore(fullName, Map(), Map())
+          structTemplateId,
+          id,
+          TemplatasStore(id, Map(), Map())
             .addEntries(
               interner,
               inferences.toVector
                 .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
 
-      coutputs.declareTypeInnerEnv(structTemplateFullName, innerEnv)
+      coutputs.declareTypeInnerEnv(structTemplateId, innerEnv)
 
       core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, callLocation, structA)
     })
@@ -438,11 +437,11 @@ class StructCompilerGenericArgsLayer(
     Profiler.frame(() => {
       val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
-      val interfaceTemplateFullName = declaringEnv.id.addStep(interfaceTemplateName)
+      val interfaceTemplateId = declaringEnv.id.addStep(interfaceTemplateName)
 
       // We declare the interface's outer environment in the precompile stage instead of here because
       // of MDATOEF.
-      val outerEnv = coutputs.getOuterEnvForType(parentRanges, interfaceTemplateFullName)
+      val outerEnv = coutputs.getOuterEnvForType(parentRanges, interfaceTemplateId)
 
       //      val fullName = env.fullName.addStep(interfaceLastName)
 
@@ -459,7 +458,7 @@ class StructCompilerGenericArgsLayer(
 
       val defaultRegionPlaceholderTemplata =
         templataCompiler.createRegionPlaceholderInner(
-          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
+          interfaceTemplateId, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
           // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
           Some(0),
           ReadWriteRegionS)
@@ -471,7 +470,7 @@ class StructCompilerGenericArgsLayer(
           envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector())
 
       // Inform the solver of the default region's placeholder, see SIPWDR.
-      solver.manualStep(Map(defaultRegionGenericParam.rune.rune -> defaultRegionPlaceholderTemplata))
+      solver.manualStep(Map(defaultRegionGenericParam.rune.rune -> defaultRegionPlaceholderTemplata.region))
 
       // Incrementally solve and add placeholders, see IRAGP.
       inferCompiler.incrementallySolve(
@@ -485,7 +484,7 @@ class StructCompilerGenericArgsLayer(
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val templata =
                 templataCompiler.createPlaceholder(
-                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, vimpl(), true, LocationInDenizen(Vector()))
+                  coutputs, outerEnv, interfaceTemplateId, genericParam, index, interfaceA.runeToType, vimpl(), true)
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }
@@ -504,28 +503,28 @@ class StructCompilerGenericArgsLayer(
       interfaceA.maybePredictedMutability match {
         case None => {
           val mutability = ITemplataT.expectMutability(inferences(interfaceA.mutabilityRune.rune))
-          coutputs.declareTypeMutability(interfaceTemplateFullName, mutability)
+          coutputs.declareTypeMutability(interfaceTemplateId, mutability)
         }
         case Some(_) =>
       }
 
       val templateArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
 
-      val fullName = assembleInterfaceName(interfaceTemplateFullName, templateArgs)
+      val id = assembleInterfaceName(interfaceTemplateId, templateArgs)
 
       val innerEnv =
-        CitizenEnvironment(
+        CitizenEnvironmentT(
           outerEnv.globalEnv,
           outerEnv,
-          interfaceTemplateFullName,
-          fullName,
-          TemplatasStore(fullName, Map(), Map())
+          interfaceTemplateId,
+          id,
+          TemplatasStore(id, Map(), Map())
             .addEntries(
               interner,
               inferences.toVector
                 .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
 
-      coutputs.declareTypeInnerEnv(interfaceTemplateFullName, innerEnv)
+      coutputs.declareTypeInnerEnv(interfaceTemplateId, innerEnv)
 
       core.compileInterface(outerEnv, innerEnv, coutputs, parentRanges, callLocation, interfaceA)
     })

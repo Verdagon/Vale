@@ -6,12 +6,12 @@ import dev.vale.postparsing.rules.RuneUsage
 import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{InterfaceEdgeBlueprintT, PrototypeT}
-import dev.vale.typing.env.{GeneralEnvironment, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{GeneralEnvironmentT, IInDenizenEnvironmentT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
+import dev.vale.typing.function._
 import dev.vale.typing.names._
 import dev.vale.typing.templata.ITemplataT.{expectCoord, expectCoordTemplata, expectKindTemplata}
 import dev.vale.typing.templata._
@@ -50,16 +50,16 @@ class EdgeCompiler(
 
     val itables =
       interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => {
-        val interfacePlaceholderedFullName = interfaceEdgeBlueprint.interface
-        val interfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(interfacePlaceholderedFullName)
-        val interfaceFullName =
-          coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.id
-        val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
+        val interfacePlaceholderedId = interfaceEdgeBlueprint.interface
+        val interfaceTemplateId = TemplataCompiler.getInterfaceTemplate(interfacePlaceholderedId)
+        val interfaceId =
+          coutputs.lookupInterface(interfaceTemplateId).instantiatedInterface.id
+        val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateId)
 //        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedInterface
-        val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
+        val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateId)
         val overridingCitizenToFoundFunction =
           overridingImpls.map(overridingImpl => {
-            val overridingCitizenTemplateFullName = overridingImpl.subCitizenTemplateId
+            val overridingCitizenTemplateId = overridingImpl.subCitizenTemplateId
             val superInterfaceWithSubCitizenPlaceholders = overridingImpl.superInterface
 
 
@@ -69,16 +69,16 @@ class EdgeCompiler(
                   lookForOverride(
                     coutputs,
                     overridingImpl,
-                    interfaceTemplateFullName,
-                    overridingCitizenTemplateFullName,
+                    interfaceTemplateId,
+                    overridingCitizenTemplateId,
                     abstractFunctionPrototype,
                     abstractIndex)
                 abstractFunctionPrototype.id -> overrride
               })
             val overridingCitizen = overridingImpl.subCitizen
             vassert(coutputs.getInstantiationBounds(overridingCitizen.id).nonEmpty)
-            val superInterfaceFullName = overridingImpl.superInterface.id
-            vassert(coutputs.getInstantiationBounds(superInterfaceFullName).nonEmpty)
+            val superInterfaceId = overridingImpl.superInterface.id
+            vassert(coutputs.getInstantiationBounds(superInterfaceId).nonEmpty)
             val edge =
               EdgeT(
                 overridingImpl.instantiatedId,
@@ -87,10 +87,10 @@ class EdgeCompiler(
                 overridingImpl.runeToFuncBound,
                 overridingImpl.runeToImplBound,
                 foundFunctions.toMap)
-            val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateFullName)
+            val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateId)
             overridingCitizenDef.instantiatedCitizen.id -> edge
           }).toMap
-        interfaceFullName -> overridingCitizenToFoundFunction
+        interfaceId -> overridingCitizenToFoundFunction
       }).toMap
     (interfaceEdgeBlueprints, itables)
   }
@@ -110,11 +110,11 @@ class EdgeCompiler(
     val x2 = x1.groupBy(_._1)
     val x3 = x2.mapValues(_.map(_._2))
     val x4 =
-      x3.map({ case (interfaceTemplateFullName, functions) =>
+      x3.map({ case (interfaceTemplateId, functions) =>
         // Sort so that the interface's internal methods are first and in the same order
         // they were declared in. It feels right, and vivem also depends on it
         // when it calls array generators/consumers' first method.
-        val interfaceDef = coutputs.getAllInterfaces().find(_.templateName == interfaceTemplateFullName).get
+        val interfaceDef = coutputs.getAllInterfaces().find(_.templateName == interfaceTemplateId).get
         // Make sure `functions` has everything that the interface def wanted.
         vassert(
           (interfaceDef.internalMethods.toSet --
@@ -126,22 +126,22 @@ class EdgeCompiler(
             functions.map(_.header)
               .filter(x => !interfaceDef.internalMethods.exists(y => y._1.toSignature == x.toSignature))
               .map(header => header.toPrototype -> vassertSome(header.getVirtualIndex))
-        (interfaceTemplateFullName -> orderedMethods)
+        (interfaceTemplateId -> orderedMethods)
       })
-    val abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties = x4
+    val abstractFunctionHeadersByInterfaceTemplateIdWithoutEmpties = x4
     // Some interfaces would be empty and they wouldn't be in
     // abstractFunctionsByInterfaceWithoutEmpties, so we add them here.
-    val abstractFunctionHeadersByInterfaceTemplateFullName =
-      abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties ++
+    val abstractFunctionHeadersByInterfaceTemplateId =
+      abstractFunctionHeadersByInterfaceTemplateIdWithoutEmpties ++
         coutputs.getAllInterfaces().map({ case i =>
-          (i.templateName -> abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties.getOrElse(i.templateName, Set()))
+          (i.templateName -> abstractFunctionHeadersByInterfaceTemplateIdWithoutEmpties.getOrElse(i.templateName, Set()))
         })
 
     val interfaceEdgeBlueprints =
-      abstractFunctionHeadersByInterfaceTemplateFullName
-        .map({ case (interfaceTemplateFullName, functionHeaders2) =>
+      abstractFunctionHeadersByInterfaceTemplateId
+        .map({ case (interfaceTemplateId, functionHeaders2) =>
           InterfaceEdgeBlueprintT(
-            coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.id,
+            coutputs.lookupInterface(interfaceTemplateId).instantiatedInterface.id,
             // This is where they're given order and get an implied index
             functionHeaders2.toVector)
         })
@@ -152,7 +152,7 @@ class EdgeCompiler(
     coutputs: CompilerOutputs,
 //    implToDispatcherRegionSubstitutions: Vector[(IdT[IRegionNameT], IdT[IRegionNameT])],
     originalTemplataToMimic: ITemplataT[ITemplataType],
-    dispatcherOuterEnv: IInDenizenEnvironment,
+    dispatcherOuterEnv: IInDenizenEnvironmentT,
     index: Int,
     rune: IRuneS):
   ITemplataT[ITemplataType] = {
@@ -163,8 +163,8 @@ class EdgeCompiler(
     //
     //   val placeholderName =
     //     PlaceholderNameT(PlaceholderTemplateNameT(placeholderToSubstitution.size))
-    //   val placeholderFullName =
-    //     FullNameT(packageCoord, abstractFuncTemplateFullName.steps, placeholderName)
+    //   val placeholderId =
+    //     IdT(packageCoord, abstractFuncTemplateId.steps, placeholderName)
     //
     // It would even mostly work, because the abstract function was already compiled, already
     // made a bunch of placeholders, and registered them and their envs with the coutputs so
@@ -195,31 +195,31 @@ class EdgeCompiler(
     val placeholderName =
       interner.intern(KindPlaceholderNameT(
         interner.intern(KindPlaceholderTemplateNameT(index, rune))))
-    val placeholderFullName = dispatcherOuterEnv.id.addStep(placeholderName)
+    val placeholderId = dispatcherOuterEnv.id.addStep(placeholderName)
     // And, because it's new, we need to declare it and its environment.
-    val placeholderTemplateFullName =
-      TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
+    val placeholderTemplateId =
+      TemplataCompiler.getPlaceholderTemplate(placeholderId)
 
-    coutputs.declareType(placeholderTemplateFullName)
+    coutputs.declareType(placeholderTemplateId)
     coutputs.declareTypeOuterEnv(
-      placeholderTemplateFullName,
-      GeneralEnvironment.childOf(interner, dispatcherOuterEnv, placeholderTemplateFullName))
+      placeholderTemplateId,
+      GeneralEnvironmentT.childOf(interner, dispatcherOuterEnv, placeholderTemplateId))
 
     val result =
       originalTemplataToMimic match {
         case PlaceholderTemplataT(_, tyype) => {
-          PlaceholderTemplataT(placeholderFullName, tyype)
+          PlaceholderTemplataT(placeholderId, tyype)
         }
-        case KindTemplataT(KindPlaceholderT(originalPlaceholderFullName)) => {
-          val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
-          val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
-          coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
-          KindTemplataT(KindPlaceholderT(placeholderFullName))
+        case KindTemplataT(KindPlaceholderT(originalPlaceholderId)) => {
+          val originalPlaceholderTemplateId = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderId)
+          val mutability = coutputs.lookupMutability(originalPlaceholderTemplateId)
+          coutputs.declareTypeMutability(placeholderTemplateId, mutability)
+          KindTemplataT(KindPlaceholderT(placeholderId))
         }
-        case CoordTemplataT(CoordT(ownership, region, KindPlaceholderT(originalPlaceholderFullName))) => {
-          val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
-          val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
-          coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
+        case CoordTemplataT(CoordT(ownership, region, KindPlaceholderT(originalPlaceholderId))) => {
+          val originalPlaceholderTemplateId = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderId)
+          val mutability = coutputs.lookupMutability(originalPlaceholderTemplateId)
+          coutputs.declareTypeMutability(placeholderTemplateId, mutability)
 
           vimpl()
 //          // We're replacing the impl region with the dispatcher region here
@@ -229,7 +229,7 @@ class EdgeCompiler(
 //          }
           val newRegion = vimpl()//vassertOne(implToDispatcherRegionSubstitutions.filter(_._1 == region))._2
 
-          CoordTemplataT(CoordT(ownership, newRegion, KindPlaceholderT(placeholderFullName)))
+          CoordTemplataT(CoordT(ownership, newRegion, KindPlaceholderT(placeholderId)))
         }
         case other => vwat(other)
       }
@@ -270,7 +270,7 @@ class EdgeCompiler(
     val dispatcherTemplateDefaultRegion =
       vimpl()
     val dispatcherOuterEnv =
-      GeneralEnvironment.childOf(
+      GeneralEnvironmentT.childOf(
         interner,
         abstractFuncOuterEnv,
         dispatcherTemplateId)
@@ -303,21 +303,21 @@ class EdgeCompiler(
         .filter({ case (templata, independent) => !independent }) // Only grab dependent runes
         .map({ case (templata, independent) => templata }),
         { case (implPlaceholderIndex, implPlaceholder) =>
-          val implPlaceholderFullName = TemplataCompiler.getPlaceholderTemplataId(implPlaceholder)
+          val implPlaceholderId = TemplataCompiler.getPlaceholderTemplataId(implPlaceholder)
           // Sanity check we're in an impl template, we're about to replace it with a function template
-          implPlaceholderFullName.initSteps.last match { case _: IImplTemplateNameT => case _ => vwat() }
+          implPlaceholderId.initSteps.last match { case _: IImplTemplateNameT => case _ => vwat() }
 
-          val implRune = implPlaceholderFullName.localName.rune
+          val implRune = implPlaceholderId.localName.rune
           val dispatcherRune = DispatcherRuneFromImplS(implRune)
 
           val dispatcherPlaceholder =
             createOverridePlaceholderMimicking(
               coutputs, implPlaceholder, dispatcherOuterEnv, implPlaceholderIndex, dispatcherRune)
-          (implPlaceholderFullName, dispatcherPlaceholder)
+          (implPlaceholderId, dispatcherPlaceholder)
         })
     val dispatcherPlaceholders = implPlaceholderToDispatcherPlaceholder.map(_._2)
 
-    implPlaceholderToDispatcherPlaceholder.map(_._1).foreach(x => vassert(x.initFullName(interner) == impl.templateId))
+    implPlaceholderToDispatcherPlaceholder.map(_._1).foreach(x => vassert(x.initId(interner) == impl.templateId))
 
     val dispatcherPlaceholderedInterface =
       expectKindTemplata(
@@ -359,15 +359,15 @@ class EdgeCompiler(
     val dispatcherParams =
       originFunctionTemplata.function.params.map(_.pattern.coordRune).map(vassertSome(_)).map(_.rune)
         .map(rune => expectCoordTemplata(dispatcherInnerInferences(rune)).coord)
-    val dispatcherFullName =
+    val dispatcherId =
       dispatcherTemplateId.copy(localName =
         dispatcherTemplateId.localName.makeFunctionName(interner, keywords, dispatcherPlaceholders.toVector, dispatcherParams))
 
     val dispatcherInnerEnv =
-      GeneralEnvironment.childOf(
+      GeneralEnvironmentT.childOf(
         interner,
         dispatcherOuterEnv,
-        dispatcherFullName,
+        dispatcherId,
         newEntriesList = dispatcherInnerInferences
           .map({ case (nameS, templata) =>
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
@@ -387,12 +387,12 @@ class EdgeCompiler(
         { case (index, (implRune, implPlaceholderTemplata)) =>
           val caseRune = CaseRuneFromImplS(implRune)
 
-          val implPlaceholderFullName =
+          val implPlaceholderId =
             TemplataCompiler.getPlaceholderTemplataId(implPlaceholderTemplata)
           val casePlaceholder =
             createOverridePlaceholderMimicking(
               coutputs, implPlaceholderTemplata, dispatcherInnerEnv, index, caseRune)
-          (implRune, implPlaceholderFullName, casePlaceholder)
+          (implRune, implPlaceholderId, casePlaceholder)
         })
     val implRuneToCasePlaceholder =
       implRuneToImplPlaceholderAndCasePlaceholder
@@ -410,8 +410,8 @@ class EdgeCompiler(
       impl.reachableBoundsFromSubCitizen
         .map({
           case PrototypeT(IdT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
-            val funcBoundFullName = IdT(packageCoord, initSteps, fb)
-            val casePlaceholderedReachableFuncBoundFullName =
+            val funcBoundId = IdT(packageCoord, initSteps, fb)
+            val casePlaceholderedReachableFuncBoundId =
               TemplataCompiler.substituteTemplatasInFunctionBoundId(
                 coutputs,
                 interner,
@@ -420,8 +420,8 @@ class EdgeCompiler(
                 (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
                 // These are bounds we're bringing in from the sub citizen.
                 InheritBoundsFromTypeItself,
-                funcBoundFullName)
-            funcBoundFullName -> casePlaceholderedReachableFuncBoundFullName
+                funcBoundId)
+            funcBoundId -> casePlaceholderedReachableFuncBoundId
           }
           case other => vimpl(other)
         }).toMap
@@ -478,7 +478,7 @@ class EdgeCompiler(
     val overrideImpreciseName =
       vassertSome(TemplatasStore.getImpreciseName(interner, abstractFunctionPrototype.id.localName))
     val dispatcherCaseEnv =
-      GeneralEnvironment.childOf(
+      GeneralEnvironmentT.childOf(
         interner,
         dispatcherInnerEnv,
         dispatcherInnerEnv.id.addStep(
@@ -526,7 +526,7 @@ class EdgeCompiler(
     vassert(coutputs.getInstantiationBounds(foundFunction.prototype.prototype.id).nonEmpty)
 
     OverrideT(
-      dispatcherFullName,
+      dispatcherId,
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
       implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,

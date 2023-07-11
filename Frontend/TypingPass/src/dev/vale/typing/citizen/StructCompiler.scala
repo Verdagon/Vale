@@ -1,13 +1,13 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.{Interner, Keywords, Profiler, RangeS, vcurious, _}
+import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
-import dev.vale.typing.env.IInDenizenEnvironment
-import dev.vale.typing.{CompilerOutputs, IIncompleteOrFailedCompilerSolve, InferCompiler, TypingPassOptions, _}
-import dev.vale.typing.names.{DenizenDefaultRegionNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IRegionNameT, IStructTemplateNameT, ITemplateNameT, IdT, NameTranslator, PackageTopLevelNameT}
+import dev.vale.typing.env.IInDenizenEnvironmentT
+import dev.vale.typing._
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -17,9 +17,8 @@ import dev.vale.parsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules._
 import dev.vale.typing.env._
-import dev.vale.typing.function.FunctionCompiler
+import dev.vale.typing.function._
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult, StampFunctionSuccess}
 import dev.vale.typing.templata.ITemplataT.expectMutability
 
 import scala.collection.immutable.List
@@ -37,16 +36,16 @@ trait IStructCompilerDelegate {
   FunctionHeaderT
 
   def scoutExpectedFunctionForPrototype(
-    env: IInDenizenEnvironment,
+    env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplataT[RegionTemplataType],
+    contextRegion: RegionT,
     args: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironmentT],
     exact: Boolean,
     verifyConclusions: Boolean):
   StampFunctionSuccess
@@ -78,13 +77,13 @@ class StructCompiler(
 
   def resolveStruct(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplataT,
     uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
       templateArgsLayer.resolveStruct(
@@ -113,7 +112,7 @@ class StructCompiler(
 
     // We declare the struct's outer environment this early because of MDATOEF.
     val outerEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         declaringEnv.globalEnv,
         declaringEnv,
         structTemplateId,
@@ -159,7 +158,7 @@ class StructCompiler(
 
     // We declare the interface's outer environment this early because of MDATOEF.
     val outerEnv =
-      CitizenEnvironment(
+      CitizenEnvironmentT(
         declaringEnv.globalEnv,
         declaringEnv,
         interfaceTemplateId,
@@ -197,7 +196,7 @@ class StructCompiler(
   // See SFWPRL for how this is different from resolveInterface.
   def predictInterface(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
@@ -205,7 +204,7 @@ class StructCompiler(
     interfaceTemplata: InterfaceDefinitionTemplataT,
     uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   (InterfaceTT) = {
     templateArgsLayer.predictInterface(
       coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
@@ -214,7 +213,7 @@ class StructCompiler(
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
@@ -222,7 +221,7 @@ class StructCompiler(
     structTemplata: StructDefinitionTemplataT,
     uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // The default region is the only implicit generic param, see DROIGP.
-    defaultRegion: ITemplataT[RegionTemplataType]):
+    defaultRegion: RegionT):
   (StructTT) = {
     templateArgsLayer.predictStruct(
       coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs, defaultRegion)
@@ -230,7 +229,7 @@ class StructCompiler(
 
   def resolveInterface(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
@@ -238,7 +237,7 @@ class StructCompiler(
     interfaceTemplata: InterfaceDefinitionTemplataT,
     uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   IResolveOutcome[InterfaceTT] = {
     val success =
       templateArgsLayer.resolveInterface(
@@ -249,7 +248,7 @@ class StructCompiler(
 
   def resolveCitizen(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
@@ -257,7 +256,7 @@ class StructCompiler(
     citizenTemplata: CitizenDefinitionTemplataT,
     uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplataT[RegionTemplataType]):
+    contextRegion: RegionT):
   IResolveOutcome[ICitizenTT] = {
     citizenTemplata match {
       case st @ StructDefinitionTemplataT(_, _) => resolveStruct(coutputs, callingEnv, callRange, callLocation, st, uncoercedTemplateArgs, contextRegion)
@@ -318,7 +317,7 @@ object StructCompiler {
     interner: Interner,
     keywords: Keywords,
     coutputs: CompilerOutputs,
-    region: ITemplataT[RegionTemplataType],
+    region: RegionT,
     structTT: StructTT,
     boundArgumentsSource: IBoundArgumentsSource):
   ITemplataT[MutabilityTemplataType] = {

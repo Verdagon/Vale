@@ -3,7 +3,7 @@ package dev.vale.typing.templata
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
-import dev.vale.typing.env.IInDenizenEnvironment
+import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IPlaceholderNameT, IRegionNameT, IdT, InterfaceTemplateNameT, KindPlaceholderNameT, RegionPlaceholderNameT}
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
@@ -14,27 +14,31 @@ import dev.vale.typing.types._
 
 import scala.collection.immutable.List
 
+// This is a temporary wrapper class, to help us with the regions migration.
+// In the master branch, it contains nothing. In the regions branch, it contains an actual region.
+// TODO(regions): Remove this and use the ITemplataT directly once the regions migration is complete.
+case class RegionT(region: PlaceholderTemplataT[RegionTemplataType])
 
 object ITemplataT {
   def expectMutability(templata: ITemplataT[ITemplataType]): ITemplataT[MutabilityTemplataType] = {
     templata match {
       case t @ MutabilityTemplataT(_) => t
-      case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => PlaceholderTemplataT(fullNameT, MutabilityTemplataType())
+      case PlaceholderTemplataT(idT, MutabilityTemplataType()) => PlaceholderTemplataT(idT, MutabilityTemplataType())
       case _ => vfail()
     }
   }
 
   def expectRegion(templata: ITemplataT[ITemplataType]): ITemplataT[RegionTemplataType] = {
     templata match {
-      case PlaceholderTemplataT(fullNameT, RegionTemplataType()) => PlaceholderTemplataT(fullNameT, RegionTemplataType())
+      case PlaceholderTemplataT(idT, RegionTemplataType()) => PlaceholderTemplataT(idT, RegionTemplataType())
       case _ => vfail()
     }
   }
 
-  def expectRegionPlaceholder(templata: ITemplataT[RegionTemplataType]): IdT[RegionPlaceholderNameT] = {
+  def expectRegionPlaceholder(templata: ITemplataT[RegionTemplataType]): PlaceholderTemplataT[RegionTemplataType] = {
     templata match {
       case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
-        IdT(packageCoord, initSteps, r)
+        PlaceholderTemplataT(IdT(packageCoord, initSteps, r), RegionTemplataType())
       }
       case other => vfail(other)
     }
@@ -43,7 +47,7 @@ object ITemplataT {
   def expectVariability(templata: ITemplataT[ITemplataType]): ITemplataT[VariabilityTemplataType] = {
     templata match {
       case t @ VariabilityTemplataT(_) => t
-      case PlaceholderTemplataT(fullNameT, VariabilityTemplataType()) => PlaceholderTemplataT(fullNameT, VariabilityTemplataType())
+      case PlaceholderTemplataT(idT, VariabilityTemplataType()) => PlaceholderTemplataT(idT, VariabilityTemplataType())
       case _ => vfail()
     }
   }
@@ -51,7 +55,7 @@ object ITemplataT {
   def expectInteger(templata: ITemplataT[ITemplataType]): ITemplataT[IntegerTemplataType] = {
     templata match {
       case t @ IntegerTemplataT(_) => t
-      case PlaceholderTemplataT(fullNameT, IntegerTemplataType()) => PlaceholderTemplataT(fullNameT, IntegerTemplataType())
+      case PlaceholderTemplataT(idT, IntegerTemplataType()) => PlaceholderTemplataT(idT, IntegerTemplataType())
       case other => vfail(other)
     }
   }
@@ -59,7 +63,7 @@ object ITemplataT {
   def expectCoord(templata: ITemplataT[ITemplataType]): ITemplataT[CoordTemplataType] = {
     templata match {
       case t @ CoordTemplataT(_) => t
-      case PlaceholderTemplataT(fullNameT, CoordTemplataType()) => PlaceholderTemplataT(fullNameT, CoordTemplataType())
+      case PlaceholderTemplataT(idT, CoordTemplataType()) => PlaceholderTemplataT(idT, CoordTemplataType())
       case other => vfail(other)
     }
   }
@@ -95,7 +99,7 @@ object ITemplataT {
   def expectKind(templata: ITemplataT[ITemplataType]): ITemplataT[KindTemplataType] = {
     templata match {
       case t @ KindTemplataT(_) => t
-      case PlaceholderTemplataT(fullNameT, KindTemplataType()) => PlaceholderTemplataT(fullNameT, KindTemplataType())
+      case PlaceholderTemplataT(idT, KindTemplataType()) => PlaceholderTemplataT(idT, KindTemplataType())
       case _ => vfail()
     }
   }
@@ -127,7 +131,7 @@ case class CoordTemplataT(coord: CoordT) extends ITemplataT[CoordTemplataType] {
   vpass()
 }
 case class PlaceholderTemplataT[+T <: ITemplataType](
-  fullNameT: IdT[IPlaceholderNameT],
+  idT: IdT[IPlaceholderNameT],
   tyype: T
 ) extends ITemplataT[T] {
   tyype match {
@@ -158,7 +162,7 @@ case class FunctionTemplataT(
   // We need this because, for example, lambdas need to find their underlying struct
   // somewhere.
   // See TMRE for more on these environments.
-  outerEnv: IEnvironment,
+  outerEnv: IEnvironmentT,
 
   // This is the env entry that the function came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
@@ -206,7 +210,7 @@ case class StructDefinitionTemplataT(
   // The paackage this interface was declared in.
   // has the name of the surrounding environment, does NOT include struct's name.
   // See TMRE for more on these environments.
-  declaringEnv: IEnvironment,
+  declaringEnv: IEnvironmentT,
 
   // This is the env entry that the struct came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
@@ -248,11 +252,11 @@ case class ContainerFunction(function: FunctionA) extends IContainer { val hash 
 case class ContainerImpl(impl: ImplA) extends IContainer { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 sealed trait CitizenDefinitionTemplataT extends ITemplataT[TemplateTemplataType] {
-  def declaringEnv: IEnvironment
+  def declaringEnv: IEnvironmentT
   def originCitizen: CitizenA
 }
 object CitizenDefinitionTemplataT {
-  def unapply(c: CitizenDefinitionTemplataT): Option[(IEnvironment, CitizenA)] = {
+  def unapply(c: CitizenDefinitionTemplataT): Option[(IEnvironmentT, CitizenA)] = {
     c match {
       case StructDefinitionTemplataT(env, origin) => Some((env, origin))
       case InterfaceDefinitionTemplataT(env, origin) => Some((env, origin))
@@ -264,7 +268,7 @@ case class InterfaceDefinitionTemplataT(
   // The paackage this interface was declared in.
   // Has the name of the surrounding environment, does NOT include interface's name.
   // See TMRE for more on these environments.
-  declaringEnv: IEnvironment,
+  declaringEnv: IEnvironmentT,
 
   // This is the env entry that the interface came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
@@ -306,7 +310,7 @@ case class InterfaceDefinitionTemplataT(
 case class ImplDefinitionTemplataT(
   // The paackage this interface was declared in.
   // See TMRE for more on these environments.
-  env: IEnvironment,
+  env: IEnvironmentT,
 //
 //  // The containers are the structs/interfaces/impls/functions that this thing is inside.
 //  // E.g. if LinkedList has a Node substruct, then the Node's templata will have one

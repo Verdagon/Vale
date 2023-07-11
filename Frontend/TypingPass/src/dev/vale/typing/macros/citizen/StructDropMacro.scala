@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules._
 import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
-import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
+import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironmentT, FunctionEnvironmentBoxT, ReferenceLocalVariableT}
 import dev.vale.typing.{Compiler, CompilerOutputs, InheritBoundsFromTypeItself, OverloadResolver, TemplataCompiler, ast, env}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
@@ -177,7 +177,7 @@ class StructDropMacro(
   }
 
   override def generateFunctionBody(
-    env: FunctionEnvironment,
+    env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironmentT,
@@ -187,7 +187,7 @@ class StructDropMacro(
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
-    val bodyEnv = FunctionEnvironmentBox(env)
+    val bodyEnv = FunctionEnvironmentBoxT(env)
 
     val structType = params2.head.tyype
     val structTT =

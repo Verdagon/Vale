@@ -8,7 +8,7 @@ import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.{IRuneS, ITemplataType, LocationInDenizen, RegionTemplataType}
 import dev.vale.typing._
-import dev.vale.typing.env.IInDenizenEnvironment
+import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -31,7 +31,7 @@ case class ImplT(
 
   templata: ImplDefinitionTemplataT,
 
-  implOuterEnv: IInDenizenEnvironment,
+  implOuterEnv: IInDenizenEnvironmentT,
 
   instantiatedId: IdT[IImplNameT],
   templateId: IdT[IImplTemplateNameT],
@@ -170,10 +170,10 @@ case class EdgeT(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case EdgeT(thatEdgeFullName, thatStruct, thatInterface, _, _, _) => {
+      case EdgeT(thatEdgeId, thatStruct, thatInterface, _, _, _) => {
         val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
-          vassert(edgeId == thatEdgeFullName)
+          vassert(edgeId == thatEdgeId)
         }
         isSame
       }
@@ -254,7 +254,7 @@ case class ValidHeaderCalleeCandidate(
 }
 case class ValidPrototypeTemplataCalleeCandidate(
   pure: Boolean,
-  maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
+  maybeNewRegion: Option[RegionT],
   prototype: PrototypeTemplataT
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
@@ -328,10 +328,6 @@ case object AdditiveT extends IFunctionAttributeT
 case object SealedT extends ICitizenAttributeT
 case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
 
-case class RegionT(
-  name: IRegionNameT,
-  mutable: Boolean)
-
 case class FunctionHeaderT(
   // This one little name field can illuminate much of how the compiler works, see UINIT.
   id: IdT[IFunctionNameT],
@@ -401,7 +397,7 @@ case class FunctionHeaderT(
                   case PlaceholderTemplataT(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
-                  case CoordTemplataT(CoordT(_, PlaceholderTemplataT(regionPlaceholderId, _), KindPlaceholderT(kindPlaceholderId))) => {
+                  case CoordTemplataT(CoordT(_, RegionT(PlaceholderTemplataT(regionPlaceholderId, _)), KindPlaceholderT(kindPlaceholderId))) => {
                     vassert(placeholderName == regionPlaceholderId)
                   }
                   case other => {

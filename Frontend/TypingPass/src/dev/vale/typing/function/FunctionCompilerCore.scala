@@ -40,7 +40,7 @@ class FunctionCompilerCore(
       life: LocationInFunctionEnvironmentT,
       parentRanges: List[RangeS],
       callLocation: LocationInDenizen,
-      region: ITemplataT[RegionTemplataType],
+      region: RegionT,
       exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       delegate.evaluateBlockStatements(
@@ -52,7 +52,7 @@ class FunctionCompilerCore(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironmentT,
       parentRanges: List[RangeS],
-      region: ITemplataT[RegionTemplataType],
+      region: RegionT,
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
@@ -65,7 +65,7 @@ class FunctionCompilerCore(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def evaluateFunctionForHeader(
-    fullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
@@ -233,7 +233,7 @@ class FunctionCompilerCore(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getFunctionPrototypeForCall(
-    fullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironmentT,
       coutputs: CompilerOutputs,
     callRange: List[RangeS],
       params2: Vector[ParameterT]):
@@ -243,7 +243,7 @@ class FunctionCompilerCore(
   }
 
   def getFunctionPrototypeInnerForCall(
-    fullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironmentT,
     id: IdT[IFunctionNameT]):
   PrototypeT = {
     val retCoordRune = vassertSome(fullEnv.function.maybeRetCoordRune)
@@ -258,7 +258,7 @@ class FunctionCompilerCore(
   }
 
   def finalizeHeader(
-    fullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     attributesT: Vector[IFunctionAttributeT],
     paramsT: Vector[ParameterT],
@@ -279,7 +279,7 @@ class FunctionCompilerCore(
   // By MaybeDeferred we mean that this function might be called later, to reduce reentrancy.
   private def finishFunctionMaybeDeferred(
       coutputs: CompilerOutputs,
-      fullEnvSnapshot: FunctionEnvironment,
+      fullEnvSnapshot: FunctionEnvironmentT,
       callRange: List[RangeS],
       callLocation: LocationInDenizen,
       life: LocationInFunctionEnvironmentT,
@@ -290,7 +290,7 @@ class FunctionCompilerCore(
   FunctionHeaderT = {
     val (maybeEvaluatedRetCoord, body2) =
       bodyCompiler.declareAndEvaluateFunctionBody(
-        FunctionEnvironmentBox(fullEnvSnapshot),
+        FunctionEnvironmentBoxT(fullEnvSnapshot),
         coutputs, life, callRange, callLocation, fullEnvSnapshot.function, maybeExplicitReturnCoord, paramsT, isDestructor)
 
     val retCoord = vassertOne(maybeExplicitReturnCoord.toList ++ maybeEvaluatedRetCoord.toList)
@@ -335,7 +335,7 @@ class FunctionCompilerCore(
 
   def makeExternFunction(
       coutputs: CompilerOutputs,
-      env: FunctionEnvironment,
+      env: FunctionEnvironmentT,
       range: RangeS,
       attributes: Vector[IFunctionAttributeT],
       params2: Vector[ParameterT],

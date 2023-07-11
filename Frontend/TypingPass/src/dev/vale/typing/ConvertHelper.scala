@@ -1,16 +1,15 @@
 package dev.vale.typing
 
 import dev.vale.typing.ast.ReferenceExpressionTE
-import dev.vale.typing.env.{GlobalEnvironment, IInDenizenEnvironment}
+import dev.vale.typing.env.{GlobalEnvironment, IInDenizenEnvironmentT}
 import dev.vale.{RangeS, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.{IsParent, IsParentResult, IsntParent}
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 //import dev.vale.astronomer.IRulexSR
 import dev.vale.typing.citizen.ImplCompiler
-import dev.vale.typing.env.IDenizenEnvironmentBox
+import dev.vale.typing.env.IDenizenEnvironmentBoxT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -21,7 +20,7 @@ import dev.vale.postparsing._
 trait IConvertHelperDelegate {
   def isParent(
     coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
     descendantCitizenRef: ISubKindTT,
     ancestorInterfaceRef: ISuperKindTT):
@@ -32,7 +31,7 @@ class ConvertHelper(
     opts: TypingPassOptions,
     delegate: IConvertHelperDelegate) {
   def convertExprs(
-      env: IInDenizenEnvironment,
+      env: IInDenizenEnvironmentT,
       coutputs: CompilerOutputs,
       range: List[RangeS],
       sourceExprs: Vector[ReferenceExpressionTE],
@@ -51,7 +50,7 @@ class ConvertHelper(
   }
 
   def convert(
-      env: IInDenizenEnvironment,
+      env: IInDenizenEnvironmentT,
       coutputs: CompilerOutputs,
       range: List[RangeS],
       sourceExpr: ReferenceExpressionTE,
@@ -128,7 +127,7 @@ class ConvertHelper(
   }
 
   def upcast(
-    callingEnv: IInDenizenEnvironment,
+    callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     range: List[RangeS],
     sourceExpr: ReferenceExpressionTE,
@@ -136,10 +135,10 @@ class ConvertHelper(
     targetSuperKind: ISuperKindTT):
   (ReferenceExpressionTE) = {
     delegate.isParent(coutputs, callingEnv, range, sourceSubKind, targetSuperKind) match {
-      case IsParent(_, _, implFullName) => {
-        vassert(coutputs.getInstantiationBounds(implFullName).nonEmpty)
+      case IsParent(_, _, implId) => {
+        vassert(coutputs.getInstantiationBounds(implId).nonEmpty)
         UpcastTE(
-          sourceExpr, targetSuperKind, implFullName)
+          sourceExpr, targetSuperKind, implId)
       }
       case IsntParent(candidates) => {
         throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceSubKind + " to a " + targetSuperKind + ": " + candidates))
