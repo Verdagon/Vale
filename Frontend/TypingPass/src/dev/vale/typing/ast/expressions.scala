@@ -598,6 +598,8 @@ case class FunctionCallTE(
   pure: Boolean,
   maybeNewRegion: Option[RegionT],
   args: Vector[ReferenceExpressionTE],
+  // We have this not only for convenience, but also because sometimes a call's result is in a different region than
+  // what the prototype thinks.
   returnType: CoordT
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious();
@@ -620,9 +622,7 @@ case class FunctionCallTE(
     case (a, b) => vassert(a == b)
   })
 
-  override def result: ReferenceResultT = {
-    ReferenceResultT(callable.returnType)
-  }
+  override def result: ReferenceResultT = ReferenceResultT(returnType)
 }
 
 // A typingpass reinterpret is interpreting a type as a different one which is hammer-equivalent.
