@@ -30,7 +30,6 @@ class SameInstanceMacro(keywords: Keywords) extends IFunctionBodyMacro {
       FunctionHeaderT(
         env.id,
         Vector.empty,
-//        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))

@@ -1,25 +1,25 @@
 package dev.vale.typing
 
-import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vpass, vregionmut, vwat}
+import dev.vale._
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR, RuneUsage}
+import dev.vale.postparsing.rules._
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.function.{FunctionCompiler, StampFunctionSuccess}
+import dev.vale.typing.function._
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.typing.function._
 import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.solver.FailedSolve
-import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamRegionDoesntMatch}
+import OverloadResolver._
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.parsing.ast.ReadOnlyRegionRuneAttributeP
-import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
-import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBoxT, IDenizenEnvironmentBoxT, IInDenizenEnvironmentT, TemplataLookupContext}
+import dev.vale.typing.ast._
+import dev.vale.typing.env._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT, RegionPlaceholderNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata.ITemplataT.expectRegionPlaceholder
 
 import scala.collection.immutable.{Map, Set}
@@ -70,7 +70,7 @@ object OverloadResolver {
     override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   }
 
-  case class EvaluateFunctionFailure(
+  case class EvaluateFunctionFailure2(
     name: IImpreciseNameS,
     args: Vector[CoordT],
     // All the banners we rejected, and the reason why
@@ -132,6 +132,7 @@ class OverloadResolver(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     desiredParams: Vector[CoordT],
     candidateParams: Vector[CoordT],
     exact: Boolean):
@@ -149,7 +150,7 @@ class OverloadResolver(
             return Err(SpecificParamDoesntMatchExactly(paramIndex, desiredTemplata, candidateType))
           }
         } else {
-          if (!templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, desiredTemplata, candidateType)) {
+          if (!templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, callLocation, desiredTemplata, candidateType)) {
             return Err(SpecificParamDoesntSend(paramIndex, desiredTemplata, candidateType))
           }
         }
@@ -287,20 +288,7 @@ class OverloadResolver(
               // rulesA is the equals rules, but rule typed. Now we'll run them through the solver to get
               // some actual templatas.
 
-              val runeTypeSolveEnv =
-                new IRuneTypeSolverEnv {
-                  override def lookup(range: RangeS, nameS: IImpreciseNameS):
-                  Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-                    // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
-                    callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                      case Some(CitizenDefinitionTemplataT(environment, a)) => {
-                        Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
-                      }
-                      case Some(x) => Ok(TemplataLookupResult(x.tyype))
-                      case None => Err(RuneTypingCouldntFindType(range, nameS))
-                    }
-                  }
-                }
+              val runeTypeSolveEnv = TemplataCompiler.createRuneTypeSolverEnv(callingEnv)
 
               val runeAToType =
                 mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
@@ -370,7 +358,7 @@ class OverloadResolver(
                       coutputs, callingEnv, callRange, callLocation, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, contextRegion, args) match {
                       case (EvaluateFunctionFailure(reason)) => Err(reason)
                       case (EvaluateFunctionSuccess(prototype, conclusions)) => {
-                        paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
+                              paramsMatch(coutputs, callingEnv, callRange, callLocation, args, prototype.prototype.paramTypes, exact) match {
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
@@ -483,7 +471,7 @@ class OverloadResolver(
                       coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, calleeContextRegion, perhapsTransmigratedArgs) match {
                       case (EvaluateFunctionFailure(reason)) => Err(reason)
                       case (EvaluateFunctionSuccess(prototype, conclusions)) => {
-                        paramsMatch(coutputs, callingEnv, callRange, perhapsTransmigratedArgs, prototype.prototype.paramTypes, exact) match {
+                        paramsMatch(coutputs, callingEnv, callRange, callLocation, perhapsTransmigratedArgs, prototype.prototype.paramTypes, exact) match {
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
@@ -506,7 +494,7 @@ class OverloadResolver(
       case HeaderCalleeCandidate(header) => {
         vregionmut() // what if its a pure call
 
-        paramsMatch(coutputs, callingEnv, callRange, args, header.paramTypes, exact) match {
+        paramsMatch(coutputs, callingEnv, callRange, callLocation, args, header.paramTypes, exact) match {
           case Ok(_) => {
             Ok(ValidHeaderCalleeCandidate(header))
           }
@@ -530,7 +518,7 @@ class OverloadResolver(
         val params = prototype.id.localName.parameters.map(paramType => {
           substituter.substituteForCoord(coutputs, paramType)
         })
-        paramsMatch(coutputs, callingEnv, callRange, args, params, exact) match {
+        paramsMatch(coutputs, callingEnv, callRange, callLocation, args, params, exact) match {
           case Ok(_) => {
             // This can be for example:
             //   func bork<T>(a T) where func drop(T)void {
@@ -736,7 +724,7 @@ class OverloadResolver(
       Ok(successes.head)
     } else {
       val (best, outscoreReasonByBanner) =
-        narrowDownCallableOverloads(coutputs, env, callRange, successes, args)
+        narrowDownCallableOverloads(coutputs, env, callRange, callLocation, successes, args)
       Ok(best)
     }
   }
@@ -748,6 +736,7 @@ class OverloadResolver(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     candidate: IValidCalleeCandidate,
     argTypes: Vector[CoordT]):
   (Option[Vector[Boolean]]) = {
@@ -760,7 +749,7 @@ class OverloadResolver(
             if (argType == paramType) {
               Some(previous :+ false)
             } else {
-              if (templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, argType, paramType)) {
+            if (templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, callLocation, argType, paramType)) {
                 Some(previous :+ true)
               } else {
                 None
@@ -779,6 +768,7 @@ class OverloadResolver(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     unfilteredBanners: Iterable[IValidCalleeCandidate],
     argTypes: Vector[CoordT]):
   (
@@ -821,7 +811,7 @@ class OverloadResolver(
 
     val bannerIndexToScore =
       banners.map(banner => {
-        vassertSome(getBannerParamScores(coutputs, callingEnv, callRange, banner, argTypes))
+        vassertSome(getBannerParamScores(coutputs, callingEnv, callRange, callLocation, banner, argTypes))
       })
 
     // For any given parameter:

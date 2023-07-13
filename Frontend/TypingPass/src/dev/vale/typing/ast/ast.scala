@@ -81,14 +81,14 @@ case class FunctionExportT(
   vpass()
 }
 
-//case class KindExternT(
-//  tyype: KindT,
-//  externId: IdT[KindExternNameT],
-//  externName: StrI
-//)  {
-//  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-//
-//}
+case class KindExternT(
+  tyype: KindT,
+  packageCoordinate: PackageCoordinate,
+  externName: StrI
+)  {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+
+}
 
 case class FunctionExternT(
   range: RangeS,

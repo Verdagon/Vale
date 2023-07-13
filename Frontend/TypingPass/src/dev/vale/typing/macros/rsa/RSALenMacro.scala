@@ -10,7 +10,7 @@ import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
 import dev.vale.typing.ast
-import dev.vale.typing.names.DenizenDefaultRegionNameT
+import dev.vale.typing.names._
 
 
 class RSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {

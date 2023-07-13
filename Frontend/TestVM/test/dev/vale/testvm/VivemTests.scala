@@ -41,10 +41,10 @@ class VivemTests extends FunSuite with Matchers {
     val addPrototype =
       PrototypeH(
         IdH(
-          "__vbi_addI32(i32, i32)",
+          "__vbi_addI32",
           PackageCoordinate.BUILTIN(interner, keywords),
-          "__vbi_addI32(i32, i32)",
-          "__vbi_addI32(i32, i32)"),
+          "__vbi_addI32",
+          "__vbi_addI32"),
         Vector(CoordH(MutableShareH,InlineH,IntHT.i32), CoordH(MutableShareH,InlineH,IntHT.i32)),
         CoordH(MutableShareH,InlineH,IntHT.i32))
     val main =
@@ -75,7 +75,11 @@ class VivemTests extends FunSuite with Matchers {
         false,
         true,
         Vector.empty,
-        BlockH(ConstantIntH(133337, 32)))
+        ExternCallH(
+          addPrototype,
+          Vector(
+            ArgumentH(CoordH(MutableShareH,InlineH,IntHT.i32), 0),
+            ArgumentH(CoordH(MutableShareH,InlineH,IntHT.i32), 1))))
 
     val packages = new PackageCoordinateMap[PackageH]()
     packages.put(PackageCoordinate.BUILTIN(interner, keywords), PackageH(Vector.empty, Vector.empty, Vector(addExtern), Vector.empty, Vector.empty, Map(), Map(), Map(interner.intern(StrI("__vbi_addI32")) -> addPrototype), Map()))

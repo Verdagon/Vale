@@ -6,10 +6,10 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.parsing.ast.INameDeclarationP
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing._
-import dev.vale.typing.{BodyResultDoesntMatch, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForReturnT, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
+import dev.vale.typing._
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, LocationInFunctionEnvironmentT, ParameterT, ReferenceExpressionTE, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironmentBoxT, NodeEnvironmentT, NodeEnvironmentBox}
-import dev.vale.typing.names.{IRegionNameT, IdT, NameTranslator}
+import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -39,6 +39,7 @@ trait IBodyCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: RegionT,
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
@@ -177,7 +178,7 @@ class BodyCompiler(
     val startingEnv = env.snapshot
 
     val patternsTE =
-      evaluateLets(env, coutputs, life + 0, body1.range :: parentRanges, region, params1, params2);
+      evaluateLets(env, coutputs, life + 0, body1.range :: parentRanges, callLocation, region, params1, params2);
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
       delegate.evaluateBlockStatements(
@@ -190,11 +191,11 @@ class BodyCompiler(
       maybeExpectedResultType match {
         case None => unconvertedBodyWithoutReturn
         case Some(expectedResultType) => {
-          if (templataCompiler.isTypeConvertible(coutputs, startingEnv, parentRanges, unconvertedBodyWithoutReturn.result.coord, expectedResultType)) {
+          if (templataCompiler.isTypeConvertible(coutputs, startingEnv, parentRanges, callLocation, unconvertedBodyWithoutReturn.result.coord, expectedResultType)) {
             if (unconvertedBodyWithoutReturn.kind == NeverT(false)) {
               unconvertedBodyWithoutReturn
             } else {
-              convertHelper.convert(funcOuterEnv.snapshot, coutputs, body1.range :: parentRanges, unconvertedBodyWithoutReturn, expectedResultType);
+              convertHelper.convert(funcOuterEnv.snapshot, coutputs, body1.range :: parentRanges, callLocation, unconvertedBodyWithoutReturn, expectedResultType);
             }
           } else {
             return Err(ResultTypeMismatchError(expectedResultType, unconvertedBodyWithoutReturn.result.coord))
@@ -252,6 +253,7 @@ class BodyCompiler(
       coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
+      callLocation: LocationInDenizen,
     region: RegionT,
       params1: Vector[ParameterS],
       params2: Vector[ParameterT]):
@@ -260,7 +262,7 @@ class BodyCompiler(
       params2.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) })
     val letExprs2 =
       delegate.translatePatternList(
-        coutputs, nenv, life, range, region, params1.map(_.pattern), paramLookups2);
+        coutputs, nenv, life, range, callLocation, region, params1.map(_.pattern), paramLookups2);
 
     // todo: at this point, to allow for recursive calls, add a callable type to the environment
     // for everything inside the body to use

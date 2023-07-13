@@ -1,7 +1,7 @@
 package dev.vale.typing.macros
 
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
-import dev.vale.{Accumulator, CodeLocationS, Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
+import dev.vale._
 import dev.vale.parsing.ast.{BorrowP, FinalP, OwnP, UseP}
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing._
@@ -11,7 +11,7 @@ import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, IEnvEntry, ImplEnvEntry, StructEnvEntry}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.macros.citizen._
-import dev.vale.typing.names.{IdT, INameT, NameTranslator}
+import dev.vale.typing.names._
 import dev.vale.typing.types.MutabilityT
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.patterns._

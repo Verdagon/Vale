@@ -140,26 +140,7 @@ class ArrayCompiler(
     verifyConclusions: Boolean):
   ReferenceExpressionTE = {
 
-    val runeTypingEnv =
-      new IRuneTypeSolverEnv {
-        override def lookup(
-          range: RangeS,
-          nameS: IImpreciseNameS
-        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
-          callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-            case Some(CitizenDefinitionTemplataT(environment, a)) => {
-              Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
-            }
-            case Some(x) => Ok(TemplataLookupResult(x.tyype))
-            case None => Err(RuneTypingCouldntFindType(range, nameS))
-          }
-//          name match {
-//            case CodeNameS(n) if n == keywords.int => Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType()))
-//            case other => vwat(other)
-//          }
-        }
-      }
+    val runeTypingEnv = TemplataCompiler.createRuneTypeSolverEnv(callingEnv)
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
@@ -360,18 +341,7 @@ class ArrayCompiler(
     verifyConclusions: Boolean):
   StaticArrayFromValuesTE = {
 
-    val runeTypingEnv =
-      new IRuneTypeSolverEnv {
-        override def lookup(
-          range: RangeS,
-          name: IImpreciseNameS
-        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          vimpl()
-//          Ok(
-//            TemplataLookupResult(
-//              vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
-        }
-      }
+    val runeTypingEnv = TemplataCompiler.createRuneTypeSolverEnv(callingEnv)
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
@@ -652,12 +622,6 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateId =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
-//    val defaultRegionName =
-//      vimpl()
-////      templateFullName.addStep(
-////        interner.intern(PlaceholderNameT(
-////          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
-//    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -734,7 +698,7 @@ class ArrayCompiler(
         case PlaceholderTemplataT(_, _) => FinalT
         case VariabilityTemplataT(variability) => variability
       }
-    StaticSizedArrayLookupTE(range, containerExpr2, indexExpr2, memberType,  variability)
+    StaticSizedArrayLookupTE(range, containerExpr2, at, indexExpr2, memberType,  variability)
   }
 
   def lookupInUnknownSizedArray(

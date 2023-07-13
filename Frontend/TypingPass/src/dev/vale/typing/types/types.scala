@@ -1,6 +1,6 @@
 package dev.vale.typing.types
 
-import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, StrI, vassert, vcurious, vfail, vpass, vwat}
+import dev.vale._
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IInDenizenEnvironmentT

@@ -1,11 +1,11 @@
 package dev.vale.typing
 
-import dev.vale.postparsing.{LocationInDenizen, RegionTemplataType}
-import dev.vale.typing.ast.{ReferenceExpressionTE, TupleTE}
+import dev.vale.postparsing._
+import dev.vale.typing.ast._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vimpl}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{IInDenizenEnvironmentT, TemplataLookupContext}
-import dev.vale.typing.names.{CitizenTemplateNameT, IRegionNameT, IdT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._

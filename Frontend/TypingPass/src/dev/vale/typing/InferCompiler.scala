@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, typing, vassert, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
+import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
 import dev.vale.solver._
@@ -10,12 +10,12 @@ import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.citizen.{IResolveOutcome, IsParent, IsParentResult, IsntParent, ResolveFailure, ResolveSuccess}
 import dev.vale.typing.env.{CitizenEnvironmentT, EnvironmentHelper, GeneralEnvironmentT, GlobalEnvironment, IEnvEntry, IEnvironmentT, IInDenizenEnvironmentT, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.function.StampFunctionSuccess
+import dev.vale.typing.function._
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntFindImpl, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError, ReturnTypeConflict}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IImplNameT, INameT, ITemplateNameT, IdT, ImplNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
-import dev.vale.typing.templata.ITemplataT.{expectRegion, expectRegionPlaceholder}
+import dev.vale.typing.templata.ITemplataT._
 import dev.vale.typing.templata._
-import dev.vale.typing.types.{CoordT, ICitizenTT, ISubKindTT, ISuperKindTT, InterfaceTT, KindT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
+import dev.vale.typing.types._
 
 import scala.collection.immutable.{List, Set}
 
@@ -139,6 +139,7 @@ trait IInferCompilerDelegate {
     callingEnv: IInDenizenEnvironmentT,
     state: CompilerOutputs,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     subKind: ISubKindTT,
     superKind: ISuperKindTT):
   IsParentResult
@@ -453,7 +454,7 @@ class InferCompiler(
     val maybeRunesAndImpls =
       rules.collect({
         case r@CallSiteCoordIsaSR(_, _, _, _) => {
-          checkImpl(env, state, ranges, r, conclusions) match {
+          checkImpl(env, state, ranges, callLocation, r, conclusions) match {
             case Ok(maybeRuneAndPrototype) => maybeRuneAndPrototype
             case Err(e) => return Err(e)
           }
@@ -516,6 +517,7 @@ class InferCompiler(
     callingEnv: IInDenizenEnvironmentT,
     state: CompilerOutputs,
     ranges: List[RangeS],
+    callLocation: LocationInDenizen,
     c: CallSiteCoordIsaSR,
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
   Result[Option[(IRuneS, IdT[IImplNameT])], ISolverError[IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]] = {
@@ -537,7 +539,7 @@ class InferCompiler(
     val superKind = superCoord.kind match { case x : ISuperKindTT => x case other => vwat(other) }
 
     val implSuccess =
-      delegate.resolveImpl(callingEnv, state, range :: ranges, subKind, superKind) match {
+      delegate.resolveImpl(callingEnv, state, range :: ranges, callLocation, subKind, superKind) match {
         case x @ IsntParent(_) => return Err(RuleError(CouldntFindImpl(range :: ranges, x)))
         case x @ IsParent(_, _, _) => x
       }

@@ -43,7 +43,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,_,_,_, _) => {
+      case StaticSizedArrayLookupTE(_,_,_,_, _,_) => {
       }
     })
 
@@ -153,7 +153,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_, arrayExpr,_, _, _) => {
+      case StaticSizedArrayLookupTE(_, arrayExpr,_, _, _,_) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
             mutability shouldEqual MutabilityTemplataT(MutableT)
@@ -170,7 +170,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _,_, _) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
             mutability shouldEqual MutabilityTemplataT(ImmutableT)
@@ -187,7 +187,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _,_) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
             mutability shouldEqual MutabilityTemplataT(MutableT)
@@ -204,7 +204,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _,_) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
             mutability shouldEqual MutabilityTemplataT(ImmutableT)
@@ -221,7 +221,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _,_) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
             mutability shouldEqual MutabilityTemplataT(MutableT)

@@ -3,11 +3,11 @@ package dev.vale.typing.expression
 //import dev.vale.astronomer.{BlockSE, IExpressionSE}
 import dev.vale.RangeS
 import dev.vale.postparsing._
-import dev.vale.typing.{CompilerOutputs, TypingPassOptions}
+import dev.vale.typing._
 import dev.vale.typing.ast.{BlockTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBoxT, NodeEnvironmentBox, NodeEnvironmentT}
+import dev.vale.typing.env._
 import dev.vale.typing.function.DestructorCompiler
-import dev.vale.typing.names.{IRegionNameT, IVarNameT, IdT, TypingPassBlockResultVarNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.types.CoordT
 import dev.vale.postparsing.ExpressionScout
 import dev.vale.typing._
@@ -15,7 +15,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.types._
 import dev.vale.RangeS
-import dev.vale.typing.templata.{ITemplataT, RegionT}
+import dev.vale.typing.templata._
 
 import scala.collection.immutable.{List, Set}
 
