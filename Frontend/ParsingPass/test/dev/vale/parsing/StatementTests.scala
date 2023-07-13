@@ -3,9 +3,9 @@ package dev.vale.parsing
 import dev.vale.{Collector, Interner, StrI, vimpl, vwat}
 import dev.vale.parsing.ast.{AugmentPE, BlockPE, BorrowP, ConsecutorPE, ConstantBoolPE, ConstantIntPE, ConstantStrPE, DestructPE, DestructureP, DotPE, EachPE, FunctionCallPE, IExpressionPE, IfPE, LetPE, LocalNameDeclarationP, LookupNameP, LookupPE, MutatePE, NameOrRunePT, NameP, PatternPP, Patterns, ReturnPE, TuplePE, UnletPE, VoidPE}
 import dev.vale.parsing.ast._
-import dev.vale.lexing.{BadExpressionEnd, BadStartOfStatementError, ForgotSetKeyword}
+import dev.vale.lexing._
 import dev.vale.options.GlobalOptions
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 class StatementTests extends FunSuite with Collector with TestParseUtils {
 

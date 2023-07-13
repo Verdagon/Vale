@@ -18,18 +18,19 @@ object PostParserErrorHumanizer {
   String = {
     val errorStrBody =
       (err match {
-        case RuneExplicitTypeConflictS(range, rune, types) => "Too many explicit types for rune " + humanizeRune(rune) + ": " + types.map(humanizeTemplataType).mkString(", ")
+        case RuneExplicitTypeConflictS(range, rune, types) => "Too many explicit types for rune " + humanizeRune(rune) + "" + types.map(humanizeTemplataType).mkString(", ")
         case RangedInternalErrorS(range, message) => " " + message
-        case UnknownRuleFunctionS(range, name) => ": Unknown rule function name: "+ name
-        case UnknownRegionError(range, name) => ": Unknown region: " + name
-        case UnimplementedExpression(range, expressionName) => s": ${expressionName} not supported yet.\n"
-        case CouldntFindRuneS(range, name) => ": Couldn't find generic parameter \"" + name + "\".\n"
-        case CouldntFindVarToMutateS(range, name) => s": No variable named ${name}. Try declaring it above, like `${name} = 42;`\n"
-        case CantOwnershipInterfaceInImpl(range) => s": Can only impl a plain interface, remove symbol."
-        case CantOwnershipStructInImpl(range) => s": Only a plain struct/interface can be in an impl, remove symbol."
-        case CantOverrideOwnershipped(range) => s": Can only impl a plain interface, remove symbol."
+        case UnknownRuleFunctionS(range, name) => "Unknown rule function name: "+ name
+        case UnknownRegionError(range, name) => "Unknown region: " + name
+        case UnimplementedExpression(range, expressionName) => s"${expressionName} not supported yet.\n"
+        case CouldntFindRuneS(range, name) => "Couldn't find generic parameter \"" + name + "\".\n"
+        case CouldntFindVarToMutateS(range, name) => s"No variable named ${name}. Try declaring it above, like `${name} = 42;`\n"
+        case CantOwnershipInterfaceInImpl(range) => s"Can only impl a plain interface, remove symbol."
+        case CantOwnershipStructInImpl(range) => s"Only a plain struct/interface can be in an impl, remove symbol."
+        case CantOverrideOwnershipped(range) => s"Can only impl a plain interface, remove symbol."
+        case BadRuneAttributeErrorS(range, attr) => "Bad rune attribute: " + attr
         case CouldntSolveRulesS(range, error) => {
-          s": Couldn't solve:\n" +
+          s"Couldn't solve:\n" +
           SolverErrorHumanizer.humanizeFailedSolve[IRulexSR, IRuneS, ITemplataType, IRuneTypeRuleError](
             codeMap,
             linesBetween,
@@ -45,7 +46,7 @@ object PostParserErrorHumanizer {
             error.failedSolve)._1
         }
         case IdentifyingRunesIncompleteS(range, error) => {
-          s": Not enough identifying runes:\n" +
+          s"Not enough identifying runes:\n" +
             SolverErrorHumanizer.humanizeFailedSolve[IRulexSR, IRuneS, Boolean, IIdentifiabilityRuleError](
               codeMap,
               linesBetween,
@@ -60,15 +61,14 @@ object PostParserErrorHumanizer {
               PostParserErrorHumanizer.humanizeRule,
               error.failedSolve)._1
         }
-        case VariableNameAlreadyExists(range, name) => s": Local named " + humanizeName(name) + " already exists!\n(If you meant to modify the variable, use the `set` keyword beforehand.)"
-        case InterfaceMethodNeedsSelf(range) => s": Interface's method needs a virtual param of interface's type!"
-        case ForgotSetKeywordError(range) => s": Changing a struct's member must start with the `set` keyword."
-        case CantUseThatLocalName(range, name) => s": Can't use the name ${name} for a local."
-        case ExternHasBody(range) => s": Extern function can't have a body too."
-//        case CantInitializeIndividualElementsOfRuntimeSizedArray(range) => s": Can't initialize individual elements of a runtime-sized array."
-        case InitializingRuntimeSizedArrayRequiresSizeAndCallable(range) => s": Initializing a runtime-sized array requires 1-2 arguments: a capacity, and optionally a function that will populate that many elements."
-        case InitializingStaticSizedArrayRequiresSizeAndCallable(range) => s": Initializing a statically-sized array requires one argument: a function that will populate the elements."
-//        case InitializingStaticSizedArrayFromCallableNeedsSizeTemplex(range) => s": Initializing a statically-sized array requires a size in-between the square brackets."
+        case VariableNameAlreadyExists(range, name) => s"Local named " + humanizeName(name) + " already exists!\n(If you meant to modify the variable, use the `set` keyword beforehand.)"
+        case InterfaceMethodNeedsSelf(range) => s"Interface's method needs a virtual param of interface's type!"
+        case ForgotSetKeywordError(range) => s"Changing a struct's member must start with the `set` keyword."
+        case ExternHasBody(range) => s"Extern function can't have a body too."
+//        case CantInitializeIndividualElementsOfRuntimeSizedArray(range) => s"Can't initialize individual elements of a runtime-sized array."
+        case InitializingRuntimeSizedArrayRequiresSizeAndCallable(range) => s"Initializing a runtime-sized array requires 1-2 arguments: a capacity, and optionally a function that will populate that many elements."
+        case InitializingStaticSizedArrayRequiresSizeAndCallable(range) => s"Initializing a statically-sized array requires one argument: a function that will populate the elements."
+//        case InitializingStaticSizedArrayFromCallableNeedsSizeTemplex(range) => s"Initializing a statically-sized array requires a size in-between the square brackets."
       })
 
     val posStr = codeMap(err.range.begin)
@@ -84,6 +84,15 @@ object PostParserErrorHumanizer {
     error match {
       case FoundTemplataDidntMatchExpectedType(range, expectedType, actualType) => {
         "Expected " + humanizeTemplataType(expectedType) + " but found " + humanizeTemplataType(actualType)
+      }
+      case RuneTypingCouldntFindType(range, name) => {
+        "Couldn't find anything with the name '" + humanizeImpreciseName(name) + "'"
+      }
+      case NotEnoughArgumentsForGenericCall(range, indexOfNonDefaultingParam) => {
+        "Not enough arguments for generic call, expected at least " + (indexOfNonDefaultingParam + 1)
+      }
+      case FoundPrimitiveDidntMatchExpectedType(range, expectedType, actualType) => {
+        "Found primitive didnt match expected type. Expected " + humanizeTemplataType(expectedType) + " but was " + humanizeTemplataType(actualType)
       }
       case other => vimpl(other)
     }
@@ -115,6 +124,7 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructTemplateNameS(tlcd) => humanizeName(tlcd) + ".anonymous"
       case TopLevelCitizenDeclarationNameS(name, range) => name.str
       case RuntimeSizedArrayDeclarationNameS() => "__rsa"
+      case ImplDeclarationNameS(_) => "(impl)"
     }
   }
 

@@ -1,9 +1,10 @@
 package dev.vale.highertyping
 
-import dev.vale.postparsing.CodeNameS
+import dev.vale.postparsing._
 import dev.vale.{Err, Ok, SourceCodeUtils, StrI, vassert, vfail}
 import dev.vale.postparsing.PostParser
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
+import dev.vale.solver._
 
 class ErrorTests extends FunSuite with Matchers  {
   def compileProgramForError(compilation: HigherTypingCompilation): ICompileErrorA = {
@@ -32,7 +33,7 @@ class ErrorTests extends FunSuite with Matchers  {
             SourceCodeUtils.lineRangeContaining(codeMap, _),
             SourceCodeUtils.lineContaining(codeMap, _),
             e)
-        vassert(errorText.contains("Couldn't find type `Bork`"))
+        vassert(errorText.contains("Couldn't find anything with the name 'Bork'"))
       }
     }
   }

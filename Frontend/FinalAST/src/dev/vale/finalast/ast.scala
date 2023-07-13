@@ -216,7 +216,7 @@ case class FunctionH(
 
   // Whether this has a body. If true, the body will simply contain an InterfaceCallH instruction.
   isAbstract: Boolean,
-  // Whether this has a body. If true, the body will simply contain an ExternCallH instruction to the same
+  // Whether this is an extern. If true, the body will simply contain an ExternCallH instruction to the same
   // prototype describing this function.
   isExtern: Boolean,
 

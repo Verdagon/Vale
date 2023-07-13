@@ -2,7 +2,7 @@ package dev.vale.postparsing.patterns
 
 import dev.vale.postparsing.IVarNameS
 import dev.vale.postparsing.rules.RuneUsage
-import dev.vale.{RangeS, vcurious, vpass}
+import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.RangeS
 

@@ -1,7 +1,7 @@
 package dev.vale.testvm
 
 import dev.vale.finalast._
-import dev.vale.{vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat, finalast => m}
+import dev.vale._
 import dev.vale.finalast._
 
 import scala.collection.mutable

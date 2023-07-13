@@ -278,6 +278,40 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           BlockPE(body.range, pure, None, body))))
   }
 
+  private def parseExplicitBlock(iter: ScrambleIterator): Result[Option[BlockPE], IParseError] = {
+    val whileBegin = iter.getPos()
+
+    val tentativeIter = iter.clone()
+
+    val pure = tentativeIter.trySkipWord(keywords.pure)
+
+    if (tentativeIter.trySkipWord(keywords.block).isEmpty) {
+      return Ok(None)
+    }
+
+    iter.skipTo(tentativeIter)
+
+    val body =
+      iter.peek() match {
+        case Some(CurliedLE(range, contents)) => {
+          iter.advance()
+          parseBlockContents(new ScrambleIterator(contents), false) match {
+            case Ok(result) => result
+            case Err(cpe) => return Err(cpe)
+          }
+        }
+        case _ => return Err(BadStartOfBlock(iter.getPos()))
+      }
+
+    Ok(
+      Some(
+        ast.BlockPE(
+          RangeL(whileBegin, iter.getPrevEndPos()),
+          pure,
+          None,
+          body)))
+  }
+
   private def parseForeach(
     originalIter: ScrambleIterator):
   Result[Option[EachPE], IParseError] = {
@@ -313,7 +347,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         }) match {
         case None => return Err(BadForeachInError(iter.getPos()))
         case Some((in, patternIter)) => {
-          patternParser.parsePattern(patternIter, 0, false, false, false, None) match {
+          patternParser.parsePattern(patternIter, patternIter.getPos(), 0, false, false, false, None) match {
             case Err(cpe) => return Err(cpe)
             case Ok(result) => (in.range, result)
           }
@@ -500,7 +534,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     stopOnCurlied: Boolean):
   Result[LetPE, IParseError] = {
     val pattern =
-      patternParser.parsePattern(patternIter, 0, false, false, false, None) match {
+      patternParser.parsePattern(patternIter, patternIter.getPos(), 0, false, false, false, None) match {
         case Ok(result) => result
         case Err(e) => return Err(e)
       }
@@ -722,6 +756,11 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     }
 
     parseWhile(iter) match {
+      case Err(e) => return Err(e)
+      case Ok(Some(x)) => return Ok(x)
+      case Ok(None) =>
+    }
+    parseExplicitBlock(iter) match {
       case Err(e) => return Err(e)
       case Ok(Some(x)) => return Ok(x)
       case Ok(None) =>

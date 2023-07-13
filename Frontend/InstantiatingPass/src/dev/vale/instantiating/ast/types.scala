@@ -3,7 +3,7 @@ package dev.vale.instantiating.ast
 import dev.vale._
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast._
-import dev.vale.typing.env.IInDenizenEnvironmentT
+import dev.vale.typing.env._
 import dev.vale.typing.names._
 import dev.vale.highertyping._
 import dev.vale.postparsing._
@@ -230,7 +230,7 @@ case class StructIT[+R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends IC
   }
 }
 
-case class InterfaceIT[+R <: IRegionsModeI](id: IdI[R, IInterfaceNameI[R]]) extends ICitizenIT[R] with ISuperKindIT[R] {
+case class InterfaceIT[+R <: IRegionsModeI](id: IdI[R, IInterfaceNameI[R]]) extends ICitizenIT[R] {
   override def isPrimitive: Boolean = false
   (id.initSteps.lastOption, id.localName) match {
     case (Some(InterfaceTemplateNameI(_)), InterfaceNameI(_, _)) => vfail()

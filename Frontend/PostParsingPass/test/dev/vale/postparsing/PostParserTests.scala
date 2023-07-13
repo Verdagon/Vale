@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, SourceCodeUtils, StrI, vassert, vfail}
+import dev.vale._
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.{FinalP, LoadAsBorrowP, MutableP, UseP}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
@@ -11,7 +11,7 @@ import dev.vale.parsing.ast._
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules._
 import dev.vale.solver.IncompleteSolve
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 class PostParserTests extends FunSuite with Matchers with Collector {
 
@@ -273,17 +273,6 @@ class PostParserTests extends FunSuite with Matchers with Collector {
           LocalLoadSE(_, ConstructingMemberNameS(StrI("x")), UseP),
           LocalLoadSE(_, ConstructingMemberNameS(StrI("y")), UseP))) =>
     })
-  }
-
-  test("Cant use set as a local name") {
-    val error = compileForError(
-      """func moo() {
-        |  [set] = (6,);
-        |}
-        |""".stripMargin)
-    error match {
-      case CantUseThatLocalName(_, "set") =>
-    }
   }
 
   test("InitializingRuntimeSizedArrayRequiresSizeAndCallable too few") {

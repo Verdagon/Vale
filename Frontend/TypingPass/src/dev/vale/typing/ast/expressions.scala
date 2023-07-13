@@ -6,9 +6,7 @@ import dev.vale.typing.names._
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.options.GlobalOptions.test
-import dev.vale.postparsing.{CallRegionRuneS, IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType}
-import dev.vale.typing.TemplataCompiler
+import dev.vale.postparsing._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -301,15 +299,13 @@ case class BreakTE(region: RegionT) extends ReferenceExpressionTE {
 
 // when we make a closure, we make a struct full of pointers to all our variables
 // and the first element is our parent closure
-// this can live on the stack, since blocks are additive to this expression
+// this can live on the stack, since blocks are limited to this expression
 // later we can optimize it to only have the things we use
 
 // Block2 is required to unlet all the variables it introduces.
 case class BlockTE(
   inner: ReferenceExpressionTE
 ) extends ReferenceExpressionTE {
-  vpass()
-
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = inner.result
 }

@@ -4,7 +4,7 @@ import dev.vale.{Interner, Keywords, PackageCoordinate, PackageCoordinateMap, St
 import dev.vale.finalast._
 import dev.vale.finalast._
 import dev.vale.von.{VonArray, VonInt, VonMember, VonObject, VonStr}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 class VivemTests extends FunSuite with Matchers {
   test("Return 7") {

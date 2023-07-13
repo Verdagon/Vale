@@ -155,7 +155,7 @@ case class EdgeI(
   runeToFuncBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
   runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  abstractFuncToOverrideFunc: Map[IdI[cI, IFunctionNameI[cI]], OverrideI]
+  abstractFuncToOverrideFunc: Map[IdI[cI, IFunctionNameI[cI]], PrototypeI[cI]]
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
