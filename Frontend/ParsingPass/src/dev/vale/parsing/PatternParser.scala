@@ -3,7 +3,7 @@ package dev.vale.parsing
 import dev.vale.{Err, Interner, Keywords, Ok, Result, StrI, U, vassert, vassertSome, vimpl, vwat}
 import dev.vale.parsing.ast.{AbstractP, ConstructingMemberNameDeclarationP, DestructureP, INameDeclarationP, IgnoredLocalNameDeclarationP, LocalNameDeclarationP, NameP, PatternPP}
 import dev.vale.parsing.templex.TemplexParser
-import dev.vale.lexing.{BadDestructureError, BadLocalName, BadNameBeforeDestructure, BadThingAfterTypeInPattern, EmptyParameter, EmptyPattern, FoundBothAbstractAndOverride, INodeLE, IParseError, LightFunctionMustHaveParamTypes, RangeL, RangedInternalErrorP, ScrambleLE, SquaredLE, SymbolLE, WordLE}
+import dev.vale.lexing._
 import dev.vale.parsing.ast._
 
 import scala.collection.mutable
@@ -46,6 +46,10 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       case None => {
         val maybeName =
           iter.peek2() match {
+            case (Some(SquaredLE(_, _)), _) => {
+              // This is a destructure parameter with no name or type, like func moo([a, b, c])
+              None
+            }
             case (Some(w@WordLE(_, _)), Some(SquaredLE(_, _))) => {
               // This is a destructure parameter with no name, like func moo(Vec3[a, b, c])
               None
@@ -59,7 +63,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
 
         val maybePreChecked = iter.trySkipWord(keywords.pre)
 
-        parsePattern(iter, index, isInCitizen, isInFunction, isInLambda, maybeName) match {
+        parsePattern(iter, patternBegin, index, isInCitizen, isInFunction, isInLambda, maybeName) match {
           case Ok(pattern) => Ok(ParameterP(patternRange, maybeVirtual, maybePreChecked, maybeSelfBorrow, Some(pattern)))
           case Err(x) => Err(x)
         }
@@ -67,17 +71,14 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
     }
   }
 
-  def parsePattern(iter: ScrambleIterator, index: Int, isInCitizen: Boolean, isInFunction: Boolean, isInLambda: Boolean, maybeNameFromParameter: Option[WordLE]): Result[PatternPP, IParseError] = {
-    val patternBegin = iter.getPos()
-    val patternRange = iter.range
-
+  def parsePattern(iter: ScrambleIterator, patternBegin: Int, index: Int, isInCitizen: Boolean, isInFunction: Boolean, isInLambda: Boolean, maybeNameFromParameter: Option[WordLE]): Result[PatternPP, IParseError] = {
     if (!iter.hasNext) {
       maybeNameFromParameter match {
         case None => return Err(EmptyPattern(patternBegin))
         case Some(WordLE(range, str)) => {
           Ok(
             PatternPP(
-              patternRange,
+              RangeL(patternBegin, iter.getPrevEndPos()),
               Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None)),
               None,
               None))
@@ -98,11 +99,18 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
       }
 
     val maybeMutate = iter.trySkipWord(keywords.set)
+    if (maybeMutate.nonEmpty && !iter.hasNext) {
+      return Err(CantUseThatLocalName(iter.getPos(), "set"))
+    }
 
     val maybeDestinationLocal =
       maybeNameFromParameter match {
         case Some(WordLE(range, str)) => {
-          Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None))
+          if (str == keywords.UNDERSCORE) {
+            Some(DestinationLocalP(IgnoredLocalNameDeclarationP(range), None))
+          } else {
+            Some(DestinationLocalP(LocalNameDeclarationP(NameP(range, str)), None))
+          }
         }
         case None => {
           val nameIsNext =
@@ -178,7 +186,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
           // Allow it, just assume it's the containing struct.
           None
         } else if (isInFunction) {
-          return Err(LightFunctionMustHaveParamTypes(patternRange.end, index))
+          return Err(LightFunctionMustHaveParamTypes(patternBegin, index))
         } else {
           // Allow it, just a regular pattern
           None
@@ -195,7 +203,7 @@ class PatternParser(interner: Interner, keywords: Keywords, templexParser: Templ
               U.mapWithIndex[ScrambleIterator, PatternPP](
                 new ScrambleIterator(destructureElements).splitOnSymbol(',', false),
                 (index, destructureElementIter) => {
-                  parsePattern(destructureElementIter, index, false, false, false, None) match {
+                  parsePattern(destructureElementIter, destructureElementIter.getPos(), index, false, false, false, None) match {
                     case Err(e) => return Err(e)
                     case Ok(x) => x
                   }

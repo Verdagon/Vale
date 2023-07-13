@@ -1,15 +1,16 @@
 package dev.vale
 
+import dev.vale.instantiating.ast._
 import dev.vale.typing.{ast, types}
 import dev.vale.typing.ast.{AbstractT, SignatureT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.testvm.IntV
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.ITemplataT.{expectCoord, expectCoordTemplata}
 import dev.vale.typing.types._
 import dev.vale.von.{VonInt, VonStr}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 class VirtualTests extends FunSuite with Matchers {
 

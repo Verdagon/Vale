@@ -3,7 +3,7 @@ package dev.vale.postparsing.rules
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast.{BoolTypePR, BuiltinCallPR, ComponentsPR, CoordListTypePR, CoordTypePR, EqualsPR, IRulexPR, ITypePR, IntPT, IntTypePR, KindTypePR, LocationTypePR, MutabilityTypePR, NameP, OrPR, OwnershipPT, OwnershipTypePR, PrototypeTypePR, TemplexPR, TypedPR, VariabilityTypePR}
 import dev.vale.postparsing._
-import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail, vimpl, vwat}
+import dev.vale._
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
@@ -249,6 +249,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case CoordComponentsSR(_, resultRune, _, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
     case KindComponentsSR(_, resultRune, _) =>
     case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
+    case CallSR(range, resultRune, templateRune, args) =>
     case MaybeCoercingCallSR(range, resultRune, _, templateRune, args) =>
     case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) =>
     case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) =>

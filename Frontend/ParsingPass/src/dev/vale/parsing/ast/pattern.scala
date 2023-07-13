@@ -1,7 +1,7 @@
 package dev.vale.parsing.ast
 
 import dev.vale.lexing.RangeL
-import dev.vale.{vassert, vcurious}
+import dev.vale._
 
 //sealed trait IVirtualityP
 case class AbstractP(range: RangeL)// extends IVirtualityP
@@ -45,7 +45,12 @@ case class DestructureP(
 sealed trait INameDeclarationP {
   def range: RangeL
 }
-case class LocalNameDeclarationP(name: NameP) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious(); override def range: RangeL = name.range }
+case class LocalNameDeclarationP(name: NameP) extends INameDeclarationP {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious(); override def range: RangeL = name.range
+  if (name.str.str == "_") {
+    vwat()
+  }
+}
 case class IgnoredLocalNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious(); }
 case class IterableNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class IteratorNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

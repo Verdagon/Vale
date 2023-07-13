@@ -8,7 +8,7 @@ import dev.vale.parsing.ast.FileP
 import dev.vale.postparsing._
 import dev.vale.typing.ast._
 import dev.vale.instantiating.ast._
-import dev.vale.typing.names.{IdT, FunctionNameT, FunctionTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.{HinputsT, ICompileErrorT, ast}
 import dev.vale.typing.types._
 import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, PrimitiveKindV, ReferenceV, StructInstanceV, Vivem}
@@ -18,7 +18,7 @@ import java.io.FileNotFoundException
 import dev.vale.typing.ast
 import dev.vale.{finalast => m}
 import dev.vale.testvm.ReferenceV
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 import dev.vale.passmanager.FullCompilation
 import dev.vale.finalast.IdH
 import dev.vale.lexing.{FailedParse, RangeL}

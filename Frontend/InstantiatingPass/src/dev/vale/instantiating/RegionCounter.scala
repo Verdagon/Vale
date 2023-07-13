@@ -1,5 +1,6 @@
 package dev.vale.instantiating
 
+import dev.vale.instantiating.RegionCounter._
 import dev.vale.instantiating.ast._
 import dev.vale.{U, vassert, vimpl, vwat}
 
@@ -95,6 +96,39 @@ object RegionCounter {
       case ExternFunctionNameI(humanName, parameters) => {
         parameters.foreach(countCoord(counter, _))
       }
+      case LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLoc, paramsTT), templateArgs, parameters) => {
+        templateArgs.foreach(countTemplata(counter, _))
+        parameters.foreach(countCoord(counter, _))
+      }
+      case AnonymousSubstructConstructorNameI(AnonymousSubstructConstructorTemplateNameI(substruct), templateArgs, parameters) => {
+        countName(counter, substruct)
+        templateArgs.foreach(countTemplata(counter, _))
+        parameters.foreach(countCoord(counter, _))
+      }
+      case ForwarderFunctionNameI(ForwarderFunctionTemplateNameI(funcTemplateName, index), funcName) => {
+        countName(counter, funcTemplateName)
+        countFunctionName(counter, funcName)
+      }
+    }
+  }
+
+  def countCitizenName(
+      counter: Counter,
+      name: ICitizenNameI[sI]):
+  Unit = {
+    name match {
+      case StructNameI(StructTemplateNameI(humanName), templateArgs) => {
+        templateArgs.foreach(countTemplata(counter, _))
+      }
+      case LambdaCitizenNameI(template) => {
+      }
+      case InterfaceNameI(InterfaceTemplateNameI(humanName), templateArgs) => {
+        templateArgs.foreach(countTemplata(counter, _))
+      }
+      case AnonymousSubstructNameI(AnonymousSubstructTemplateNameI(interface), templateArgs) => {
+        countName(counter, interface)
+        templateArgs.foreach(countTemplata(counter, _))
+      }
     }
   }
 
@@ -126,10 +160,21 @@ object RegionCounter {
       case ExternNameI(template, region) => {
         counter.count(region)
       }
+      case c : ICitizenNameI[_] => {
+        // Scala can't seem to match generics.
+        val x = c.asInstanceOf[ICitizenNameI[sI]]
+        countCitizenName(counter, x)
+      }
       case StructNameI(template, templateArgs) => {
         templateArgs.foreach(arg => countTemplata(counter, arg))
       }
       case StructTemplateNameI(_) =>
+      case LambdaCitizenTemplateNameI(_) =>
+      case InterfaceTemplateNameI(humanNamee) =>
+      case AnonymousSubstructTemplateNameI(interface) => {
+        countName(counter, interface)
+      }
+      case FunctionTemplateNameI(humanName, codeLocation) =>
       case other => vimpl(other)
     }
   }
@@ -146,6 +191,8 @@ object RegionCounter {
       case KindTemplataI(kind) => countKind(counter, kind)
       case r @ RegionTemplataI(_) => counter.count(r)
       case MutabilityTemplataI(mutability) =>
+      case IntegerTemplataI(_) =>
+      case VariabilityTemplataI(variability) =>
       case other => vimpl(other)
     }
   }
@@ -176,6 +223,7 @@ object RegionCounter {
       case FloatIT() =>
       case StrIT() =>
       case StructIT(id) => countStructId(counter, id)
+      case InterfaceIT(id) => countInterfaceId(counter, id)
       case StaticSizedArrayIT(ssaId) => {
         countId[StaticSizedArrayNameI[sI]](
           counter,
@@ -225,6 +273,20 @@ object RegionCounter {
       })
   }
 
+  def countCitizenId(
+      counter: Counter,
+      citizenId: IdI[sI, ICitizenNameI[sI]]):
+  Unit = {
+    citizenId match {
+      case IdI(packageCoord, initSteps, localName: IStructNameI[_]) => {
+        countStructId(IdI(packageCoord, initSteps, localName.asInstanceOf[IStructNameI[sI]]))
+      }
+      case IdI(packageCoord, initSteps, localName: IInterfaceNameI[_]) => {
+        countInterfaceId(IdI(packageCoord, initSteps, localName.asInstanceOf[IInterfaceNameI[sI]]))
+      }
+    }
+  }
+
   def countStructId(
     counter: Counter,
     structId: IdI[sI, IStructNameI[sI]]):
@@ -232,10 +294,7 @@ object RegionCounter {
     countId[IStructNameI[sI]](
       counter,
       structId,
-      { case StructNameI(template, templateArgs) =>
-        countStructTemplateName(counter, template)
-        templateArgs.foreach(countTemplata(counter, _))
-      })
+      countStructName(counter, _))
   }
 
   def countStructTemplateName(
@@ -247,6 +306,23 @@ object RegionCounter {
     }
   }
 
+  def countStructName(
+      counter: Counter,
+      structName: IStructNameI[sI]):
+  Unit = {
+    structName match {
+      case StructNameI(template, templateArgs) => {
+        countStructTemplateName(counter, template)
+        templateArgs.foreach(countTemplata(counter, _))
+      }
+      case LambdaCitizenNameI(template) => {
+      }
+      case AnonymousSubstructNameI(template, templateArgs) => {
+        templateArgs.foreach(countTemplata(counter, _))
+      }
+    }
+  }
+
   def countImplId(
     counter: Counter,
     structId: IdI[sI, IImplNameI[sI]]):
@@ -254,11 +330,28 @@ object RegionCounter {
     countId[IImplNameI[sI]](
       counter,
       structId,
-      { case ImplNameI(template, templateArgs, subCitizen) =>
+      x => countImplName(counter, x))
+  }
+
+  def countImplName(
+      counter: Counter,
+      implId: IImplNameI[sI]):
+  Unit = {
+    implId match {
+      case ImplNameI(template, templateArgs, subCitizen) => {
         countImplTemplateName(counter, template)
         templateArgs.foreach(countTemplata(counter, _))
-        vimpl(subCitizen)
-      })
+        countCitizenId(subCitizen.id)
+      }
+      case AnonymousSubstructImplNameI(AnonymousSubstructImplTemplateNameI(interface), templateArgs, subCitizen) => {
+        countName(counter, interface)
+        templateArgs.foreach(countTemplata(counter, _))
+        countCitizenId(subCitizen.id)
+      }
+      case ImplBoundNameI(ImplBoundTemplateNameI(codeLocationS), templateArgs) => {
+        templateArgs.foreach(countTemplata(counter, _))
+      }
+    }
   }
 
   def countImplTemplateName(
@@ -288,6 +381,19 @@ object RegionCounter {
     counter.assembleMap()
   }
 
+  def countInterfaceId(idI: IdI[sI, IInterfaceNameI[sI]]): Map[Int, Int] = {
+    val counter = new RegionCounter.Counter()
+    countInterfaceId(counter, idI)
+    counter.assembleMap()
+  }
+
+  def countInterfaceId(
+      counter: Counter,
+      interfaceId: IdI[sI, IInterfaceNameI[sI]]):
+  Unit = {
+    RegionCounter.countId(counter, interfaceId, (x: IInterfaceNameI[sI]) => RegionCounter.countName(counter, x))
+  }
+
   def countFunctionId(idI: IdI[sI, IFunctionNameI[sI]]): Map[Int, Int] = {
     val counter = new RegionCounter.Counter()
     RegionCounter.countId(counter, idI, (x: IFunctionNameI[sI]) => RegionCounter.countName(counter, x))
@@ -299,7 +405,7 @@ object RegionCounter {
   Map[Int, Int] = {
     val counter = new RegionCounter.Counter()
     RegionCounter.countId(
-      counter, implId, (x: IImplNameI[sI]) => RegionCounter.countName(counter, x))
+      counter, implId, (x: IImplNameI[sI]) => RegionCounter.countImplName(counter, x))
     counter.assembleMap()
   }
 
@@ -344,6 +450,30 @@ object RegionCounter {
   Map[Int, Int] = {
     val counter = new RegionCounter.Counter()
     RegionCounter.countFunctionName(counter, name)
+    counter.assembleMap()
+  }
+
+  def countImplName(
+      name: IImplNameI[sI]):
+  Map[Int, Int] = {
+    val counter = new RegionCounter.Counter()
+    RegionCounter.countImplName(counter, name)
+    counter.assembleMap()
+  }
+
+  def countCitizenName(
+      name: ICitizenNameI[sI]):
+  Map[Int, Int] = {
+    val counter = new RegionCounter.Counter()
+    RegionCounter.countCitizenName(counter, name)
+    counter.assembleMap()
+  }
+
+  def countCitizenId(
+      name: IdI[sI, ICitizenNameI[sI]]):
+  Map[Int, Int] = {
+    val counter = new RegionCounter.Counter()
+    RegionCounter.countCitizenId(counter, name)
     counter.assembleMap()
   }
 

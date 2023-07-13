@@ -1,6 +1,6 @@
 package dev.vale.typing.ast
 
-import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType, RegionTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.TemplataCompiler
 import dev.vale.typing.names._
 import dev.vale.typing.templata._

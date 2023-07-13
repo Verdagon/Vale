@@ -4,7 +4,7 @@ import dev.vale.{Err, Interner, Ok, RangeS, Result, vassert, vassertSome, vfail,
 import dev.vale.postparsing.rules._
 import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, ISolveRule, ISolverError, ISolverState, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale._
-import dev.vale.postparsing.RuneTypeSolver.checkGenericCall
+import dev.vale.postparsing.RuneTypeSolver._
 import dev.vale.postparsing.rules._
 
 import scala.collection.immutable.Map
@@ -23,17 +23,17 @@ case class FoundTemplataDidntMatchExpectedType(
   range: List[RangeS],
   expectedType: ITemplataType,
   actualType: ITemplataType
-) extends IRuneTypeRuleError
-case class FoundPrimitiveDidntMatchExpectedType(
-  range: List[RangeS],
-  expectedType: ITemplataType,
-  actualType: ITemplataType
-) extends IRuneTypeRuleError
+) extends IRuneTypeRuleError {
+  vpass()
+}
+
 case class NotEnoughArgumentsForGenericCall(
   range: List[RangeS],
 //  citizen: ICitizenS,
   indexOfNonDefaultingParam: Int
-) extends IRuneTypeRuleError
+) extends IRuneTypeRuleError {
+  vpass()
+}
 case class GenericCallArgTypeMismatch(
   range: List[RangeS],
 //  citizen: ICitizenS,
@@ -49,6 +49,20 @@ case class RuneTypingTooManyMatchingTypes(range: RangeS, name: IImpreciseNameS) 
 }
 case class RuneTypingCouldntFindType(range: RangeS, name: IImpreciseNameS) extends IRuneTypingLookupFailedError {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+}
+case class FoundTemplataDidntMatchExpectedTypeA(
+    range: List[RangeS],
+    expectedType: ITemplataType,
+    actualType: ITemplataType
+) extends IRuneTypingLookupFailedError {
+  vpass()
+}
+case class FoundPrimitiveDidntMatchExpectedType(
+  range: List[RangeS],
+  expectedType: ITemplataType,
+  actualType: ITemplataType
+) extends IRuneTypingLookupFailedError {
   vpass()
 }
 

@@ -6,7 +6,7 @@ import dev.vale.typing.templata.FunctionTemplataT
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IRuneS, ITemplataType, LocationInDenizen, RegionTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.templata._
@@ -318,9 +318,9 @@ case class FunctionBannerT(
 
 sealed trait IFunctionAttributeT
 sealed trait ICitizenAttributeT
-//case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
-//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-//}
+case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
+ val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
 // There's no Export2 here, we use separate KindExport and FunctionExport constructs.
 //case class Export2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2
 case object PureT extends IFunctionAttributeT

@@ -1,9 +1,9 @@
 package dev.vale.parsing
 
 import dev.vale.{Collector, StrI}
-import dev.vale.lexing.{CantUseBreakInExpression, CantUseReturnInExpression}
+import dev.vale.lexing._
 import dev.vale.parsing.ast._
-import org.scalatest.FunSuite
+import org.scalatest._
 
 class ExpressionTests extends FunSuite with Collector with TestParseUtils {
   test("Simple int") {

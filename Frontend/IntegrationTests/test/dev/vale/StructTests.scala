@@ -2,7 +2,7 @@ package dev.vale
 
 import dev.vale.testvm.PanicException
 import dev.vale.von.VonInt
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 class StructTests extends FunSuite with Matchers {
   test("Make empty imm struct") {

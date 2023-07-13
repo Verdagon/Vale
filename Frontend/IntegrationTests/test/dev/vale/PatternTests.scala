@@ -1,16 +1,16 @@
 package dev.vale
 
-import dev.vale.instantiating.ast.{CoordI, IdI, IntIT, MutableBorrowI, MutableShareI, StructIT, StructMemberI, StructNameI, StructTemplateNameI}
 import dev.vale.parsing.ast.FinalP
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import dev.vale.typing._
+import dev.vale.instantiating.ast._
 import dev.vale.typing.ast.{NormalStructMemberT, ReferenceMemberTypeT}
-import dev.vale.typing.names._
+import dev.vale.typing.names.{IdT, KindPlaceholderNameT, KindPlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.types.IntT
 import dev.vale.von.VonInt
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 class PatternTests extends FunSuite with Matchers {
   // To get something like this to work would be rather involved.

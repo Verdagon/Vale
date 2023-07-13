@@ -5,10 +5,9 @@ import dev.vale.finalast._
 import dev.vale.typing.types.ShareT
 import dev.vale.testvm.PanicException
 import dev.vale.simplifying._
-import dev.vale.finalast.VariableIdH
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 import scala.collection.immutable.List
 

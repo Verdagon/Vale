@@ -56,6 +56,44 @@ object RegionCollapserIndividual {
           })
         ExternFunctionNameI[cI](humanName, paramsC)
       }
+      case n @ LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocation, paramsTT), templateArgs, parameters) => {
+        val map = RegionCounter.countFunctionName(n)
+        val templateC = LambdaCallFunctionTemplateNameI[cI](codeLocation, paramsTT)
+        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
+        val paramsC =
+          parameters.map(param => {
+            collapseCoord(param)
+          })
+        LambdaCallFunctionNameI[cI](templateC, templateArgsC, paramsC)
+      }
+      case n @ AnonymousSubstructConstructorNameI(AnonymousSubstructConstructorTemplateNameI(substruct), templateArgs, parameters) => {
+        val map = RegionCounter.countFunctionName(n)
+        val templateC = AnonymousSubstructConstructorTemplateNameI[cI](collapseCitizenTemplateName(substruct))
+        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
+        val paramsC =
+          parameters.map(param => {
+            collapseCoord(param)
+          })
+        AnonymousSubstructConstructorNameI[cI](templateC, templateArgsC, paramsC)
+      }
+      case ForwarderFunctionNameI(ForwarderFunctionTemplateNameI(innerTemplate, index), funcName) => {
+        ForwarderFunctionNameI(
+          ForwarderFunctionTemplateNameI(collapseFunctionTemplateName(innerTemplate), index),
+          collapseFunctionName(funcName))
+      }
+      case other => vimpl(other)
+    }
+  }
+
+  def collapseCitizenTemplateName(citizen: ICitizenTemplateNameI[sI]): ICitizenTemplateNameI[cI] = {
+    citizen match {
+      case s : IStructTemplateNameI[_] => {
+        collapseStructTemplateName(s.asInstanceOf[IStructTemplateNameI[sI]])
+      }
+      case i : IInterfaceTemplateNameI[_] => {
+        collapseInterfaceTemplateName(i.asInstanceOf[IInterfaceTemplateNameI[sI]])
+      }
+      case other => vimpl(other)
     }
   }
 
@@ -67,6 +105,21 @@ object RegionCollapserIndividual {
       case CodeVarNameI(name) => CodeVarNameI(name)
       case TypingPassTemporaryVarNameI(life) => TypingPassTemporaryVarNameI(life)
       case TypingPassFunctionResultVarNameI() => TypingPassFunctionResultVarNameI()
+      case ClosureParamNameI(codeLocation) => ClosureParamNameI(codeLocation)
+      case MagicParamNameI(codeLocation2) => MagicParamNameI(codeLocation2)
+      case IterableNameI(range) => IterableNameI(range)
+      case ConstructingMemberNameI(name) => ConstructingMemberNameI(name)
+      case IteratorNameI(range) => IteratorNameI(range)
+      case IterationOptionNameI(range) => IterationOptionNameI(range)
+      case SelfNameI() => SelfNameI()
+    }
+  }
+
+  def collapseFunctionTemplateName(
+      functionName: IFunctionTemplateNameI[sI]):
+  IFunctionTemplateNameI[cI] = {
+    functionName match {
+      case FunctionTemplateNameI(humanName, codeLocation) => FunctionTemplateNameI(humanName, codeLocation)
     }
   }
 
@@ -74,10 +127,14 @@ object RegionCollapserIndividual {
     name: INameI[sI]):
   INameI[cI] = {
     name match {
-      case n @ FunctionNameIX(_, _, _) => {
-        collapseFunctionName(n)
-      }
+      case n @ FunctionNameIX(_, _, _) => collapseFunctionName(n)
+      case x : IFunctionTemplateNameI[_] => collapseFunctionTemplateName(x.asInstanceOf[IFunctionTemplateNameI[sI]])
       case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
+      case x @ LambdaCitizenNameI(_) => collapseStructName(x)
+      case LambdaCitizenTemplateNameI(codeLocation) => LambdaCitizenTemplateNameI(codeLocation)
+      case n @ LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocation, paramTypes), templateArgs, parameters) => collapseFunctionName(n)
+      case InterfaceTemplateNameI(humanName) => InterfaceTemplateNameI(humanName)
+      case AnonymousSubstructTemplateNameI(interface) => AnonymousSubstructTemplateNameI(collapseInterfaceTemplateName(interface))
       case other => vimpl(other)
     }
   }
@@ -99,6 +156,8 @@ object RegionCollapserIndividual {
       case KindTemplataI(kind) => KindTemplataI(collapseKind(kind))
       case r @ RegionTemplataI(_) => collapseRegionTemplata(map, r)
       case MutabilityTemplataI(mutability) => MutabilityTemplataI(mutability)
+      case IntegerTemplataI(x) => IntegerTemplataI(x)
+      case VariabilityTemplataI(variability) => VariabilityTemplataI(variability)
       case other => vimpl(other)
     }
   }
@@ -129,6 +188,7 @@ object RegionCollapserIndividual {
       case FloatIT() => FloatIT()
       case StrIT() => StrIT()
       case StructIT(id) => StructIT(collapseStructId(id))
+      case InterfaceIT(id) => InterfaceIT(collapseInterfaceId(id))
       case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(ssa)
       case rsa @ RuntimeSizedArrayIT(_) => collapseRuntimeSizedArray(rsa)
     }
@@ -172,17 +232,83 @@ object RegionCollapserIndividual {
         }))
   }
 
+  def collapseInterfaceId(
+      interfaceId: IdI[sI, IInterfaceNameI[sI]]):
+  IdI[cI, IInterfaceNameI[cI]] = {
+    collapseId[IInterfaceNameI[sI], IInterfaceNameI[cI]](
+      interfaceId,
+      x => collapseInterfaceName(x))
+  }
+
   def collapseStructId(
     structId: IdI[sI, IStructNameI[sI]]):
   IdI[cI, IStructNameI[cI]] = {
-    val map = RegionCounter.countStructId(structId)
     collapseId[IStructNameI[sI], IStructNameI[cI]](
       structId,
-      { case StructNameI(template, templateArgs) =>
+      x => collapseStructName(x))
+  }
+
+  def collapseStructName(
+      structName: IStructNameI[sI]):
+  IStructNameI[cI] = {
+    structName match {
+      case StructNameI(template, templateArgs) => {
+        val map = RegionCounter.countCitizenName(structName)
         StructNameI(
           collapseStructTemplateName(template),
           templateArgs.map(collapseTemplata(map, _)))
-      })
+      }
+      case LambdaCitizenNameI(LambdaCitizenTemplateNameI(codeLocation)) => {
+        LambdaCitizenNameI(LambdaCitizenTemplateNameI(codeLocation))
+      }
+      case AnonymousSubstructNameI(AnonymousSubstructTemplateNameI(interface), templateArgs) => {
+        val map = RegionCounter.countCitizenName(structName)
+        AnonymousSubstructNameI(
+          AnonymousSubstructTemplateNameI(collapseInterfaceTemplateName(interface)),
+          templateArgs.map(collapseTemplata(map, _)))
+      }
+    }
+  }
+
+  def collapseImplName(
+      implName: IImplNameI[sI]):
+  IImplNameI[cI] = {
+    implName match {
+      case ImplNameI(template, templateArgs, subCitizen) => {
+        val map = RegionCounter.countImplName(implName)
+        ImplNameI[cI](
+          collapseImplTemplateName(map, template),
+          templateArgs.map(collapseTemplata(map, _)),
+          collapseCitizen(subCitizen))
+      }
+      case ImplBoundNameI(ImplBoundTemplateNameI(codeLocationS), templateArgs) => {
+        val map = RegionCounter.countImplName(implName)
+        ImplBoundNameI(
+          ImplBoundTemplateNameI(codeLocationS),
+          templateArgs.map(collapseTemplata(map, _)))
+      }
+      case AnonymousSubstructImplNameI(AnonymousSubstructImplTemplateNameI(interface), templateArgs, subCitizen) => {
+        val map = RegionCounter.countImplName(implName)
+        AnonymousSubstructImplNameI[cI](
+          AnonymousSubstructImplTemplateNameI(collapseInterfaceTemplateName(interface)),
+          templateArgs.map(collapseTemplata(map, _)),
+          collapseCitizen(subCitizen))
+      }
+    }
+  }
+
+  def collapseInterfaceName(
+      interfaceName: IInterfaceNameI[sI]):
+  IInterfaceNameI[cI] = {
+    interfaceName match {
+      case InterfaceNameI(InterfaceTemplateNameI(humanNamee), templateArgs) => {
+        val map = RegionCounter.countCitizenName(interfaceName)
+        InterfaceNameI(
+          InterfaceTemplateNameI(humanNamee),
+          templateArgs.map(collapseTemplata(map, _)))
+      }
+      case other => vimpl(other)
+    }
   }
 
   def collapseExportId(
@@ -216,21 +342,24 @@ object RegionCollapserIndividual {
   IStructTemplateNameI[cI] = {
     structName match {
       case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
+      case AnonymousSubstructTemplateNameI(interface) => AnonymousSubstructTemplateNameI(collapseInterfaceTemplateName(interface))
+    }
+  }
+
+  def collapseInterfaceTemplateName(
+      structName: IInterfaceTemplateNameI[sI]):
+  IInterfaceTemplateNameI[cI] = {
+    structName match {
+      case InterfaceTemplateNameI(humanName) => InterfaceTemplateNameI(humanName)
     }
   }
 
   def collapseImplId(
-    map: Map[Int, Int],
-    structId: IdI[sI, IImplNameI[sI]]):
+      implId: IdI[sI, IImplNameI[sI]]):
   IdI[cI, IImplNameI[cI]] = {
     collapseId[IImplNameI[sI], IImplNameI[cI]](
-      structId,
-      { case ImplNameI(template, templateArgs, subCitizen) =>
-        ImplNameI[cI](
-          collapseImplTemplateName(map, template),
-          templateArgs.map(collapseTemplata(map, _)),
-          vimpl(subCitizen))
-      })
+      implId,
+      x => collapseImplName(x))
   }
 
   def collapseImplTemplateName(
@@ -239,6 +368,15 @@ object RegionCollapserIndividual {
   IImplTemplateNameI[cI] = {
     structName match {
       case ImplTemplateNameI(humanName) => ImplTemplateNameI(humanName)
+    }
+  }
+
+  def collapseCitizen(
+      citizen: ICitizenIT[sI]):
+  ICitizenIT[cI] = {
+    citizen match {
+      case StructIT(structIdT) => StructIT(collapseStructId(structIdT))
+      case InterfaceIT(interfaceIdT) => InterfaceIT(collapseInterfaceId(interfaceIdT))
     }
   }
 

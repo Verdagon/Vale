@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, vassertSome, vimpl, finalast => m}
+import dev.vale._
 import dev.vale.finalast._
 import dev.vale.instantiating.ast._
 
@@ -235,7 +235,7 @@ class StructHammer(
         case (superFamilyPrototype, virtualParamIndex) =>
           val overridePrototypeI =
             vassertSome(edge2.abstractFuncToOverrideFunc.get(superFamilyPrototype.id))
-          val overridePrototypeH = translatePrototype(hinputs, hamuts, overridePrototypeI.overridePrototype)
+          val overridePrototypeH = translatePrototype(hinputs, hamuts, overridePrototypeI)
           overridePrototypeH
       })
 

@@ -3,7 +3,7 @@ package dev.vale.highertyping
 import dev.vale
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.lexing.{FailedParse, RangeL}
-import dev.vale.{CodeLocationS, Err, FileCoordinateMap, IPackageResolver, Interner, Keywords, Ok, PackageCoordinate, PackageCoordinateMap, Profiler, RangeS, Result, SourceCodeUtils, StrI, highertyping, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale._
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.{FileP, OwnP}
 import dev.vale.postparsing.rules.{IRulexSR, RuleScout}
@@ -91,6 +91,10 @@ object HigherTypingPass {
               case KindTemplataType() => {
                 ruleBuilder += rule
               }
+              case TemplateTemplataType(paramTypes, returnType) => {
+                vassert(paramTypes.nonEmpty) // impl, if it's empty we might need to do some coercing.
+                ruleBuilder += LookupSR(range, resultRune, name)
+              }
               case _ => vimpl() // DO NOT SUBMIT // return Err(FoundPrimitiveDidntMatchExpectedType(List(range), desiredType, tyype))
             }
           }
@@ -103,6 +107,10 @@ object HigherTypingPass {
               case CoordTemplataType() => {
                 coerceKindTemplateLookupToCoord(
                   runeAToType, ruleBuilder, range, resultRune, regionRune, name, tyype)
+              }
+              case TemplateTemplataType(paramTypes, returnType) => {
+                vassert(paramTypes.nonEmpty) // impl, if it's empty we might need to do some coercing.
+                ruleBuilder += LookupSR(range, resultRune, name)
               }
               case _ => vimpl() // DO NOT SUBMIT // return Err(FoundCitizenDidntMatchExpectedType(List(range), desiredType, citizen))
             }

@@ -17,7 +17,7 @@ import dev.vale.typing.types._
 import scala.collection.immutable.Map
 import scala.collection.mutable
 
-case class DenizenBoundToDenizenCallerBoundArgI(
+case class DenizenBoundToDenizenCallerBoundArgS(
   funcBoundToCallerSuppliedBoundArgFunc: Map[IdT[FunctionBoundNameT], PrototypeI[sI]],
   implBoundToCallerSuppliedBoundArgImpl: Map[IdT[ImplBoundNameT], IdI[sI, IImplNameI[sI]]])
 
@@ -46,9 +46,11 @@ class InstantiatedOutputs() {
   //   struct Node<T> { value T; next Opt<Node<T>>; }
   // So we need these to short-circuit that nonsense.
   val structToMutability: mutable.HashMap[IdI[cI, IStructNameI[cI]], MutabilityI] = mutable.HashMap()
-  val structToBounds: mutable.HashMap[IdI[sI, IStructNameI[sI]], DenizenBoundToDenizenCallerBoundArgI] = mutable.HashMap()
+  val structToBounds: mutable.HashMap[IdI[sI, IStructNameI[sI]], DenizenBoundToDenizenCallerBoundArgS] = mutable.HashMap()
   val interfaceToMutability: mutable.HashMap[IdI[cI, IInterfaceNameI[cI]], MutabilityI] = mutable.HashMap()
-  val interfaceToBounds: mutable.HashMap[IdI[sI, IInterfaceNameI[sI]], DenizenBoundToDenizenCallerBoundArgI] = mutable.HashMap()
+  val interfaceToBounds: mutable.HashMap[IdI[sI, IInterfaceNameI[sI]], DenizenBoundToDenizenCallerBoundArgS] = mutable.HashMap()
+  val implToMutability: mutable.HashMap[IdI[cI, IImplNameI[cI]], MutabilityI] = mutable.HashMap()
+  val implToBounds: mutable.HashMap[IdI[sI, IImplNameI[sI]], DenizenBoundToDenizenCallerBoundArgS] = mutable.HashMap()
 
   //  val immKindToDestructor: mutable.HashMap[KindT, PrototypeT] =
   //    mutable.HashMap[KindT, PrototypeT]()
@@ -62,29 +64,29 @@ class InstantiatedOutputs() {
   val impls:
     mutable.HashMap[
       IdI[cI, IImplNameI[cI]],
-      (ICitizenIT[cI], IdI[cI, IInterfaceNameI[cI]], DenizenBoundToDenizenCallerBoundArgI, DenizenBoundToDenizenCallerBoundArgI)] =
+      (ICitizenIT[cI], IdI[cI, IInterfaceNameI[cI]], DenizenBoundToDenizenCallerBoundArgS)] =
     mutable.HashMap()
   // We already know from the hinputs that Opt<T has drop> has func drop(T).
   // In this map, we'll know that Opt<int> has func drop(int).
-  val abstractFuncToInstantiatorAndSuppliedPrototypes: mutable.HashMap[IdI[cI, IFunctionNameI[cI]], (DenizenBoundToDenizenCallerBoundArgI, InstantiationBoundArgumentsI)] =
+  val abstractFuncToBounds: mutable.HashMap[IdI[cI, IFunctionNameI[cI]], (DenizenBoundToDenizenCallerBoundArgS, InstantiationBoundArgumentsI)] =
     mutable.HashMap()
   // This map collects all overrides for every impl. We'll use it to assemble vtables soon.
   val interfaceToImplToAbstractPrototypeToOverride:
-    mutable.HashMap[IdI[cI, IInterfaceNameI[cI]], mutable.HashMap[IdI[cI, IImplNameI[cI]], mutable.HashMap[PrototypeI[cI], OverrideI]]] =
+    mutable.HashMap[IdI[cI, IInterfaceNameI[cI]], mutable.HashMap[IdI[cI, IImplNameI[cI]], mutable.HashMap[PrototypeI[cI], PrototypeI[cI]]]] =
     mutable.HashMap()
 
   // These are new impls and abstract funcs we discover for interfaces.
   // As we discover a new impl or a new abstract func, we'll later need to stamp a lot more overrides either way.
-  val newImpls: mutable.Queue[(IdT[IImplNameT], IdI[cI, IImplNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
+  val newImpls: mutable.Queue[(IdT[IImplNameT], IdI[nI, IImplNameI[nI]], InstantiationBoundArgumentsI)] = mutable.Queue()
   // The int is a virtual index
-  val newAbstractFuncs: mutable.Queue[(PrototypeT, PrototypeI[cI], Int, IdI[cI, IInterfaceNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
-  val newFunctions: mutable.Queue[(PrototypeT, PrototypeI[nI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgI])] = mutable.Queue()
+  val newAbstractFuncs: mutable.Queue[(PrototypeT, PrototypeI[nI], Int, IdI[cI, IInterfaceNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
+  val newFunctions: mutable.Queue[(PrototypeT, PrototypeI[nI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgS])] = mutable.Queue()
 
   def addMethodToVTable(
     implId: IdI[cI, IImplNameI[cI]],
     superInterfaceId: IdI[cI, IInterfaceNameI[cI]],
     abstractFuncPrototype: PrototypeI[cI],
-    overrride: OverrideI
+    overrride: PrototypeI[cI]
   ) = {
     val map =
       interfaceToImplToAbstractPrototypeToOverride
@@ -130,25 +132,35 @@ class Instantiator(
     functionExportsT,
     functionExternsT) = hinputs
 
-    val kindExportsI =
-      kindExportsT.map({ case KindExportT(range, tyype, placeholderedExportId, exportedName) =>
-        //      val packageName = IdT(exportId.packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
-        val exportTemplateId = TemplataCompiler.getTemplate(placeholderedExportId)
+    val kindExportsC =
+      kindExportsT.map({ case KindExportT(range, tyype, exportPlaceholderedIdT, exportedName) =>
 
-        val exportId = vimpl()
+        val exportIdS =
+          translateId[ExportNameT, ExportNameI[sI]](
+            exportPlaceholderedIdT,
+            { case ExportNameT(ExportTemplateNameT(codeLoc), _) =>
+              ExportNameI(ExportTemplateNameI(codeLoc), RegionTemplataI(0))
+            })
+        val exportIdC =
+          RegionCollapserIndividual.collapseExportId(RegionCounter.countExportId(exportIdS), exportIdS)
 
-        val denizenName = vimpl()
-        val substitutions = vimpl() //Map(exportId -> assemblePlaceholderMap(hinputs, exportId)),
-        val denizenBoundToDenizenCallerSuppliedThing = vimpl()
+        val exportTemplateIdT = TemplataCompiler.getExportTemplate(exportPlaceholderedIdT)
+
+
+        val substitutions =
+          Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
+            exportTemplateIdT -> assemblePlaceholderMap(exportPlaceholderedIdT, exportIdS))
+
+        val denizenBoundToDenizenCallerSuppliedThing = DenizenBoundToDenizenCallerBoundArgS(Map(), Map())
         val kindIT =
           translateKind(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, vimpl(), tyype)
+            exportPlaceholderedIdT, denizenBoundToDenizenCallerSuppliedThing, substitutions, vimpl(), tyype)
         val kindCT = RegionCollapserIndividual.collapseKind(kindIT)
 
-        KindExportI(range, kindCT, exportId, exportedName)
+        KindExportI(range, kindCT, exportIdC, exportedName)
       })
 
-    val functionExportsI =
+    val functionExportsC =
       functionExportsT.map({ case FunctionExportT(range, prototypeT, exportPlaceholderedIdT, exportedName) =>
         val perspectiveRegionT =
           exportPlaceholderedIdT.localName.templateArgs.last match {
@@ -158,25 +170,25 @@ class Instantiator(
             case _ => vwat()
           }
 
-        val exportIdI =
+        val exportIdS =
           translateId[ExportNameT, ExportNameI[sI]](
             exportPlaceholderedIdT,
             { case ExportNameT(ExportTemplateNameT(codeLoc), RegionT(PlaceholderTemplataT(_, RegionTemplataType()))) =>
               ExportNameI(ExportTemplateNameI(codeLoc), RegionTemplataI(0))
             })
         val exportIdC =
-          RegionCollapserIndividual.collapseExportId(RegionCounter.countExportId(exportIdI), exportIdI)
+          RegionCollapserIndividual.collapseExportId(RegionCounter.countExportId(exportIdS), exportIdS)
 
         val exportTemplateIdT = TemplataCompiler.getExportTemplate(exportPlaceholderedIdT)
 
         val substitutions =
           Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
-            exportTemplateIdT -> assemblePlaceholderMap(exportPlaceholderedIdT, exportIdI))
+            exportTemplateIdT -> assemblePlaceholderMap(exportPlaceholderedIdT, exportIdS))
 
         val (_, prototypeC) =
           translatePrototype(
             exportPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgI(Map(), Map()),
+            DenizenBoundToDenizenCallerBoundArgS(Map(), Map()),
             substitutions,
             perspectiveRegionT,
             prototypeT)
@@ -184,7 +196,7 @@ class Instantiator(
         FunctionExportI(range, prototypeC, exportIdC, exportedName)
       })
 
-    val funcExternsI =
+    val funcExternsC =
       functionExternsT.map({ case FunctionExternT(range, externPlaceholderedIdT, prototypeT, externedName) =>
         val perspectiveRegionT =
           externPlaceholderedIdT.localName.templateArgs.last match {
@@ -194,25 +206,25 @@ class Instantiator(
             case _ => vwat()
           }
 
-        val externIdI =
+        val externIdS =
           translateId[ExternNameT, ExternNameI[sI]](
             externPlaceholderedIdT,
             { case ExternNameT(ExternTemplateNameT(codeLoc), RegionT(PlaceholderTemplataT(_, RegionTemplataType()))) =>
               ExternNameI(ExternTemplateNameI(codeLoc), RegionTemplataI(0))
             })
         val externIdC =
-          RegionCollapserIndividual.collapseExternId(RegionCounter.countExternId(externIdI), externIdI)
+          RegionCollapserIndividual.collapseExternId(RegionCounter.countExternId(externIdS), externIdS)
 
         val externTemplateIdT = TemplataCompiler.getExternTemplate(externPlaceholderedIdT)
 
         val substitutions =
           Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
-            externTemplateIdT -> assemblePlaceholderMap(externPlaceholderedIdT, externIdI))
+            externTemplateIdT -> assemblePlaceholderMap(externPlaceholderedIdT, externIdS))
 
         val (_, prototypeC) =
           translatePrototype(
             externPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgI(Map(), Map()),
+            DenizenBoundToDenizenCallerBoundArgS(Map(), Map()),
             substitutions,
             perspectiveRegionT,
             prototypeT)
@@ -233,16 +245,16 @@ class Instantiator(
       //   true
       // } else
       if (monouts.newFunctions.nonEmpty) {
-        val (newFuncNameT, newFuncName, instantiationBoundArgs, maybeDenizenBoundToDenizenCallerSuppliedThing) =
+        val (newFuncIdT, newFuncIdN, instantiationBoundArgs, maybeDenizenBoundToDenizenCallerSuppliedThing) =
           monouts.newFunctions.dequeue()
-        translateFunction1(
-          opts, interner, keywords, hinputs, monouts, newFuncNameT, newFuncName, instantiationBoundArgs,
+        translateFunction(
+          opts, interner, keywords, hinputs, monouts, newFuncIdT, newFuncIdN, instantiationBoundArgs,
           maybeDenizenBoundToDenizenCallerSuppliedThing)
         true
       } else if (monouts.newImpls.nonEmpty) {
-        val (implIdT, implIdI, instantiationBoundsForUnsubstitutedImpl) = monouts.newImpls.dequeue()
+        val (implIdT, implIdN, instantiationBoundsForUnsubstitutedImpl) = monouts.newImpls.dequeue()
         translateImpl(
-          opts, interner, keywords, hinputs, monouts, implIdT, implIdI, instantiationBoundsForUnsubstitutedImpl)
+          opts, interner, keywords, hinputs, monouts, implIdT, implIdN, instantiationBoundsForUnsubstitutedImpl)
         true
       } else if (monouts.newAbstractFuncs.nonEmpty) {
         val (abstractFuncT, abstractFunc, virtualIndex, interfaceId, instantiationBoundArgs) =
@@ -278,7 +290,7 @@ class Instantiator(
       monouts.interfaceToImpls.map({ case (interface, impls) =>
         interface ->
           impls.map({ case (implIdT, implIdI) =>
-            val (subCitizen, parentInterface, _, implInstantiator) = vassertSome(monouts.impls.get(implIdI))
+            val (subCitizen, parentInterface, _) = vassertSome(monouts.impls.get(implIdI))
             vassert(parentInterface == interface)
             val abstractFuncToVirtualIndex =
               vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(interface))
@@ -293,7 +305,7 @@ class Instantiator(
 
                 vassert(
                   abstractFuncPrototype.id.localName.parameters(virtualIndex).kind !=
-                    overrride.overridePrototype.id.localName.parameters(virtualIndex).kind)
+                    overrride.id.localName.parameters(virtualIndex).kind)
 
                 abstractFuncPrototype.id -> overrride
               })
@@ -318,16 +330,9 @@ class Instantiator(
         interfaceEdgeBlueprints,
         interfaceToSubCitizenToEdge,
 //        Map(),
-        kindExportsI,
-        functionExportsI,
-        funcExternsI)
-
-    if (opts.sanityCheck) {
-      Collector.all(resultHinputs, {
-        case BorrowT => vfail()
-        case ShareT => vfail()
-      })
-    }
+        kindExportsC,
+        functionExportsC,
+        funcExternsC)
 
     resultHinputs
   }
@@ -339,7 +344,7 @@ class Instantiator(
 
   def translateExportName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     exportNameT: ExportNameT):
@@ -350,7 +355,6 @@ class Instantiator(
       ITemplataI.expectRegionTemplata(
         translateTemplata(
           denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, region.region)))
-//      translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, region))
   }
 
   def translateExportTemplateName(exportTemplateNameT: ExportTemplateNameT): ExportTemplateNameI[sI] = {
@@ -369,29 +373,45 @@ class Instantiator(
     hinputs: HinputsT,
     monouts: InstantiatedOutputs,
     interfaceIdT: IdT[IInterfaceNameT],
-    interfaceIdI: IdI[sI, IInterfaceNameI[sI]],
+    interfaceIdS: IdI[sI, IInterfaceNameI[sI]],
     instantiationBoundArgs: InstantiationBoundArgumentsI):
   Unit = {
-//    val interfaceIdI: IdI[sI, IInterfaceNameI[sI]] = vimpl(interfaceIdC)
     val interfaceTemplateIdT = TemplataCompiler.getInterfaceTemplate(interfaceIdT)
 
     val interfaceDefT =
       vassertOne(hinputs.interfaces.filter(_.templateName == interfaceTemplateIdT))
 
-    val substitutions =
-      Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
-        interfaceTemplateIdT -> assemblePlaceholderMap(interfaceDefT.instantiatedInterface.id, interfaceIdI))
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         assembleCalleeDenizenFunctionBounds(
           interfaceDefT.runeToFunctionBound,
           instantiationBoundArgs.runeToFunctionBoundArg),
         assembleCalleeDenizenImplBounds(
           interfaceDefT.runeToImplBound,
           instantiationBoundArgs.runeToImplBoundArg))
-    vcurious(monouts.interfaceToBounds.get(interfaceIdI).isEmpty)
-    monouts.interfaceToBounds.put(interfaceIdI, denizenBoundToDenizenCallerSuppliedThing)
+    monouts.interfaceToBounds.get(interfaceIdS) match {
+      case Some(x) => {
+        vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
+      }
+      case None =>
+    }
+    monouts.interfaceToBounds.put(interfaceIdS, denizenBoundToDenizenCallerSuppliedThing)
 
+    val topLevelDenizenId =
+      getTopLevelDenizenId(interfaceIdT)
+    val topLevelDenizenTemplateId =
+      TemplataCompiler.getTemplate(topLevelDenizenId)
+
+    val substitutions =
+      Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
+        topLevelDenizenTemplateId ->
+            assemblePlaceholderMap(
+              // One would imagine we'd get interfaceId.last.templateArgs here, because that's the interface
+              // we're about to monomorphize. However, only the top level denizen has placeholders, see LHPCTLD.
+              // This interface might not be the top level denizen, such as if it's a lambda.
+              // TODO(regions): might be obsolete?
+              interfaceDefT.instantiatedCitizen.id,
+              interfaceIdS))
     //    val instantiator =
 //      new Instantiator(
 //        opts,
@@ -399,11 +419,13 @@ class Instantiator(
 //        keywords,
 //        hinputs,
 //        monouts,
-//        interfaceTemplateIdT,
+    //        interfaceTemplate,
 //        interfaceIdT,
 //        denizenBoundToDenizenCallerSuppliedThing)
-    val interfaceIdC = vimpl(interfaceIdI)
-    translateInterfaceDefinitionCollapsed(
+    val interfaceIdC =
+      RegionCollapserIndividual.collapseInterfaceId(interfaceIdS)
+
+    translateCollapsedInterfaceDefinition(
       interfaceIdT, denizenBoundToDenizenCallerSuppliedThing, substitutions, interfaceIdC, interfaceDefT)
   }
 
@@ -436,11 +458,11 @@ class Instantiator(
     hinputs: HinputsT,
     monouts: InstantiatedOutputs,
     structIdT: IdT[IStructNameT],
-    structIdI: IdI[sI, IStructNameI[sI]],
+    structIdS: IdI[sI, IStructNameI[sI]],
     instantiationBoundArgs: InstantiationBoundArgumentsI):
   Unit = {
     if (opts.sanityCheck) {
-      vassert(Collector.all(structIdI, { case KindPlaceholderNameT(_) => }).isEmpty)
+      vassert(Collector.all(structIdS, { case KindPlaceholderNameT(_) => }).isEmpty)
     }
 
     val structTemplate = TemplataCompiler.getStructTemplate(structIdT)
@@ -448,16 +470,19 @@ class Instantiator(
     val structDefT = findStruct(hinputs, structIdT)
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         assembleCalleeDenizenFunctionBounds(
           structDefT.runeToFunctionBound, instantiationBoundArgs.runeToFunctionBoundArg),
         assembleCalleeDenizenImplBounds(
           structDefT.runeToImplBound, instantiationBoundArgs.runeToImplBoundArg))
-    monouts.structToBounds.get(structIdI) match {
-      case Some(x) => vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
+    monouts.structToBounds.get(structIdS) match {
+      case Some(x) => {
+        vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
+        return
+      }
       case None =>
     }
-    monouts.structToBounds.put(structIdI, denizenBoundToDenizenCallerSuppliedThing)
+    monouts.structToBounds.put(structIdS, denizenBoundToDenizenCallerSuppliedThing)
 
     val topLevelDenizenId =
       getTopLevelDenizenId(structIdT)
@@ -473,7 +498,7 @@ class Instantiator(
             // This struct might not be the top level denizen, such as if it's a lambda.
             // DO NOT SUBMIT might be obsolete
             structDefT.instantiatedCitizen.id,
-            structIdI))
+            structIdS))
 //    val instantiator =
 //      new Instantiator(
 //        opts,
@@ -485,7 +510,7 @@ class Instantiator(
 //        structIdT,
 //        denizenBoundToDenizenCallerSuppliedThing)
     val structIdC =
-      RegionCollapserIndividual.collapseStructId(structIdI)
+      RegionCollapserIndividual.collapseStructId(structIdS)
     translateCollapsedStructDefinition(
       structIdT, denizenBoundToDenizenCallerSuppliedThing, substitutions, structIdT, structIdC, structDefT)
   }
@@ -508,60 +533,14 @@ class Instantiator(
         }))
   }
 
-  def translateAbstractFunc(
-    opts: GlobalOptions,
-    interner: Interner,
-    keywords: Keywords,
-    hinputs: HinputsT,
-    monouts: InstantiatedOutputs,
-    interfaceIdC: IdI[cI, IInterfaceNameI[cI]],
-    abstractFuncT: PrototypeT,
-    abstractFuncC: PrototypeI[cI],
-    virtualIndex: Int,
-    instantiationBoundArgs: InstantiationBoundArgumentsI):
-  Unit = {
-    val interfaceIdI: IdI[sI, IInterfaceNameI[sI]] = vimpl(interfaceIdC)
-   val abstractFuncS: PrototypeI[cI] = vimpl(abstractFuncC)
-
-    val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(abstractFuncT.id)
-
-    val funcT =
-      vassertOne(
-        hinputs.functions.filter(func => {
-          TemplataCompiler.getFunctionTemplate(func.header.id) == funcTemplateNameT
-        }))
-
-//    val substitutions =
-//      Map(
-//        funcTemplateNameT ->
-//          assemblePlaceholderMap(funcT.header.id, abstractFuncI.id))
-    val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
-        assembleCalleeDenizenFunctionBounds(
-          funcT.runeToFuncBound, instantiationBoundArgs.runeToFunctionBoundArg),
-        assembleCalleeDenizenImplBounds(
-          funcT.runeToImplBound, instantiationBoundArgs.runeToImplBoundArg))
-//    val abstractFuncInstantiator =
-//      new Instantiator(
-//        opts,
-//        interner,
-//        keywords,
-//        hinputs,
-//        monouts,
-//        funcTemplateNameT,
-//        abstractFuncT.id,
-//        denizenBoundToDenizenCallerSuppliedThing)
-
-    vassert(!monouts.abstractFuncToInstantiatorAndSuppliedPrototypes.contains(abstractFuncS.id))
-    monouts.abstractFuncToInstantiatorAndSuppliedPrototypes.put(abstractFuncS.id, (denizenBoundToDenizenCallerSuppliedThing, instantiationBoundArgs))
-
-    val abstractFuncs = vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(interfaceIdC))
-    vassert(!abstractFuncs.contains(abstractFuncS))
-    abstractFuncs.put(abstractFuncS, virtualIndex)
-
-    vassertSome(monouts.interfaceToImpls.get(interfaceIdC)).foreach({ case (implT, impl) =>
-      translateOverride(opts, interner, keywords, hinputs, monouts, implT, impl, abstractFuncT, vimpl(abstractFuncS))
-    })
+  private def findImpl(hinputs: HinputsT, implId: IdT[IImplNameT]): EdgeT = {
+    vassertOne(
+      hinputs.interfaceToSubCitizenToEdge.values.flatMap(subCitizenToEdge => {
+        subCitizenToEdge.values.filter(edge => {
+          TemplataCompiler.getSuperTemplate(edge.edgeId) ==
+              TemplataCompiler.getSuperTemplate(implId)
+        })
+      }))
   }
 
   def translateOverride(
@@ -573,21 +552,21 @@ class Instantiator(
     implIdT: IdT[IImplNameT],
     implIdC: IdI[cI, IImplNameI[cI]],
     abstractFuncPrototypeT: PrototypeT,
-    abstractFuncPrototypeI: PrototypeI[cI]):
+    abstractFuncPrototypeC: PrototypeI[cI]):
   Unit = {
     //    val superInterfaceId: IdT[IInterfaceNameT],
 
     val implTemplateId = TemplataCompiler.getImplTemplate(implIdT)
-    val implDefinitionT =
+    val edgeT =
       vassertOne(
         hinputs.interfaceToSubCitizenToEdge
           .flatMap(_._2.values)
           .filter(edge => TemplataCompiler.getImplTemplate(edge.edgeId) == implTemplateId))
 
-    val superInterfaceTemplateId = TemplataCompiler.getInterfaceTemplate(implDefinitionT.superInterface)
+    val superInterfaceTemplateId = TemplataCompiler.getInterfaceTemplate(edgeT.superInterface)
     val superInterfaceDefinitionT = hinputs.lookupInterfaceByTemplateId(superInterfaceTemplateId)
     val superInterfacePlaceholderedName = superInterfaceDefinitionT.instantiatedInterface
-    val subCitizenTemplateId = TemplataCompiler.getCitizenTemplate(implDefinitionT.subCitizen.id)
+    val subCitizenTemplateId = TemplataCompiler.getCitizenTemplate(edgeT.subCitizen.id)
     val subCitizenDefinitionT = hinputs.lookupCitizenByTemplateId(subCitizenTemplateId)
     val subCitizenPlaceholderedName = subCitizenDefinitionT.instantiatedCitizen
 
@@ -598,31 +577,62 @@ class Instantiator(
           .find(func => TemplataCompiler.getFunctionTemplate(func.header.id) == abstractFuncTemplateName))
         .header.id
 
-    val edgeT =
-      vassertSome(
-        vassertSome(hinputs.interfaceToSubCitizenToEdge.get(superInterfacePlaceholderedName.id))
-          .get(subCitizenPlaceholderedName.id))
+    // Luckily, the typing phase knows what the override is.
+    // In this example, it's func launch<Y, Z>(self &Raza<Y, Z>, bork int)
+    // We just have to instantiate it, given that someone called the abstract function with certain known types.
+    // If they called launch(&ISpaceship<int, str, bool>, int) then we know:
+    // - abst$A = int
+    // - abst$B = str
+    // - abst$C = bool
+    // But we need to know over$Y and over$Z.
 
     val OverrideT(
     dispatcherIdT,
     implPlaceholderToDispatcherPlaceholder,
     implPlaceholderToCasePlaceholder,
     implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
+        // This is a map of the dispatcher's rune to the dispatcher's function bound, here:
+        //   $1114 -> func abst/bound:drop(int)
     dispatcherRuneToFunctionBound,
     dispatcherRuneToImplBound,
     dispatcherCaseIdT,
     overridePrototypeT) =
       vassertSome(edgeT.abstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))
 
-    val (abstractFunctionInstantiator, abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs) =
-      vassertSome(monouts.abstractFuncToInstantiatorAndSuppliedPrototypes.get(abstractFuncPrototypeI.id))
+    val (
+        // This is a map of, from the original abstract function's caller's perspective, what the actual instantiated
+        // functions are to use for the bounds.
+        // In this example, the original abstract function:
+        //   abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+        // had that bound:
+        //   where exists drop(Y)void
+        // so this map here will be:
+        //   abst/bound:drop(^abst:bound:drop$X) -> func v/builtins/drop(int)void
+        abstractFunctionInstantiator,
+        // This is similar, a map of rune to the bound to use:
+        //   $1114 -> func v/builtins/drop(int)void
+        abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs) =
+      vassertSome(monouts.abstractFuncToBounds.get(abstractFuncPrototypeC.id))
     // The dispatcher was originally made from the abstract function, they have the same runes.
+    // This will be:
+    //   $1114 -> func v/builtins/drop(int)void
     val dispatcherRuneToCallerSuppliedPrototype = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToFunctionBoundArg
+    // (this will be empty in this example) TODO: make an example that shows stuff here
     val dispatcherRuneToCallerSuppliedImpl = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToImplBoundArg
 
+    // (this will be empty in this example) TODO: make an example that shows stuff here
     val edgeDenizenBoundToDenizenCallerBoundArgI =
-      vassertSome(monouts.impls.get(implIdC))._4
+      vassertSome(monouts.impls.get(implIdC))._3
 
+    // We currently know the abstract function's caller's runes and how they map to the instantiated values,
+    // - abst$A = int
+    // - abst$B = str
+    // - abst$C = bool
+    // ...but this dispatcher function is different than the abstract function. The dispatcher function has its own
+    // runes, here:
+    // - dis$I
+    // - dis$J
+    // So we'll map the abstract function's caller's runes to the dispatcher's runes.
     val dispatcherPlaceholderIdToSuppliedTemplata =
       dispatcherIdT.localName.templateArgs
         .map(dispatcherPlaceholderTemplata => {// IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))) =>
@@ -630,16 +640,37 @@ class Instantiator(
             TemplataCompiler.getPlaceholderTemplataId(dispatcherPlaceholderTemplata)
           val implPlaceholder =
             vassertSome(
+              // This implPlaceholderToDispatcherPlaceholder has a map of the impl runes to the dispatcher runes, like:
+              // - ri$I -> dis$I
+              // - ri$J -> dis$J
               implPlaceholderToDispatcherPlaceholder.find(_._2 == dispatcherPlaceholderTemplata))._1
           val IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) = implPlaceholder
+          // Here we're grabbing it from the instantiated impl that we're overriding, here ri<bool, str>.
           val templata = implIdC.localName.templateArgs(index)
+          // This is a collapsed, but it needs to be subjective from this dispatcher's perspective.
+
+          // TODO(regions): Figure out how to turn this into an sI.
           dispatcherPlaceholderId -> templata
         })
+    // In this case we'll end up with:
+    //   dis/dis$I -> bool
+    //   dis/dis$J -> str
+
+    // Now that we have the values for the dispatcher placeholders, let's get the values for the function/impl bounds.
+
+    // This turns the above:
+    //   $1114 -> func abst/bound:drop(int)
+    // and
+    //   $1114 -> func v/builtins/drop(int)void
+    // into this:
+    //   launch/bound:drop(int) -> func v/builtins/drop(int)void
+    // so it's really just a rearrangement of the typing phase's data, not quite useful yet.
 
     val dispatcherFunctionBoundToIncomingPrototype =
       assembleCalleeDenizenFunctionBounds(
         dispatcherRuneToFunctionBound,
         dispatcherRuneToCallerSuppliedPrototype)
+    // (this is empty in this example)
     val dispatcherImplBoundToIncomingImpl =
       assembleCalleeDenizenImplBounds(
         dispatcherRuneToImplBound,
@@ -648,24 +679,11 @@ class Instantiator(
     val dispatcherTemplateId = TemplataCompiler.getTemplate(dispatcherIdT)
     dispatcherPlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherTemplateId))
 
-//    val dispatcherSubstitutions =
-//      Map(dispatcherTemplateId -> dispatcherPlaceholderIdToSuppliedTemplata.toMap)
-//    val dispatcherInstantiator =
-//      new Instantiator(
-//        opts,
-//        interner,
-//        keywords,
-//        hinputs,
-//        monouts,
-//        TemplataCompiler.getFunctionTemplate(dispatcherIdT),
-//        dispatcherIdT,
-//        DenizenBoundToDenizenCallerBoundArgI(
-//          dispatcherFunctionBoundToIncomingPrototype,
-//          dispatcherImplBoundToIncomingImpl))
-
-    // These are the placeholders' templatas that should be visible from inside the dispatcher case.
+    // These are the instantiated values that should be visible from inside the dispatcher case.
     // These will be used to call the override properly.
 
+    // Sometimes (such as in the Milano case, see OMCNAGP) we have independent runes that need to be filled.
+    // Here we grab what their templatas really are, now that we know them because we're instantiating.
     val dispatcherCasePlaceholderIdToSuppliedTemplata =
       dispatcherCaseIdT.localName.independentImplTemplateArgs.zipWithIndex.map({
         case (casePlaceholderTemplata, index) => {
@@ -676,6 +694,7 @@ class Instantiator(
               implPlaceholderToCasePlaceholder.find(_._2 == casePlaceholderTemplata))._1
           val IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) = implPlaceholder
           val templata = implIdC.localName.templateArgs(index)
+          // TODO(regions): Figure out how to turn this into an sI.
           casePlaceholderId -> templata
           //          // templata is the value from the edge that's doing the overriding. It comes from the impl.
           //          val dispatcherCasePlaceholderId =
@@ -709,7 +728,7 @@ class Instantiator(
           }})
 
     val caseDenizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         caseFunctionBoundToIncomingPrototype,
         caseImplBoundToIncomingImpl)
 
@@ -770,8 +789,7 @@ class Instantiator(
 
     // we need to make a instantiator that thinks in terms of impl overrides.
 
-    val overridePrototype =
-//      caseInstantiator.translatePrototype(caseSubstitutions, vimpl(), overridePrototypeT)
+    val (overridePrototypeS, overridePrototypeC) =
       translatePrototype(
         dispatcherCaseIdT,
         caseDenizenBoundToDenizenCallerSuppliedThing,
@@ -781,10 +799,7 @@ class Instantiator(
 
     val superInterfaceId = vassertSome(monouts.impls.get(implIdC))._2
 
-    val overrride: OverrideI = vimpl()
-//      OverrideI(
-//        vimpl(dispatcherIdT), Vector(), Vector(), Map(), Map(), Map(), vimpl(dispatcherCaseIdT), overridePrototype)
-    monouts.addMethodToVTable(implIdC, superInterfaceId, vimpl(abstractFuncPrototypeI), overrride)
+    monouts.addMethodToVTable(implIdC, superInterfaceId, abstractFuncPrototypeC, overridePrototypeC)
   }
 
   def translateImpl(
@@ -794,10 +809,13 @@ class Instantiator(
     hinputs: HinputsT,
     monouts: InstantiatedOutputs,
     implIdT: IdT[IImplNameT],
-    implIdC: IdI[cI, IImplNameI[cI]],
+    implIdN: IdI[nI, IImplNameI[nI]],
     instantiationBoundsForUnsubstitutedImpl: InstantiationBoundArgumentsI):
   Unit = {
-    val implIdI: IdI[sI, IImplNameI[sI]] = vimpl(implIdC)
+    // This works because the sI/cI are never actually used in these instances, they are just a
+    // compile-time type-system bit of tracking, see CCFCTS.
+    val implIdS: IdI[sI, IImplNameI[sI]] = implIdN
+    val implIdC = RegionCollapserIndividual.collapseImplId(implIdS)
 
     val implTemplateId = TemplataCompiler.getImplTemplate(implIdT)
     val implDefinition =
@@ -805,20 +823,21 @@ class Instantiator(
         hinputs.interfaceToSubCitizenToEdge
           .flatMap(_._2.values)
           .filter(edge => {
+            //TemplataCompiler.getSuperTemplate(edge.edgeId) == TemplataCompiler.getSuperTemplate(implTemplateId), doesnt fix it
             TemplataCompiler.getImplTemplate(edge.edgeId) == implTemplateId
           }))
 
 
     val subCitizenT = implDefinition.subCitizen
     val subCitizenM =
-      implIdI.localName match {
+      implIdS.localName match {
         case ImplNameI(template, templateArgs, subCitizen) => subCitizen
         case AnonymousSubstructImplNameI(template, templateArgs, subCitizen) => subCitizen
         case other => vimpl(other)
       }
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         assembleCalleeDenizenFunctionBounds(
           implDefinition.runeToFuncBound, instantiationBoundsForUnsubstitutedImpl.runeToFunctionBoundArg),
         assembleCalleeDenizenImplBounds(
@@ -828,7 +847,7 @@ class Instantiator(
         hoistBoundsFromParameter(hinputs, monouts, subCitizenT, subCitizenM)
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
           .map(_.funcBoundToCallerSuppliedBoundArgFunc)
           .reduceOption(_ ++ _).getOrElse(Map()),
@@ -838,7 +857,7 @@ class Instantiator(
 
     val substitutions =
       Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
-        implTemplateId -> assemblePlaceholderMap(implDefinition.edgeId, implIdI))
+        implTemplateId -> assemblePlaceholderMap(implDefinition.edgeId, implIdS))
 //    val instantiator =
 //      new Instantiator(
 //        opts,
@@ -855,6 +874,7 @@ class Instantiator(
       denizenBoundToDenizenCallerSuppliedThing,
       substitutions,
       implIdT,
+      implIdS,
       implIdC,
       implDefinition)
 
@@ -890,7 +910,7 @@ class Instantiator(
   }
 
   // DO NOT SUBMIT figure out better name
-  def translateFunction1(
+  def translateFunction(
     opts: GlobalOptions,
     interner: Interner,
     keywords: Keywords,
@@ -901,15 +921,13 @@ class Instantiator(
     suppliedBoundArgs: InstantiationBoundArgumentsI,
     // This is only Some if this is a lambda. This will contain the prototypes supplied to the top
     // level denizen by its own caller, see LCNBAFA.
-    maybeDenizenBoundToDenizenCallerSuppliedThing: Option[DenizenBoundToDenizenCallerBoundArgI]):
+    maybeDenizenBoundToDenizenCallerSuppliedThing: Option[DenizenBoundToDenizenCallerBoundArgS]):
   FunctionDefinitionI = {
     // This works because the sI/cI are never actually used in these instances, they are just a
     // compile-time type-system bit of tracking, see CCFCTS.
-    val desiredPrototypeI: PrototypeI[sI] = desiredPrototypeN
+    val desiredPrototypeS: PrototypeI[sI] = desiredPrototypeN
     val desiredPrototypeC =
-      RegionCollapserIndividual.collapsePrototype(desiredPrototypeI)
-
-    val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredPrototypeT.id)
+      RegionCollapserIndividual.collapsePrototype(desiredPrototypeS)
 
     val desiredFuncSuperTemplateName = TemplataCompiler.getSuperTemplate(desiredPrototypeT.id)
     val funcT =
@@ -920,13 +938,13 @@ class Instantiator(
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
       maybeDenizenBoundToDenizenCallerSuppliedThing.getOrElse({
-        DenizenBoundToDenizenCallerBoundArgI(
+        DenizenBoundToDenizenCallerBoundArgS(
           // This is a top level denizen, and someone's calling it. Assemble the bounds!
           assembleCalleeDenizenFunctionBounds(funcT.runeToFuncBound, suppliedBoundArgs.runeToFunctionBoundArg),
           // This is a top level denizen, and someone's calling it. Assemble the bounds!
           assembleCalleeDenizenImplBounds(funcT.runeToImplBound, suppliedBoundArgs.runeToImplBoundArg))
       })
-    val argsM = desiredPrototypeI.id.localName.parameters.map(_.kind)
+    val argsM = desiredPrototypeS.id.localName.parameters.map(_.kind)
     val paramsT = funcT.header.params.map(_.tyype.kind)
     val denizenBoundToDenizenCallerSuppliedThingFromParams =
       paramsT.zip(argsM).flatMap({ case (a, x) =>
@@ -938,7 +956,7 @@ class Instantiator(
         denizenBoundToDenizenCallerSuppliedThingFromParams
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
           .map(_.funcBoundToCallerSuppliedBoundArgFunc)
           .reduceOption(_ ++ _).getOrElse(Map()),
@@ -959,7 +977,7 @@ class Instantiator(
     val substitutions =
       Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
         topLevelDenizenTemplateId ->
-          assemblePlaceholderMap(funcT.header.id, desiredPrototypeI.id))
+          assemblePlaceholderMap(funcT.header.id, desiredPrototypeS.id))
 //    val instantiator =
 //      new Instantiator(
 //        opts,
@@ -980,22 +998,104 @@ class Instantiator(
     monomorphizedFuncT
   }
 
-  def assemblePlaceholderMap(
-    idT: IdT[IInstantiationNameT],
-    idI: IdI[sI, IInstantiationNameI[sI]]):
-  Map[IdT[IPlaceholderNameT], ITemplataI[sI]] = {
-    val containersPlaceholderMap =
-    // This might be a lambda's name. If it is, its name has an init step that's the parent
-    // function's name, and we want its mappings too.
-      (idT.initNonPackageId() match {
-        case Some(IdT(packageCoord, initSteps, parentLocalName : IInstantiationNameT)) => {
-          assemblePlaceholderMap(
-            IdT(packageCoord, initSteps, parentLocalName),
-            vimpl())
-        }
-        case _ => Map[IdT[IPlaceholderNameT], ITemplataI[sI]]()
+  def translateAbstractFunc(
+      opts: GlobalOptions,
+      interner: Interner,
+      keywords: Keywords,
+      hinputs: HinputsT,
+      monouts: InstantiatedOutputs,
+      interfaceIdC: IdI[cI, IInterfaceNameI[cI]],
+      desiredAbstractPrototypeT: PrototypeT,
+      desiredAbstractPrototypeN: PrototypeI[nI],
+      virtualIndex: Int,
+      suppliedBoundArgs: InstantiationBoundArgumentsI):
+  Unit = {
+    // This works because the sI/cI are never actually used in these instances, they are just a
+    // compile-time type-system bit of tracking, see CCFCTS.
+    val desiredAbstractPrototypeS: PrototypeI[sI] = desiredAbstractPrototypeN
+    val desiredAbstractPrototypeC =
+      RegionCollapserIndividual.collapsePrototype(desiredAbstractPrototypeS)
+
+    val desiredSuperTemplateId = TemplataCompiler.getSuperTemplate(desiredAbstractPrototypeT.id)
+    val funcT =
+      vassertOne(
+        hinputs.functions
+            .filter(funcT => TemplataCompiler.getSuperTemplate(funcT.header.id) == desiredSuperTemplateId))
+
+
+    val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
+        DenizenBoundToDenizenCallerBoundArgS(
+          // This is a top level denizen, and someone's calling it. Assemble the bounds!
+          assembleCalleeDenizenFunctionBounds(funcT.runeToFuncBound, suppliedBoundArgs.runeToFunctionBoundArg),
+          // This is a top level denizen, and someone's calling it. Assemble the bounds!
+          assembleCalleeDenizenImplBounds(funcT.runeToImplBound, suppliedBoundArgs.runeToImplBoundArg))
+    val argsM = desiredAbstractPrototypeS.id.localName.parameters.map(_.kind)
+    val paramsT = funcT.header.params.map(_.tyype.kind)
+    val denizenBoundToDenizenCallerSuppliedThingFromParams =
+      paramsT.zip(argsM).flatMap({ case (a, x) =>
+        hoistBoundsFromParameter(hinputs, monouts, a, x)
       })
 
+    val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
+      Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
+          denizenBoundToDenizenCallerSuppliedThingFromParams
+
+    val denizenBoundToDenizenCallerSuppliedThing =
+    DenizenBoundToDenizenCallerBoundArgS(
+        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+            .map(_.funcBoundToCallerSuppliedBoundArgFunc)
+            .reduceOption(_ ++ _).getOrElse(Map()),
+        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+            .map(_.implBoundToCallerSuppliedBoundArgImpl)
+            .reduceOption(_ ++ _).getOrElse(Map()))
+
+
+    vassert(!monouts.abstractFuncToBounds.contains(desiredAbstractPrototypeC.id))
+    monouts.abstractFuncToBounds.put(desiredAbstractPrototypeC.id, (denizenBoundToDenizenCallerSuppliedThing, suppliedBoundArgs))
+
+    val abstractFuncs = vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(interfaceIdC))
+    vassert(!abstractFuncs.contains(desiredAbstractPrototypeC))
+    abstractFuncs.put(desiredAbstractPrototypeC, virtualIndex)
+
+    vassertSome(monouts.interfaceToImpls.get(interfaceIdC)).foreach({ case (implT, impl) =>
+      translateOverride(opts, interner, keywords, hinputs, monouts, implT, impl, desiredAbstractPrototypeT, desiredAbstractPrototypeC)
+    })
+  }
+
+  def assemblePlaceholderMap(
+      idT: IdT[INameT],
+      idS: IdI[sI, INameI[sI]]):
+  Map[IdT[IPlaceholderNameT], ITemplataI[sI]] = {
+    (idT.initNonPackageId() match {
+      case None => Map()
+      case Some(initNonPackageIdT) => {
+        assemblePlaceholderMap(initNonPackageIdT, vassertSome(idS.initNonPackageId()))
+      }
+    }) ++
+    (idT match {
+      case IdT(packageCoordT, initStepsT, localNameT: IInstantiationNameT) => {
+        val instantiationIdT = IdT(packageCoordT, initStepsT, localNameT)
+        val instantiationIdS =
+          idS match {
+            case IdI(packageCoordI, initStepsI, localNameUncastedI) => {
+              if (localNameUncastedI.isInstanceOf[IInstantiationNameI[sI]]) {
+                IdI(packageCoordI, initStepsI, localNameUncastedI.asInstanceOf[IInstantiationNameI[sI]])
+              } else {
+                vwat()
+              }
+            }
+            case _ => vwat()
+          }
+        assemblePlaceholderMapInner(instantiationIdT, instantiationIdS)
+      }
+      case _ => Map()
+    })
+  }
+
+  def assemblePlaceholderMapInner(
+    idT: IdT[IInstantiationNameT],
+    idS: IdI[sI, IInstantiationNameI[sI]]):
+  Map[IdT[IPlaceholderNameT], ITemplataI[sI]] = {
     val placeholderedName = idT
 //    val placeholderedName =
 //      idT match {
@@ -1018,28 +1118,47 @@ class Instantiator(
 //        }
 //      }
 
-    containersPlaceholderMap ++
       placeholderedName.localName.templateArgs
-        .zip(idI.localName.templateArgs)
+        .zip(idS.localName.templateArgs)
         .flatMap({
           case (
-              CoordTemplataT(CoordT(placeholderOwnership, RegionT(PlaceholderTemplataT(regionPlaceholderId @ IdT(_, _, RegionPlaceholderNameT(_, _, maybeRegionHeight, _)), RegionTemplataType())), KindPlaceholderT(kindPlaceholderId))),
+              CoordTemplataT(CoordT(placeholderOwnership, RegionT(PlaceholderTemplataT(regionPlaceholderId @ IdT(_, _, RegionPlaceholderNameT(_, _, maybeRegionHeight, _)), RegionTemplataType())), kindT)),
               c @ CoordTemplataI(regionI, _)) => {
-            vassert(placeholderOwnership == OwnT || placeholderOwnership == ShareT)
-            // // We might need to do something with placeholderRegion here, but I think we can just
-            // // assume it correctly matches up with the coord's region. The typing phase should have
-            // // made sure it matches up nicely.
-            // // If we hit this vimpl, then we might need to find some way to hand in the region,
-            // // even though we lost that in the translation to IdI which has no regions. We might be
-            // // able to scavenge it from the name, though it might be tricky to get the region of
-            // // region-less primitives. Perhaps we can assume theyre the same region as their
-            // // parent template?
-            // val regionTemplata =
-            //   maybeRegionHeight.map(x => RegionTemplataI[sI](x)).getOrElse(vimpl())
-            vcurious(regionI.pureHeight <= 0) // These are subjective, but they should be negative
-            List(
-              (regionPlaceholderId -> regionI),
-              (kindPlaceholderId -> c))
+                kindT match {
+                  case KindPlaceholderT(kindPlaceholderId) => {
+                    vregionmut()
+                    // vassert(placeholderOwnership == OwnT || placeholderOwnership == ShareT)
+                    // In "Array has" test, we actually have a placeholder thats a borrow.
+
+                // // We might need to do something with placeholderRegion here, but I think we can just
+                // // assume it correctly matches up with the coord's region. The typing phase should have
+                // // made sure it matches up nicely.
+                // // If we hit this vimpl, then we might need to find some way to hand in the region,
+                // // even though we lost that in the translation to IdI which has no regions. We might be
+                // // able to scavenge it from the name, though it might be tricky to get the region of
+                // // region-less primitives. Perhaps we can assume theyre the same region as their
+                // // parent template?
+                // val regionTemplata =
+                //   maybeRegionHeight.map(x => RegionTemplataI[sI](x)).getOrElse(vimpl())
+                vcurious(regionI.pureHeight <= 0) // These are subjective, but they should be negative
+                List(
+                  (regionPlaceholderId -> regionI),
+                  (kindPlaceholderId -> c))
+              }
+              // This could be e.g. *i32 and *!i32, in other words the template arg is already populated. This can
+              // happen if we're processing a lambda's name.
+              // placeholderedName *doesn't* contain a placeholder like one might normally expect:
+              //   test/main.lam:0:34.__call{lam:0:34, *i32}<__call$0>    (doesn't have this)
+              // Instead placeholderedName might be:
+              //   test/main.lam:0:34.__call{lam:0:34, *i32}<*i32>
+              // ...because the typing phase already filled it in.
+              // Theoretically the typing phase could have stripped that out before now, maybe. Don't know.
+              // Either way, it is there.
+              // Just ignore it, we don't need a mapping for it.
+              case _ => {
+                List()
+              }
+            }
           }
           case (KindTemplataT(KindPlaceholderT(placeholderId)), kindTemplataI) => {
             List((placeholderId -> kindTemplataI))
@@ -1065,9 +1184,9 @@ class Instantiator(
     hinputs: HinputsT,
     monouts: InstantiatedOutputs,
     paramT: KindT,
-    paramI: KindIT[sI]):
-  Option[DenizenBoundToDenizenCallerBoundArgI] = {
-    (paramT, paramI) match {
+    paramS: KindIT[sI]):
+  Option[DenizenBoundToDenizenCallerBoundArgS] = {
+    (paramT, paramS) match {
       case (StructTT(structIdT), StructIT(structIdI)) => {
         val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(structIdT)
         val structDenizenBoundToDenizenCallerSuppliedThing =
@@ -1080,7 +1199,7 @@ class Instantiator(
       }
       case (InterfaceTT(interfaceIdT), InterfaceIT(interfaceIdM)) => {
         val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(interfaceIdT)
-        val interfaceDenizenBoundToDenizenCallerSuppliedThing = vassertSome(monouts.interfaceToBounds.get(vimpl(interfaceIdM)))
+        val interfaceDenizenBoundToDenizenCallerSuppliedThing = vassertSome(monouts.interfaceToBounds.get(interfaceIdM))
         val interfaceT = findInterface(hinputs, interfaceIdT)
         val denizenBoundToDenizenCallerSuppliedThing =
           hoistBoundsFromParameterInner(
@@ -1096,11 +1215,11 @@ class Instantiator(
 
   // See NBIFP
   private def hoistBoundsFromParameterInner(
-    parameterDenizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    parameterDenizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     calleeRuneToBoundArgT: InstantiationBoundArgumentsT,
     calleeRuneToCalleeFunctionBoundT: Map[IRuneS, IdT[FunctionBoundNameT]],
     calleeRuneToCalleeImplBoundT: Map[IRuneS, IdT[ImplBoundNameT]]):
-  DenizenBoundToDenizenCallerBoundArgI = {
+  DenizenBoundToDenizenCallerBoundArgS = {
     val calleeFunctionBoundTToBoundArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
     val implBoundTToBoundArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl
 
@@ -1154,7 +1273,7 @@ class Instantiator(
       }).flatten.toMap
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgI(
+      DenizenBoundToDenizenCallerBoundArgS(
         callerSuppliedBoundToInstantiatedFunction,
         callerSuppliedBoundToInstantiatedImpl)
     denizenBoundToDenizenCallerSuppliedThing
@@ -1177,7 +1296,7 @@ class Instantiator(
 
   def translateStructMember(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     member: IStructMemberT):
@@ -1187,29 +1306,29 @@ class Instantiator(
         val (memberSubjectiveIT, memberTypeI) =
           tyype match {
             case ReferenceMemberTypeT(unsubstitutedCoord) => {
-              val typeI =
+              val typeS =
                 translateCoord(
                   denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, unsubstitutedCoord)
               val result =
                 ReferenceMemberTypeI(
-                  RegionCollapserIndividual.collapseCoord(typeI.coord))
-              (typeI, result)
+                  RegionCollapserIndividual.collapseCoord(typeS.coord))
+              (typeS, result)
             }
             case AddressMemberTypeT(unsubstitutedCoord) => {
-              val typeI =
+              val typeS =
                 translateCoord(
                   denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, unsubstitutedCoord)
-              val result = AddressMemberTypeI(RegionCollapserIndividual.collapseCoord(typeI.coord))
-              (typeI, result)
+              val result = AddressMemberTypeI(RegionCollapserIndividual.collapseCoord(typeS.coord))
+              (typeS, result)
             }
           }
-        val nameI = translateVarName(name)
-        val memberI =
+        val nameS = translateVarName(name)
+        val memberC =
           StructMemberI(
-            RegionCollapserIndividual.collapseVarName(nameI),
+            RegionCollapserIndividual.collapseVarName(nameS),
             translateVariability(variability),
             memberTypeI)
-        (memberSubjectiveIT.coord, memberI)
+        (memberSubjectiveIT.coord, memberC)
       }
       case VariadicStructMemberT(name, tyype) => {
         vimpl()
@@ -1234,7 +1353,7 @@ class Instantiator(
   // This is run at the call site, from the caller's perspective
   def translatePrototype(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     desiredPrototypeT: PrototypeT):
@@ -1282,10 +1401,29 @@ class Instantiator(
       case IdT(_, _, last) => {
         last match {
           case LambdaCallFunctionNameT(_, _, _) => {
-            vassert(
-              desiredPrototypeS.id.steps.slice(0, desiredPrototypeS.id.steps.length - 2) ==
-                denizenName.steps)
-            vcurious(desiredPrototypeS.id.steps.startsWith(denizenName.steps))
+            (denizenName.steps.last, desiredPrototypeS.id.steps.init.init.last) match {
+              case (
+                  FunctionNameT(FunctionTemplateNameT(nameA,codeLocA),templateArgsA,parametersA),
+                  FunctionNameIX(FunctionTemplateNameI(nameB,codeLocB),templateArgsB,parametersB)) => {
+                // Make sure we're talking about roughly the same function
+                vassert(nameA == nameB)
+                vassert(codeLocA == codeLocB)
+                vassert(templateArgsA.length == templateArgsB.length)
+                vassert(parametersA.length == parametersB.length)
+                // Could we have a false positive here if we're doing things on different templates?
+                // I don't think so.
+              }
+              case (
+                  LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(codeLocA,paramsTTA),templateArgsA,parametersA),
+                  LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocB,paramsTTB),templateArgsB,parametersB)) => {
+                // Make sure we're talking about roughly the same function
+                vassert(codeLocA == codeLocB)
+                vassert(paramsTTA == paramsTTB)
+                vassert(templateArgsA.length == templateArgsB.length)
+                vassert(parametersA.length == parametersB.length)
+              }
+              case other => vwat(other)
+            }
           }
           case _ =>
         }
@@ -1319,8 +1457,9 @@ class Instantiator(
             desiredPrototypeT,
             desiredPrototypeN,
             runeToBoundArgsForCall,
+            // If we're instantiating something whose name starts with our name, then we're instantiating our lambda.
+            if (TemplataCompiler.getSuperTemplate(desiredPrototypeT.id).steps.startsWith(TemplataCompiler.getSuperTemplate(denizenName).steps)) {
             // We need to supply our bounds to our lambdas, see LCCPGB and LCNBAFA.
-            if (desiredPrototypeS.id.steps.startsWith(denizenName.steps)) {
               Some(denizenBoundToDenizenCallerSuppliedThing)
             } else {
               None
@@ -1332,7 +1471,7 @@ class Instantiator(
 
   private def translateBoundArgsForCallee(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     // This contains a map from rune to a prototype, specifically the prototype that we
@@ -1375,18 +1514,10 @@ class Instantiator(
                   IdT(packageCoord, initSteps, name)))
             }
             case _ => {
-              // Not sure about these three lines, but they seem to work.
-              val runeToBoundArgsForCall =
-                translateBoundArgsForCallee(
-                  denizenName,
-                  denizenBoundToDenizenCallerSuppliedThing,
-                  substitutions,
-                  perspectiveRegionT,
-                  hinputs.getInstantiationBoundArgs(suppliedImplUnsubstituted))
-              val implNameI =
+              val implNameS =
                 translateImplId(
-                  denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, suppliedImplUnsubstituted, runeToBoundArgsForCall)
-              implNameI
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, suppliedImplUnsubstituted)
+              implNameS
             }
           })
       })
@@ -1397,7 +1528,7 @@ class Instantiator(
 
   def translateCollapsedStructDefinition(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     newIdT: IdT[IStructNameT],
     newId: IdI[cI, IStructNameI[cI]],
@@ -1456,44 +1587,21 @@ class Instantiator(
 
   // This inner function is conceptually from the interface's own perspective. That's why it's
   // taking in a collapsed id.
-  def translateInterfaceDefinitionCollapsed(
+  def translateCollapsedInterfaceDefinition(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     newIdC: IdI[cI, IInterfaceNameI[cI]],
     interfaceDefT: InterfaceDefinitionT):
   Unit = {
-    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
-
-    val mutability =
-      ITemplataI.expectMutabilityTemplata(
-        translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, vimpl(), mutabilityT)).mutability
-
     if (monouts.interfaceToMutability.contains(newIdC)) {
       return
     }
-    monouts.interfaceToMutability.put(newIdC, mutability)
 
-    val newInterfaceIT = InterfaceIT(newIdC)
-
-    val result =
-      InterfaceDefinitionI(
-        newInterfaceIT,
-        attributes.map(vimpl(_)),
-        weakable,
-        mutability,
-        Map(),
-        Map(),
-        Vector())
-
-    if (opts.sanityCheck) {
-      vassert(Collector.all(result, { case KindPlaceholderNameT(_) => }).isEmpty)
-    }
+    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
 
     vassert(!monouts.interfaceToImplToAbstractPrototypeToOverride.contains(newIdC))
     monouts.interfaceToImplToAbstractPrototypeToOverride.put(newIdC, mutable.HashMap())
-
-    monouts.interfacesWithoutMethods.put(newIdC, result)
 
     vassert(!monouts.interfaceToAbstractFuncToVirtualIndex.contains(newIdC))
     monouts.interfaceToAbstractFuncToVirtualIndex.put(newIdC, mutable.HashMap())
@@ -1501,24 +1609,66 @@ class Instantiator(
     vassert(!monouts.interfaceToImpls.contains(newIdC))
     monouts.interfaceToImpls.put(newIdC, mutable.HashSet())
 
+    if (opts.sanityCheck) {
+      vassert(Collector.all(newIdC, { case KindPlaceholderNameT(_) => }).isEmpty)
+    }
+
+    val perspectiveRegionT =
+      interfaceDefT.instantiatedCitizen.id.localName.templateArgs.last match {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
+          RegionT(PlaceholderTemplataT(IdT(packageCoord, initSteps, r), RegionTemplataType()))
+        }
+        case _ => vwat()
+      }
+
+    val mutability = ITemplataI.expectMutabilityTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, mutabilityT)).mutability
+
+    vassert(!monouts.interfaceToMutability.contains(newIdC))
+    monouts.interfaceToMutability.put(newIdC, mutability)
+
+    //    val currentPureHeight = vimpl()
+
+    val newInterfaceIT = InterfaceIT(newIdC)
+
+    val result =
+      InterfaceDefinitionI(
+        newInterfaceIT,
+        attributes.map({
+          case SealedT => SealedI
+          case other => vimpl(other)
+        }),
+        weakable,
+        mutability,
+        Map(),
+        Map(),
+        Vector())
+
+    monouts.interfacesWithoutMethods.put(newIdC, result)
+
     vassert(result.instantiatedCitizen.id == newIdC)
+
+    if (opts.sanityCheck) {
+      vassert(Collector.all(result.instantiatedInterface, { case KindPlaceholderNameT(_) => }).isEmpty)
+    }
+
+    result
   }
 
   def translateFunctionHeader(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     header: FunctionHeaderT):
   FunctionHeaderI = {
     val FunctionHeaderT(id, attributes, params, returnType, maybeOriginFunctionTemplata) = header
 
-    val newIdI =
+    val newIdS =
       translateFunctionId(
         denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, id)
     val newIdC =
       RegionCollapserIndividual.collapseId[IFunctionNameI[sI], IFunctionNameI[cI]](
-        newIdI,
+        newIdS,
         x => RegionCollapserIndividual.collapseFunctionName( x))
 
     val returnIT =
@@ -1540,6 +1690,7 @@ class Instantiator(
     x match {
       case UserFunctionT => UserFunctionI
       case PureT => PureI
+      case ExternT(packageCoord) => ExternI(packageCoord)
       case other => vimpl(other)
     }
   }
@@ -1547,7 +1698,7 @@ class Instantiator(
   // DO NOT SUBMIT why does this one not take in the collapsed id like the struct and interface things
   def translateCollapsedFunction(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     // For doublechecking we're getting the actual function we requested
     desiredPrototypeC: PrototypeI[cI],
@@ -1571,11 +1722,11 @@ class Instantiator(
         case _ => vwat()
       }
 
-    val functionIdI =
+    val functionIdS =
       translateFunctionId(
         denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, id)
     val functionIdC =
-      RegionCollapserIndividual.collapseFunctionId(functionIdI)
+      RegionCollapserIndividual.collapseFunctionId(functionIdS)
 
     monouts.functions.get(functionIdC) match {
       case Some(func) => return func
@@ -1591,12 +1742,11 @@ class Instantiator(
       vfail()
     }
 
-    val startingEnv = NodeEnvironment(None)
-    val (bodySubjectiveIT, bodyIE) =
+    val (bodySubjectiveIT, bodyCE) =
       translateRefExpr(
-        denizenName, denizenBoundToDenizenCallerSuppliedThing, startingEnv, substitutions, perspectiveRegionT, bodyT)
+        denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, bodyT)
 
-    val result = FunctionDefinitionI(newHeader, Map(), Map(), bodyIE)
+    val result = FunctionDefinitionI(newHeader, Map(), Map(), bodyCE)
 
     monouts.functions.put(result.header.id, result)
     result
@@ -1604,7 +1754,7 @@ class Instantiator(
 
   def translateLocalVariable(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     variable: ILocalVariableT):
@@ -1624,39 +1774,39 @@ class Instantiator(
 
   def translateReferenceLocalVariable(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     variable: ReferenceLocalVariableT):
   // Returns subjective coord and the local var
   (CoordI[sI], ReferenceLocalVariableI) = {
     val ReferenceLocalVariableT(id, variability, coord) = variable
-    val coordI =
+    val coordS =
       translateCoord(
         denizenName,
         denizenBoundToDenizenCallerSuppliedThing,
         substitutions,
         perspectiveRegionT,
         coord)
-    val varNameI = translateVarName(id)
-    val localI =
+    val varNameS = translateVarName(id)
+    val localC =
       ReferenceLocalVariableI(
-        RegionCollapserIndividual.collapseVarName(varNameI),
+        RegionCollapserIndividual.collapseVarName(varNameS),
         translateVariability(variability),
-        RegionCollapserIndividual.collapseCoord(coordI.coord))
-    (coordI.coord, localI)
+        RegionCollapserIndividual.collapseCoord(coordS.coord))
+    (coordS.coord, localC)
   }
 
   def translateAddressibleLocalVariable(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     variable: AddressibleLocalVariableT):
   // Returns subjective coord and the local var
   (CoordI[sI], AddressibleLocalVariableI) = {
     val AddressibleLocalVariableT(id, variability, coord) = variable
-    val coordI =
+    val coordS =
       translateCoord(
         denizenName,
         denizenBoundToDenizenCallerSuppliedThing,
@@ -1664,19 +1814,18 @@ class Instantiator(
         // The LocalVariable's type is from its own perspective.
         coord.region,
         coord)
-    val varI = translateVarName(id)
-    val localI =
+    val varS = translateVarName(id)
+    val localC =
       AddressibleLocalVariableI(
-        RegionCollapserIndividual.collapseVarName(varI),
+        RegionCollapserIndividual.collapseVarName(varS),
         translateVariability(variability),
-        RegionCollapserIndividual.collapseCoord(coordI.coord))
-    (coordI.coord, localI)
+        RegionCollapserIndividual.collapseCoord(coordS.coord))
+    (coordS.coord, localC)
   }
 
   def translateAddrExpr(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
-    env: NodeEnvironment,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     expr: AddressExpressionTE):
@@ -1706,126 +1855,86 @@ class Instantiator(
 //            localVariableI.coord.kind)
 
         val resultSubjectiveIT = localSubjectiveIT
-        val resultIE =
+        val resultCE =
           LocalLookupIE(
             localVariableI,
             RegionCollapserIndividual.collapseCoord(resultSubjectiveIT))
-        (resultSubjectiveIT, resultIE)
+        (resultSubjectiveIT, resultCE)
       }
       case ReferenceMemberLookupTE(range, structExprT, memberNameT, memberCoordT, variability) => {
-        val (structSubjectiveIT, structIE) =
+        val (structSubjectiveIT, structCE) =
           translateRefExpr(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, structExprT)
-        val structSubjectiveStructIT = structSubjectiveIT.kind.expectStruct()
+            denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, structExprT)
         val memberName = translateVarName(memberNameT)
 
-//        // We can't translate ReferenceMemberLookupTE.memberCoord's kind here because we'll
-//        // translate its template args' regions incorrectly according to their current mutabilities.
-//        // They need to be the mutabilities at the time they were introduced, see CTOTFIPB. So
-//        // instead, we look it up from the struct definition.
-//        val structDef = vassertSome(monouts.structs.get(structSubjectiveStructIT.id))
-//        val defMemberCoord: CoordT = vimpl()
-////          vassertSome(structDef.members.find(_.name == memberName)) match {
-////            case NormalStructMemberT(name, variability, tyype) => tyype.reference
-////            case VariadicStructMemberT(name, tyype) => vimpl()
-//          }
-//      // However, the resulting coord's region *should* have the current mutability.
-
-        val memberCoordI =
+        val memberCoordS =
           translateCoord(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, memberCoordT)
 
-        val resultRegion =
-          ITemplataI.expectRegionTemplata(
-            translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, memberCoordT.region.region))
-
-//        val resultOwnership =
-//          (memberCoordI.ownership, resultRegion) match {
-//            case (OwnI, RegionTemplataI(_)) => OwnI
-////            case (MutableShareI, RegionTemplataI(true)) => MutableShareI
-////            case (MutableShareI, RegionTemplataI(false)) => ImmutableShareI
-//            case (ImmutableShareI, _) => ImmutableShareI
-//            case other => vimpl(other)
-//          }
-
-        val resultSubjectiveIT = memberCoordI
-        val resultIE =
+        val resultSubjectiveIT = memberCoordS
+        val resultCE =
           ReferenceMemberLookupIE(
             range,
-            structIE,
+            structCE,
             RegionCollapserIndividual.collapseVarName(memberName),
             RegionCollapserIndividual.collapseCoord(resultSubjectiveIT.coord),
             translateVariability(variability))
-        (resultSubjectiveIT.coord, resultIE)
+        (resultSubjectiveIT.coord, resultCE)
       }
       case StaticSizedArrayLookupTE(range, arrayExprT, indexExprT, elementTypeT, variability) => {
         // DO NOT SUBMIT combine a lot of this with the ReferenceMemberLookupTE case
-        val (arraySubjectiveIT, arrayIE) =
+        val (arraySubjectiveIT, arrayCE) =
           translateRefExpr(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExprT)
-//        // We can't translate StaticSizedArrayLookupTE.elementTypeT's kind here because we'll
-//        // translate its template args' regions incorrectly according to their current mutabilities.
-//        // They need to be the mutabilities at the time they were introduced, see CTOTFIPB. So
-//        // instead, we look it up from the struct definition.
-//        val elementType =
-//          arraySubjectiveIT.kind match {
-//            case StaticSizedArrayIT(IdI(_, _, StaticSizedArrayNameI(_, _, _, RawArrayNameI(_, elementType, _)))) => {
-//              elementType
-//            }
-//          }
-        val elementTypeI =
+            denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExprT)
+
+        val elementTypeS =
           translateCoord(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, elementTypeT).coord
 
         val (indexIT, indexCE) =
           translateRefExpr(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, indexExprT)
+            denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, indexExprT)
 
-//        // However, the resulting coord's region *should* have the current mutability.
-//        val resultRegion =
-//          ITemplataI.expectRegionTemplata(
-//            translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, elementTypeT.region))
+        val resultCoord = CoordI(elementTypeS.ownership, elementTypeS.kind)
 
-        val resultCoord = CoordI(elementTypeI.ownership, elementTypeI.kind)
-
-        val resultIE =
+        val resultCE =
           StaticSizedArrayLookupIE(
             range,
-            arrayIE,
+            arrayCE,
             indexCE,
             RegionCollapserIndividual.collapseCoord(resultCoord),
             translateVariability(variability))
-        (resultCoord, resultIE)
+        (resultCoord, resultCE)
       }
       case AddressMemberLookupTE(range, structExpr, memberName, resultType2, variability) => {
         val (structIT, structCE) =
           translateRefExpr(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, structExpr)
-        val varNameI = translateVarName(memberName)
+            denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, structExpr)
+        val varNameS = translateVarName(memberName)
         val resultIT =
           translateCoord(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, resultType2)
-        val variabilityI = translateVariability(variability)
+        val variabilityC = translateVariability(variability)
 
         val resultCE =
           AddressMemberLookupIE(
             structCE,
-            RegionCollapserIndividual.collapseVarName(varNameI),
+            RegionCollapserIndividual.collapseVarName(varNameS),
             RegionCollapserIndividual.collapseCoord(resultIT.coord),
-            variabilityI)
+            variabilityC)
         (resultIT.coord, resultCE)
       }
       case RuntimeSizedArrayLookupTE(range, arrayExpr, rsaTT, indexExpr, variability) => {
         val (arrayIT, arrayCE) =
           translateRefExpr(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+            denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
         val rsaIT =
           translateRuntimeSizedArray(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, rsaTT)
         val (indexIT, indexCE) =
           translateRefExpr(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, indexExpr)
-        val variabilityI = translateVariability(variability)
+            denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, indexExpr)
+        val variabilityC = translateVariability(variability)
 
         // We can't just say rsaIT.elementType here because that's the element from the array's own
         // perspective.
@@ -1836,7 +1945,7 @@ class Instantiator(
         val resultIT = elementIT
         val resultCE =
           RuntimeSizedArrayLookupIE(
-            arrayCE, indexCE, RegionCollapserIndividual.collapseCoord(elementIT.coord), variabilityI)
+            arrayCE, indexCE, RegionCollapserIndividual.collapseCoord(elementIT.coord), variabilityC)
         (resultIT.coord, resultCE)
       }
       case other => vimpl(other)
@@ -1845,8 +1954,7 @@ class Instantiator(
 
   def translateExpr(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
-    env: NodeEnvironment,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     expr: ExpressionT):
@@ -1855,19 +1963,18 @@ class Instantiator(
     expr match {
       case r : ReferenceExpressionTE => {
         translateRefExpr(
-          denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, r)
+          denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, r)
       }
       case a : AddressExpressionTE => {
         translateAddrExpr(
-          denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, a)
+          denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, a)
       }
     }
   }
 
   def translateRefExpr(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
-    env: NodeEnvironment,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     expr: ReferenceExpressionTE):
@@ -1877,33 +1984,33 @@ class Instantiator(
     val (resultIT, resultCE) =
       expr match {
         case RestackifyTE(variable, inner) => {
-          val (innerIT, innerIE) =
+          val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, inner)
           val (localIT, localI) =
             translateLocalVariable(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, variable)
           //          env.addTranslatedVariable(variableT.name, vimpl(translatedVariable))
           val subjectiveResultIT = CoordI[sI](MutableShareI, VoidIT())
-          val exprIE =
+          val exprCE =
             RestackifyIE(
-              localI, innerIE, RegionCollapserIndividual.collapseCoord(subjectiveResultIT))
-          (subjectiveResultIT, exprIE)
+              localI, innerCE, RegionCollapserIndividual.collapseCoord(subjectiveResultIT))
+          (subjectiveResultIT, exprCE)
         }
 
         case LetNormalTE(variableT, innerTE) => {
-          val (innerIT, innerIE) =
+          val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerTE)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, innerTE)
           val (localIT, localI) =
             translateLocalVariable(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, variableT)
 //          env.addTranslatedVariable(variableT.name, vimpl(translatedVariable))
           val subjectiveResultIT = CoordI[sI](MutableShareI, VoidIT())
-          val exprIE =
+          val exprCE =
             LetNormalIE(
-              localI, innerIE, RegionCollapserIndividual.collapseCoord(subjectiveResultIT))
-          (subjectiveResultIT, exprIE)
+              localI, innerCE, RegionCollapserIndividual.collapseCoord(subjectiveResultIT))
+          (subjectiveResultIT, exprCE)
         }
         case PureTE(newDefaultRegionT, innerTE, resultCoordT) => {
           val oldPerspectiveRegionT = perspectiveRegionT
@@ -1918,13 +2025,12 @@ class Instantiator(
             runInNewPureRegion(
               denizenName,
               denizenBoundToDenizenCallerSuppliedThing,
-              env,
               substitutions,
               denizenTemplateName,
               newDefaultRegionT,
               (newSubstitutions, newPerspectiveRegionT) => {
                 translateRefExpr(
-                  denizenName, denizenBoundToDenizenCallerSuppliedThing, env, newSubstitutions, newPerspectiveRegionT, innerTE)
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing,newSubstitutions, newPerspectiveRegionT, innerTE)
               })
 
           // DO NOT SUBMIT combine with code in FunctionCallTE case
@@ -1948,19 +2054,19 @@ class Instantiator(
           (resultOutsideIT, resultIE)
         }
         case BlockTE(inner) => {
-          val (innerIT, innerIE) =
+          val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, inner)
           val resultIT = innerIT
-          val resultIE = BlockIE(innerIE, RegionCollapserIndividual.collapseCoord(resultIT))
-          (resultIT, resultIE)
+          val resultCE = BlockIE(innerCE, RegionCollapserIndividual.collapseCoord(resultIT))
+          (resultIT, resultCE)
         }
         case ReturnTE(inner) => {
-          val (innerIT, innerIE) =
+          val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)
-          val resultIE = ReturnIE(innerIE)
-          (CoordI[sI](MutableShareI, NeverIT(false)), resultIE)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, inner)
+          val resultCE = ReturnIE(innerCE)
+          (CoordI[sI](MutableShareI, NeverIT(false)), resultCE)
         }
         case c @ ConsecutorTE(inners) => {
           val resultTT = c.result.coord
@@ -1968,13 +2074,13 @@ class Instantiator(
             translateCoord(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, resultTT)
                 .coord
-          val innersIE =
+          val innersCE =
             inners.map(innerTE => {
               translateRefExpr(
-                denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerTE)._2
+                denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, innerTE)._2
             })
-          val resultIE = ConsecutorIE(innersIE, RegionCollapserIndividual.collapseCoord(resultIT))
-          (resultIT, resultIE)
+          val resultCE = ConsecutorIE(innersCE, RegionCollapserIndividual.collapseCoord(resultIT))
+          (resultIT, resultCE)
         }
         case ConstantIntTE(value, bits, region) => {
           val resultCE =
@@ -1997,30 +2103,30 @@ class Instantiator(
           (CoordI[sI](MutableShareI, BoolIT()), resultCE)
         }
         case UnletTE(variable) => {
-          val (localIT, localIE) =
+          val (localIT, localCE) =
             translateLocalVariable(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, variable)
           val resultIT = localIT
 //          val local = env.lookupOriginalTranslatedVariable(variable.name)
-          val resultIE = UnletIE(localIE, RegionCollapserIndividual.collapseCoord(resultIT))
-          (resultIT, resultIE)
+          val resultCE = UnletIE(localCE, RegionCollapserIndividual.collapseCoord(resultIT))
+          (resultIT, resultCE)
         }
         case DiscardTE(innerTE) => {
-          val (innerIT, innerIE) =
+          val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerTE)
-          val resultIE = DiscardIE(innerIE)
-          (CoordI[sI](MutableShareI, VoidIT()), resultIE)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, innerTE)
+          val resultCE = DiscardIE(innerCE)
+          (CoordI[sI](MutableShareI, VoidIT()), resultCE)
         }
         case VoidLiteralTE(region) => {
           (CoordI[sI](MutableShareI, VoidIT()), VoidLiteralIE())
         }
         case FunctionCallTE(prototypeT, pure, maybeNewRegion, args, returnCoordT) => {
-          val innersIE =
+          val innersCE =
             args.map(argTE => {
               val (argIT, argCE) =
                 translateRefExpr(
-                  denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, argTE)
               // if (pure && argIT.ownership == MutableBorrowI) {
               //   PreCheckBorrowIE(argCE)
               // } else {
@@ -2051,7 +2157,7 @@ class Instantiator(
                   .coord
             val returnCoordCT =
               RegionCollapserIndividual.collapseCoord(returnCoordIT)
-            val resultIE = FunctionCallIE(prototypeC, innersIE, returnCoordCT)
+            val resultIE = FunctionCallIE(prototypeC, innersCE, returnCoordCT)
             (returnCoordIT, resultIE)
           } else {
             val newRegion = vassertSome(maybeNewRegion)
@@ -2063,7 +2169,7 @@ class Instantiator(
 
             val (returnCoordInsideIT, callCE) =
               runInNewPureRegion(
-                denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, denizenTemplateName, newRegion,
+                denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, denizenTemplateName, newRegion,
                 (newSubstitutions, newPerspectiveRegionT) => {
                   val returnCoordIT =
                     translateCoord(
@@ -2085,7 +2191,7 @@ class Instantiator(
                   val callCE =
                     FunctionCallIE(
                       prototypeC,
-                      innersIE.map(innerIE => {
+                      innersCE.map(innerIE => {
                         maybeImmutabilify(innerIE)
                       }),
                       returnCoordCT)
@@ -2122,7 +2228,7 @@ class Instantiator(
               virtualParamIndex,
               args.map(arg => {
                 translateRefExpr(
-                  denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arg)._2
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arg)._2
               }),
               RegionCollapserIndividual.collapseCoord(resultIT))
           val interfaceIdC =
@@ -2141,23 +2247,30 @@ class Instantiator(
               // perhaps we want the thing that originally called
               hinputs.getInstantiationBoundArgs(superFunctionPrototypeT.id))
 
+          val superFunctionPrototypeN =
+            RegionCollapserConsistent.collapsePrototype(
+              RegionCounter.countPrototype(superFunctionPrototypeI),
+              superFunctionPrototypeI)
+
+          vassert(RegionCollapserIndividual.collapsePrototype(superFunctionPrototypeN) == superFunctionPrototypeC)
+
           monouts.newAbstractFuncs.enqueue(
-            (superFunctionPrototypeT, vimpl(superFunctionPrototypeC), virtualParamIndex, interfaceIdC, instantiationBoundArgs))
+            (superFunctionPrototypeT, superFunctionPrototypeN, virtualParamIndex, interfaceIdC, instantiationBoundArgs))
 
           (resultIT, resultCE)
         }
         case ArgLookupTE(paramIndex, reference) => {
-          val typeI =
+          val typeS =
             translateCoord(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, reference)
                 .coord
-          val resultCE = ArgLookupIE(paramIndex, RegionCollapserIndividual.collapseCoord(typeI))
-          (typeI, resultCE)
+          val resultCE = ArgLookupIE(paramIndex, RegionCollapserIndividual.collapseCoord(typeS))
+          (typeS, resultCE)
         }
         case SoftLoadTE(originalInner, originalTargetOwnership) => {
-          val (innerIT, innerIE) =
+          val (innerIT, innerCE) =
             translateAddrExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, originalInner)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, originalInner)
           val targetOwnership =
             // First, figure out what ownership it is after substitution.
             // if we have an owned T but T is a &Ship, then own + borrow = borrow
@@ -2184,21 +2297,21 @@ class Instantiator(
               case other => vwat(other)
             }
           val resultIT = CoordI[sI](targetOwnership, innerIT.kind)
-          val resultIE =
-            SoftLoadIE(innerIE, targetOwnership, RegionCollapserIndividual.collapseCoord(resultIT))
-          (resultIT, resultIE)
+          val resultCE =
+            SoftLoadIE(innerCE, targetOwnership, RegionCollapserIndividual.collapseCoord(resultIT))
+          (resultIT, resultCE)
         }
         case ExternFunctionCallTE(prototype2, args) => {
           val (prototypeI, prototypeC) =
             translatePrototype(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, prototype2)
-          val argsIE =
+          val argsCE =
             args.map(argTE => {
-              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)._2
+              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, argTE)._2
             })
           val resultIT = prototypeI.returnType
-          val resultIE = ExternFunctionCallIE(prototypeC, argsIE, prototypeC.returnType)
-          (resultIT, resultIE)
+          val resultCE = ExternFunctionCallIE(prototypeC, argsCE, prototypeC.returnType)
+          (resultIT, resultCE)
         }
         case ConstructTE(structTT, resultReference, args) => {
           val resultIT =
@@ -2215,10 +2328,10 @@ class Instantiator(
           //            monouts.immKindToDestructor.put(coord.kind, freePrototype)
           //          }
 
-          val argsIE =
+          val argsCE =
             args.map(argTE => {
               translateExpr(
-                denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, argTE)._2
+                denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, argTE)._2
             })
 
           val structIT =
@@ -2235,17 +2348,17 @@ class Instantiator(
                 perspectiveRegionT,
                 hinputs.getInstantiationBoundArgs(structTT.id)))
 
-          val resultIE =
+          val resultCE =
             ConstructIE(
               StructIT(RegionCollapserIndividual.collapseStructId(structIT.id)),
               RegionCollapserIndividual.collapseCoord(resultIT),
-              argsIE)
-          (resultIT, resultIE)
+              argsCE)
+          (resultIT, resultCE)
         }
         case DestroyTE(exprT, structTT, destinationReferenceVariables) => {
-          val (sourceIT, sourceIE) =
+          val (sourceIT, sourceCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, exprT)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, exprT)
 
           val structIT =
             translateStructId(
@@ -2270,19 +2383,19 @@ class Instantiator(
 //          val structDef = vassertSome(monouts.structs.get(resultT.id))
 //          vassert(structDef.members.size == destinationReferenceVariables.size)
 
-          val resultIE =
+          val resultCE =
             DestroyIE(
-              sourceIE,
+              sourceCE,
               StructIT(RegionCollapserIndividual.collapseStructId(structIT)),
               destinationReferenceVariables.map(destRefVarT => {
                 translateReferenceLocalVariable(
                   denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions,
                   perspectiveRegionT, destRefVarT)._2
               }))
-          (CoordI[sI](MutableShareI, VoidIT()), resultIE)
+          (CoordI[sI](MutableShareI, VoidIT()), resultCE)
         }
         case DestroyStaticSizedArrayIntoLocalsTE(exprT, ssaTT, destinationReferenceVariables) => {
-          val (sourceIT, sourceIE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, exprT)
+          val (sourceIT, sourceCE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, exprT)
           val (ssaIT, size) =
             sourceIT.kind match {
               case s @ StaticSizedArrayIT(IdI(_, _, StaticSizedArrayNameI(_, size, _, _))) => (s, size)
@@ -2292,7 +2405,7 @@ class Instantiator(
           vassert(size == destinationReferenceVariables.size)
           val resultCE =
             DestroyStaticSizedArrayIntoLocalsIE(
-              sourceIE,
+              sourceCE,
               RegionCollapserIndividual.collapseStaticSizedArray(ssaIT),
             destinationReferenceVariables.map(destRefVarT => {
               translateReferenceLocalVariable(
@@ -2301,29 +2414,24 @@ class Instantiator(
           (CoordI[sI](MutableShareI, VoidIT()), resultCE)
         }
         case MutateTE(destinationTT, sourceExpr) => {
-          // DO NOT SUBMIT change all IE to CE like this one
           val (destinationIT, destinationCE) =
             translateAddrExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, destinationTT)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, destinationTT)
           val (sourceIT, sourceCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, sourceExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, sourceExpr)
           val resultIT = destinationIT
           val resultCE = MutateIE(destinationCE, sourceCE, RegionCollapserIndividual.collapseCoord(resultIT))
           (resultIT, resultCE)
         }
         case u @ UpcastTE(innerExprUnsubstituted, targetSuperKind, untranslatedImplId) => {
           val implId =
-            translateImplId(denizenName, denizenBoundToDenizenCallerSuppliedThing,
+            translateImplId(
+              denizenName,
+              denizenBoundToDenizenCallerSuppliedThing,
               substitutions,
               perspectiveRegionT,
-
-              untranslatedImplId,
-              translateBoundArgsForCallee(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-                substitutions,
-                perspectiveRegionT,
-
-                hinputs.getInstantiationBoundArgs(untranslatedImplId)))
+              untranslatedImplId)
           //          val freePrototype = translatePrototype(freePrototypeT)
           val resultIT =
             translateCoord(
@@ -2338,31 +2446,30 @@ class Instantiator(
 
           val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerExprUnsubstituted)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, innerExprUnsubstituted)
 
-          val superKindI =
+          val superKindS =
             translateSuperKind(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, targetSuperKind)
 
           val resultCE =
             UpcastIE(
               innerCE,
-              vimpl(),//RegionCollapserIndividual.collapseSuperKind(superKindI),
-              RegionCollapserIndividual.collapseImplId(RegionCounter.countImplId(implId), implId),
-              RegionCollapserIndividual.collapseCoord(resultIT.coord))//,
-          //            freePrototype)
-          vimpl()
+              InterfaceIT(RegionCollapserIndividual.collapseInterfaceId(superKindS.id)),
+              RegionCollapserIndividual.collapseImplId(implId),
+              RegionCollapserIndividual.collapseCoord(resultIT.coord))
+          (resultIT.coord, resultCE)
         }
         case IfTE(condition, thenCall, elseCall) => {
           val (conditionIT, conditionCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, condition)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, condition)
           val (thenIT, thenCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, thenCall)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, thenCall)
           val (elseIT, elseCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, elseCall)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, elseCall)
           val resultIT =
             (thenIT, elseIT) match {
               case (a, b) if a == b => a
@@ -2377,10 +2484,10 @@ class Instantiator(
         case IsSameInstanceTE(left, right) => {
           val (leftIT, leftCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, left)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, left)
           val (rightIT, rightCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, right)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, right)
           val resultCE = IsSameInstanceIE(leftCE, rightCE)
           (CoordI[sI](MutableShareI, BoolIT()), resultCE)
         }
@@ -2401,7 +2508,7 @@ class Instantiator(
 
           val elementsCE =
             elements.map(elementTE => {
-              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, elementTE)._2
+              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, elementTE)._2
             })
 
           val ssaTT =
@@ -2422,48 +2529,57 @@ class Instantiator(
         case DeferTE(innerExpr, deferredExpr) => {
           val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, innerExpr)
           val (deferredIT, deferredCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, deferredExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, deferredExpr)
           val resultIT = innerIT
           val resultCE =
             DeferIE(innerCE, deferredCE, RegionCollapserIndividual.collapseCoord(resultIT))
           (resultIT, resultCE)
         }
         case LetAndLendTE(variable, sourceExprT, outerOwnershipT) => {
-          val (sourceSubjectiveIT, sourceIE) =
+          val (sourceSubjectiveIT, sourceCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, sourceExprT)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, sourceExprT)
 
-          val resultOwnershipI =
+          val resultOwnershipC =
             translateOwnership(
               substitutions,
               perspectiveRegionT,
-              composeOwnerships(outerOwnershipT, sourceExprT.result.coord.ownership),
+              // TODO: see if we can combine this with the other composeOwnerships function.
+              composeOwnerships(outerOwnershipT, sourceSubjectiveIT.ownership),
               sourceExprT.result.coord.region)
 
-          val resultIT = CoordI(resultOwnershipI, sourceSubjectiveIT.kind)
+          val resultIT = CoordI(resultOwnershipC, sourceSubjectiveIT.kind)
 
           val (localIT, localI) =
             translateLocalVariable(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, variable)
 
-          val resultIE =
+          val resultCE =
             LetAndLendIE(
               localI,
-              sourceIE,
-              resultOwnershipI,
+              sourceCE,
+              resultOwnershipC,
               RegionCollapserIndividual.collapseCoord(resultIT))
-          (resultIT, resultIE)
+          (resultIT, resultCE)
         }
         case BorrowToWeakTE(innerExpr) => {
-          vimpl()//BorrowToWeakIE(translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerExpr))
+          val (innerIT, innerCE) =
+            translateRefExpr(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, innerExpr)
+
+
+          val resultIT = innerIT.copy(ownership = WeakI)
+          val resultCT = RegionCollapserIndividual.collapseCoord(resultIT)
+
+          (resultIT, BorrowToWeakIE(innerCE, resultCT))
         }
         case WhileTE(BlockTE(inner)) => {
           val (innerIT, innerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, inner)
 
           // While loops must always produce void.
           // If we want a foreach/map/whatever construct, the loop should instead
@@ -2487,43 +2603,43 @@ class Instantiator(
           (CoordI[sI](MutableShareI, NeverIT(true)), resultCE)
         }
         case LockWeakTE(innerExpr, resultOptBorrowType, someConstructor, noneConstructor, someImplUntranslatedId, noneImplUntranslatedId) => {
-          vimpl()
-//          LockWeakIE(
-//            translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerExpr),
-//            translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, resultOptBorrowType),
-//            translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, someConstructor),
-//            translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, noneConstructor),
-//            translateImplId(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//              substitutions,
-//              perspectiveRegionT,
-//
-//              someImplUntranslatedId,
-//              translateBoundArgsForCallee(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//                substitutions,
-//                perspectiveRegionT,
-//
-//                hinputs.getInstantiationBoundArgs(someImplUntranslatedId))),
-//            translateImplId(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//              substitutions,
-//              perspectiveRegionT,
-//
-//              noneImplUntranslatedId,
-//              translateBoundArgsForCallee(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//                substitutions,
-//                perspectiveRegionT,
-//
-//                hinputs.getInstantiationBoundArgs(noneImplUntranslatedId))))
+          val resultIT =
+            translateCoord(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, resultOptBorrowType).coord
+          val resultCT = RegionCollapserIndividual.collapseCoord(resultIT)
+          val resultCE =
+            LockWeakIE(
+              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, innerExpr)._2,
+              resultCT,
+              translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, someConstructor)._2,
+              translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, noneConstructor)._2,
+              RegionCollapserIndividual.collapseImplId(
+                translateImplId(
+                  denizenName,
+                  denizenBoundToDenizenCallerSuppliedThing,
+                  substitutions,
+                  perspectiveRegionT,
+                  someImplUntranslatedId)),
+              RegionCollapserIndividual.collapseImplId(
+                translateImplId(
+                  denizenName,
+                  denizenBoundToDenizenCallerSuppliedThing,
+                  substitutions,
+                  perspectiveRegionT,
+                  noneImplUntranslatedId)),
+              resultCT)
+          (resultIT, resultCE)
         }
         case DestroyStaticSizedArrayIntoFunctionTE(arrayExpr, arrayType, consumer, consumerMethod) => {
           val (arrayIT, arrayCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
           val ssaIT =
             translateStaticSizedArray(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, arrayType)
           val (consumerIT, consumerCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, consumer)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, consumer)
           val (consumerPrototypeI, consumerPrototypeC) =
             translatePrototype(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, consumerMethod)
@@ -2540,10 +2656,10 @@ class Instantiator(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, arrayType)
           val (sizeIT, sizeCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, sizeExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, sizeExpr)
           val (generatorIT, generatorCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, generator)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, generator)
           val (generatorPrototypeI, generatorPrototypeC) =
             translatePrototype(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, generatorMethod)
@@ -2582,7 +2698,7 @@ class Instantiator(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, arrayType)
           val (generatorIT, generatorCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, generator)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, generator)
           val (generatorPrototypeI, generatorPrototypeC) =
             translatePrototype(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, generatorMethod)
@@ -2615,24 +2731,24 @@ class Instantiator(
         case RuntimeSizedArrayCapacityTE(arrayExpr) => {
           val (arrayIT, arrayCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
           val resultCE = RuntimeSizedArrayCapacityIE(arrayCE)
           (CoordI[sI](MutableShareI, IntIT(32)), resultCE)
         }
         case PushRuntimeSizedArrayTE(arrayExpr, newElementExpr) => {
           val (arrayIT, arrayCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
           val (elementIT, elementCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, newElementExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, newElementExpr)
           val resultCE = PushRuntimeSizedArrayIE(arrayCE, elementCE)
           (CoordI[sI](MutableShareI, VoidIT()), resultCE)
         }
         case PopRuntimeSizedArrayTE(arrayExpr) => {
           val (arrayIT, arrayCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
           val elementIT =
             arrayIT.kind match {
               case RuntimeSizedArrayIT(IdI(_, _, RuntimeSizedArrayNameI(_, RawArrayNameI(_, elementType, _)))) => {
@@ -2646,7 +2762,7 @@ class Instantiator(
         case ArrayLengthTE(arrayExpr) => {
           val (arrayIT, arrayCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
           val resultIT = CoordI[sI](MutableShareI, IntIT(32))
           val resultCE = ArrayLengthIE(arrayCE)
           (resultIT, resultCE)
@@ -2655,14 +2771,14 @@ class Instantiator(
           vassert(sourceExpr.kind.isPrimitive)
           val (sourceIT, sourceCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, sourceExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, sourceExpr)
           // Just a pass through, TransmigrateTE only exists for typing stage's benefit
           (sourceIT, sourceCE)
         }
         case DestroyImmRuntimeSizedArrayTE(arrayExpr, arrayType, consumer, consumerMethod) => {
-          val (arrayIT, arrayCE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
+          val (arrayIT, arrayCE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
           val rsaIT = translateRuntimeSizedArray(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, arrayType)
-          val (consumerIT, consumerCE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, consumer)
+          val (consumerIT, consumerCE) = translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, consumer)
           val (prototypeI, prototypeC) =
             translatePrototype(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, consumerMethod)
@@ -2676,11 +2792,11 @@ class Instantiator(
           (CoordI[sI](MutableShareI, VoidIT()), resultCE)
         }
         case DestroyMutRuntimeSizedArrayTE(arrayExpr) => {
-          val (arrayIT, arrayIE) =
+          val (arrayIT, arrayCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
-          val resultIE = DestroyMutRuntimeSizedArrayIE(arrayIE)
-          (CoordI.void[sI], resultIE)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, arrayExpr)
+          val resultCE = DestroyMutRuntimeSizedArrayIE(arrayCE)
+          (CoordI.void[sI], resultCE)
         }
         case NewMutRuntimeSizedArrayTE(arrayTT, region, capacityExpr) => {
           val arrayIT =
@@ -2694,21 +2810,21 @@ class Instantiator(
               },
               arrayIT)
 
-          val (capacityIT, capacityIE) =
+          val (capacityIT, capacityCE) =
             translateRefExpr(
-              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, capacityExpr)
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, capacityExpr)
 
           val resultCE =
             NewMutRuntimeSizedArrayIE(
               RegionCollapserIndividual.collapseRuntimeSizedArray(arrayIT),
-              capacityIE,
+              capacityCE,
               RegionCollapserIndividual.collapseCoord(resultIT))
           (resultIT, resultCE)
         }
         case TupleTE(elements, resultReference) => {
           val elementsCE =
             elements.map(elementTE => {
-              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, elementTE)._2
+              translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing,substitutions, perspectiveRegionT, elementTE)._2
             })
 
           val resultIT =
@@ -2719,43 +2835,45 @@ class Instantiator(
           (resultIT, TupleIE(elementsCE, RegionCollapserIndividual.collapseCoord(resultIT)))
         }
         case AsSubtypeTE(sourceExpr, targetSubtype, resultResultType, okConstructor, errConstructor, implIdT, okResultImplIdT, errResultImplIdT) => {
-          vimpl()
-//          AsSubtypeIE(
-//            translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, sourceExpr),
-//            translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, targetSubtype),
-//            translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, resultResultType),
-//            translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, okConstructor),
-//            translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, errConstructor),
-//            translateImplId(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//              substitutions,
-//              perspectiveRegionT,
-//
-//              implIdT,
-//              translateBoundArgsForCallee(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//                substitutions,
-//                perspectiveRegionT,
-//
-//                hinputs.getInstantiationBoundArgs(implIdT))),
-//            translateImplId(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//              substitutions,
-//              perspectiveRegionT,
-//
-//              okResultImplIdT,
-//              translateBoundArgsForCallee(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//                substitutions,
-//                perspectiveRegionT,
-//
-//                hinputs.getInstantiationBoundArgs(okResultImplIdT))),
-//            translateImplId(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//            substitutions,
-//              perspectiveRegionT,
-//
-//              errResultImplIdT,
-//              translateBoundArgsForCallee(denizenName, denizenBoundToDenizenCallerSuppliedThing,
-//                substitutions,
-//                perspectiveRegionT,
-//
-//                hinputs.getInstantiationBoundArgs(errResultImplIdT))))
+          val (sourceIT, sourceCE) =
+            translateRefExpr(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, sourceExpr)
+          val resultIT =
+            translateCoord(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing,
+              substitutions,
+              perspectiveRegionT,
+              resultResultType).coord
+          val resultCE =
+            AsSubtypeIE(
+              sourceCE,
+              RegionCollapserIndividual.collapseCoord(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, targetSubtype).coord),
+              RegionCollapserIndividual.collapseCoord(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, resultResultType).coord),
+              translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, okConstructor)._2,
+              translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, errConstructor)._2,
+              RegionCollapserIndividual.collapseImplId(
+                translateImplId(
+                  denizenName,
+                  denizenBoundToDenizenCallerSuppliedThing,
+                  substitutions,
+                  perspectiveRegionT,
+                  implIdT)),
+              RegionCollapserIndividual.collapseImplId(
+                translateImplId(
+                  denizenName,
+                  denizenBoundToDenizenCallerSuppliedThing,
+                  substitutions,
+                  perspectiveRegionT,
+                  okResultImplIdT)),
+              RegionCollapserIndividual.collapseImplId(
+                translateImplId(
+                  denizenName,
+                  denizenBoundToDenizenCallerSuppliedThing,
+                 substitutions,
+                  perspectiveRegionT,
+                  errResultImplIdT)),
+              RegionCollapserIndividual.collapseCoord(resultIT))
+          (resultIT, resultCE)
         }
         case other => vimpl(other)
       }
@@ -2795,8 +2913,7 @@ class Instantiator(
 
   private def runInNewPureRegion[T](
       denizenName: IdT[IInstantiationNameT],
-      denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
-      env: NodeEnvironment,
+      denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
       substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
       denizenTemplateName: IdT[ITemplateNameT],
       newDefaultRegionT: RegionT,
@@ -2848,23 +2965,85 @@ class Instantiator(
     }
   }
 
+  private def composeOwnerships(outerOwnership: OwnershipT, innerOwnership: OwnershipI, kind: KindIT[sI]) = {
+    // TODO: see if we can combine this with the other composeOwnerships function.
+    kind match {
+      case IntIT(_) | BoolIT() | VoidIT() => {
+        // We don't want any ImmutableShareH for primitives, it's better to only ever have one
+        // ownership for primitives.
+        MutableShareI
+      }
+      case _ => {
+        ((outerOwnership, innerOwnership) match {
+          case (OwnT, OwnI) => OwnI
+          // case (OwnT, ImmutableShareI) => ImmutableShareI
+          case (OwnT | BorrowT, MutableShareI | ImmutableShareI) => {
+            // We disregard whether it's a MutableShareI or ImmutableShareI because
+            // that was likely calculated under different circumstances from a
+            // different perspective region.
+            // We'll recalculate it now with out own perspective region.
+            // See IPOMFIC.
+            //if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
+            MutableShareI
+            // } else {
+            //   ImmutableShareI
+            // }
+          }
+          //                case (OwnT, BorrowT) => BorrowT
+          case (OwnT, MutableBorrowI) => {
+            vregionmut() // here too maybe?
+            MutableBorrowI
+          }
+          //                case (BorrowT, OwnT) => BorrowT
+          case (BorrowT, OwnI) => {
+            vregionmut() // we'll probably want a regionIsMutable call like above
+            MutableBorrowI
+          }
+          //                case (BorrowT, BorrowT) => BorrowT
+          case (BorrowT, MutableBorrowI) => {
+            vregionmut() // we'll probably want a regionIsMutable call like above
+            MutableBorrowI
+          }
+          //                case (BorrowT, WeakT) => WeakT
+          //                case (BorrowT, ShareT) => ShareT
+          //                case (WeakT, OwnT) => WeakT
+          case (WeakT, OwnI) => {
+            vregionmut() // here too maybe?
+            WeakI
+          }
+          //                case (WeakT, BorrowT) => WeakT
+          //                case (WeakT, WeakT) => WeakT
+          //                case (WeakT, ShareT) => ShareT
+          //                case (ShareT, ShareT) => ShareT
+          case (ShareT, MutableShareI) => {
+            vregionmut() // here too maybe?
+            MutableShareI
+          }
+          //                case (OwnT, ShareT) => ShareT
+          case other => vwat(other)
+        })
+      }
+    }
+  }
+
+  // TODO: see if we can combine this with the other composeOwnerships function.
   def composeOwnerships(
     outerOwnership: OwnershipT,
-    innerOwnership: OwnershipT):
+    innerOwnership: OwnershipI):
   OwnershipT = {
     (outerOwnership, innerOwnership) match {
-      case (OwnT, OwnT) => OwnT
-      case (OwnT, BorrowT) => BorrowT
-      case (BorrowT, OwnT) => BorrowT
-      case (BorrowT, BorrowT) => BorrowT
-      case (BorrowT, WeakT) => WeakT
-      case (BorrowT, ShareT) => ShareT
-      case (WeakT, OwnT) => WeakT
-      case (WeakT, BorrowT) => WeakT
-      case (WeakT, WeakT) => WeakT
-      case (WeakT, ShareT) => ShareT
-      case (ShareT, ShareT) => ShareT
-      case (OwnT, ShareT) => ShareT
+      case (OwnT, OwnI) => OwnT
+      case (OwnT, MutableBorrowI) => BorrowT
+      case (BorrowT, OwnI) => BorrowT
+      case (BorrowT, MutableBorrowI) => BorrowT
+      case (BorrowT, WeakI) => WeakT
+      case (BorrowT, MutableShareI) => ShareT
+      case (WeakT, OwnI) => WeakT
+      case (WeakT, MutableBorrowI) => WeakT
+      case (WeakT, WeakI) => WeakT
+      case (WeakT, MutableShareI) => ShareT
+      case (ShareT, MutableShareI) => ShareT
+      case (OwnT, MutableShareI) => ShareT
       case other => vwat(other)
     }
   }
@@ -2902,7 +3081,7 @@ class Instantiator(
 
   def translateFunctionId(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     idT: IdT[IFunctionNameT]):
@@ -2938,7 +3117,7 @@ class Instantiator(
 
   def translateStructId(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     idT: IdT[IStructNameT],
@@ -2961,14 +3140,14 @@ class Instantiator(
 
   def translateInterfaceId(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     idT: IdT[IInterfaceNameT],
     instantiationBoundArgs: InstantiationBoundArgumentsI):
   IdI[sI, IInterfaceNameI[sI]] = {
     val IdT(module, steps, last) = idT
-    val newIdI =
+    val newIdS =
       IdI(
         module,
         steps.map(translateName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
@@ -2976,14 +3155,63 @@ class Instantiator(
 
 
     collapseAndTranslateInterfaceDefinition(
-      opts, interner, keywords, hinputs, monouts, idT, newIdI, instantiationBoundArgs)
+      opts, interner, keywords, hinputs, monouts, idT, newIdS, instantiationBoundArgs)
 
-    newIdI
+    newIdS
+  }
+
+  def translateImplId(
+      denizenName: IdT[IInstantiationNameT],
+      denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
+      substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
+      perspectiveRegionT: RegionT,
+      implIdT: IdT[IImplNameT]):
+  IdI[sI, IImplNameI[sI]] = {
+    val IdT(module, steps, lastT) = implIdT
+
+    // collapseAndTranslateImplDefinition(
+    //   opts, interner, keywords, hinputs, monouts, implIdT, implIdT, instantiationBoundArgs)
+
+    implIdT match {
+      case IdT(packageCoord, initSteps, name @ ImplBoundNameT(_, _)) => {
+        val implBoundName = IdT(packageCoord, initSteps, name)
+        val implIdS = vassertSome(denizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl.get(implBoundName))
+
+        // val implIdC =
+        //   RegionCollapserIndividual.collapseImplId(implIdS)
+        implIdS
+      }
+      case _ => {
+        val implIdS =
+          IdI(
+            module,
+            steps.map(translateName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
+            translateImplName(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, lastT))
+
+        val implIdN =
+          RegionCollapserConsistent.collapseImplId(
+            RegionCounter.countImplId(implIdS),
+            implIdS)
+
+        val runeToBoundArgsForNewImpl =
+          translateBoundArgsForCallee(
+            denizenName,
+            denizenBoundToDenizenCallerSuppliedThing,
+            substitutions,
+            perspectiveRegionT,
+            hinputs.getInstantiationBoundArgs(implIdT))
+
+        monouts.newImpls.enqueue((implIdT, implIdN, runeToBoundArgsForNewImpl))
+
+        implIdS
+      }
+    }
   }
 
   def translateCitizenName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     t: ICitizenNameT):
@@ -3006,7 +3234,7 @@ class Instantiator(
 
   def translateCitizenId(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     id: IdT[ICitizenNameT],
@@ -3027,7 +3255,7 @@ class Instantiator(
 
   def translateImplId(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     idT: IdT[IImplNameT],
@@ -3038,7 +3266,7 @@ class Instantiator(
       IdI(
         module,
         steps.map(translateName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
-        translateImplName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, last, instantiationBoundArgs))
+        translateImplName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, last))
     val idC = vimpl(idI)
 
     idT match {
@@ -3061,7 +3289,7 @@ class Instantiator(
 
   def translateCoord(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     coord: CoordT):
@@ -3085,45 +3313,9 @@ class Instantiator(
 
         vassertSome(vassertSome(substitutions.get(placeholderId.initId(interner))).get(placeholderId)) match {
           case CoordTemplataI(region, CoordI(innerOwnership, kind)) => {
+            // TODO: see if we can combine this with the other composeOwnerships function.
             val combinedOwnership =
-              kind match {
-                case IntIT(_) | BoolIT() | VoidIT() => {
-                  // We don't want any ImmutableShareH for primitives, it's better to only ever have one
-                  // ownership for primitives.
-                  MutableShareI
-                }
-                case _ => {
-                  ((outerOwnership, innerOwnership) match {
-                    case (OwnT, OwnI) => OwnI
-                    // case (OwnT, ImmutableShareI) => ImmutableShareI
-                    case (OwnT | BorrowT, MutableShareI | ImmutableShareI) => {
-                      // We disregard whether it's a MutableShareI or ImmutableShareI because
-                      // that was likely calculated under different circumstances from a
-                      // different perspective region.
-                      // We'll recalculate it now with out own perspective region.
-                      // See IPOMFIC.
-                      if (regionIsMutable(substitutions, perspectiveRegionT, outerRegion)) {
-                        MutableShareI
-                      } else {
-                        ImmutableShareI
-                      }
-                    }
-    //                case (OwnT, BorrowT) => BorrowT
-    //                case (BorrowT, OwnT) => BorrowT
-    //                case (BorrowT, BorrowT) => BorrowT
-    //                case (BorrowT, WeakT) => WeakT
-    //                case (BorrowT, ShareT) => ShareT
-    //                case (WeakT, OwnT) => WeakT
-    //                case (WeakT, BorrowT) => WeakT
-    //                case (WeakT, WeakT) => WeakT
-    //                case (WeakT, ShareT) => ShareT
-    //                case (ShareT, ShareT) => ShareT
-    //                case (OwnT, ShareT) => ShareT
-                    case other => vwat(other)
-                      // DO NOT SUBMIT combine this with what's elsewhere in this file
-                  })
-                }
-              }
+              composeOwnerships(outerOwnership, innerOwnership, kind)
 //            vassert(innerRegion == translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
             CoordTemplataI(outerRegionI, CoordI(combinedOwnership, kind))
           }
@@ -3206,7 +3398,7 @@ class Instantiator(
 
   def translateCitizen(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     citizen: ICitizenTT,
@@ -3220,7 +3412,7 @@ class Instantiator(
 
   def translateStruct(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     struct: StructTT,
@@ -3239,7 +3431,7 @@ class Instantiator(
 
   def translateInterface(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     interface: InterfaceTT,
@@ -3257,11 +3449,11 @@ class Instantiator(
 
   def translateSuperKind(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     kind: ISuperKindTT):
-  ISuperKindIT[sI] = {
+  InterfaceIT[sI] = {
     kind match {
       case i @ InterfaceTT(_) => {
         translateInterface(
@@ -3279,7 +3471,10 @@ class Instantiator(
       }
       case p @ KindPlaceholderT(_) => {
         translatePlaceholder(substitutions, p) match {
-          case s : ISuperKindIT[sI] => s
+          case s : InterfaceIT[_] => {
+            vassert(s.isInstanceOf[InterfaceIT[sI]])
+            s.asInstanceOf[InterfaceIT[sI]]
+          }
           case other => vwat(other)
         }
       }
@@ -3299,7 +3494,7 @@ class Instantiator(
 
   def translateStaticSizedArray(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     ssaTT: StaticSizedArrayTT):
@@ -3349,7 +3544,7 @@ class Instantiator(
 
   def translateRuntimeSizedArray(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
       rsaTT: RuntimeSizedArrayTT):
@@ -3395,7 +3590,7 @@ class Instantiator(
 
   def translateKind(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     kind: KindT):
@@ -3437,7 +3632,7 @@ class Instantiator(
 
   def translateParameter(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     param: ParameterT):
@@ -3447,9 +3642,9 @@ class Instantiator(
       translateCoord(
         denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, tyype)
           .coord
-    val nameI = translateVarName(name)
+    val nameS = translateVarName(name)
     ParameterI(
-      RegionCollapserIndividual.collapseVarName(nameI),
+      RegionCollapserIndividual.collapseVarName(nameS),
       virtuality.map({ case AbstractT() => AbstractI() }),
       preChecked,
       RegionCollapserIndividual.collapseCoord(typeIT))
@@ -3457,7 +3652,7 @@ class Instantiator(
 
   def translateTemplata(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     templata: ITemplataT[ITemplataType]):
@@ -3519,9 +3714,16 @@ class Instantiator(
     }
   }
 
+  def translateFunctionTemplateName(name: IFunctionTemplateNameT): IFunctionTemplateNameI[sI] = {
+    name match {
+      case FunctionTemplateNameT(humanName, codeLocation) => FunctionTemplateNameI(humanName, codeLocation)
+      case other => vimpl(other)
+    }
+  }
+
   def translateFunctionName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     name: IFunctionNameT):
@@ -3536,10 +3738,7 @@ class Instantiator(
       case ForwarderFunctionNameT(ForwarderFunctionTemplateNameT(innerTemplate, index), inner) => {
         ForwarderFunctionNameI(
           ForwarderFunctionTemplateNameI(
-            // We dont translate these, as these are what uniquely identify generics, and we need that
-            // information later to map this back to its originating generic.
-            // See DMPOGN for a more detailed explanation. This oddity is really tricky.
-            vimpl(innerTemplate),
+            translateFunctionTemplateName(innerTemplate),
             index),
           translateFunctionName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, inner))
       }
@@ -3569,7 +3768,7 @@ class Instantiator(
             // We dont translate these, as these are what uniquely identify generics, and we need that
             // information later to map this back to its originating generic.
             // See DMPOGN for a more detailed explanation. This oddity is really tricky.
-            vimpl(paramTypesForGeneric)),
+            paramTypesForGeneric),
           templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
           paramTypes.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
       }
@@ -3579,11 +3778,10 @@ class Instantiator(
 
   def translateImplName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
-    name: IImplNameT,
-    instantiationBoundArgs: InstantiationBoundArgumentsI):
+    name: IImplNameT):
   IImplNameI[sI] = {
     name match {
       case ImplNameT(ImplTemplateNameT(codeLocationS), templateArgs, subCitizen) => {
@@ -3594,7 +3792,12 @@ class Instantiator(
             substitutions,
             perspectiveRegionT,
             subCitizen,
-            vimpl(hinputs.getInstantiationBoundArgs(subCitizen.id))))
+            translateBoundArgsForCallee(
+              denizenName,
+              denizenBoundToDenizenCallerSuppliedThing,
+              substitutions,
+              perspectiveRegionT,
+              hinputs.getInstantiationBoundArgs(subCitizen.id))))
       }
       case ImplBoundNameT(ImplBoundTemplateNameT(codeLocationS), templateArgs) => {
         ImplBoundNameI(
@@ -3604,16 +3807,18 @@ class Instantiator(
       case AnonymousSubstructImplNameT(AnonymousSubstructImplTemplateNameT(interface), templateArgs, subCitizen) => {
         AnonymousSubstructImplNameI(
           AnonymousSubstructImplTemplateNameI(
-            // We dont translate these, as these are what uniquely identify generics, and we need that
-            // information later to map this back to its originating generic.
-            // See DMPOGN for a more detailed explanation. This oddity is really tricky.
-            vimpl(interface)),
+            translateInterfaceTemplateName(interface)),
           templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
           translateCitizen(denizenName, denizenBoundToDenizenCallerSuppliedThing,
             substitutions,
             perspectiveRegionT,
             subCitizen,
-            vimpl(hinputs.getInstantiationBoundArgs(subCitizen.id))))
+            translateBoundArgsForCallee(
+              denizenName,
+              denizenBoundToDenizenCallerSuppliedThing,
+              substitutions,
+              perspectiveRegionT,
+              hinputs.getInstantiationBoundArgs(subCitizen.id))))
       }
     }
   }
@@ -3632,7 +3837,7 @@ class Instantiator(
 
   def translateStructName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     // See TTTDRM, this is the region from which we're determining other regions' mutabilities.
     perspectiveRegionT: RegionT,
@@ -3668,7 +3873,7 @@ class Instantiator(
 
   def translateInterfaceName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     name: IInterfaceNameT):
@@ -3694,7 +3899,7 @@ class Instantiator(
 
   def translateName(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     name: INameT):
@@ -3710,10 +3915,7 @@ class Instantiator(
       }
       case ForwarderFunctionTemplateNameT(inner, index) => {
         ForwarderFunctionTemplateNameI(
-          // We dont translate these, as these are what uniquely identify generics, and we need that
-          // information later to map this back to its originating generic.
-          // See DMPOGN for a more detailed explanation. This oddity is really tricky.
-          vimpl(inner),
+          translateFunctionTemplateName(inner),
           index)
       }
       case AnonymousSubstructConstructorTemplateNameT(substructTemplateName) => {
@@ -3742,17 +3944,28 @@ class Instantiator(
 
   def translateCollapsedImplDefinition(
     denizenName: IdT[IInstantiationNameT],
-    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgI,
+    denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     implIdT: IdT[IImplNameT],
-    implIdI: IdI[cI, IImplNameI[cI]],
+    implIdS: IdI[sI, IImplNameI[sI]],
+    implIdC: IdI[cI, IImplNameI[cI]],
     implDefinition: EdgeT):
   Unit = {
-    if (monouts.impls.contains(implIdI)) {
-      return
+    val EdgeT(_, subCitizen, superInterface, runeToFuncBound, runeToImplBound, abstractFuncToOverrideFunc) = implDefinition
+
+    if (opts.sanityCheck) {
+      vassert(Collector.all(implIdS, { case KindPlaceholderNameT(_) => }).isEmpty)
     }
 
-    val citizen =
+    val perspectiveRegionT =
+      implIdT.localName.templateArgs.last match {
+        case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
+          RegionT(PlaceholderTemplataT(IdT(packageCoord, initSteps, r), RegionTemplataType()))
+        }
+        case _ => vwat()
+      }
+
+    val subCitizenS =
       translateCitizen(
         denizenName, denizenBoundToDenizenCallerSuppliedThing,
         substitutions,
@@ -3762,7 +3975,9 @@ class Instantiator(
           substitutions,
           vimpl(),
           hinputs.getInstantiationBoundArgs(implDefinition.subCitizen.id)))
-    val superInterface =
+    val subCitizenC =
+      RegionCollapserIndividual.collapseCitizen(subCitizenS)
+    val superInterfaceS =
       translateInterfaceId(
         denizenName, denizenBoundToDenizenCallerSuppliedThing,
         substitutions,
@@ -3772,17 +3987,22 @@ class Instantiator(
           substitutions,
           vimpl(),
           hinputs.getInstantiationBoundArgs(implDefinition.superInterface)))
-    monouts.impls.put(implIdI, (vimpl(citizen), vimpl(superInterface), denizenBoundToDenizenCallerSuppliedThing, vimpl(this)))
+    val superInterfaceC =
+      RegionCollapserIndividual.collapseInterfaceId(superInterfaceS)
 
-    vassertSome(monouts.interfaceToImplToAbstractPrototypeToOverride.get(vimpl(superInterface)))
-      .put(implIdI, mutable.HashMap())
-    vassertSome(monouts.interfaceToImpls.get(vimpl(superInterface))).add((implIdT, implIdI))
+    val mutability = vassertSome(monouts.interfaceToMutability.get(superInterfaceC))
+    if (monouts.implToMutability.contains(implIdC)) {
+      return
+    }
+    monouts.implToMutability.put(implIdC, mutability)
 
 
-    vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(vimpl(superInterface)))
-      .foreach({ case (abstractFuncPrototype, virtualIndex) =>
-        translateOverride(
-          opts, interner, keywords, hinputs, monouts, implIdT, implIdI, vimpl(/*abstractFuncPrototypeT*/), abstractFuncPrototype)
-      })
+    // We assemble the EdgeI at the very end of the instantiating stage.
+
+    monouts.impls.put(implIdC, (subCitizenC, superInterfaceC, denizenBoundToDenizenCallerSuppliedThing))
+
+    vassertSome(monouts.interfaceToImplToAbstractPrototypeToOverride.get(superInterfaceC))
+      .put(implIdC, mutable.HashMap())
+    vassertSome(monouts.interfaceToImpls.get(superInterfaceC)).add((implIdT, implIdC))
   }
 }

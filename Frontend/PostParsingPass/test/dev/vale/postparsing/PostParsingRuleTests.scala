@@ -1,10 +1,10 @@
 package dev.vale.postparsing
 
-import dev.vale.{Err, FileCoordinateMap, Interner, Ok, RangeS, SourceCodeUtils, StrI, vassertSome, vfail}
+import dev.vale._
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing._
 import dev.vale.postparsing._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest._
 
 import scala.collection.immutable.List
 

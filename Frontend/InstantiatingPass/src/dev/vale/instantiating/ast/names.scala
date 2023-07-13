@@ -3,6 +3,7 @@ package dev.vale.instantiating.ast
 import dev.vale._
 import dev.vale.instantiating.ast.ITemplataI._
 import dev.vale.postparsing._
+import dev.vale.typing.types.CoordT
 
 // Scout's/Astronomer's name parts correspond to where they are in the source code,
 // but Compiler's correspond more to what packages and stamped functions / structs
@@ -107,7 +108,7 @@ sealed trait IStructNameI[+R <: IRegionsModeI] extends ICitizenNameI[R] with ISu
   override def templateArgs: Vector[ITemplataI[R]]
 }
 sealed trait IInterfaceNameI[+R <: IRegionsModeI] extends ICitizenNameI[R] with ISubKindNameI[R] with ISuperKindNameI[R] {
-  override def template: InterfaceTemplateNameI[R]
+  override def template: IInterfaceTemplateNameI[R]
   override def templateArgs: Vector[ITemplataI[R]]
 }
 sealed trait IImplTemplateNameI[+R <: IRegionsModeI] extends ITemplateNameI[R] {
@@ -358,7 +359,7 @@ case class FunctionTemplateNameI[+R <: IRegionsModeI](
 
 case class LambdaCallFunctionTemplateNameI[+R <: IRegionsModeI](
   codeLocation: CodeLocationS,
-  paramTypes: Vector[CoordI[R]]
+  paramTypes: Vector[CoordT]
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): IFunctionNameI = {
 //    // Post instantiator, the params will be real, but our template paramTypes will still be placeholders
@@ -496,7 +497,7 @@ case class StructNameI[+R <: IRegionsModeI](
 }
 
 case class InterfaceNameI[+R <: IRegionsModeI](
-  template: InterfaceTemplateNameI[R],
+  template: IInterfaceTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]]
 ) extends IInterfaceNameI[R] with CitizenNameI[R] {
   vpass()

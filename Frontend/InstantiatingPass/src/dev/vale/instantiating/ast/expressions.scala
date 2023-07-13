@@ -52,7 +52,7 @@ case class LetAndLendIE(
   (expr.result.ownership, targetOwnership) match {
     case (MutableShareI, MutableShareI) =>
     case (ImmutableShareI, ImmutableShareI) =>
-    case (OwnI | MutableBorrowI | WeakI, MutableBorrowI) =>
+    case (OwnI | MutableBorrowI | WeakI | MutableShareI, MutableBorrowI) =>
     case (ImmutableBorrowI, ImmutableBorrowI) =>
   }
 
@@ -101,6 +101,7 @@ case class BorrowToWeakIE(
   innerExpr.result.ownership match {
     case MutableBorrowI | ImmutableBorrowI =>
   }
+  vassert(result.ownership == vregionmut(WeakI))
 
 //  override def resultRemoveMe: CoordI[cI] = {
 //    vimpl()//ReferenceResultI(CoordI[cI](WeakI, innerExpr.kind))
@@ -684,7 +685,7 @@ case class DestroyStaticSizedArrayIntoFunctionIE(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vassert(consumerMethod.paramTypes.size == 2)
 //  vassert(consumerMethod.paramTypes(0) == consumer.result)
-  vassert(consumerMethod.paramTypes(1) == arrayType.elementType)
+  vassert(consumerMethod.paramTypes(1) == arrayType.elementType.coord)
 
   // See https://github.com/ValeLang/Vale/issues/375
   consumerMethod.returnType.kind match {
@@ -767,7 +768,7 @@ case class InterfaceToInterfaceUpcastIE(
 // So, the target kind can be anything, not just an interface.
 case class UpcastIE(
   innerExpr: ReferenceExpressionIE,
-  targetSuperKind: ISuperKindIT[cI],
+  targetInterface: InterfaceIT[cI],
   // This is the impl we use to allow/permit the upcast. It'll be useful for monomorphization
   // and later on for locating the itable ptr to put in fat pointers.
   implName: IdI[cI, IImplNameI[cI]],
@@ -844,7 +845,7 @@ case class DestroyImmRuntimeSizedArrayIE(
   vassert(consumerMethod.paramTypes.size == 2)
   vassert(consumerMethod.paramTypes(0) == consumer.result)
   //  vassert(consumerMethod.paramTypes(1) == Program2.intType)
-  vassert(consumerMethod.paramTypes(1) == arrayType.elementType)
+  vassert(consumerMethod.paramTypes(1) == arrayType.elementType.coord)
 
   // See https://github.com/ValeLang/Vale/issues/375
   consumerMethod.returnType.kind match {

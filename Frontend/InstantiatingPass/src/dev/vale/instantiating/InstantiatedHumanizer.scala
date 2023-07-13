@@ -63,9 +63,9 @@ object InstantiatedHumanizer {
     val ownershipStr =
       ownership match {
         case OwnI => ""
-        case MutableShareI => "*"
+        case MutableShareI => ""
         case MutableBorrowI => "&"
-        case ImmutableShareI => "*#"
+        case ImmutableShareI => "#"
         case ImmutableBorrowI => "&#"
         case WeakI => "weak&"
       }
