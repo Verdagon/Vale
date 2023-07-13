@@ -7,6 +7,7 @@ import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.{IsParent, IsParentResult, IsntParent}
+import dev.vale.typing.function._
 //import dev.vale.astronomer.IRulexSR
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.IDenizenEnvironmentBoxT
@@ -22,6 +23,7 @@ trait IConvertHelperDelegate {
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     descendantCitizenRef: ISubKindTT,
     ancestorInterfaceRef: ISuperKindTT):
   IsParentResult
@@ -34,6 +36,7 @@ class ConvertHelper(
       env: IInDenizenEnvironmentT,
       coutputs: CompilerOutputs,
       range: List[RangeS],
+      callLocation: LocationInDenizen,
       sourceExprs: Vector[ReferenceExpressionTE],
       targetPointerTypes: Vector[CoordT]):
   (Vector[ReferenceExpressionTE]) = {
@@ -43,7 +46,7 @@ class ConvertHelper(
     (sourceExprs zip targetPointerTypes).foldLeft((Vector[ReferenceExpressionTE]()))({
       case ((previousRefExprs), (sourceExpr, targetPointerType)) => {
         val refExpr =
-          convert(env, coutputs, range, sourceExpr, targetPointerType)
+          convert(env, coutputs, range, callLocation, sourceExpr, targetPointerType)
         (previousRefExprs :+ refExpr)
       }
     })
@@ -53,6 +56,7 @@ class ConvertHelper(
       env: IInDenizenEnvironmentT,
       coutputs: CompilerOutputs,
       range: List[RangeS],
+      callLocation: LocationInDenizen,
       sourceExpr: ReferenceExpressionTE,
       targetPointerType: CoordT):
   (ReferenceExpressionTE) = {
@@ -109,7 +113,7 @@ class ConvertHelper(
       } else {
         (sourceType, targetType) match {
           case (s : ISubKindTT, i : ISuperKindTT) => {
-            upcast(env, coutputs, range, sourceExpr, s, i)
+            upcast(env, coutputs, range, callLocation, sourceExpr, s, i)
           }
           case _ => vfail()
         }
@@ -130,11 +134,12 @@ class ConvertHelper(
     callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     sourceExpr: ReferenceExpressionTE,
     sourceSubKind: ISubKindTT,
     targetSuperKind: ISuperKindTT):
   (ReferenceExpressionTE) = {
-    delegate.isParent(coutputs, callingEnv, range, sourceSubKind, targetSuperKind) match {
+    delegate.isParent(coutputs, callingEnv, range, callLocation, sourceSubKind, targetSuperKind) match {
       case IsParent(_, _, implId) => {
         vassert(coutputs.getInstantiationBounds(implId).nonEmpty)
         UpcastTE(

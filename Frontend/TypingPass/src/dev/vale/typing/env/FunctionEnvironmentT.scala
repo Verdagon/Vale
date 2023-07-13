@@ -4,7 +4,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{LocationInFunctionEnvironmentT, ParameterT}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IFunctionNameT, IFunctionTemplateNameT, INameT, IRegionNameT, ITemplateNameT, IVarNameT, IdT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -766,9 +766,9 @@ case class FunctionEnvironmentBoxT(var functionEnvironment: FunctionEnvironmentT
   override def pureHeight: Option[Int] = functionEnvironment.pureHeight
   override def additiveHeight: Option[Int] = functionEnvironment.additiveHeight
 
-  override def denizenId: IdT[INameT] = functionEnvironment.denizenId
-
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
+
+  override def denizenId: IdT[INameT] = functionEnvironment.denizenId
 
   override def snapshot: FunctionEnvironmentT = functionEnvironment
   def id: IdT[IFunctionNameT] = functionEnvironment.id

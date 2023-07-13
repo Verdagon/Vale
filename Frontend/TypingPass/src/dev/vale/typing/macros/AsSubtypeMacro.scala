@@ -38,7 +38,6 @@ class AsSubtypeMacro(
       FunctionHeaderT(
         env.id,
         Vector.empty,
-//        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
@@ -66,7 +65,7 @@ class AsSubtypeMacro(
     val superKind = incomingKind match { case x : ISuperKindTT => x case other => vwat(other) }
 
     val implId =
-      implCompiler.isParent(coutputs, env, callRange, subKind, superKind) match {
+      implCompiler.isParent(coutputs, env, callRange, callLocation, subKind, superKind) match {
         case IsParent(_, _, implId) => implId
       }
 

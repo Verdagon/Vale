@@ -1,12 +1,12 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, LocationInDenizen, ReadWriteRegionS, RegionTemplataType, SealedS}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.env.IInDenizenEnvironmentT
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, DenizenDefaultRegionNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IdT, NameTranslator, PackageTopLevelNameT, RuneNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}

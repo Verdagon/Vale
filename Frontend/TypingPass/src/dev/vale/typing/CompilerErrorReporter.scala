@@ -9,7 +9,7 @@ import dev.vale.{PackageCoordinate, RangeS, vbreak, vcurious, vfail, vpass}
 import dev.vale.typing.types._
 import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale.solver.FailedSolve
-import OverloadResolver.{EvaluateFunctionFailure, FindFunctionFailure, IFindFunctionFailureReason}
+import OverloadResolver._
 import dev.vale.typing.ast.{KindExportT, SignatureT}
 import dev.vale.typing.names.{IdT, IFunctionNameT, IFunctionTemplateNameT, INameT, IVarNameT}
 import dev.vale.typing.ast._
@@ -80,11 +80,16 @@ case class CouldntFindFunctionToCallT(range: List[RangeS], fff: FindFunctionFail
 
   vpass()
 }
-case class CouldntEvaluateFunction(range: List[RangeS], eff: IFindFunctionFailureReason) extends ICompileErrorT {
-  vpass()
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-}
+case class CouldntEvaluateFunction(range: List[RangeS], eff: IFindFunctionFailureReason) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntEvaluatImpl(range: List[RangeS], eff: IIncompleteOrFailedCompilerSolve) extends ICompileErrorT {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+}
+case class CouldntEvaluateStruct(range: List[RangeS], eff: IIncompleteOrFailedCompilerSolve) extends ICompileErrorT {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+}
+case class CouldntEvaluateInterface(range: List[RangeS], eff: IIncompleteOrFailedCompilerSolve) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }
@@ -92,10 +97,7 @@ case class CouldntFindOverrideT(range: List[RangeS], fff: FindFunctionFailure) e
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }
-case class ExportedFunctionDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  vpass()
-}
+case class ExportedFunctionDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExternFunctionDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExportedImmutableKindDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, exportedKind: KindT, nonExportedKind: KindT) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

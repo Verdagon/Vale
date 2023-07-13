@@ -13,13 +13,14 @@ import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
+import dev.vale.typing.function._
 import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve, Solver}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
-import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT, BuildingFunctionEnvironmentWithClosuredsT, TemplataEnvEntry, TemplataLookupContext}
+import dev.vale.typing.env._
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.names._
-import dev.vale.typing.templata.ITemplataT.{expectRegion, expectRegionPlaceholder}
+import dev.vale.typing.templata.ITemplataT._
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}

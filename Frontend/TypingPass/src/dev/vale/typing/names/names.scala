@@ -1,9 +1,9 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, IRegionMutabilityS, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, ReadWriteRegionS, RegionTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.ast.LocationInFunctionEnvironmentT
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
+import dev.vale._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.templata.ITemplataT._
@@ -18,13 +18,6 @@ case class IdT[+T <: INameT](
   initSteps: Vector[INameT],
   localName: T
 )  {
-  this match {
-    case IdT(_,Vector(),ImplNameT(ImplTemplateNameT(_),Vector(CoordTemplataT(CoordT(ShareT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))),StructTT(IdT(_,Vector(),AnonymousSubstructNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(StrI("Bipedal"))),Vector(CoordTemplataT(CoordT(ShareT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))))))) => {
-      vpass()
-    }
-    case _ =>
-  }
-
   // Placeholders should only be the last name, getPlaceholdersInKind assumes it
   initSteps.foreach({
     case KindPlaceholderNameT(_) => vfail()
@@ -152,9 +145,6 @@ sealed trait IImplNameT extends IInstantiationNameT {
 }
 
 sealed trait IRegionNameT extends INameT
-
-case class RegionNameT(rune: IRuneS) extends IRegionNameT
-case class DenizenDefaultRegionNameT() extends IRegionNameT
 
 case class ExportTemplateNameT(codeLoc: CodeLocationS) extends ITemplateNameT
 case class ExportNameT(template: ExportTemplateNameT, region: RegionT) extends IInstantiationNameT {

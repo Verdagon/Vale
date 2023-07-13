@@ -11,7 +11,7 @@ import dev.vale.highertyping._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
 import dev.vale.typing._
-import dev.vale.typing.ast.{PrototypeT, SignatureT}
+import dev.vale.typing.ast._
 import dev.vale.typing.citizen._
 import dev.vale.typing.templata.ITemplataT._
 import dev.vale.typing.types._
@@ -37,6 +37,7 @@ trait ITemplataCompilerDelegate {
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     subKindTT: ISubKindTT,
     superKindTT: ISuperKindTT
   ):
@@ -93,10 +94,8 @@ object TemplataCompiler {
     id: IdT[INameT],
   ): IdT[IInstantiationNameT] = {
     // That said, some things are namespaced inside templates. If we have a `struct Marine` then
-    // we'll
-    // also have a func drop within its namespace; we'll have a free function instance under a
-    // Marine
-    // struct template. We want to grab the instance.
+    // we'll also have a func drop within its namespace; we'll have a free function instance under
+    // a Marine struct template. We want to grab the instance.
     val index =
     id.steps.indexWhere({
       case x: IInstantiationNameT => true
@@ -908,32 +907,6 @@ object TemplataCompiler {
     }
   }
 
-  //  // If you have a type (citizenTT) and it contains something (like a member) then
-  //  // you can use this function to figure out what the member looks like to you, the outsider.
-  //  // It will take out all the internal placeholders internal to the citizen, and replace them
-  //  // with what was given in citizenTT's template args.
-  //  def getTemplataTransformer(interner: Interner, coutputs: CompilerOutputs,
-  //  citizenTT: ICitizenTT):
-  //  (ITemplata[ITemplataType]) => ITemplata[ITemplataType] = {
-  //    val citizenTemplateId = TemplataCompiler.getCitizenTemplate(citizenTT.fullName)
-  //    val citizenTemplateDefinition = coutputs.lookupCitizen(citizenTemplateId)
-  //    vassert(
-  //      citizenTT.fullName.last.templateArgs.size ==
-  //        citizenTemplateDefinition.placeholderedCitizen.fullName.last.templateArgs.size)
-  //    val substitutions =
-  //      citizenTT.fullName.last.templateArgs
-  //        .zip(citizenTemplateDefinition.placeholderedCitizen.fullName.last.templateArgs)
-  //        .flatMap({
-  //          case (arg, p @ PlaceholderTemplata(_, _)) => Some((p, arg))
-  //          case _ => None
-  //        }).toVector
-  //    (templataToTransform: ITemplata[ITemplataType]) => {
-  //      TemplataCompiler.substituteTemplatasInTemplata(coutputs, interner, keywords,
-  //      templataToTransform, substitutions)
-  //    }
-  //  }
-
-
   def getReachableBounds(
     interner: Interner,
     keywords: Keywords,
@@ -949,13 +922,13 @@ object TemplataCompiler {
       }
     maybeMentionedKind match {
       case Some(c @ ICitizenTT(id)) => {
-        val citizenTemplateId = getCitizenTemplate(id)
         val substituter =
           TemplataCompiler.getPlaceholderSubstituter(
             interner, keywords,
             id,
             // This function is all about gathering bounds from the incoming parameter types.
             InheritBoundsFromTypeItself)
+        val citizenTemplateId = getCitizenTemplate(id)
         val innerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
         val reachablePrototypes =
           innerEnv
@@ -1028,6 +1001,7 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     sourcePointerType: CoordT,
     targetPointerType: CoordT
   ):
@@ -1061,7 +1035,7 @@ class TemplataCompiler(
       }
       case (_, StructTT(_)) => return false
       case (a: ISubKindTT, b: ISuperKindTT) => {
-        delegate.isParent(coutputs, callingEnv, parentRanges, a, b) match {
+        delegate.isParent(coutputs, callingEnv, parentRanges, callLocation, a, b) match {
           case IsParent(_, _, _) =>
           case IsntParent(_) => return false
         }

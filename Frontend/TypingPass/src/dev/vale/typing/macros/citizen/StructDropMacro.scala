@@ -5,13 +5,13 @@ import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules._
 import dev.vale._
 import dev.vale.postparsing._
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
+import dev.vale.typing.ast._
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironmentT, FunctionEnvironmentBoxT, ReferenceLocalVariableT}
-import dev.vale.typing.{Compiler, CompilerOutputs, InheritBoundsFromTypeItself, OverloadResolver, TemplataCompiler, ast, env}
+import dev.vale.typing._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.macros.{IFunctionBodyMacro, IOnStructDefinedMacro}
-import dev.vale.typing.names.{INameT, IdT, NameTranslator}
+import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro

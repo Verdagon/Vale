@@ -53,10 +53,6 @@ case class HinputsT(
     vassertSome(structs.find(_.instantiatedCitizen.id == structId))
   }
 
-  def lookupInterface(interfaceId: IdT[IInterfaceNameT]): InterfaceDefinitionT = {
-    vassertSome(interfaces.find(_.instantiatedCitizen.id == interfaceId))
-  }
-
   def lookupStructByTemplate(structTemplateName: IStructTemplateNameT): StructDefinitionT = {
     vassertSome(structs.find(_.instantiatedCitizen.id.localName.template == structTemplateName))
   }
@@ -67,6 +63,10 @@ case class HinputsT(
 
   def lookupImplByTemplate(implTemplateName: IImplTemplateNameT): EdgeT = {
     vassertSome(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId.localName.template == implTemplateName))
+  }
+
+  def lookupInterface(interfaceId: IdT[IInterfaceNameT]): InterfaceDefinitionT = {
+    vassertSome(interfaces.find(_.instantiatedCitizen.id == interfaceId))
   }
 
   def lookupEdge(implId: IdT[IImplNameT]): EdgeT = {
@@ -200,6 +200,10 @@ case class HinputsT(
   def lookupLambdaIn(needleFunctionHumanName: String): FunctionDefinitionT = {
     vassertOne(lookupLambdasIn(needleFunctionHumanName))
   }
+
+  // def getAllNonExternFunctions: Iterable[FunctionDefinitionT] = {
+  //   functions.filter(!_.header.isExtern)
+  // }
 
   def getAllUserFunctions: Iterable[FunctionDefinitionT] = {
     functions.filter(_.header.isUserFunction)

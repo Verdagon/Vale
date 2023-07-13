@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IInDenizenEnvironmentT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IPlaceholderNameT, IRegionNameT, IdT, InterfaceTemplateNameT, KindPlaceholderNameT, RegionPlaceholderNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
 import dev.vale.highertyping._
@@ -115,14 +115,6 @@ object ITemplataT {
 sealed trait ITemplataT[+T <: ITemplataType]  {
   def tyype: T
 }
-
-//// The typing phase never makes one of these, they're purely abstract and conceptual in the
-//// typing phase. The monomorphizer is the one that actually makes these templatas.
-//case class RegionTemplataT(pureHeight: Int) extends ITemplataT[RegionTemplataType] {
-//  vpass()
-//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-//  override def tyype: RegionTemplataType = RegionTemplataType()
-//}
 
 case class CoordTemplataT(coord: CoordT) extends ITemplataT[CoordTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;

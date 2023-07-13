@@ -3,15 +3,15 @@ package dev.vale.typing.macros.ssa
 import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.LocationInDenizen
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, ReturnTE}
-import dev.vale.typing.env.{FunctionEnvironmentT, FunctionEnvironmentBoxT}
+import dev.vale.typing.ast._
+import dev.vale.typing.env._
 import dev.vale.typing.{ArrayCompiler, CompilerOutputs}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBoxT
 import dev.vale.typing.ast
-import dev.vale.typing.names.DenizenDefaultRegionNameT
+import dev.vale.typing.names._
 
 class SSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_static_sized_array_drop_into

@@ -1881,7 +1881,7 @@ class Instantiator(
             translateVariability(variability))
         (resultSubjectiveIT.coord, resultCE)
       }
-      case StaticSizedArrayLookupTE(range, arrayExprT, indexExprT, elementTypeT, variability) => {
+      case StaticSizedArrayLookupTE(range, arrayExprT, arrayType, indexExprT, elementTypeT, variability) => {
         // DO NOT SUBMIT combine a lot of this with the ReferenceMemberLookupTE case
         val (arraySubjectiveIT, arrayCE) =
           translateRefExpr(

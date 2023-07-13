@@ -9,7 +9,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.citizen._
 import dev.vale.typing.expression.{ExpressionCompiler, IExpressionCompilerDelegate}
-import dev.vale.typing.function.{DestructorCompiler, FunctionCompiler, FunctionCompilerCore, IEvaluateFunctionResult, IFunctionCompilerDelegate, StampFunctionSuccess, VirtualCompiler}
+import dev.vale.typing.function._
 import dev.vale.typing.infer.IInfererDelegate
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -19,7 +19,7 @@ import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
 import dev.vale.typing.Compiler.isPrimitive
 import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
-import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironmentT, GlobalEnvironment, IEnvEntry, IInDenizenEnvironmentT, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironmentBox, NodeEnvironmentT, PackageEnvironmentT, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
+import dev.vale.typing.env._
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
 import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
@@ -88,10 +88,11 @@ class Compiler(
           coutputs: CompilerOutputs,
           callingEnv: IInDenizenEnvironmentT,
           parentRanges: List[RangeS],
+          callLocation: LocationInDenizen,
           subKindTT: ISubKindTT,
           superKindTT: ISuperKindTT):
         IsParentResult = {
-          implCompiler.isParent(coutputs, callingEnv, parentRanges, subKindTT, superKindTT)
+          implCompiler.isParent(coutputs, callingEnv, parentRanges, callLocation, subKindTT, superKindTT)
         }
 
         override def resolveStruct(
@@ -121,29 +122,6 @@ class Compiler(
           structCompiler.resolveInterface(
             coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
         }
-
-//        override def resolveStaticSizedArrayKind(
-//          env: IInDenizenEnvironment,
-//          coutputs: CompilerOutputs,
-//          mutability: ITemplata[MutabilityTemplataType],
-//          variability: ITemplata[VariabilityTemplataType],
-//          size: ITemplata[IntegerTemplataType],
-//          type2: CoordT,
-//          region: ITemplata[RegionTemplataType]):
-//        StaticSizedArrayTT = {
-//          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2, region)
-//        }
-//
-//
-//        override def resolveRuntimeSizedArrayKind(
-//          env: IInDenizenEnvironment,
-//          state: CompilerOutputs,
-//          element: CoordT,
-//          arrayMutability: ITemplata[MutabilityTemplataType],
-//          region: ITemplata[RegionTemplataType]):
-//        RuntimeSizedArrayTT = {
-//          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
-//        }
       })
   val inferCompiler: InferCompiler =
     new InferCompiler(
@@ -265,13 +243,13 @@ class Compiler(
           kind: KindT):
         Boolean = {
           kind match {
-            case p @ KindPlaceholderT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, p, false)
+            case p @ KindPlaceholderT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.callLocation, envs.originalCallingEnv, p, false)
             case contentsRuntimeSizedArrayTT(_, _, _) => false
             case OverloadSetT(_, _) => false
             case NeverT(fromBreak) => true
             case contentsStaticSizedArrayTT(_, _, _, _, _) => false
-            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
-            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)
+            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.callLocation, envs.originalCallingEnv, s, false)
+            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.callLocation, envs.originalCallingEnv, i, false)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -295,7 +273,7 @@ class Compiler(
           superKindTT: ISuperKindTT,
           includeSelf: Boolean):
         Option[ITemplataT[ImplTemplataType]] = {
-          implCompiler.isParent(coutputs, env.originalCallingEnv, parentRanges, subKindTT, superKindTT) match {
+          implCompiler.isParent(coutputs, env.originalCallingEnv, parentRanges, env.callLocation, subKindTT, superKindTT) match {
             case IsParent(implTemplata, _, _) => Some(implTemplata)
             case IsntParent(candidates) => None
           }
@@ -389,7 +367,7 @@ class Compiler(
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ISubKindTT => implCompiler.getParents(coutputs, envs.parentRanges, envs.originalCallingEnv, s, true)
+                case s : ISubKindTT => implCompiler.getParents(coutputs, envs.parentRanges, envs.callLocation, envs.originalCallingEnv, s, true)
                 case _ => Vector[KindT]()
               })
         }
@@ -532,10 +510,11 @@ class Compiler(
           callingEnv: IInDenizenEnvironmentT,
           state: CompilerOutputs,
           range: List[RangeS],
+          callLocation: LocationInDenizen,
           subKind: ISubKindTT,
           superKind: ISuperKindTT):
         IsParentResult = {
-          implCompiler.isParent(state, callingEnv, range, subKind, superKind)
+          implCompiler.isParent(state, callingEnv, range, callLocation, subKind, superKind)
         }
       })
   val convertHelper =
@@ -546,11 +525,12 @@ class Compiler(
           coutputs: CompilerOutputs,
           callingEnv: IInDenizenEnvironmentT,
           parentRanges: List[RangeS],
+          callLocation: LocationInDenizen,
           descendantCitizenRef: ISubKindTT,
           ancestorInterfaceRef: ISuperKindTT):
         IsParentResult = {
           implCompiler.isParent(
-            coutputs, callingEnv, parentRanges, descendantCitizenRef, ancestorInterfaceRef)
+            coutputs, callingEnv, parentRanges, callLocation, descendantCitizenRef, ancestorInterfaceRef)
         }
       })
 
@@ -632,11 +612,12 @@ class Compiler(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironmentT,
       ranges: List[RangeS],
+      callLocation: LocationInDenizen,
       region: RegionT,
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
-      expressionCompiler.translatePatternList(coutputs, nenv, life, ranges, patterns1, patternInputExprs2, region)
+      expressionCompiler.translatePatternList(coutputs, nenv, life, ranges, callLocation, patterns1, patternInputExprs2, region)
     }
 
 //    override def evaluateParent(env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], sparkHeader: FunctionHeaderT): Unit = {
@@ -880,8 +861,8 @@ class Compiler(
 
         // Indexing phase
 
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageCoord, templatas) =>
-          val env = PackageEnvironmentT.makeTopLevelEnvironment(globalEnv, packageCoord)
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageId, templatas) =>
+          val env = PackageEnvironmentT.makeTopLevelEnvironment(globalEnv, packageId)
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
@@ -941,7 +922,7 @@ class Compiler(
                     val exportName =
                       structA.name match {
                         case TopLevelStructDeclarationNameS(name, range) => name
-                        case _ => vwat()
+                        case other => vwat(other)
                       }
 
                     coutputs.addKindExport(
@@ -952,18 +933,55 @@ class Compiler(
               case InterfaceEnvEntry(interfaceA) => {
                 val templata = InterfaceDefinitionTemplataT(packageEnv, interfaceA)
                 structCompiler.compileInterface(coutputs, List(), LocationInDenizen(Vector()), templata)
+
+                val maybeExport =
+                  interfaceA.attributes.collectFirst { case e@ExportS(_, _) => e }
+                maybeExport match {
+                  case None =>
+                  case Some(ExportS(packageCoordinate, _)) => {
+                    val templateName = interner.intern(ExportTemplateNameT(interfaceA.range.begin))
+                    val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+                    val exportOuterEnv =
+                      ExportEnvironmentT(
+                        globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
+
+                    val placeholderedExportName = interner.intern(ExportNameT(templateName, vimpl()))
+                    val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
+                    val exportEnv =
+                      ExportEnvironmentT(
+                        globalEnv, packageEnv, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
+
+                    val exportPlaceholderedKind =
+                      structCompiler.resolveInterface(
+                        coutputs, exportEnv, List(interfaceA.range), LocationInDenizen(Vector()), templata, Vector(), vimpl()) match {
+                        case ResolveSuccess(kind) => kind
+                        case ResolveFailure(range, reason) => {
+                          throw CompileErrorExceptionT(CouldntEvaluateInterface(range, reason))
+                        }
+                      }
+
+                    val exportName =
+                      interfaceA.name match {
+                        case TopLevelCitizenDeclarationNameS(name, range) => name
+                        case other => vwat(other)
+                      }
+
+                    coutputs.addKindExport(
+                      interfaceA.range, exportPlaceholderedKind, placeholderedExportId, exportName)
+                  }
+                }
               }
               case _ =>
             }
           })
         })
 
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageCoord, templatas) =>
-          val env = PackageEnvironmentT.makeTopLevelEnvironment(globalEnv, packageCoord)
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageId, templatas) =>
+          val env = PackageEnvironmentT.makeTopLevelEnvironment(globalEnv, packageId)
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case ImplEnvEntry(impl) => {
-                implCompiler.compileImpl(coutputs, ImplDefinitionTemplataT(env, impl))
+                implCompiler.compileImpl(coutputs, LocationInDenizen(Vector()), ImplDefinitionTemplataT(env, impl))
               }
               case _ =>
             }

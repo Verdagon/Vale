@@ -1,6 +1,6 @@
 package dev.vale.typing.macros.ssa
 
-import dev.vale.{Keywords, RangeS, StrI, vassertSome, vimpl}
+import dev.vale._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
@@ -11,7 +11,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.types.StaticSizedArrayTT
 import dev.vale.typing.ast
-import dev.vale.typing.names.DenizenDefaultRegionNameT
+import dev.vale.typing.names._
 
 
 class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {

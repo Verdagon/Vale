@@ -1,15 +1,15 @@
 package dev.vale.typing.function
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassertOne, vassertSome, vcheck, vcurious, vfail, vimpl, vwat}
+import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, DeferredEvaluatingFunctionBody, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{DenizenDefaultRegionNameT, ExportTemplateNameT, ExternFunctionNameT, ExternNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
-import dev.vale.typing.templata.CoordTemplataT
+import dev.vale.typing.names._
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.typing.types._
@@ -52,11 +52,12 @@ class FunctionCompilerCore(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironmentT,
       parentRanges: List[RangeS],
+      callLocation: LocationInDenizen,
       region: RegionT,
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
-      delegate.translatePatternList(coutputs, nenv, life, parentRanges, region, patterns1, patternInputExprs2)
+      delegate.translatePatternList(coutputs, nenv, life, parentRanges, callLocation, region, patterns1, patternInputExprs2)
     }
   })
 
@@ -85,6 +86,9 @@ class FunctionCompilerCore(
           case FunctionNameT(humanName, _, _) if humanName == keywords.drop => true
           case _ => false
         })
+
+    val maybeExport =
+      fullEnv.function.attributes.collectFirst { case e@ExportS(_, _) => e }
 
     val signature2 = SignatureT(fullEnv.id);
     val maybeRetTemplata =

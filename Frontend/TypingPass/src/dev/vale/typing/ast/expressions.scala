@@ -498,6 +498,7 @@ case class ArgLookupTE(
 case class StaticSizedArrayLookupTE(
   range: RangeS,
     arrayExpr: ReferenceExpressionTE,
+    arrayType: StaticSizedArrayTT,
     indexExpr: ReferenceExpressionTE,
   // See RMLRMO for why this is the same ownership as the original field.
     elementType: CoordT,
@@ -545,8 +546,6 @@ case class ReferenceMemberLookupTE(
   // See RMLRMO for why we dont have a targetOwnership field here.
   variability: VariabilityT
 ) extends AddressExpressionTE {
-  vpass()
-
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = {
     // See RMLRMO why we just return the member type.
@@ -621,7 +620,9 @@ case class FunctionCallTE(
     case (a, b) => vassert(a == b)
   })
 
-  override def result: ReferenceResultT = ReferenceResultT(returnType)
+  override def result: ReferenceResultT = {
+    ReferenceResultT(callable.returnType)
+  }
 }
 
 // A typingpass reinterpret is interpreting a type as a different one which is hammer-equivalent.

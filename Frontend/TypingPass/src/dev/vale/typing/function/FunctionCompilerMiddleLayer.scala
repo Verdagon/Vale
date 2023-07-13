@@ -310,15 +310,6 @@ class FunctionCompilerMiddleLayer(
         ParameterT(nameT, maybeVirtuality, param1.preChecked, coord)
       })
   }
-//
-//  private def assembleName(
-//    name: IdT[IFunctionTemplateNameT],
-//    templateArgs: Vector[ITemplata[ITemplataType]],
-//    params: Vector[CoordT]):
-//  IdT[IFunctionNameT] = {
-//    val newLastStep = name.last.makeFunctionName(interner, keywords, templateArgs, params)
-//    IdT(name.packageCoord, name.initSteps, newLastStep)
-//  }
 
   private def getMaybeReturnType(
     nearEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
@@ -469,18 +460,18 @@ class FunctionCompilerMiddleLayer(
     val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT(
       globalEnv,
       parentEnv,
-      templateName,
+      templateId,
       templateArgs,
       templatas,
       function,
       variables,
       isRootCompilingDenizen,
       defaultRegion) = runedEnv
-    val id = assembleName(templateName, templateArgs, paramTypes)
+    val id = assembleName(templateId, templateArgs, paramTypes)
     FunctionEnvironmentT(
       globalEnv,
       parentEnv,
-      templateName,
+      templateId,
       id,
       templatas,
       function,

@@ -1,13 +1,13 @@
 package dev.vale.typing.expression
 
-import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vcurious, vfail, vimpl, vwat}
+import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
-import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBoxT, IInDenizenEnvironmentT, NodeEnvironmentBox, NodeEnvironmentT}
+import dev.vale.typing._
+import dev.vale.typing.ast._
+import dev.vale.typing.env._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.function._
@@ -15,7 +15,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 
-import dev.vale.typing.names.{IRegionNameT, IdT}
+import dev.vale.typing.names._
 
 import scala.collection.immutable.List
 
@@ -78,6 +78,7 @@ class CallCompiler(
             nenv.snapshot,
             coutputs,
             range,
+            callLocation,
             givenArgsExprs2,
             prototype.prototype.paramTypes)
 
@@ -85,6 +86,7 @@ class CallCompiler(
           coutputs,
           nenv.snapshot,
           range,
+          callLocation,
           prototype.prototype.paramTypes,
           argsExprs2.map(a => a.result.coord),
           exact = true)
@@ -130,8 +132,7 @@ class CallCompiler(
   // a = 6;
   // f = {[a](x) print(6, x) };
   // f.__function(f.__closure, 4);
-  // in that f.__function(f.__closure, 4), the given args is just 4, but the actual args is f
-  // .__closure and 4.
+  // in that f.__function(f.__closure, 4), the given args is just 4, but the actual args is f.__closure and 4.
   // also, the given callable is f, but the actual callable is f.__function.
 
   // By "custom call" we mean calling __call.
@@ -224,6 +225,7 @@ class CallCompiler(
       coutputs,
       env,
       range,
+      callLocation,
       prototype.prototype.paramTypes,
       argTypes,
       exact = true)
@@ -250,6 +252,7 @@ class CallCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     params: Vector[CoordT],
     args: Vector[CoordT],
     exact: Boolean
@@ -265,6 +268,7 @@ class CallCompiler(
             coutputs,
             callingEnv,
             parentRanges,
+            callLocation,
             argsHead,
             paramsHead) match {
             case (true) => {
@@ -293,9 +297,6 @@ class CallCompiler(
         }
       }
     })
-    //    checkTypes(params.tail, args.tail)
-    //    vassert(argTypes == callableType.paramTypes, "arg param type mismatch. params: " +
-    //    callableType.paramTypes + " args: " + argTypes)
   }
 
   def evaluatePrefixCall(
