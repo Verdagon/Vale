@@ -242,6 +242,9 @@ object CompilerErrorHumanizer {
       case DefiningResolveConclusionError(inner) => {
         humanizeConclusionResolveError(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
       }
+      case DefiningSolveFailedOrIncomplete(inner) => {
+        humanizeIncompleteOrFailedCompilerSolve(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
+      }
     }
   }
 

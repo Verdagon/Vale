@@ -18,6 +18,18 @@ case class IdT[+T <: INameT](
   initSteps: Vector[INameT],
   localName: T
 )  {
+  this match {
+    case IdT(_, Vector(StructTemplateNameT(StrI("HashSetDiffIterator"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"), _), Vector(), Vector(CoordT(share, RegionT(), KindPlaceholderT(IdT(_, Vector(StructTemplateNameT(StrI("HashSetDiffIterator"))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CodeRuneS(StrI("K")))))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(ShareT,RegionT(),KindPlaceholderT(IdT(PackageCoordinate(StrI("stdlib"),Vector(StrI("collections"), StrI("hashset"))),Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(share,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))))) => {
+      vpass()
+    }
+    case _ =>
+  }
   // Placeholders should only be the last name, getPlaceholdersInKind assumes it
   initSteps.foreach({
     case KindPlaceholderNameT(_) => vfail()
@@ -365,12 +377,6 @@ case class FunctionBoundTemplateNameT(
   humanName: StrI,
   codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
-  this match {
-    case FunctionBoundTemplateNameT(StrI("drop"),CodeLocationS(FileCoordinate(_,"opt.vale"), 67)) => {
-      vpass()
-    }
-    case _ =>
-  }
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {
     interner.intern(FunctionBoundNameT(this, templateArgs, params))
@@ -387,12 +393,6 @@ case class FunctionTemplateNameT(
     humanName: StrI,
     codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
-  this match {
-    case FunctionTemplateNameT(StrI("drop"),CodeLocationS(FileCoordinate(_,"opt.vale"), 67)) => {
-      vpass()
-    }
-    case _ =>
-  }
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
     interner.intern(FunctionNameT(this, templateArgs, params))

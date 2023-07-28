@@ -1,12 +1,12 @@
 package dev.vale.typing
 
-import dev.vale.postparsing.{IImpreciseNameS, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.ast._
-import dev.vale.typing.env.{CitizenEnvironmentT, FunctionEnvironmentT, IInDenizenEnvironmentT}
+import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names._
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Collector, FileCoordinate, Interner, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass, vwat}
+import dev.vale._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata._
 import dev.vale.typing.types.InterfaceTT
@@ -147,6 +147,7 @@ case class CompilerOutputs() {
     // // We should only add instantiation bounds in exactly one place: the place that makes the
     // // PrototypeT/StructTT/InterfaceTT.
     // vassert(!instantiationNameToInstantiationBounds.contains(instantiationFullName))
+    // DO NOT SUBMIT what is this
     instantiationNameToInstantiationBounds.get(instantiationId) match {
       case Some(existing) => {
         // Make Sure Bound Args Match For Instantiation (MSBAMFI)
@@ -158,6 +159,16 @@ case class CompilerOutputs() {
         // vassert(existing == functionBoundToRune)
       }
       case None =>
+    }
+
+    instantiationId match {
+      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashSet")),Vector(CoordTemplataT(CoordT(share,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))), CoordTemplataT(CoordT(OwnT,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("H")))))))), CoordTemplataT(CoordT(OwnT,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(2,CodeRuneS(StrI("E"))))))))))) => {
+        vpass()
+      }
+      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashSetDiffIterator")),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("H")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(2,CodeRuneS(StrI("E"))))))))))) => {
+        vpass()
+      }
+      case _ =>
     }
 
     instantiationNameToInstantiationBounds.put(instantiationId, functionBoundToRune)

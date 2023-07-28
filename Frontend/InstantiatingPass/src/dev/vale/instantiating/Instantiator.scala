@@ -946,9 +946,12 @@ class Instantiator(
     val argsM = desiredPrototypeS.id.localName.parameters.map(_.kind)
     val paramsT = funcT.header.params.map(_.tyype.kind)
     val denizenBoundToDenizenCallerSuppliedThingFromParams =
-      paramsT.zip(argsM).flatMap({ case (a, x) =>
-        hoistBoundsFromParameter(hinputs, monouts, a, x)
-      })
+      paramsT.zip(argsM).flatMap({ case (paramT, argM) => {
+        vpass()
+        val z = hoistBoundsFromParameter(hinputs, monouts, paramT, argM)
+        vpass()
+        z
+      }})
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
       Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
@@ -1187,8 +1190,20 @@ class Instantiator(
     (paramT, paramS) match {
       case (StructTT(structIdT), StructIT(structIdI)) => {
         val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(structIdT)
+
         val structDenizenBoundToDenizenCallerSuppliedThing =
           vassertSome(monouts.structToBounds.get(structIdI))
+        // Remember, the above thing is a map from the struct's own bound function to the actual instantiated prototype.
+        // For example, let's say we have
+        //   struct MyStruct<X> where func drop(X)void { x X; }
+        //   func MyStruct.drop(self MyStruct<T>) { ... }
+        // so now we're compiling that function, and we're trying to hoist some bounds from the self parameter.
+        // The above map will be basically:
+        //   MyStruct.bound:drop(X)void -> whatever
+        // However, we want it to be:
+        //   MyStruct.drop.bound:drop(T)void -> whatever
+        // In other words, we want this map to look at it DO NOT SUBMIT
+
         val structT = findStruct(hinputs, structIdT)
         val denizenBoundToDenizenCallerSuppliedThing =
           hoistBoundsFromParameterInner(

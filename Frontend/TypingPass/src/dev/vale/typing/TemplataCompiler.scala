@@ -502,9 +502,9 @@ object TemplataCompiler {
   InstantiationBoundArgumentsT = {
     val InstantiationBoundArgumentsT(runeToFunctionBoundArg, runeToImplBoundArg) = boundArgs
     InstantiationBoundArgumentsT(
-      runeToFunctionBoundArg.mapValues(funcBoundArg => {
-        substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
-      }),
+      U.map[(IRuneS, PrototypeT), (IRuneS, PrototypeT)](runeToFunctionBoundArg.toVector, { case (key, funcBoundArg) =>
+        key -> substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
+      }).toMap,
       runeToImplBoundArg.mapValues(implBoundArg => {
         substituteTemplatasInImplId(
           coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)

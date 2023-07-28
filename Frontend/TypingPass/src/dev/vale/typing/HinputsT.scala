@@ -49,6 +49,10 @@ case class HinputsT(
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
+  // We override this because it was massively slowing down debugging in intelliJ which eagerly calls toString on
+  // everything in scope.
+  override def toString: String = "Hinputs#"
+
   def lookupStruct(structId: IdT[IStructNameT]): StructDefinitionT = {
     vassertSome(structs.find(_.instantiatedCitizen.id == structId))
   }

@@ -493,6 +493,20 @@ class InferCompiler(
         }
       })
     val runeToPrototype = maybeRunesAndPrototypes.flatten.toMap
+
+    // // we have to decide whether its okay or not to be satisfying multiple types' bounds for this call, or whether we want
+    // // to import them somehow.
+    // // my gut tells me it might be better to just include all these bounds even though theyre heterogenous. we won't have
+    // // any bounds in the calling function to really attach them to. it's not like the calling function assigns them into
+    // // its own bounds or something.
+    // // so we should probably handle this downstream.
+    // runeToPrototype.values.map(_.id.steps.init).toVector.distinct match {
+    //   case Vector() => // Fine, not all things have bounds
+    //   case Vector(_) => // Good, only one.
+    //   case other => vwat(other)
+    // }
+    // // DO NOT SUBMIT document VERY THOROUGHLY that we could have heterogenous bounds.
+
     if (runeToPrototype.size < maybeRunesAndPrototypes.size) {
       // checkFunctionCall returns None if it was an incomplete solve and we didn't have some
       // param types so it didn't attempt to resolve them.

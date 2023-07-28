@@ -381,7 +381,7 @@ object PassManager {
             mode = None,
             sanityCheck = false,
             useOptimizedSolver = true,
-            useOverloadIndex = true,
+            useOverloadIndex = false,
             verboseErrors = false,
             debugOutput = false),
           args.toList)
