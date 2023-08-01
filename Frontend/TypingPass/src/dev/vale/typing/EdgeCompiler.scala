@@ -24,7 +24,7 @@ case class NeededOverride(
   name: IImpreciseNameS,
   paramFilters: Vector[CoordT]
 ) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
-case class FoundFunction(prototype: PrototypeT) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+case class FoundFunction(prototype: PrototypeT[IFunctionNameT]) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class PartialEdgeT(
   struct: StructTT,
@@ -203,7 +203,7 @@ class EdgeCompiler(
     coutputs.declareType(placeholderTemplateId)
     coutputs.declareTypeOuterEnv(
       placeholderTemplateId,
-      GeneralEnvironmentT.childOf(interner, dispatcherOuterEnv, placeholderTemplateId))
+      GeneralEnvironmentT.childOf(interner, dispatcherOuterEnv, placeholderTemplateId, placeholderTemplateId))
 
     val result =
       originalTemplataToMimic match {
@@ -233,7 +233,7 @@ class EdgeCompiler(
     impl: ImplT,
     interfaceTemplateId: IdT[IInterfaceTemplateNameT],
     subCitizenTemplateId: IdT[ICitizenTemplateNameT],
-    abstractFunctionPrototype: PrototypeT,
+    abstractFunctionPrototype: PrototypeT[IFunctionNameT],
     abstractIndex: Int):
   OverrideT = {
     val abstractFuncTemplateId =
@@ -263,6 +263,7 @@ class EdgeCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         abstractFuncOuterEnv,
+        dispatcherTemplateId,
         dispatcherTemplateId)
 
     // Step 1: Get The Compiled Impl's Interface, see GTCII.
@@ -309,6 +310,8 @@ class EdgeCompiler(
           coutputs,
           interner,
           keywords,
+          dispatcherTemplateId,
+          true, // True because we're kind of defining the dispatcher here, though lazily. DO NOT SUBMIT
           impl.templateId,
           implPlaceholderToDispatcherPlaceholder.map(_._2),
           // The dispatcher is receiving these types as parameters, so it can bring in bounds from
@@ -351,6 +354,7 @@ class EdgeCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         dispatcherOuterEnv,
+        dispatcherTemplateId,
         dispatcherId,
         dispatcherInnerInferences
           .map({ case (nameS, templata) =>
@@ -400,6 +404,8 @@ class EdgeCompiler(
                 coutputs,
                 interner,
                 keywords,
+                vimpl(),
+                vimpl(),
                 impl.templateId,
                 (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
                 // These are bounds we're bringing in from the sub citizen.
@@ -440,7 +446,9 @@ class EdgeCompiler(
         // Keep in mind, at the end of the solve, we're actually pulling in some reachable bounds
         // from the struct we're solving for here.
       ) match {
-        case Ok(CompleteResolveSolve(_, conclusions, _, _, reachableBoundsFromFullSolve)) => (conclusions, reachableBoundsFromFullSolve)
+        case Ok(CompleteResolveSolve(_, conclusions, instantiationBounds)) => {
+          (conclusions, instantiationBounds.getCallerRunePlaceholderedCalleeBoundFunctions())
+        }
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(List(range), e))
       }
     val caseSubCitizen =
@@ -456,15 +464,18 @@ class EdgeCompiler(
     // We want an environment with the above inferences instead.
     val overrideImpreciseName =
       vassertSome(TemplatasStore.getImpreciseName(interner, abstractFunctionPrototype.id.localName))
+    val dispatcherCaseId =
+      dispatcherInnerEnv.id.addStep(
+        interner.intern(
+          OverrideDispatcherCaseNameT(implRuneToCasePlaceholder.map(_._2))))
     val dispatcherCaseEnv =
       GeneralEnvironmentT.childOf(
         interner,
         dispatcherInnerEnv,
-        dispatcherInnerEnv.id.addStep(
-          interner.intern(
-            OverrideDispatcherCaseNameT(implRuneToCasePlaceholder.map(_._2)))),
+        dispatcherCaseId,
+        dispatcherCaseId,
         // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here.
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, num) =>
+        reachableBoundsFromSubCitizen.toVector.zipWithIndex.map({ case (templata, num) =>
           interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(templata)
         }))
 

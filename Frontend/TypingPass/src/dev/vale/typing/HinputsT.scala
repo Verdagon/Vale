@@ -12,9 +12,46 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
+case class InstantiationReachableBoundArgumentsT(
+  // callerPlaceholderedCitizen: ICitizenTT, DO NOT SUBMIT
+
+  // Let's say this struct is for main's Fub call's first argument in this:
+  //   #!DeriveStructDrop struct StructWBounds<T> where func drop(T)void { ... }
+  //   func IFunc<T>(b Bork<T>, x T) { drop(x) }
+  //   func OFunc<T>() where func drop(T) {
+  //     b = Bork<T>();
+  //     Fub(b, 5);
+  //   }
+  // These prototypes are the ones from inside the struct, but phrased in terms of OFunc's placeholders.
+  //   func Swib.bound:drop(OFunc$T)void
+  // so the full instance here might be:
+  //   (Bork<OFunc$T>, func Swib.bound:drop(OFunc$T)void -> func Swib.bound:drop(OFunc$T)void)
+  // Later on, the instantiator will use these to supply the right instantiated functions to the callee for these calls.
+  callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction: Map[PrototypeTemplataT[FunctionBoundNameT], PrototypeT[IFunctionNameT]])
+
 case class InstantiationBoundArgumentsT(
-  runeToFunctionBoundArg: Map[IRuneS, PrototypeT],
-  runeToImplBoundArg: Map[IRuneS, IdT[IImplNameT]])
+  // these will also include any bounds that are reachable from any parameters.
+  // we can't reach into the instantiated type in the instantiator stage to get the PrototypeI's but in the typing
+  // phase the caller refers to them phrased in terms of its own placeholders.
+  // this will help us map from those caller-placeholdered functions to the ultimate ones in PrototypeI.
+  // the key here is the callee function declaration which we'll fill.
+  // the value here is the caller-placeholdered function
+  // DO NOT SUBMIT
+  calleeRuneToCallerBoundArgFunction: Map[IRuneS, PrototypeT[IFunctionNameT]],
+
+  // Actually no, they'll be in here DO NOT SUBMIT
+  // these are how the caller's body will refer to those bound functions inside the citizen
+  callerRuneToReachableBoundArguments: Map[IRuneS, InstantiationReachableBoundArgumentsT],
+
+  calleeRuneToCallerBoundArgImpl: Map[IRuneS, IdT[IImplNameT]]) {
+
+  def getCallerRunePlaceholderedCalleeBoundFunctions(): Vector[PrototypeTemplataT[FunctionBoundNameT]] = {
+    callerRuneToReachableBoundArguments
+        .values
+        .flatMap(_.callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction.keys)
+        .toVector
+  }
+}
 
 case class HinputsT(
   interfaces: Vector[InterfaceDefinitionT],

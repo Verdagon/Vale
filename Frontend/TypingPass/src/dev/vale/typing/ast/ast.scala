@@ -52,7 +52,7 @@ case class ImplT(
   // citizen, and a case block from its receiving kind.
   // We'll need to remember those, so the instantiator can do its thing.
   // See TIBANFC for more.
-  reachableBoundsFromSubCitizen: Vector[PrototypeT]
+  reachableBoundsFromSubCitizen: Vector[PrototypeT[IFunctionNameT]]
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
@@ -73,7 +73,7 @@ case class KindExportT(
 
 case class FunctionExportT(
   range: RangeS,
-  prototype: PrototypeT,
+  prototype: PrototypeT[IFunctionNameT],
   exportId: IdT[ExportNameT],
   exportedName: StrI
 )  {
@@ -93,7 +93,7 @@ case class KindExternT(
 case class FunctionExternT(
   range: RangeS,
   externPlaceholderedId: IdT[ExternNameT],
-  prototype: PrototypeT,
+  prototype: PrototypeT[IFunctionNameT],
   externName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -103,7 +103,7 @@ case class FunctionExternT(
 case class InterfaceEdgeBlueprintT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   interface: IdT[IInterfaceNameT],
-  superFamilyRootHeaders: Vector[(PrototypeT, Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+  superFamilyRootHeaders: Vector[(PrototypeT[IFunctionNameT], Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class OverrideT(
   // it seems right here we'll need some sort of mapping of abstract func placeholder to the
@@ -150,7 +150,7 @@ case class OverrideT(
   // The override function we're calling.
   // Conceptually, this is being called from the case's environment. It might even have some complex stuff
   // in the template args.
-  overridePrototype: PrototypeT
+  overridePrototype: PrototypeT[IFunctionNameT]
 )
 
 case class EdgeT(
@@ -236,7 +236,7 @@ case class FunctionCalleeCandidate(ft: FunctionTemplataT) extends ICalleeCandida
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT) extends ICalleeCandidate {
+case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
@@ -253,7 +253,7 @@ case class ValidHeaderCalleeCandidate(
   override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
 }
 case class ValidPrototypeTemplataCalleeCandidate(
-  prototype: PrototypeTemplataT
+  prototype: PrototypeTemplataT[IFunctionNameT]
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -453,7 +453,7 @@ case class FunctionHeaderT(
 //  })
 
   def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunctionTemplata, id)
-  def toPrototype: PrototypeT = {
+  def toPrototype: PrototypeT[IFunctionNameT] = {
 //    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
 //    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
 //    val newLastStep = fullName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes)
@@ -475,8 +475,8 @@ case class FunctionHeaderT(
   }
 }
 
-case class PrototypeT(
-    id: IdT[IFunctionNameT],
+case class PrototypeT[+T <: IFunctionNameT](
+    id: IdT[T],
     returnType: CoordT) {
   this match {
     case PrototypeT(IdT(_, Vector(StructTemplateNameT(StrI("BorkForwarder"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"), _), Vector(), Vector(CoordT(own, RegionT(), KindPlaceholderT(IdT(_, Vector(InterfaceTemplateNameT(StrI("Bork")), FunctionTemplateNameT(StrI("bork"), _), OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(IdT(_, Vector(), ImplTemplateNameT(_))), Vector(), Vector(CoordT(borrow, RegionT(), InterfaceTT(IdT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Bork")), Vector()))))))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CaseRuneFromImplS(CodeRuneS(StrI("Lam"))))))))))), CoordT(share, RegionT(), VoidT())) => {

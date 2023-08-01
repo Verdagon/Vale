@@ -18,7 +18,7 @@ trait CitizenDefinitionT {
 }
 
 case class StructDefinitionT(
-  templateName: IdT[IStructTemplateNameT],
+  templateName: IdT[IStructTemplateNameT], // DO NOT SUBMIT rename templateId
   // In typing pass, this will have placeholders. Monomorphizing will give it a real name.
   instantiatedCitizen: StructTT,
   attributes: Vector[ICitizenAttributeT],
@@ -117,7 +117,7 @@ case class InterfaceDefinitionT(
   // This does not include abstract functions declared outside the interface.
   // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.
-  internalMethods: Vector[(PrototypeT, Int)]
+  internalMethods: Vector[(PrototypeT[IFunctionNameT], Int)]
 ) extends CitizenDefinitionT {
   def defaultRegion: RegionT = RegionT()
 

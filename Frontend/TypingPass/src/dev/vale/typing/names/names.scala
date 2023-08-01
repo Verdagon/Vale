@@ -19,13 +19,7 @@ case class IdT[+T <: INameT](
   localName: T
 )  {
   this match {
-    case IdT(_, Vector(StructTemplateNameT(StrI("HashSetDiffIterator"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"), _), Vector(), Vector(CoordT(share, RegionT(), KindPlaceholderT(IdT(_, Vector(StructTemplateNameT(StrI("HashSetDiffIterator"))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CodeRuneS(StrI("K")))))))))) => {
-      vpass()
-    }
-    case IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(ShareT,RegionT(),KindPlaceholderT(IdT(PackageCoordinate(StrI("stdlib"),Vector(StrI("collections"), StrI("hashset"))),Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))))) => {
-      vpass()
-    }
-    case IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(share,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))))) => {
+    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop")),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
       vpass()
     }
     case _ =>
@@ -375,7 +369,10 @@ case class ForwarderFunctionNameT(
 
 case class FunctionBoundTemplateNameT(
   humanName: StrI,
-  codeLocation: CodeLocationS
+  // We actually intentionally don't have these here because we want template names that come from various places to all
+  // be mergeable into one canonical name after they're moved in the original denizen. DO NOT SUBMIT explain better
+  // rune: IRuneS,
+  // range: RangeS
 ) extends INameT with IFunctionTemplateNameT {
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {

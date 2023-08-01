@@ -41,6 +41,11 @@ class StructCompilerGenericArgsLayer(
     Profiler.frame(() => {
       val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
+      val structTemplateId = declaringEnv.id.addStep(nameTranslator.translateStructName(structA.name))
+
+      val outerEnv =
+        CitizenEnvironmentT(
+          declaringEnv.globalEnv, declaringEnv, structTemplateId, structTemplateId, TemplatasStore(structTemplateId, Map(), Map()))
 
       // We no longer assume this:
       //   vassert(templateArgs.size == structA.genericParameters.size)
@@ -58,7 +63,7 @@ class StructCompilerGenericArgsLayer(
       val contextRegion = RegionT()
 
       // Check if its a valid use of this template
-      val envs = InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion)
+      val envs = InferEnv(originalCallingEnv, callRange, callLocation, outerEnv, contextRegion)
       val solver =
         inferCompiler.makeSolver(
           envs,
@@ -72,7 +77,7 @@ class StructCompilerGenericArgsLayer(
         case Ok(()) =>
         case Err(x) => return ResolveFailure(callRange, ResolvingSolveFailedOrIncomplete(x))
       }
-      val CompleteResolveSolve(_, inferences, runeToFunctionBound, Vector(), Vector()) =
+      val CompleteResolveSolve(_, inferences, instantiationBoundArgs) =
         inferCompiler.checkResolvingConclusionsAndResolve(
           envs,
           coutputs,
@@ -90,10 +95,10 @@ class StructCompilerGenericArgsLayer(
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
       val id = declaringEnv.id.addStep(structName)
 
-      coutputs.addInstantiationBounds(id, runeToFunctionBound)
+      coutputs.addInstantiationBounds(originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
       val structTT = interner.intern(StructTT(id))
 
-      ResolveSuccess(structTT)
+      ResolveSuccess(structTT, inferences)
     })
   }
 
@@ -244,7 +249,7 @@ class StructCompilerGenericArgsLayer(
       val contextRegion = RegionT()
 
       // This checks to make sure it's a valid use of this template.
-      val CompleteResolveSolve(_, inferences, runeToFunctionBound, Vector(), Vector()) =
+      val CompleteResolveSolve(_, inferences, instantiationBoundArgs) =
         inferCompiler.solveForResolving(
         InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
         coutputs,
@@ -263,10 +268,10 @@ class StructCompilerGenericArgsLayer(
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
       val id = declaringEnv.id.addStep(interfaceName)
 
-      coutputs.addInstantiationBounds(id, runeToFunctionBound)
+      coutputs.addInstantiationBounds(originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
       val interfaceTT = interner.intern(InterfaceTT(id))
 
-      ResolveSuccess(interfaceTT)
+      ResolveSuccess(interfaceTT, inferences)
     })
   }
 
@@ -375,7 +380,7 @@ class StructCompilerGenericArgsLayer(
         }
 
       declaredBounds.foreach(bound => {
-        val PrototypeTemplataT(range, prototype) = bound
+        val prototype = bound
         // Add it to the overload index
         TemplatasStore.getImpreciseName(interner, prototype.id.localName) match {
           case None => {
@@ -387,7 +392,7 @@ class StructCompilerGenericArgsLayer(
               opts.globalOptions.useOverloadIndex,
               impreciseName,
               prototype.id.localName.parameters.map(x => Some(x)),
-              PrototypeTemplataCalleeCandidate(range, prototype))
+              PrototypeTemplataCalleeCandidate(prototype.id.localName.template.range, prototype))
           }
         }
       })
@@ -456,8 +461,7 @@ class StructCompilerGenericArgsLayer(
           case Ok(c) => c
         }
 
-      declaredBounds.foreach(bound => {
-        val PrototypeTemplataT(range, prototype) = bound
+      declaredBounds.foreach(prototype => {
         // Add it to the overload index
         TemplatasStore.getImpreciseName(interner, prototype.id.localName) match {
           case None => {
@@ -469,7 +473,7 @@ class StructCompilerGenericArgsLayer(
               opts.globalOptions.useOverloadIndex,
               impreciseName,
               prototype.id.localName.parameters.map(x => Some(x)),
-              PrototypeTemplataCalleeCandidate(range, prototype))
+              PrototypeTemplataCalleeCandidate(prototype.id.localName.template.range, prototype))
           }
         }
       })

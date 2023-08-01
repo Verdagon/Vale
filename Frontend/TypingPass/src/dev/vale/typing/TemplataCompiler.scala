@@ -250,6 +250,8 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -257,7 +259,7 @@ object TemplataCompiler {
   CoordT = {
     val CoordT(ownership, originalRegion, kind) = coord
     val resultRegion = vregionmut(originalRegion)
-    substituteTemplatasInKind(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, kind) match {
+    substituteTemplatasInKind(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, kind) match {
       case KindTemplataT(kind) => CoordT(ownership, resultRegion, kind)
       case CoordTemplataT(CoordT(innerOwnership, innerRegion, kind)) => {
         val resultOwnership =
@@ -286,6 +288,8 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -310,8 +314,8 @@ object TemplataCompiler {
               interner.intern(RuntimeSizedArrayNameT(
                 template,
                 interner.intern(RawArrayNameT(
-                  expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, mutability)),
-                  substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
+                  expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, mutability)),
+                  substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
                   RegionT()))))))))
       }
       case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, region)))) => {
@@ -322,11 +326,11 @@ object TemplataCompiler {
               initSteps,
               interner.intern(StaticSizedArrayNameT(
                 template,
-                expectInteger(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, size)),
-                expectVariability(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, variability)),
+                expectInteger(substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, size)),
+                expectVariability(substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, variability)),
                 interner.intern(RawArrayNameT(
-                  expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, mutability)),
-                  substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
+                  expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, mutability)),
+                  substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
                   RegionT()))))))))
       }
       case p @ KindPlaceholderT(id @ IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune)))) => {
@@ -336,8 +340,25 @@ object TemplataCompiler {
           KindTemplataT(kind)
         }
       }
-      case s @ StructTT(_) => KindTemplataT(substituteTemplatasInStruct(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, s))
-      case s @ InterfaceTT(_) => KindTemplataT(substituteTemplatasInInterface(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, s))
+      case s @ StructTT(_) => KindTemplataT(substituteTemplatasInStruct(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, s))
+      case s @ InterfaceTT(_) => KindTemplataT(substituteTemplatasInInterface(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, s))
+    }
+  }
+
+  def substituteTemplatasInCitizen(
+      coutputs: CompilerOutputs,
+      interner: Interner,
+      keywords: Keywords,
+      originalCallingDenizenId: IdT[ITemplateNameT],
+      impoort: Boolean,
+      needleTemplateName: IdT[ITemplateNameT],
+      newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
+      boundArgumentsSource: IBoundArgumentsSource,
+      citizenTT: ICitizenTT):
+  ICitizenTT = {
+    citizenTT match {
+      case s@StructTT(_) => substituteTemplatasInStruct(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, s)
+      case i@InterfaceTT(_) => substituteTemplatasInInterface(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, i)
     }
   }
 
@@ -345,6 +366,8 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -361,12 +384,12 @@ object TemplataCompiler {
               case AnonymousSubstructNameT(template, templateArgs) => {
                 interner.intern(AnonymousSubstructNameT(
                   template,
-                  templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))))
+                  templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))))
               }
               case StructNameT(template, templateArgs) => {
                 interner.intern(StructNameT(
                   template,
-                  templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))))
+                  templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))))
               }
               case LambdaCitizenNameT(template) => {
                 interner.intern(LambdaCitizenNameT(template))
@@ -376,9 +399,10 @@ object TemplataCompiler {
     val instantiationBoundArgs =
       vassertSome(coutputs.getInstantiationBounds(structTT.id))
     coutputs.addInstantiationBounds(
+      originalCallingDenizenId,
       newStruct.id,
       translateInstantiationBounds(
-        coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
+        coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
     newStruct
   }
 
@@ -386,6 +410,8 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -398,6 +424,8 @@ object TemplataCompiler {
             coutputs,
             interner,
             keywords,
+            originalCallingDenizenId,
+            impoort,
             needleTemplateName,
             newSubstitutingTemplatas,
             boundArgumentsSource,
@@ -423,37 +451,80 @@ object TemplataCompiler {
         // make some instantiation bound args for this new type that our function knows about.
         // Luckily, we can use some bounds from the containing struct to satisfy its members bounds.
 
-        val containerFuncBoundToBoundArg =
-          containerInstantiationBoundArgs.runeToFunctionBoundArg.map({ case (rune, containerFuncBoundArg) =>
+        val containerCalleeBoundFunctionToCallerBoundArgFunction =
+          containerInstantiationBoundArgs.calleeRuneToCallerBoundArgFunction.map({ case (rune, containerFuncBoundArg) =>
             vassertSome(containerRuneToFuncBound.get(rune)) -> containerFuncBoundArg
           })
-        val containerImplBoundToBoundArg =
-          containerInstantiationBoundArgs.runeToImplBoundArg.map({ case (rune, containerImplBoundArg) =>
-            vassertSome(containerRuneToImplBound.get(rune)) -> containerImplBoundArg
-          })
-        InstantiationBoundArgumentsT(
-          instantiationBoundArgs.runeToFunctionBoundArg.mapValues(funcBoundArg => {
+        val resultCalleeBoundFunctionToCallerBoundArgFunction =
+          instantiationBoundArgs.calleeRuneToCallerBoundArgFunction.mapValues(funcBoundArg => {
             funcBoundArg.id match {
               case IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)) => {
-                vassertSome(containerFuncBoundToBoundArg.get(IdT(packageCoord, initSteps, fbn)))
+                vassertSome(containerCalleeBoundFunctionToCallerBoundArgFunction.get(IdT(packageCoord, initSteps, fbn)))
               }
               case _ => {
                 // Not sure if this call is really necessary...
-                substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
+                substituteTemplatasInPrototype(
+                  coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
               }
             }
-          }),
-          instantiationBoundArgs.runeToImplBoundArg.mapValues(implBoundArg => {
+          })
+
+        // DO NOT SUBMIT rename all these this is ridiculous lol
+
+        val resultCallerRuneToReachableBoundArguments =
+          instantiationBoundArgs.callerRuneToReachableBoundArguments.map({
+            case (callerRune, InstantiationReachableBoundArgumentsT(callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction)) => {
+              callerRune ->
+                  InstantiationReachableBoundArgumentsT(
+                    callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction.map({
+                      case (callerPlaceholderedCalleeBoundFunction, callerBoundArgFunction) => {
+                        vimpl()
+                      }
+                    })
+                  )
+            }
+          })
+        // val containerCalleeCitizenToRuneToCallerReachableBoundFromCitizen =
+        //   containerInstantiationBoundArgs.calleeCitizenToRuneToCallerReachableBoundFromCitizen.map({ case (rune, containerFuncBoundArg) =>
+        //     vassertSome(containerThingy.get(rune)) -> containerFuncBoundArg
+        //   })
+        // val resultCalleeCitizenToRuneToCallerReachableBoundFromCitizen =
+        //   instantiationBoundArgs.calleeCitizenToRuneToCallerReachableBoundFromCitizen
+        //       .map({ case (citizen, runeToCallerReachableBoundFromCitizen) =>
+        //         substituteTemplatasInCitizen(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, citizen) ->
+        //         runeToCallerReachableBoundFromCitizen.mapValues(funcBoundArg => {
+        //           funcBoundArg.id match {
+        //             case IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)) => {
+        //               vassertSome(containerCalleeCitizenToRuneToCallerReachableBoundFromCitizen.get(IdT(packageCoord, initSteps, fbn)))
+        //             }
+        //             case _ => {
+        //               // Not sure if this call is really necessary...
+        //               substituteTemplatasInPrototype(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
+        //             }
+        //           }
+        //       })
+        //   })
+
+        val containerCalleeBoundImplToCallerBoundArgImpl =
+          containerInstantiationBoundArgs.calleeRuneToCallerBoundArgImpl.map({ case (rune, containerImplBoundArg) =>
+            vassertSome(containerRuneToImplBound.get(rune)) -> containerImplBoundArg
+          })
+        val calleeBoundImplToCallerBoundArgImpl =
+          instantiationBoundArgs.calleeRuneToCallerBoundArgImpl.mapValues(implBoundArg => {
             implBoundArg match {
               case IdT(packageCoord, initSteps, ibn@ImplBoundNameT(_, _)) => {
-                vassertSome(containerImplBoundToBoundArg.get(IdT(packageCoord, initSteps, ibn)))
+                vassertSome(containerCalleeBoundImplToCallerBoundArgImpl.get(IdT(packageCoord, initSteps, ibn)))
               }
               case _ => {
                 // Not sure if this call is really necessary...
-                substituteTemplatasInImplId(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
+                substituteTemplatasInImplId(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
               }
             }
-          }))
+          })
+        InstantiationBoundArgumentsT(
+          resultCalleeBoundFunctionToCallerBoundArgFunction,
+          resultCallerRuneToReachableBoundArguments,
+          calleeBoundImplToCallerBoundArgImpl)
       }
     }
   }
@@ -462,6 +533,8 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -476,8 +549,8 @@ object TemplataCompiler {
           case in @ ImplNameT(template, templateArgs, subCitizen) => {
             interner.intern(ImplNameT(
               template,
-              templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata)),
-              expectKindTemplata(substituteTemplatasInKind(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, subCitizen)).kind.expectCitizen()))
+              templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata)),
+              expectKindTemplata(substituteTemplatasInKind(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, subCitizen)).kind.expectCitizen()))
           }
           case other => vimpl(other)
         })
@@ -485,9 +558,10 @@ object TemplataCompiler {
     val instantiationBoundArgs = vassertSome(coutputs.getInstantiationBounds(implId))
     // See SBITAFD, we need to register bounds for these new instantiations.
     coutputs.addInstantiationBounds(
+      originalCallingDenizenId,
       newImplId,
       translateInstantiationBounds(
-        coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
+        coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
     newImplId
   }
 
@@ -495,19 +569,36 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
     boundArgs: InstantiationBoundArgumentsT):
   InstantiationBoundArgumentsT = {
-    val InstantiationBoundArgumentsT(runeToFunctionBoundArg, runeToImplBoundArg) = boundArgs
+    val InstantiationBoundArgumentsT(runeToFunctionBoundArg, calleeCitizenToRuneToCallerReachableBoundFromCitizen, runeToImplBoundArg) = boundArgs
     InstantiationBoundArgumentsT(
-      U.map[(IRuneS, PrototypeT), (IRuneS, PrototypeT)](runeToFunctionBoundArg.toVector, { case (key, funcBoundArg) =>
-        key -> substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
+      U.map[(IRuneS, PrototypeT[IFunctionNameT]), (IRuneS, PrototypeT[IFunctionNameT])](runeToFunctionBoundArg.toVector, { case (key, funcBoundArg) =>
+        key -> substituteTemplatasInPrototype(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
       }).toMap,
+      U.map[(IRuneS, InstantiationReachableBoundArgumentsT), (IRuneS, InstantiationReachableBoundArgumentsT)](
+        calleeCitizenToRuneToCallerReachableBoundFromCitizen.toVector,
+        { case (rune, InstantiationReachableBoundArgumentsT(runeToCallerReachableBoundFromCitizen)) =>
+          rune ->
+              InstantiationReachableBoundArgumentsT(
+                // substituteTemplatasInCitizen(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, citizen),
+                U.map[(PrototypeT[FunctionBoundNameT], PrototypeT[IFunctionNameT]), (PrototypeT[FunctionBoundNameT], PrototypeT[IFunctionNameT])](
+              runeToCallerReachableBoundFromCitizen.toVector,
+              { case (callerPlaceholderedCalleeBoundFunction, callerSuppliedBoundArgFunction) =>
+                substituteTemplatasInPrototype(
+                  coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, callerPlaceholderedCalleeBoundFunction) ->
+                    substituteTemplatasInPrototype(
+                      coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, callerSuppliedBoundArgFunction)
+              }).toMap)
+        }).toMap,
       runeToImplBoundArg.mapValues(implBoundArg => {
         substituteTemplatasInImplId(
-          coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
+          coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
       }))
   }
 
@@ -515,6 +606,8 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -531,15 +624,16 @@ object TemplataCompiler {
               case InterfaceNameT(template, templateArgs) => {
                 interner.intern(InterfaceNameT(
                   template,
-                  templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))))
+                  templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))))
               }
             })))
     // See SBITAFD, we need to register bounds for these new instantiations.
     val instantiationBoundArgs =
       vassertSome(coutputs.getInstantiationBounds(interfaceTT.id))
     coutputs.addInstantiationBounds(
+      originalCallingDenizenId,
       newInterface.id,
-      translateInstantiationBounds(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
+      translateInstantiationBounds(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
     newInterface
   }
 
@@ -547,14 +641,16 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
     templata: ITemplataT[ITemplataType]):
   ITemplataT[ITemplataType] = {
     templata match {
-      case CoordTemplataT(c) => CoordTemplataT(substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, c))
-      case KindTemplataT(k) => substituteTemplatasInKind(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, k)
+      case CoordTemplataT(c) => CoordTemplataT(substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, c))
+      case KindTemplataT(k) => substituteTemplatasInKind(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, k)
       case PlaceholderTemplataT(id @ IdT(_, _, pn), _) => {
         if (id.initId(interner) == needleTemplateName) {
           newSubstitutingTemplatas(pn.index)
@@ -569,46 +665,65 @@ object TemplataCompiler {
       case PrototypeTemplataT(declarationRange, prototype) => {
         PrototypeTemplataT(
           declarationRange,
-          substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, prototype))
+          substituteTemplatasInPrototype(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, prototype))
       }
       case other => vimpl(other)
     }
   }
 
-  def substituteTemplatasInPrototype(
+  def substituteTemplatasInPrototype[T <: IFunctionNameT](
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
-    originalPrototype: PrototypeT):
-  PrototypeT = {
+    originalPrototype: PrototypeT[T]):
+  PrototypeT[T] = {
     val PrototypeT(IdT(packageCoord, initSteps, funcName), returnType) = originalPrototype
-    val substitutedTemplateArgs = funcName.templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))
-    val substitutedParams = funcName.parameters.map((coord: CoordT) => substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coord))
-    val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, returnType)
+    val substitutedTemplateArgs = funcName.templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))
+    val substitutedParams = funcName.parameters.map((coord: CoordT) => substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coord))
+    val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, returnType)
     val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
-    val prototype = PrototypeT(IdT(packageCoord, initSteps, substitutedFuncName), substitutedReturnType)
+    val newId = IdT(packageCoord, initSteps, substitutedFuncName)
 
-    prototype.id.localName match {
-      case FunctionBoundNameT(template, templateArgs, parameters) => {
-        // It's a function bound, it has no function bounds of its own.
-        coutputs.addInstantiationBounds(prototype.id, InstantiationBoundArgumentsT(Map(), Map()))
+    val perhapsImportedId =
+      newId.localName match {
+        case n @ FunctionBoundNameT(template, templateArgs, parameters) => {
+          val importedId =
+            if (impoort) {
+              originalCallingDenizenId.addStep(n)
+            } else {
+              newId
+            }
+          // It's a function bound, it has no function bounds of its own.
+          coutputs.addInstantiationBounds(
+            originalCallingDenizenId, importedId, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+          importedId
+        }
+        case _ => {
+          // Not really sure if we're supposed to add bounds or something here.
+          vassert(coutputs.getInstantiationBounds(newId).nonEmpty)
+          newId
+        }
       }
-      case _ => {
-        // Not really sure if we're supposed to add bounds or something here.
-        vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-      }
-    }
+    val prototype = PrototypeT(perhapsImportedId, substitutedReturnType)
 
-    prototype
+    vassert(substitutedFuncName.getClass.equals(funcName.getClass))
+    vassert(originalPrototype.getClass.equals(prototype.getClass))
+    val result = prototype.asInstanceOf[PrototypeT[T]]
+    assert(result != null)
+    return result
   }
 
   def substituteTemplatasInFunctionBoundId(
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
@@ -616,14 +731,15 @@ object TemplataCompiler {
   IdT[FunctionBoundNameT] = {
     val IdT(packageCoord, initSteps, funcName) = original
     val substitutedTemplateArgs =
-      funcName.templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))
-    val substitutedParams = funcName.parameters.map((coord: CoordT) => substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coord))
+      funcName.templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))
+    val substitutedParams = funcName.parameters.map((coord: CoordT) => substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coord))
 //    val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, returnType, substitutions)
     val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
     val newId = IdT(packageCoord, initSteps, substitutedFuncName)
 
     // It's a function bound, it has no function bounds of its own.
-    coutputs.addInstantiationBounds(newId, InstantiationBoundArgumentsT(Map(), Map()))
+    coutputs.addInstantiationBounds(
+      originalCallingDenizenId, newId, InstantiationBoundArgumentsT(Map(), Map(), Map()))
 
     newId
   }
@@ -632,11 +748,13 @@ object TemplataCompiler {
     def substituteForCoord(coutputs: CompilerOutputs, coordT: CoordT): CoordT
     def substituteForInterface(coutputs: CompilerOutputs, interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coutputs: CompilerOutputs, coordT: ITemplataT[ITemplataType]): ITemplataT[ITemplataType]
-    def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT): PrototypeT
+    def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT[IFunctionNameT]): PrototypeT[IFunctionNameT]
   }
   def getPlaceholderSubstituter(
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     // This is the Ship<WarpFuel>.
     name: IdT[IInstantiationNameT],
     boundArgumentsSource: IBoundArgumentsSource):
@@ -649,6 +767,8 @@ object TemplataCompiler {
     TemplataCompiler.getPlaceholderSubstituter(
       interner,
       keywords,
+      originalCallingDenizenId,
+      impoort,
       topLevelDenizenTemplateId,
       templateArgs,
       boundArgumentsSource)
@@ -663,6 +783,8 @@ object TemplataCompiler {
   def getPlaceholderSubstituter(
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean, // DO NOT SUBMIT doc
     // This is the Ship.
     needleTemplateName: IdT[ITemplateNameT],
     // This is the <WarpFuel>.
@@ -672,16 +794,17 @@ object TemplataCompiler {
   IPlaceholderSubstituter = {
     new IPlaceholderSubstituter {
       override def substituteForCoord(coutputs: CompilerOutputs, coordT: CoordT): CoordT = {
-        TemplataCompiler.substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coordT)
+        TemplataCompiler.substituteTemplatasInCoord(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coordT)
       }
       override def substituteForInterface(coutputs: CompilerOutputs, interfaceTT: InterfaceTT): InterfaceTT = {
-        TemplataCompiler.substituteTemplatasInInterface(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, interfaceTT)
+        TemplataCompiler.substituteTemplatasInInterface(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, interfaceTT)
       }
       override def substituteForTemplata(coutputs: CompilerOutputs, templata: ITemplataT[ITemplataType]): ITemplataT[ITemplataType] = {
-        TemplataCompiler.substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata)
+        TemplataCompiler.substituteTemplatasInTemplata(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata)
       }
-      override def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT): PrototypeT = {
-        TemplataCompiler.substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, proto)
+
+      override def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT[IFunctionNameT]): PrototypeT[IFunctionNameT] = {
+        TemplataCompiler.substituteTemplatasInPrototype(coutputs, interner, keywords, originalCallingDenizenId, impoort, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, proto)
       }
     }
   }
@@ -713,38 +836,31 @@ object TemplataCompiler {
   def getReachableBounds(
     interner: Interner,
     keywords: Keywords,
+    originalCallingDenizenId: IdT[ITemplateNameT],
+    impoort: Boolean,
     coutputs: CompilerOutputs,
-    templata: ITemplataT[ITemplataType]):
-  Vector[PrototypeTemplataT] = {
-    val maybeMentionedKind =
-      templata match {
-        case KindTemplataT(kind) => Some(kind)
-        case CoordTemplataT(CoordT(_, _, kind)) => Some(kind)
-        case _ => None
+    citizen: ICitizenTT):
+  Map[IRuneS, PrototypeT[FunctionBoundNameT]] = {
+    val substituter =
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner, keywords,
+        originalCallingDenizenId,
+        impoort,
+        citizen.id,
+        // This function is all about gathering bounds from the incoming parameter types.
+        InheritBoundsFromTypeItself)
+    val citizenTemplateId = TemplataCompiler.getCitizenTemplate(citizen.id)
+    val innerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
+    innerEnv.templatas.entriesByNameT.collect({
+      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(range, prototype @ PrototypeT(IdT(_, _, FunctionBoundNameT(_, _, _)), _)))) => {
+        rune ->
+          (substituter.substituteForPrototype(coutputs, prototype) match {
+            case PrototypeT(IdT(packageCoord, initSteps, n @ FunctionBoundNameT(_, _, _)), returnType) => {
+              PrototypeT(IdT(packageCoord, initSteps, n), returnType)
+            }
+          })
       }
-    maybeMentionedKind match {
-      case Some(c @ ICitizenTT(id)) => {
-        val substituter =
-          TemplataCompiler.getPlaceholderSubstituter(
-            interner, keywords,
-            id,
-            // This function is all about gathering bounds from the incoming parameter types.
-            InheritBoundsFromTypeItself)
-        val citizenTemplateId = TemplataCompiler.getCitizenTemplate(id)
-        val innerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
-        val reachablePrototypes =
-          innerEnv
-            .lookupAllWithImpreciseName(interner.intern(PrototypeNameS()), Set(TemplataLookupContext))
-            .map({
-              case PrototypeTemplataT(range, prototype) => {
-                PrototypeTemplataT(range, substituter.substituteForPrototype(coutputs, prototype))
-              }
-              case other => vwat(other)
-            })
-        reachablePrototypes.toVector
-      }
-      case _ => Vector()
-    }
+    })
   }
 
   def getFirstUnsolvedIdentifyingRune(
@@ -1187,7 +1303,7 @@ class TemplataCompiler(
           })
       coutputs.declareTypeMutability(kindPlaceholderTemplateId, mutability)
 
-      val placeholderEnv = GeneralEnvironmentT.childOf(interner, env, kindPlaceholderTemplateId)
+      val placeholderEnv = GeneralEnvironmentT.childOf(interner, env, kindPlaceholderTemplateId, kindPlaceholderTemplateId)
       coutputs.declareTypeOuterEnv(kindPlaceholderTemplateId, placeholderEnv)
       coutputs.declareTypeInnerEnv(kindPlaceholderTemplateId, placeholderEnv)
     }

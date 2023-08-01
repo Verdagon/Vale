@@ -34,7 +34,7 @@ object functionNameT {
   def unapply(header: FunctionHeaderT): Option[String] = {
     simpleNameT.unapply(header.id)
   }
-  def unapply(prototype: PrototypeT): Option[String] = {
+  def unapply(prototype: PrototypeT[IFunctionNameT]): Option[String] = {
     simpleNameT.unapply(prototype.id)
   }
 }

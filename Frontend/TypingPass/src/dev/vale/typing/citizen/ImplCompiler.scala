@@ -257,9 +257,10 @@ class ImplCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         implOuterEnv,
+        implTemplateId,
         instantiatedId,
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, index) =>
-          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(templata)
+        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (prototype, index) =>
+          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(prototype.id.localName.template.range, prototype))
         }).toVector ++
         inferences.map({ case (nameS, templata) =>
           interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
@@ -285,7 +286,7 @@ class ImplCompiler(
           runeToNeededFunctionBound,
           runeToNeededImplBound,
           runeIndexToIndependence.toVector,
-          reachableBoundsFromSubCitizen.map(_.prototype)))
+          reachableBoundsFromSubCitizen))
     coutputs.declareType(implTemplateId)
     coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)
     coutputs.declareTypeInnerEnv(implTemplateId, implInnerEnv)
@@ -550,7 +551,7 @@ class ImplCompiler(
       coutputs.getOuterEnvForType(
         parentRanges,
         TemplataCompiler.getCitizenTemplate(child.id))
-    val CompleteResolveSolve(_, conclusions, _, Vector(), _) =
+    val CompleteResolveSolve(_, conclusions, _) =
       resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata) match {
         case Ok(ccs) => ccs
         case Err(x) => return Err(x)
@@ -666,7 +667,9 @@ class ImplCompiler(
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
-        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArgumentsT(Map(), Map()))
+        coutputs.addInstantiationBounds(
+          vimpl(),
+          impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>
@@ -688,17 +691,14 @@ class ImplCompiler(
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some((implTemplata, CompleteResolveSolve(_, conclusions, runeToSuppliedFunction, Vector(), reachableBoundsFromSubCitizen))) => {
-        // Dont need this for anything yet
-        val _ = reachableBoundsFromSubCitizen
-
+      case Some((implTemplata, CompleteResolveSolve(_, conclusions, instantiationBoundArgs))) => {
         val templateArgs =
           implTemplata.impl.genericParams.map(_.rune.rune).map(conclusions)
         val implTemplateId =
           implTemplata.env.id.addStep(
             nameTranslator.translateImplName(implTemplata.impl.name))
         val instantiatedId = assembleImplName(implTemplateId, templateArgs, subKindTT.expectCitizen())
-        coutputs.addInstantiationBounds(instantiatedId, runeToSuppliedFunction)
+        coutputs.addInstantiationBounds(vimpl(), instantiatedId, instantiationBoundArgs)
         IsParent(implTemplata, conclusions, instantiatedId)
       }
       case None => IsntParent(errs.toVector)

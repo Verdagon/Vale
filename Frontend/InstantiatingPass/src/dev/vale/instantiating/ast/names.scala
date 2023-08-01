@@ -334,7 +334,7 @@ case class ForwarderFunctionNameI[+R <: IRegionsModeI](
 
 case class FunctionBoundTemplateNameI[+R <: IRegionsModeI](
   humanName: StrI,
-  codeLocation: CodeLocationS
+  codeLocation: RangeS
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): FunctionBoundNameI = {
 //    interner.intern(FunctionBoundNameI(this, templateArgs, params))

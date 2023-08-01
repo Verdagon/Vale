@@ -22,6 +22,13 @@ object U {
     }
   }
 
+  def foreachMap[K, V](map: Map[K, V], func: scala.Function2[K, V, Unit]): Unit = {
+    // TODO(optimize): this is probably slow?
+    map.foreach({ case (k, v) =>
+      func(k, v)
+    })
+  }
+
   def foreachIArr[T](arr: Array[T], func: scala.Function2[Int, T, Unit]): Unit = {
     var i = 0
     while (i < arr.length) {
@@ -218,5 +225,32 @@ object U {
       result += elem
     })
     result.toVector
+  }
+
+  def unionMapsExpectDisjoint[K, V](a: Map[K, V], b: Map[K, V]): Map[K, V] = {
+    val result = mutable.HashMap[K, V]()
+    U.foreachMap[K, V](a, (k, v) => {
+      result.put(k, v)
+    })
+    U.foreachMap[K, V](b, (k, v) => {
+      result.put(k, v)
+    })
+    vassert(result.size == a.size + b.size)
+    result.toMap
+  }
+
+  def unionMapsExpectNoConflict[K, V](a: Map[K, V], b: Map[K, V], equator: (V, V) => Boolean): Map[K, V] = {
+    val result = mutable.HashMap[K, V]()
+    U.foreachMap[K, V](a, (k, v) => {
+      result.put(k, v)
+    })
+    U.foreachMap[K, V](b, (k, v) => {
+      result.get(k) match {
+        case None =>
+        case Some(previousValue) => vassert(equator(v, previousValue))
+      }
+      result.put(k, v)
+    })
+    result.toMap
   }
 }

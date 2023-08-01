@@ -36,18 +36,18 @@ trait IEnvironmentT {
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]]
+  Array[ITemplataT[ITemplataType]]
 
   private[env] def lookupWithNameInner(
     nameS: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]]
+  Array[ITemplataT[ITemplataType]]
 
   def lookupAllWithImpreciseName(
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithImpreciseNameInner(nameS, lookupFilter, false)
     })
@@ -97,6 +97,7 @@ trait IInDenizenEnvironmentT extends IEnvironmentT {
   def rootCompilingDenizenEnv: IInDenizenEnvironmentT
 
   def denizenId: IdT[INameT]
+  def denizenTemplateId: IdT[ITemplateNameT]
 }
 
 trait IDenizenEnvironmentBoxT extends IInDenizenEnvironmentT {
@@ -221,7 +222,7 @@ object TemplatasStore {
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
       case ForwarderFunctionNameT(_, inner) => getImpreciseName(interner, inner)
       case FunctionBoundNameT(inner, _, _) => getImpreciseName(interner, inner)
-      case FunctionBoundTemplateNameT(humanName, _) => Some(interner.intern(CodeNameS(humanName)))
+      case FunctionBoundTemplateNameT(humanName, _, _) => Some(interner.intern(CodeNameS(humanName)))
       case LambdaCallFunctionNameT(_, _, _) => {
         None // I don't think anyone will ever need to look up a specific lambda incarnation by name
       }
@@ -344,10 +345,9 @@ case class TemplatasStore(
 
   private[env] def lookupWithNameInner(
     definingEnv: IEnvironmentT,
-
     name: INameT,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Option[ITemplataT[ITemplataType]] = {
     entriesByNameT.get(name)
       .filter(entryMatchesFilter(_, lookupFilter))
       .map(entryToTemplata(definingEnv, _))
@@ -403,19 +403,21 @@ case class PackageEnvironmentT[+T <: INameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
-    globalEnv.builtins.lookupWithNameInner(this, name, lookupFilter) ++
-    globalNamespaces.flatMap(ns => {
-      val env = PackageEnvironmentT(globalEnv, ns.templatasStoreName, globalNamespaces)
-      ns.lookupWithNameInner(env, name, lookupFilter)
-    })
+  Array[ITemplataT[ITemplataType]] = {
+    globalEnv.builtins.lookupWithNameInner(this, name, lookupFilter).toArray ++
+    globalNamespaces
+        .toArray
+        .flatMap(ns => {
+          val env = PackageEnvironmentT(globalEnv, ns.templatasStoreName, globalNamespaces)
+          ns.lookupWithNameInner(env, name, lookupFilter)
+        })
   }
 
   private[env] override def lookupWithImpreciseNameInner(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Vector[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     val result = mutable.ArrayBuffer[ITemplataT[ITemplataType]]();
     U.foreachArr[ITemplataT[ITemplataType]](
       globalEnv.builtins.lookupWithImpreciseNameInner(this, name, lookupFilter),
@@ -429,7 +431,7 @@ case class PackageEnvironmentT[+T <: INameT](
           result += thing
         })
     })
-    result.toVector
+    result.toArray
   }
 }
 
@@ -444,6 +446,7 @@ case class CitizenEnvironmentT[+T <: INameT, +Y <: ITemplateNameT](
   vassert(templatas.templatasStoreName == id)
 
   override def denizenId: IdT[INameT] = templateId
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -474,12 +477,11 @@ case class CitizenEnvironmentT[+T <: INameT, +Y <: ITemplateNameT](
   }
 
   private[env] override def lookupWithNameInner(
-
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
-    val result = templatas.lookupWithNameInner(this, name, lookupFilter)
+  Array[ITemplataT[ITemplataType]] = {
+    val result = templatas.lookupWithNameInner(this, name, lookupFilter).toArray
     if (result.nonEmpty && getOnlyNearest) {
       result
     } else {
@@ -492,7 +494,7 @@ case class CitizenEnvironmentT[+T <: INameT, +Y <: ITemplateNameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     val result = templatas.lookupWithImpreciseNameInner(this, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result
@@ -506,14 +508,16 @@ object GeneralEnvironmentT {
   def childOf[Y <: INameT](
     interner: Interner,
     parentEnv: IInDenizenEnvironmentT,
-    newName: IdT[Y],
+    newTemplateId: IdT[ITemplateNameT],
+    newId: IdT[Y],
     newEntriesList: Vector[(INameT, IEnvEntry)] = Vector()):
   GeneralEnvironmentT[Y] = {
     GeneralEnvironmentT(
       parentEnv.globalEnv,
       parentEnv,
-      newName,
-      new TemplatasStore(newName, Map(), Map())
+      newTemplateId,
+      newId,
+      new TemplatasStore(newId, Map(), Map())
         .addEntries(interner, newEntriesList))
   }
 }
@@ -521,18 +525,20 @@ object GeneralEnvironmentT {
 case class ExportEnvironmentT(
     globalEnv: GlobalEnvironment,
     parentEnv: PackageEnvironmentT[INameT],
+    templateId: IdT[ITemplateNameT],
     id: IdT[INameT],
     //  defaultRegion: ITemplata[RegionTemplataType],
     templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
   override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = this
   override def denizenId: IdT[INameT] = id
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   override def lookupWithNameInner(
       name: INameT,
       lookupFilter: Set[ILookupContext],
       getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -541,7 +547,7 @@ case class ExportEnvironmentT(
       name: IImpreciseNameS,
       lookupFilter: Set[ILookupContext],
       getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -550,18 +556,20 @@ case class ExportEnvironmentT(
 case class ExternEnvironmentT(
     globalEnv: GlobalEnvironment,
     parentEnv: PackageEnvironmentT[INameT],
+    templateId: IdT[ITemplateNameT],
     id: IdT[INameT],
     //  defaultRegion: ITemplata[RegionTemplataType],
     templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
   override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = this
   override def denizenId: IdT[INameT] = id
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   override def lookupWithNameInner(
       name: INameT,
       lookupFilter: Set[ILookupContext],
       getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -570,7 +578,7 @@ case class ExternEnvironmentT(
       name: IImpreciseNameS,
       lookupFilter: Set[ILookupContext],
       getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -579,10 +587,12 @@ case class ExternEnvironmentT(
 case class GeneralEnvironmentT[+T <: INameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IInDenizenEnvironmentT,
+  templateId: IdT[ITemplateNameT],
   id: IdT[T],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
   override def denizenId: IdT[INameT] = id
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   override def equals(obj: Any): Boolean = vcurious();
 
@@ -600,7 +610,7 @@ case class GeneralEnvironmentT[+T <: INameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -609,7 +619,7 @@ case class GeneralEnvironmentT[+T <: INameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplataT[ITemplataType]] = {
+  Array[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }

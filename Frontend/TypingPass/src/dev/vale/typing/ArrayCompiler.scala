@@ -91,7 +91,7 @@ class ArrayCompiler(
     }
     val rulesA = ruleBuilder.toVector
 
-    val CompleteResolveSolve(_, templatas, _, Vector(), Vector()) =
+    val CompleteResolveSolve(_, templatas, instantiationBoundArgs) =
       inferCompiler.solveForResolving(
         InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
         coutputs,
@@ -206,7 +206,7 @@ class ArrayCompiler(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteResolveSolve(_, templatas, runeToFunctionBound, Vector(), reachableBounds) =
+    val CompleteResolveSolve(_, templatas, instantiationBoundArgs) =
       inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
@@ -395,12 +395,11 @@ class ArrayCompiler(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteResolveSolve(_, templatas, runeToFunctionBound, Vector(), reachableBounds) =
+    val CompleteResolveSolve(_, templatas, instantiationBoundArgs) =
       inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
       }
-
 
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)

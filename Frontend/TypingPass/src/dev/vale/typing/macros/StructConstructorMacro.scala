@@ -113,6 +113,7 @@ class StructConstructorMacro(
       TemplataCompiler.getPlaceholderSubstituter(
         interner,
         keywords,
+        vimpl(),
         structTT.id,
         // We only know about this struct from the return type, we don't get to inherit any of its
         // bounds or guarantees from. Satisfy them from our environment instead.

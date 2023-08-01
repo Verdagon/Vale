@@ -338,7 +338,7 @@ class OverloadResolver(
                 case (Err(e)) => {
                   Err(FindFunctionResolveFailure(e))
                 }
-                case (Ok(CompleteResolveSolve(_, explicitRuneSToTemplata, _, Vector(), Vector()))) => {
+                case (Ok(CompleteResolveSolve(_, explicitRuneSToTemplata, instantiationBoundArgs))) => {
                   val explicitlySpecifiedTemplateArgTemplatas =
                     explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
 
@@ -394,6 +394,8 @@ class OverloadResolver(
           TemplataCompiler.getPlaceholderSubstituter(
             interner,
             keywords,
+            callingEnv.denizenTemplateId,
+            false,
             prototype.id,
             // These types are phrased in terms of the calling denizen already, so we can grab their
             // bounds.
@@ -410,7 +412,7 @@ class OverloadResolver(
             // We're calling a function that came from a bound.
             // Function bounds (like the `func drop(T)void` don't have bounds themselves)
             // so we just supply an empty map here.
-            val bounds = Map[IRuneS, PrototypeTemplataT]()
+            val bounds = Map[IRuneS, PrototypeTemplataT[IFunctionNameT]]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
             Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(declarationRange, prototype)))
@@ -626,7 +628,7 @@ class OverloadResolver(
       survivingBannerIndices
         .groupBy(index => {
           banners(index) match {
-            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
               Some((firstHumanName, firstParameters, firstReturnType))
             }
             case _ => None
@@ -675,7 +677,7 @@ class OverloadResolver(
     potentialBanner: IValidCalleeCandidate,
     contextRegion: RegionT,
     verifyConclusions: Boolean):
-  (PrototypeTemplataT) = {
+  (PrototypeTemplataT[IFunctionNameT]) = {
     potentialBanner match {
       case ValidCalleeCandidate(banner, _, ft @ FunctionTemplataT(_, _)) => {
 //        if (ft.function.isTemplate) {
@@ -750,7 +752,7 @@ class OverloadResolver(
     callLocation: LocationInDenizen,
     callableTE: ReferenceExpressionTE,
     contextRegion: RegionT):
-  PrototypeT = {
+  PrototypeT[IFunctionNameT] = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
       Vector(
@@ -772,7 +774,7 @@ class OverloadResolver(
     callableTE: ReferenceExpressionTE,
     elementType: CoordT,
     contextRegion: RegionT):
-  PrototypeT = {
+  PrototypeT[IFunctionNameT] = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
       Vector(

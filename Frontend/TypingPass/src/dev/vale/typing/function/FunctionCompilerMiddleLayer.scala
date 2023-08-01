@@ -118,7 +118,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA):
-  (PrototypeTemplataT) = {
+  (PrototypeTemplataT[IFunctionNameT]) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
       vassert(runedEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(templateParam)), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty);
@@ -354,7 +354,7 @@ class FunctionCompilerMiddleLayer(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     function1: FunctionA):
-  (PrototypeT) = {
+  (PrototypeT[IFunctionNameT]) = {
 
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {

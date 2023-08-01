@@ -317,7 +317,7 @@ class StructCompilerCore(
       containingFunctionEnv.id.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
-    coutputs.addInstantiationBounds(understructInstantiatedId, InstantiationBoundArgumentsT(Map(), Map()))
+    coutputs.addInstantiationBounds(understructTemplatedId, understructInstantiatedId, InstantiationBoundArgumentsT(Map(), Map(), Map()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
     val callNameT =

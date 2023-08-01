@@ -340,6 +340,8 @@ class ExpressionCompiler(
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords,
+        nenv.functionEnvironment.templateId,
+        false,
         closureStructRef.id,
         InheritBoundsFromTypeItself)
     // Note, this is where the unordered closuredNames set becomes ordered.
@@ -630,14 +632,14 @@ class ExpressionCompiler(
 
           val templataFromEnv =
             nenv.lookupAllWithImpreciseName(name, Set(ExpressionLookupContext)) match {
-              case Vector(BooleanTemplataT(value)) => ConstantBoolTE(value, region)
-              case Vector(IntegerTemplataT(value)) => {
+              case Array(BooleanTemplataT(value)) => ConstantBoolTE(value, region)
+              case Array(IntegerTemplataT(value)) => {
                 ConstantIntTE(
                   IntegerTemplataT(value),
                   32,
                   region)
               }
-              case Vector(t @ PlaceholderTemplataT(name, IntegerTemplataType())) => {
+              case Array(t @ PlaceholderTemplataT(name, IntegerTemplataType())) => {
                 ConstantIntTE(PlaceholderTemplataT(name, IntegerTemplataType()), 32, region)
               }
               case templatas if templatas.nonEmpty && templatas.collect({ case FunctionTemplataT(_, _) => case ExternFunctionTemplataT(_) => }).size == templatas.size => {
@@ -649,7 +651,7 @@ class ExpressionCompiler(
               case things if things.size > 1 => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Found too many different things named \"" + name + "\" in env:\n" + things.map("\n" + _)))
               }
-              case Vector() => {
+              case Array() => {
                 throw CompileErrorExceptionT(CouldntFindIdentifierToLoadT(range :: parentRanges, name))
                 throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Couldn't find anything named \"" + name + "\" in env:\n" + nenv))
               }
@@ -809,6 +811,8 @@ class ExpressionCompiler(
                 val memberType =
                   TemplataCompiler.getPlaceholderSubstituter(
                     interner, keywords,
+                    nenv.functionEnvironment.templateId,
+                    false,
                     structTT.id,
                     // Use the bounds that we supplied to the struct
                     UseBoundsFromContainer(
@@ -1396,6 +1400,8 @@ class ExpressionCompiler(
                 val substituter =
                   TemplataCompiler.getPlaceholderSubstituter(
                     interner, keywords,
+                    nenv.functionEnvironment.templateId,
+                    false,
                     structTT.id,
                     // This type is already phrased in terms of our placeholders, so it can use the
                     // bounds it already has.
@@ -1526,7 +1532,7 @@ class ExpressionCompiler(
       range: List[RangeS],
       arrayMutability: MutabilityT,
       elementCoord: CoordT,
-      generatorPrototype: PrototypeT,
+      generatorPrototype: PrototypeT[IFunctionNameT],
       generatorType: CoordT
   ) = {
     if (generatorPrototype.returnType != elementCoord) {
@@ -1558,7 +1564,7 @@ class ExpressionCompiler(
     callLocation: LocationInDenizen,
     contextRegion: RegionT,
     containedCoord: CoordT):
-  (CoordT, PrototypeT, PrototypeT, IdT[IImplNameT], IdT[IImplNameT]) = {
+  (CoordT, PrototypeT[IFunctionNameT], PrototypeT[IFunctionNameT], IdT[IImplNameT], IdT[IImplNameT]) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Opt)), Set(TemplataLookupContext)).toList match {
         case List(it@InterfaceDefinitionTemplataT(_, _)) => it
@@ -1627,7 +1633,7 @@ class ExpressionCompiler(
     region: RegionT,
     containedSuccessCoord: CoordT,
     containedFailCoord: CoordT):
-  (CoordT, PrototypeT, IdT[IImplNameT], PrototypeT, IdT[IImplNameT]) = {
+  (CoordT, PrototypeT[IFunctionNameT], IdT[IImplNameT], PrototypeT[IFunctionNameT], IdT[IImplNameT]) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Result)), Set(TemplataLookupContext)).toList match {
         case List(it@InterfaceDefinitionTemplataT(_, _)) => it
