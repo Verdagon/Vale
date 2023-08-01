@@ -54,3 +54,25 @@ class CompilerGenericsTests extends FunSuite with Matchers {
   }
 }
 
+
+import v.builtins.panic.*;
+import v.builtins.drop.*;
+
+#!DeriveInterfaceDrop
+sealed interface XOpt<T Ref> where func drop(T)void {
+  func harvest(virtual opt XOpt<T>) &T;
+}
+
+#!DeriveStructDrop
+struct XNone<T Ref> where func drop(T)void  { }
+
+impl<T> XOpt<T> for XNone<T>;
+
+func harvest<T>(opt XNone<T>) &T {
+  __vbi_panic();
+}
+
+exported func main() int {
+  m XOpt<int> = XNone<int>();
+  return (m).harvest();
+}

@@ -27,7 +27,7 @@ case class InstantiationReachableBoundArgumentsT(
   // so the full instance here might be:
   //   (Bork<OFunc$T>, func Swib.bound:drop(OFunc$T)void -> func Swib.bound:drop(OFunc$T)void)
   // Later on, the instantiator will use these to supply the right instantiated functions to the callee for these calls.
-  callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction: Map[PrototypeTemplataT[FunctionBoundNameT], PrototypeT[IFunctionNameT]])
+  callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction: Map[PrototypeT[FunctionBoundNameT], PrototypeT[IFunctionNameT]])
 
 case class InstantiationBoundArgumentsT(
   // these will also include any bounds that are reachable from any parameters.
@@ -45,7 +45,7 @@ case class InstantiationBoundArgumentsT(
 
   calleeRuneToCallerBoundArgImpl: Map[IRuneS, IdT[IImplNameT]]) {
 
-  def getCallerRunePlaceholderedCalleeBoundFunctions(): Vector[PrototypeTemplataT[FunctionBoundNameT]] = {
+  def getCallerRunePlaceholderedCalleeBoundFunctions(): Vector[PrototypeT[FunctionBoundNameT]] = {
     callerRuneToReachableBoundArguments
         .values
         .flatMap(_.callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction.keys)

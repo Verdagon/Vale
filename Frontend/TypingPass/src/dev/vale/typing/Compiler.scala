@@ -403,7 +403,7 @@ class Compiler(
             PrototypeT(
               envs.originalCallingEnv.id.addStep(
                 interner.intern(FunctionBoundNameT(
-                  interner.intern(FunctionBoundTemplateNameT(name)), Vector(), coords))),
+                  interner.intern(FunctionBoundTemplateNameT(name, rune, range)), Vector(), coords))),
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.

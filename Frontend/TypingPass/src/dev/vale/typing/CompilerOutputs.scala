@@ -200,6 +200,8 @@ case class CompilerOutputs() {
             vassert(c._1 == d._1, index.toString)
             c._2.id.steps.zip(d._2.id.steps).zipWithIndex.foreach({
               case ((x, y), index) => {
+                // i believe harvest is including a DefinitionFuncSR from its parent interface, and thats probably
+                // conflicting with something we're inheriting somewhere?
                 vassert(x == y)
               }
             })

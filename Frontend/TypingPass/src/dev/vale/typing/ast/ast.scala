@@ -479,7 +479,7 @@ case class PrototypeT[+T <: IFunctionNameT](
     id: IdT[T],
     returnType: CoordT) {
   this match {
-    case PrototypeT(IdT(_, Vector(StructTemplateNameT(StrI("BorkForwarder"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"), _), Vector(), Vector(CoordT(own, RegionT(), KindPlaceholderT(IdT(_, Vector(InterfaceTemplateNameT(StrI("Bork")), FunctionTemplateNameT(StrI("bork"), _), OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(IdT(_, Vector(), ImplTemplateNameT(_))), Vector(), Vector(CoordT(borrow, RegionT(), InterfaceTT(IdT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Bork")), Vector()))))))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CaseRuneFromImplS(CodeRuneS(StrI("Lam"))))))))))), CoordT(share, RegionT(), VoidT())) => {
+    case PrototypeT(IdT(_, Vector(StructTemplateNameT(StrI("BorkForwarder"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"), _, _), Vector(), Vector(CoordT(own, RegionT(), KindPlaceholderT(IdT(_, Vector(InterfaceTemplateNameT(StrI("Bork")), FunctionTemplateNameT(StrI("bork"), _), OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(IdT(_, Vector(), ImplTemplateNameT(_))), Vector(), Vector(CoordT(borrow, RegionT(), InterfaceTT(IdT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Bork")), Vector()))))))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CaseRuneFromImplS(CodeRuneS(StrI("Lam"))))))))))), CoordT(share, RegionT(), VoidT())) => {
       vpass()
     }
     case _ =>

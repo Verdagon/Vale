@@ -19,7 +19,7 @@ case class IdT[+T <: INameT](
   localName: T
 )  {
   this match {
-    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop")),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
+    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"),_,_),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
       vpass()
     }
     case _ =>
@@ -371,8 +371,9 @@ case class FunctionBoundTemplateNameT(
   humanName: StrI,
   // We actually intentionally don't have these here because we want template names that come from various places to all
   // be mergeable into one canonical name after they're moved in the original denizen. DO NOT SUBMIT explain better
-  // rune: IRuneS,
-  // range: RangeS
+  // nevermind we put it back in
+  rune: IRuneS,
+  range: RangeS
 ) extends INameT with IFunctionTemplateNameT {
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {

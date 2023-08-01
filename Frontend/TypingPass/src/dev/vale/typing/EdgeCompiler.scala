@@ -476,7 +476,7 @@ class EdgeCompiler(
         dispatcherCaseId,
         // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here.
         reachableBoundsFromSubCitizen.toVector.zipWithIndex.map({ case (templata, num) =>
-          interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(templata)
+          interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(PrototypeTemplataT(range, templata))
         }))
 
     // Step 6: Use Case Environment to Find Override, see UCEFO.

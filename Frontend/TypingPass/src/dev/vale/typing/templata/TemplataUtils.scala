@@ -12,7 +12,7 @@ object simpleNameT {
       case LambdaCallFunctionNameT(_, _, _) => Some("__call")
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
-      case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _), _, _) => Some(humanName.str)
+      case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _, _), _, _) => Some(humanName.str)
       case ClosureParamNameT(_) => None
       case MagicParamNameT(_) => None
       case CodeVarNameT(name) => Some(name.str)

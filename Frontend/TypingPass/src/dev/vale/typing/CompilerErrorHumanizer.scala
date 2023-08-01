@@ -778,7 +778,7 @@ object CompilerErrorHumanizer {
       case TypingPassBlockResultVarNameT(life) => "b:" + life
       case TypingPassFunctionResultVarNameT() => "(result)"
       case TypingPassTemporaryVarNameT(life) => "t:" + life
-      case FunctionBoundTemplateNameT(humanName, codeLocation) => humanName.str
+      case FunctionBoundTemplateNameT(humanName, rune, range) => humanName.str
       case LambdaCallFunctionTemplateNameT(codeLocation, _) => "λF:" + codeMap(codeLocation)
       case LambdaCitizenTemplateNameT(codeLocation) => "λC:" + codeMap(codeLocation)
       case LambdaCallFunctionNameT(template, templateArgs, parameters) => {
