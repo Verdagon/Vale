@@ -38,6 +38,7 @@ class StructCompilerCore(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
     structA: StructA):
   Unit = {
     val templateArgs = structRunesEnv.id.localName.templateArgs
@@ -140,8 +141,8 @@ class StructCompilerCore(
       case _ => vcurious()
     })
 
-    val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structRunesEnv.templatas)
-    val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(structRunesEnv.templatas)
+    // val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structRunesEnv.templatas)
+    // val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(structRunesEnv.templatas)
 
     val structDefT =
       StructDefinitionT(
@@ -152,8 +153,9 @@ class StructCompilerCore(
         mutability,
         members,
         false,
-        runeToFunctionBound,
-        runeToImplBound)
+        instantiationBoundParams)
+        // runeToFunctionBound,
+        // runeToImplBound)
 
     coutputs.addStruct(structDefT);
   }
@@ -178,6 +180,7 @@ class StructCompilerCore(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
     interfaceA: InterfaceA):
   (InterfaceDefinitionT) = {
     val templateArgs = interfaceRunesEnv.id.localName.templateArgs
@@ -228,8 +231,9 @@ class StructCompilerCore(
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
-        runeToFunctionBound,
-        runeToImplBound,
+        instantiationBoundParams,
+        // runeToFunctionBound,
+        // runeToImplBound,
         internalMethods)
     coutputs.addInterface(interfaceDef2)
 
@@ -317,7 +321,9 @@ class StructCompilerCore(
       containingFunctionEnv.id.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
-    coutputs.addInstantiationBounds(understructTemplatedId, understructInstantiatedId, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+    coutputs.addInstantiationBounds(
+      interner,
+      understructTemplatedId, understructInstantiatedId, InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](Map(), Map(), Map()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
     val callNameT =
@@ -393,8 +399,9 @@ class StructCompilerCore(
         members,
         true,
         // Closures have no function bounds or impl bounds
-        Map(),
-        Map());
+        InstantiationBoundArgumentsT(Map(), Map(), Map()))
+        // Map(),
+        // Map());
     coutputs.addStruct(closureStructDefinition)
 
     val closuredVarsStructRef = understructStructTT;

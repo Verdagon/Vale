@@ -85,8 +85,7 @@ class EdgeCompiler(
                 overridingImpl.instantiatedId,
                 overridingCitizen,
                 overridingImpl.superInterface.id,
-                overridingImpl.runeToFuncBound,
-                overridingImpl.runeToImplBound,
+                overridingImpl.instantiationBoundParams,
                 foundFunctions.toMap)
             val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateId)
             overridingCitizenDef.instantiatedCitizen.id -> edge
@@ -404,8 +403,10 @@ class EdgeCompiler(
                 coutputs,
                 interner,
                 keywords,
-                vimpl(),
-                vimpl(),
+                dispatcherTemplateId,
+                // When we're in a case, we want to pull in the things that are callable for that struct. That'll help
+                // us call those functions later. ... i think DO NOT SUBMIT
+                true,
                 impl.templateId,
                 (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
                 // These are bounds we're bringing in from the sub citizen.
@@ -447,7 +448,7 @@ class EdgeCompiler(
         // from the struct we're solving for here.
       ) match {
         case Ok(CompleteResolveSolve(_, conclusions, instantiationBounds)) => {
-          (conclusions, instantiationBounds.getCallerRunePlaceholderedCalleeBoundFunctions())
+          (conclusions, instantiationBounds.getCallerRunePlaceholderedReachableFunctions())
         }
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(List(range), e))
       }
@@ -476,7 +477,7 @@ class EdgeCompiler(
         dispatcherCaseId,
         // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here.
         reachableBoundsFromSubCitizen.toVector.zipWithIndex.map({ case (templata, num) =>
-          interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(PrototypeTemplataT(range, templata))
+          interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(PrototypeTemplataT(templata))
         }))
 
     // Step 6: Use Case Environment to Find Override, see UCEFO.

@@ -95,7 +95,9 @@ class StructCompilerGenericArgsLayer(
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
       val id = declaringEnv.id.addStep(structName)
 
-      coutputs.addInstantiationBounds(originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
+      coutputs.addInstantiationBounds(
+        interner,
+        originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
       val structTT = interner.intern(StructTT(id))
 
       ResolveSuccess(structTT, inferences)
@@ -268,7 +270,8 @@ class StructCompilerGenericArgsLayer(
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
       val id = declaringEnv.id.addStep(interfaceName)
 
-      coutputs.addInstantiationBounds(originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
+      coutputs.addInstantiationBounds(
+        interner, originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
       val interfaceTT = interner.intern(InterfaceTT(id))
 
       ResolveSuccess(interfaceTT, inferences)
@@ -372,14 +375,14 @@ class StructCompilerGenericArgsLayer(
       // val allRulesS = structA.headerRules ++ structA.memberRules
       // val definitionRules = allRulesS.filter(InferCompiler.includeRuleInDefinitionSolve)
 
-      val CompleteDefineSolve(_, _, declaredBounds, reachableBounds) =
+      val CompleteDefineSolve(_, instantiationBoundParams) =
         inferCompiler.checkDefiningConclusionsAndResolve(
           outerEnv, coutputs, structA.range :: parentRanges, callLocation, RegionT(), definitionRules, Vector(), inferences) match {
           case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(structA.range :: parentRanges, DefiningResolveConclusionError(f)))
           case Ok(c) => c
         }
 
-      declaredBounds.foreach(bound => {
+      instantiationBoundParams.calleeRuneToCallerBoundArgFunction.values.foreach(bound => {
         val prototype = bound
         // Add it to the overload index
         TemplatasStore.getImpreciseName(interner, prototype.id.localName) match {
@@ -392,12 +395,12 @@ class StructCompilerGenericArgsLayer(
               opts.globalOptions.useOverloadIndex,
               impreciseName,
               prototype.id.localName.parameters.map(x => Some(x)),
-              PrototypeTemplataCalleeCandidate(prototype.id.localName.template.range, prototype))
+              PrototypeTemplataCalleeCandidate(prototype))
           }
         }
       })
 
-      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, callLocation, structA)
+      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, callLocation, instantiationBoundParams, structA)
     })
   }
 
@@ -454,14 +457,14 @@ class StructCompilerGenericArgsLayer(
           case Err(f) => throw CompileErrorExceptionT(typing.TypingPassSolverError(List(interfaceA.range), f))
           case Ok(c) => c
         }
-      val CompleteDefineSolve(inferences, _, declaredBounds, reachableBoundsFromParamsAndReturn) =
+      val CompleteDefineSolve(inferences, instantiationBoundParams) =
         inferCompiler.checkDefiningConclusionsAndResolve(
           envs.originalCallingEnv, coutputs, interfaceA.range :: parentRanges, callLocation, envs.contextRegion, definitionRules, Vector(), conclusions) match {
           case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(interfaceA.range :: parentRanges, DefiningResolveConclusionError(f)))
           case Ok(c) => c
         }
 
-      declaredBounds.foreach(prototype => {
+      instantiationBoundParams.calleeRuneToCallerBoundArgFunction.values.foreach(prototype => {
         // Add it to the overload index
         TemplatasStore.getImpreciseName(interner, prototype.id.localName) match {
           case None => {
@@ -473,7 +476,7 @@ class StructCompilerGenericArgsLayer(
               opts.globalOptions.useOverloadIndex,
               impreciseName,
               prototype.id.localName.parameters.map(x => Some(x)),
-              PrototypeTemplataCalleeCandidate(prototype.id.localName.template.range, prototype))
+              PrototypeTemplataCalleeCandidate(prototype))
           }
         }
       })
@@ -504,7 +507,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(interfaceTemplateId, innerEnv)
 
-      core.compileInterface(outerEnv, innerEnv, coutputs, parentRanges, callLocation, interfaceA)
+      core.compileInterface(outerEnv, innerEnv, coutputs, parentRanges, callLocation, instantiationBoundParams, interfaceA)
     })
   }
 

@@ -151,7 +151,7 @@ class PatternCompiler(
             }
             val rulesA = ruleBuilder.toVector
 
-            val CompleteDefineSolve(templatasByRune, _, Vector(), Vector()) =
+            val CompleteDefineSolve(templatasByRune, _) =
               // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
               // declaring a bunch of things.
               inferCompiler.solveForDefining(
@@ -596,8 +596,9 @@ class PatternCompiler(
         structTT.id,
         // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(
-          structDefT.runeToFunctionBound,
-          structDefT.runeToImplBound,
+          // structDefT.runeToFunctionBound,
+          // structDefT.runeToImplBound,
+          structDefT.instantiationBoundParams,
           vassertSome(coutputs.getInstantiationBounds(structTT.id))))
         .substituteForCoord(coutputs, unsubstitutedMemberCoord)
 

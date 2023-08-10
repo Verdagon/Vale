@@ -70,7 +70,8 @@ class FunctionCompilerCore(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    params2: Vector[ParameterT]):
+    params2: Vector[ParameterT],
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]):
   (FunctionHeaderT) = {
 //    opts.debugOut("Evaluating function " + fullEnv.fullName)
 
@@ -148,7 +149,7 @@ class FunctionCompilerCore(
                   header.toPrototype,
                   (coutputs) => {
                     finishFunctionMaybeDeferred(
-                      coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, Some(returnCoord))
+                      coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, Some(returnCoord), instantiationBoundParams)
                   }))
 
               (header)
@@ -157,7 +158,7 @@ class FunctionCompilerCore(
               // This can happen for templates such as lambdas.
               val header =
                 finishFunctionMaybeDeferred(
-                  coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, None)
+                  coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, None, instantiationBoundParams)
               (header)
             }
           }
@@ -191,14 +192,14 @@ class FunctionCompilerCore(
 
               // DO NOT SUBMIT maybe unify with below generated case
               finishGeneratedOrAbstractFunctionMaybeDeferred(
-                coutputs, fullEnv, callRange, callLocation, life, attributesT, signature2, params2, isDestructor, Some(returnCoord))
+                coutputs, fullEnv, callRange, callLocation, life, instantiationBoundParams, signature2, params2, Some(returnCoord))
 
               (header)
             }
             case None => {
               val header =
                 finishGeneratedOrAbstractFunctionMaybeDeferred(
-                  coutputs, fullEnv, callRange, callLocation, life, attributesT, signature2, params2, isDestructor, None)
+                  coutputs, fullEnv, callRange, callLocation, life, instantiationBoundParams, signature2, params2, None)
               (header)
             }
           }
@@ -222,7 +223,7 @@ class FunctionCompilerCore(
                   header.toPrototype,
                   (coutputs) => {
                     finishGeneratedOrAbstractFunctionMaybeDeferred(
-                      coutputs, fullEnv, callRange, callLocation, life, attributesT, signature2, params2, isDestructor, Some(returnCoord))
+                      coutputs, fullEnv, callRange, callLocation, life, instantiationBoundParams, signature2, params2, Some(returnCoord))
                   }))
 
               (header)
@@ -230,7 +231,7 @@ class FunctionCompilerCore(
             case None => {
               val header =
                 finishGeneratedOrAbstractFunctionMaybeDeferred(
-                  coutputs, fullEnv, callRange, callLocation, life, attributesT, signature2, params2, isDestructor, None)
+                  coutputs, fullEnv, callRange, callLocation, life, instantiationBoundParams, signature2, params2, None)
               (header)
             }
           }
@@ -304,10 +305,9 @@ class FunctionCompilerCore(
       callRange: List[RangeS],
       callLocation: LocationInDenizen,
       life: LocationInFunctionEnvironmentT,
-      attributesT: Vector[IFunctionAttributeT],
+      instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
       signature2: SignatureT,
       paramsT: Vector[ParameterT],
-      isDestructor: Boolean,
       maybeExplicitReturnCoord: Option[CoordT]):
   FunctionHeaderT = {
 
@@ -360,11 +360,9 @@ class FunctionCompilerCore(
     // DO NOT SUBMIT find all vars in here suffixed 2
 
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
-    val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnvSnapshot.templatas)
-    val neededImplBounds = TemplataCompiler.assembleRuneToImplBound(fullEnvSnapshot.templatas)
     coutputs.addFunction(
       interner,
-      FunctionDefinitionT(header, neededFunctionBounds, neededImplBounds, body))
+      FunctionDefinitionT(header, instantiationBoundParams, body))
 
     if (header.toSignature != signature2) {
       throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
@@ -384,7 +382,8 @@ class FunctionCompilerCore(
       attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
       isDestructor: Boolean,
-      maybeExplicitReturnCoord: Option[CoordT]):
+      maybeExplicitReturnCoord: Option[CoordT],
+      instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]):
   FunctionHeaderT = {
     val (maybeEvaluatedRetCoord, body2) =
       bodyCompiler.declareAndEvaluateFunctionBody(
@@ -417,7 +416,7 @@ class FunctionCompilerCore(
     vassert(coutputs.lookupFunction(header.toSignature).isEmpty)
     val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnvSnapshot.templatas)
     val neededImplBounds = TemplataCompiler.assembleRuneToImplBound(fullEnvSnapshot.templatas)
-    val function2 = FunctionDefinitionT(header, neededFunctionBounds, neededImplBounds, body2);
+    val function2 = FunctionDefinitionT(header, instantiationBoundParams, body2);
     coutputs.addFunction(interner, function2)
     header
   }
@@ -454,15 +453,16 @@ class FunctionCompilerCore(
         val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT[ExternFunctionNameT](externFunctionId, header.returnType)
 
-        coutputs.addInstantiationBounds(env.templateId, externPrototype.id, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+        coutputs.addInstantiationBounds(
+          interner,
+          env.templateId, externPrototype.id, InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](Map(), Map(), Map()))
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })
         val function2 =
           FunctionDefinitionT(
             header,
-            Map(),
-            Map(),
+            InstantiationBoundArgumentsT(Map(), Map(), Map()),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
         coutputs.declareFunctionReturnType(header.toSignature, header.returnType)

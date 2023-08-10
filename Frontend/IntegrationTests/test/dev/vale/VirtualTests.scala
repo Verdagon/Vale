@@ -263,6 +263,98 @@ class VirtualTests extends FunSuite with Matchers {
     val coutputs = compile.getHamuts()
   }
 
+  test("Splork") { // DO NOT SUBMIT
+    // strt here
+    // when the instantiator is translating bork's param self, it looks in the ambient bounds for a splork
+    // to translate bounds and it cant find them.
+    // we should probably have typing phase add those to the instantiation bounds maybe?
+    // or maybe those bounds should be satisfied by types themselves?
+    val compile = RunCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct Spork<T Ref, Y>
+        |where func splork(Y)void {
+        |  lam Y;
+        |}
+        |
+        |func bork<T, Y>(
+        |  self &Spork<T, Y> // It has trouble here finding the bound for splork
+        |) { }
+        |
+        |func splork(x int) {}
+        |
+        |exported func main() int {
+        |  f = Spork<int>(42);
+        |  f.bork(); // shouldnt we be feeding in Spork's instantiation bounds here for the params' reachables?
+        |  [z] = f;
+        |  return z;
+        |}
+  """.stripMargin)
+    compile.evalForKind(Vector())
+  }
+
+  test("Generic interface forwarder with bound") {
+    val compile = RunCompilation.test(
+      """
+        |#!DeriveInterfaceDrop
+        |sealed interface Bork<T Ref>
+        |where func threeify(T)T {
+        |  func bork(virtual self &Bork<T>) int;
+        |}
+        |
+        |#!DeriveStructDrop
+        |struct BorkForwarder<T Ref, Lam>
+        |where func drop(Lam)void, func __call(&Lam)T, func threeify(T)T {
+        |  lam Lam;
+        |}
+        |
+        |impl<T, Lam> Bork<T> for BorkForwarder<T, Lam>;
+        |
+        |func bork<T, Lam>(self &BorkForwarder<T, Lam>) T {
+        |  return (self.lam)().threeify();
+        |}
+        |
+        |func threeify(x int) int { 3 }
+        |
+        |exported func main() int {
+        |  f = BorkForwarder<int>({ 7 });
+        |  z = f.bork();
+        |  [_] = f;
+        |  return z;
+        |}
+    """.stripMargin)
+    compile.evalForKind(Vector())
+  }
+
+  test("Generic interface forwarder with drop bound") {
+    val compile = RunCompilation.test(
+      """
+        |sealed interface Bork<T Ref>
+        |where func threeify(T)T {
+        |  func bork(virtual self &Bork<T>) int;
+        |}
+        |
+        |struct BorkForwarder<T Ref, Lam>
+        |where func drop(Lam)void, func __call(&Lam)T, func threeify(T)T {
+        |  lam Lam;
+        |}
+        |
+        |impl<T, Lam> Bork<T> for BorkForwarder<T, Lam>;
+        |
+        |func bork<T, Lam>(self &BorkForwarder<T, Lam>) T {
+        |  return (self.lam)().threeify();
+        |}
+        |
+        |func threeify(x int) int { 3 }
+        |
+        |exported func main() int {
+        |  f = BorkForwarder<int>({ 7 });
+        |  return f.bork();
+        |}
+  """.stripMargin)
+    compile.evalForKind(Vector())
+  }
+
   test("Open interface constructor") {
     val compile = RunCompilation.test(
       """
@@ -396,4 +488,5 @@ class VirtualTests extends FunSuite with Matchers {
         |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonStr("42true") => }
   }
+
 }

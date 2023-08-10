@@ -153,7 +153,7 @@ class Compiler(
             case StructDefinitionTemplataT(_,_) =>
             case ImplDefinitionTemplataT(_,_) =>
             case CoordListTemplataT(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
-            case PrototypeTemplataT(_, prototype) => {
+            case PrototypeTemplataT(prototype) => {
               getPlaceholdersInId(accum, prototype.id)
               prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
               getPlaceholdersInKind(accum, prototype.returnType.kind)
@@ -378,13 +378,12 @@ class Compiler(
           returnCoord: CoordT):
         PrototypeTemplataT[IFunctionNameT] = {
           PrototypeTemplataT(
-            functionRange,
             PrototypeT(
               // We do this so that we never get any arbitrary conflicting names, this will effectively merge the things DO NOT SUBMIT
               envs.originalCallingEnv.id.addStep(
                 interner.intern(
-                  FunctionNameT(
-                    interner.intern(FunctionTemplateNameT(name, functionRange.begin)),
+                  PredictedFunctionNameT(
+                    interner.intern(PredictedFunctionTemplateNameT(name)),
                     Vector(),
                     paramCoords))),
               returnCoord))
@@ -403,11 +402,11 @@ class Compiler(
             PrototypeT(
               envs.originalCallingEnv.id.addStep(
                 interner.intern(FunctionBoundNameT(
-                  interner.intern(FunctionBoundTemplateNameT(name, rune, range)), Vector(), coords))),
+                  interner.intern(FunctionBoundTemplateNameT(name)), Vector(), coords))),
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
-          state.addInstantiationBounds(envs.originalCallingEnv.denizenTemplateId, result.id, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+          state.addInstantiationBounds(interner, envs.originalCallingEnv.denizenTemplateId, result.id, InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](Map(), Map(), Map()))
 
           result
         }
@@ -1114,6 +1113,7 @@ class Compiler(
                       // Though, we do need to add some instantiation bounds for this new IdT we
                       // just made.
                       coutputs.addInstantiationBounds(
+                        interner,
                         templateId,
                         externPrototype.id,
                         vassertSome(coutputs.getInstantiationBounds(externPlaceholderedWrapperPrototype.id)))
@@ -1192,7 +1192,7 @@ class Compiler(
               ExportEnvironmentT(
                 globalEnv, packageEnv, templateId, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
 
-            val CompleteDefineSolve(templataByRune, _, Vector(), Vector()) =
+            val CompleteDefineSolve(templataByRune, _) =
               inferCompiler.solveForDefining(
                 InferEnv(exportEnv, List(range), LocationInDenizen(Vector()), exportEnv, regionPlaceholder),
                 coutputs, rules, runeToType, List(range),
@@ -1503,7 +1503,7 @@ class Compiler(
                 interner,
                 keywords,
                 structDef.templateName,
-                vimpl(),
+                false,
                 sr.id,
                 InheritBoundsFromTypeItself)
 

@@ -610,10 +610,11 @@ object CompilerErrorHumanizer {
       case HeaderCalleeCandidate(header) => {
         humanizeId(codeMap, header.id)
       }
-      case PrototypeTemplataCalleeCandidate(range, prototypeT) => {
-        val begin = lineRangeContaining(range.begin).begin
-        codeMap(begin) + ":\n" +
-          lineRangeContaining(begin).begin + "\n"
+      case PrototypeTemplataCalleeCandidate(prototypeT) => {
+        // val begin = lineRangeContaining(range.begin).begin
+        // codeMap(begin) + ":\n" +
+        //   lineRangeContaining(begin).begin + "\n"
+        "" // DO NOT SUBMIT
       }
       case FunctionCalleeCandidate(ft) => {
         val begin = lineRangeContaining(ft.function.range.begin).begin
@@ -653,7 +654,7 @@ object CompilerErrorHumanizer {
           case ShareT => "share"
         }
       }
-      case PrototypeTemplataT(range, prototype) => {
+      case PrototypeTemplataT(prototype) => {
         humanizeId(codeMap, prototype.id)
       }
       case CoordTemplataT(coord) => {
@@ -778,7 +779,7 @@ object CompilerErrorHumanizer {
       case TypingPassBlockResultVarNameT(life) => "b:" + life
       case TypingPassFunctionResultVarNameT() => "(result)"
       case TypingPassTemporaryVarNameT(life) => "t:" + life
-      case FunctionBoundTemplateNameT(humanName, rune, range) => humanName.str
+      case FunctionBoundTemplateNameT(humanName) => humanName.str
       case LambdaCallFunctionTemplateNameT(codeLocation, _) => "λF:" + codeMap(codeLocation)
       case LambdaCitizenTemplateNameT(codeLocation) => "λC:" + codeMap(codeLocation)
       case LambdaCallFunctionNameT(template, templateArgs, parameters) => {

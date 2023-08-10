@@ -19,7 +19,22 @@ case class IdT[+T <: INameT](
   localName: T
 )  {
   this match {
-    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"),_,_),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
+    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop")),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(StructTemplateNameT(StrI("XNone"))),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop")),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(PackageCoordinate(StrI("test"),Vector()),Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(PackageCoordinate(StrI("test"),Vector()),Vector(),ImplTemplateNameT(_)))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,DispatcherRuneFromImplS(CodeRuneS(StrI("T"))))))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(share,RegionT(),StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop")),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("Lam")))))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),FunctionNameT(FunctionTemplateNameT(StrI("splork"),_),Vector(),Vector(CoordT(share,RegionT(),IntT(32))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Spork")),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32))), CoordTemplataT(CoordT(_,RegionT(),IntT(32)))))) => {
       vpass()
     }
     case _ =>
@@ -372,8 +387,16 @@ case class FunctionBoundTemplateNameT(
   // We actually intentionally don't have these here because we want template names that come from various places to all
   // be mergeable into one canonical name after they're moved in the original denizen. DO NOT SUBMIT explain better
   // nevermind we put it back in
-  rune: IRuneS,
-  range: RangeS
+  // actually i dont think we can ever really have it.
+  // consider:
+  //   struct AStruct<T> where func drop(T)void { ... }
+  //   struct BStruct<T> where func drop(T)void { ... }
+  //   func moo(a AStruct<T>, B BStruct<T>) { ... }
+  // we'll be pulling in the existence of a func drop(T)void from both places. But even when we move them, they'll
+  // have different runes and ranges, and so won't merge properly.
+  // DO NOT SUBMIT document this merging stuff better
+  // rune: IRuneS,
+  // range: RangeS
 ) extends INameT with IFunctionTemplateNameT {
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {
@@ -385,6 +408,42 @@ case class FunctionBoundNameT(
   template: FunctionBoundTemplateNameT,
   templateArgs: Vector[ITemplataT[ITemplataType]],
   parameters: Vector[CoordT]
+) extends IFunctionNameT
+
+case class ReachableFunctionTemplateNameT(
+    humanName: StrI,
+    // DO NOT SUBMIT talk about why we dont have these. we want them to merge.
+    // reachableViaCitizen: ICitizenTT,
+    // runeInCitizen: IRuneS,
+) extends INameT with IFunctionTemplateNameT {
+  vpass()
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): ReachableFunctionNameT = {
+    interner.intern(ReachableFunctionNameT(this, templateArgs, params))
+  }
+}
+
+case class ReachableFunctionNameT(
+    template: ReachableFunctionTemplateNameT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
+    parameters: Vector[CoordT]
+) extends IFunctionNameT {
+  vpass()
+}
+
+// DO NOT SUBMIT doc
+case class PredictedFunctionTemplateNameT(
+    humanName: StrI
+) extends INameT with IFunctionTemplateNameT {
+  vpass()
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): PredictedFunctionNameT = {
+    interner.intern(PredictedFunctionNameT(this, templateArgs, params))
+  }
+}
+
+case class PredictedFunctionNameT(
+    template: PredictedFunctionTemplateNameT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
+    parameters: Vector[CoordT]
 ) extends IFunctionNameT
 
 case class FunctionTemplateNameT(

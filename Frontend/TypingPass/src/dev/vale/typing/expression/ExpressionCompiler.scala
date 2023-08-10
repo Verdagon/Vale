@@ -642,7 +642,7 @@ class ExpressionCompiler(
               case Array(t @ PlaceholderTemplataT(name, IntegerTemplataType())) => {
                 ConstantIntTE(PlaceholderTemplataT(name, IntegerTemplataType()), 32, region)
               }
-              case templatas if templatas.nonEmpty && templatas.collect({ case FunctionTemplataT(_, _) => case ExternFunctionTemplataT(_) => }).size == templatas.size => {
+              case templatas if templatas.nonEmpty && templatas.collect({ case FunctionTemplataT(_, _) => }).size == templatas.size => {
                 if (targetOwnership == MoveP) {
                   throw CompileErrorExceptionT(CantMoveFromGlobal(range :: parentRanges, "Can't move from globals. Name: " + name))
                 }
@@ -816,8 +816,9 @@ class ExpressionCompiler(
                     structTT.id,
                     // Use the bounds that we supplied to the struct
                     UseBoundsFromContainer(
-                      structDef.runeToFunctionBound,
-                      structDef.runeToImplBound,
+                      structDef.instantiationBoundParams,
+                      // structDef.runeToFunctionBound,
+                      // structDef.runeToImplBound,
                       vassertSome(coutputs.getInstantiationBounds(structTT.id))))
                     .substituteForCoord(coutputs, unsubstitutedMemberType)
 
@@ -1017,7 +1018,7 @@ class ExpressionCompiler(
                 32,
                 region), Set())
             }
-            case pt @ PrototypeTemplataT(_, _) => {
+            case pt @ PrototypeTemplataT(_) => {
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)
                   .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))

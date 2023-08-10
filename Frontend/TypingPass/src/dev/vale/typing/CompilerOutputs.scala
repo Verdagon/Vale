@@ -88,8 +88,8 @@ case class CompilerOutputs() {
   // This map is how we remember it.
   // Here, we'd remember: [drop<int>(Opt<int>), [Rune1337, drop(int)]].
   // We also do this for structs and interfaces too.
-  private val instantiationNameToInstantiationBounds: mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArgumentsT] =
-    mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArgumentsT]()
+  private val instantiationNameToInstantiationBounds: mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]] =
+    mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]]()
 
   // A queue of functions that our code uses, but we don't need to compile them right away.
   // We can compile them later. Perhaps in parallel, someday!
@@ -125,7 +125,7 @@ case class CompilerOutputs() {
     deferredFunctionCompiles -= name
   }
 
-  def getInstantiationNameToFunctionBoundToRune(): Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT] = {
+  def getInstantiationNameToFunctionBoundToRune(): Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]] = {
     instantiationNameToInstantiationBounds.toMap
   }
 
@@ -135,14 +135,15 @@ case class CompilerOutputs() {
 
   def getInstantiationBounds(
     instantiationId: IdT[IInstantiationNameT]):
-  Option[InstantiationBoundArgumentsT] = {
+  Option[InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]] = {
     instantiationNameToInstantiationBounds.get(instantiationId)
   }
 
   def addInstantiationBounds(
+    interner: Interner, // DO NOT SUBMIT take this out
     originalCallingTemplateId: IdT[ITemplateNameT],
     instantiationId: IdT[IInstantiationNameT],
-    functionBoundToRune: InstantiationBoundArgumentsT):
+    functionBoundToRune: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
   Unit = {
     val InstantiationBoundArgumentsT(
     calleeRuneToCallerBoundArgFunction,
@@ -150,29 +151,72 @@ case class CompilerOutputs() {
     calleeRuneToCallerBoundArgImpl) =
       functionBoundToRune
 
+    instantiationId match {
+      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashSet")),Vector(CoordTemplataT(CoordT(share,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))), CoordTemplataT(CoordT(OwnT,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("H")))))))), CoordTemplataT(CoordT(OwnT,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(2,CodeRuneS(StrI("E"))))))))))) => {
+        vpass()
+      }
+      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashSetDiffIterator")),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("H")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(2,CodeRuneS(StrI("E"))))))))))) => {
+        vpass()
+      }
+      case IdT(_,Vector(),ImplNameT(ImplTemplateNameT(_),Vector(CoordTemplataT(CoordT(share,RegionT(),IntT(32)))),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("XNone")),Vector(CoordTemplataT(CoordT(ShareT,RegionT(),IntT(32))))))))) => {
+        vpass()
+      }
+      case IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("XOpt")),Vector(CoordTemplataT(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(_,Vector(),ImplTemplateNameT(_)))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,DispatcherRuneFromImplS(CodeRuneS(StrI("T")))))))))))) => {
+        vpass()
+      }
+      case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Spork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32))), CoordTemplataT(CoordT(_,RegionT(),IntT(32)))),Vector(CoordT(share,RegionT(),IntT(32))))) => {
+        vpass()
+      }
+      
+      case _ =>
+    }
+
     // We do this so that there's no random selection of where we get a particular bound from. Keeps things nice and
     // consistent so we dont run into any more oddities downstream. DO NOT SUBMIT
-    callerRuneToReachableBoundArguments.foreach({ case (rune, reachableBoundArgs) =>
-      val InstantiationReachableBoundArgumentsT(callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction) =
+    callerRuneToReachableBoundArguments.foreach({ case (callerRUne, reachableBoundArgs) =>
+      val InstantiationReachableBoundArgumentsT(citizenAndRuneAndReachablePrototypes) =
         reachableBoundArgs
-      callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction.foreach({
-        case (callerPlaceholderedCalleeBoundFunction, callerBoundArgFunction) => {
-          vassert(callerPlaceholderedCalleeBoundFunction.id.initSteps == originalCallingTemplateId.steps)
+      citizenAndRuneAndReachablePrototypes.foreach({
+        case (calleeRune, reachablePrototype) => {
+          vassert(
+            TemplataCompiler.getSuperTemplate(reachablePrototype.id).initSteps
+                .startsWith(TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps))
         }
       })
     })
     calleeRuneToCallerBoundArgFunction.foreach({ case (rune, callerBoundArgFunction) =>
       callerBoundArgFunction.id.localName match {
         case FunctionBoundNameT(_, _, _) => {
-          vassert(callerBoundArgFunction.id.initSteps == originalCallingTemplateId.steps)
+          vassert(
+            TemplataCompiler.getSuperTemplate(callerBoundArgFunction.id).initSteps
+                .startsWith(TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps))
         }
         case _ =>
       }
     })
     // DO NOT SUBMIT
     Collector.all(instantiationId, {
-      case IdT(_, initSteps, KindPlaceholderNameT(_)) => {
-        vassert(initSteps == originalCallingTemplateId.steps)
+      case id @ IdT(_, initSteps, KindPlaceholderNameT(_)) => {
+        val x: IdT[INameT] = id
+
+        vassert(
+          TemplataCompiler.getSuperTemplate(x).initSteps
+              .startsWith(TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps))
+        // DO NOT SUBMIT
+
+        // // vassert(initSteps == originalCallingTemplateId.steps)
+        // originalCallingTemplateId.localName match {
+        //   case OverrideDispatcherCaseNameT(independentImplTemplateArgs) => {
+        //     // These have their own name, so just use their init steps
+        //     vassert(initSteps.init == originalCallingTemplateId.initSteps.init)
+        //     vassert(initSteps.last == (originalCallingTemplateId.initSteps.last match { case o @ OverrideDispatcherNameT(_, _, _) => o.template }))
+        //   }
+        //   case _ => {
+        //     vassert(
+        //       TemplataCompiler.getSuperTemplate(id).initSteps
+        //           .startsWith(TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps))
+        //   }
+        // }
       }
     })
 
@@ -190,7 +234,7 @@ case class CompilerOutputs() {
         // resolver which only returns one. We might need to make it not arbitrarily choose a
         // function to call. Perhaps it should tiebreak and choose the first bound that works.
         // DO NOT SUBMIT we're probably still arbitrarily choosing lol
-        existing.callerRuneToReachableBoundArguments.zip(functionBoundToRune.callerRuneToReachableBoundArguments).zipWithIndex.foreach({
+        existing.callerKindRuneToReachableBoundArguments.zip(functionBoundToRune.callerKindRuneToReachableBoundArguments).zipWithIndex.foreach({
           case ((a, b), index) => {
             vassert(a == b, index.toString)
           }
@@ -212,19 +256,6 @@ case class CompilerOutputs() {
 
       }
       case None =>
-    }
-
-    instantiationId match {
-      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashSet")),Vector(CoordTemplataT(CoordT(share,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))), CoordTemplataT(CoordT(OwnT,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("H")))))))), CoordTemplataT(CoordT(OwnT,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(2,CodeRuneS(StrI("E"))))))))))) => {
-        vpass()
-      }
-      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashSetDiffIterator")),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("K")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("H")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("HashSetDiffIterator")), FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(2,CodeRuneS(StrI("E"))))))))))) => {
-        vpass()
-      }
-      case IdT(_,Vector(),ImplNameT(ImplTemplateNameT(_),Vector(CoordTemplataT(CoordT(share,RegionT(),IntT(32)))),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("XNone")),Vector(CoordTemplataT(CoordT(ShareT,RegionT(),IntT(32))))))))) => {
-        vpass()
-      }
-      case _ =>
     }
 
     instantiationNameToInstantiationBounds.put(instantiationId, functionBoundToRune)

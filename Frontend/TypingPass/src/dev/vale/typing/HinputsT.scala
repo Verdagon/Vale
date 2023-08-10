@@ -12,8 +12,11 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
-case class InstantiationReachableBoundArgumentsT(
-  // callerPlaceholderedCitizen: ICitizenTT, DO NOT SUBMIT
+// R is ReachableFunctionNameT when we're defining, or IFunctionNameT when defining
+// We reuse the same class for these differences because what the caller does should generally line up with what the
+// callee does.
+case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
+  // callerPlaceholderedCitizen: ICitizenTT, // DO NOT SUBMIT
 
   // Let's say this struct is for main's Fub call's first argument in this:
   //   #!DeriveStructDrop struct StructWBounds<T> where func drop(T)void { ... }
@@ -27,9 +30,15 @@ case class InstantiationReachableBoundArgumentsT(
   // so the full instance here might be:
   //   (Bork<OFunc$T>, func Swib.bound:drop(OFunc$T)void -> func Swib.bound:drop(OFunc$T)void)
   // Later on, the instantiator will use these to supply the right instantiated functions to the callee for these calls.
-  callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction: Map[PrototypeT[FunctionBoundNameT], PrototypeT[IFunctionNameT]])
+  // callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction: Map[PrototypeT[FunctionBoundNameT], PrototypeT[IFunctionNameT]] DO NOT SUBMIT
 
-case class InstantiationBoundArgumentsT(
+  citizenAndRuneAndReachablePrototypes: Map[IRuneS, PrototypeT[R]]
+)
+
+// R and B are ReachableFunctionNameT and FunctionBoundNameT when we're defining, or IFunctionNameT when defining
+// We reuse the same class for these differences because what the caller does should generally line up with what the
+// callee does.
+case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
   // these will also include any bounds that are reachable from any parameters.
   // we can't reach into the instantiated type in the instantiator stage to get the PrototypeI's but in the typing
   // phase the caller refers to them phrased in terms of its own placeholders.
@@ -37,19 +46,22 @@ case class InstantiationBoundArgumentsT(
   // the key here is the callee function declaration which we'll fill.
   // the value here is the caller-placeholdered function
   // DO NOT SUBMIT
-  calleeRuneToCallerBoundArgFunction: Map[IRuneS, PrototypeT[IFunctionNameT]],
+  calleeRuneToCallerBoundArgFunction: Map[IRuneS, PrototypeT[BF]],
 
   // Actually no, they'll be in here DO NOT SUBMIT
   // these are how the caller's body will refer to those bound functions inside the citizen
-  callerRuneToReachableBoundArguments: Map[IRuneS, InstantiationReachableBoundArgumentsT],
+  // ...these are never used by the instantiator, so maybe they shouldnt be here
+  // These are not us supplying things to the thing we're instantiating, this is us harvesting things from the thing
+  // we're instantiating. Instantiating denizens should *pull* from the callee to introduce things into its own scope.
+  callerKindRuneToReachableBoundArguments: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
 
-  calleeRuneToCallerBoundArgImpl: Map[IRuneS, IdT[IImplNameT]]) {
+  calleeRuneToCallerBoundArgImpl: Map[IRuneS, IdT[BI]]) {
 
-  def getCallerRunePlaceholderedCalleeBoundFunctions(): Vector[PrototypeT[FunctionBoundNameT]] = {
-    callerRuneToReachableBoundArguments
+  def getCallerRunePlaceholderedReachableFunctions(): Array[PrototypeT[RF]] = {
+    callerKindRuneToReachableBoundArguments
         .values
-        .flatMap(_.callerPlaceholderedCalleeBoundFunctionToCallerBoundArgFunction.keys)
-        .toVector
+        .flatMap(_.citizenAndRuneAndReachablePrototypes.map(_._2))
+        .toArray
   }
 }
 
@@ -65,7 +77,7 @@ case class HinputsT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[IdT[IInterfaceNameT], Map[IdT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT],
+  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -114,7 +126,7 @@ case class HinputsT(
     vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implId))
   }
 
-  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT = {
+  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT] = {
     vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 

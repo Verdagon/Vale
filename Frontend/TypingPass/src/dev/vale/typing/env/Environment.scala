@@ -1,6 +1,6 @@
 package dev.vale.typing.env
 
-import dev.vale.{CodeLocationS, Err, Interner, Ok, PackageCoordinate, Profiler, Result, StrI, U, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{CodeLocationS, Err, Interner, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, U, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.macros.citizen._
@@ -135,7 +135,9 @@ case class GlobalEnvironment(
   nameToTopLevelEnvironment: Map[IdT[PackageTopLevelNameT], TemplatasStore],
   // Primitives and other builtins
   builtins: TemplatasStore
-)
+) {
+  override def toString: String = "GlobalEnvironment#"
+}
 
 object TemplatasStore {
   def entryMatchesFilter(entry: IEnvEntry, contexts: Set[ILookupContext]): Boolean = {
@@ -151,7 +153,7 @@ object TemplatasStore {
 //          case PrototypeTemplata(_, _, _) => true
           case CoordTemplataT(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplataT(_) => contexts.contains(TemplataLookupContext)
-          case PrototypeTemplataT(_, _) => true
+          case PrototypeTemplataT(_) => true
           case KindTemplataT(_) => contexts.contains(TemplataLookupContext)
           case StructDefinitionTemplataT(_, _) => contexts.contains(TemplataLookupContext)
           case InterfaceDefinitionTemplataT(_, _) => contexts.contains(TemplataLookupContext)
@@ -167,7 +169,7 @@ object TemplatasStore {
           case OwnershipTemplataT(_) => contexts.contains(TemplataLookupContext)
           case VariabilityTemplataT(_) => contexts.contains(TemplataLookupContext)
 //          case ExternImplTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case ExternFunctionTemplataT(_) => contexts.contains(ExpressionLookupContext)
+//           case ExternFunctionTemplataT(_) => contexts.contains(ExpressionLookupContext)
         }
       }
     }
@@ -222,7 +224,11 @@ object TemplatasStore {
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
       case ForwarderFunctionNameT(_, inner) => getImpreciseName(interner, inner)
       case FunctionBoundNameT(inner, _, _) => getImpreciseName(interner, inner)
-      case FunctionBoundTemplateNameT(humanName, _, _) => Some(interner.intern(CodeNameS(humanName)))
+      case FunctionBoundTemplateNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
+      case ReachableFunctionNameT(inner, _, _) => getImpreciseName(interner, inner)
+      case ReachableFunctionTemplateNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
+      case PredictedFunctionNameT(inner, _, _) => getImpreciseName(interner, inner)
+      case PredictedFunctionTemplateNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
       case LambdaCallFunctionNameT(_, _, _) => {
         None // I don't think anyone will ever need to look up a specific lambda incarnation by name
       }
@@ -288,7 +294,7 @@ case class TemplatasStore(
       newEntries
         .toVector
         .flatMap({
-          case (key, value @ TemplataEnvEntry(PrototypeTemplataT(_, prototype))) => {
+          case (key, value @ TemplataEnvEntry(PrototypeTemplataT(prototype))) => {
             // This is so if we have:
             //    where func moo(T)T
             // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)

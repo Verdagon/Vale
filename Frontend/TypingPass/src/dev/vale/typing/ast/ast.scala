@@ -43,8 +43,9 @@ case class ImplT(
   superInterfaceTemplateId: IdT[IInterfaceTemplateNameT],
 
   // This is similar to FunctionT.runeToFuncBound
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  // runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
+  // runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
 
   runeIndexToIndependence: Vector[Boolean],
 
@@ -52,7 +53,7 @@ case class ImplT(
   // citizen, and a case block from its receiving kind.
   // We'll need to remember those, so the instantiator can do its thing.
   // See TIBANFC for more.
-  reachableBoundsFromSubCitizen: Vector[PrototypeT[IFunctionNameT]]
+  reachableBoundsFromSubCitizen: Array[PrototypeT[IFunctionNameT]] // DO NOT SUBMIT do we need this or do we get it from elsewhere
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
@@ -153,6 +154,7 @@ case class OverrideT(
   overridePrototype: PrototypeT[IFunctionNameT]
 )
 
+// DO NOT SUBMIT rename this or ImplT
 case class EdgeT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   edgeId: IdT[IImplNameT],
@@ -160,9 +162,11 @@ case class EdgeT(
   subCitizen: ICitizenTT,
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   superInterface: IdT[IInterfaceNameT],
-  // This is similar to FunctionT.runeToFuncBound
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  // // This is similar to FunctionT.runeToFuncBound
+  // runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
+  // runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  // DO NOT SUBMIT
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   abstractFuncToOverrideFunc: Map[IdT[IFunctionNameT], OverrideT]
 ) {
@@ -170,7 +174,7 @@ case class EdgeT(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case EdgeT(thatEdgeId, thatStruct, thatInterface, _, _, _) => {
+      case EdgeT(thatEdgeId, thatStruct, thatInterface, _, _) => {
         val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
           vassert(edgeId == thatEdgeId)
@@ -183,8 +187,10 @@ case class EdgeT(
 
 case class FunctionDefinitionT(
   header: FunctionHeaderT,
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  // runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
+  // runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  // callerRuneAndCitizenRuneAndReachablePrototypes: Array[(IRuneS, IRuneS, PrototypeT[ReachableFunctionNameT])], // DO NOT SUBMIT doc
   body: ReferenceExpressionTE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
@@ -236,7 +242,15 @@ case class FunctionCalleeCandidate(ft: FunctionTemplataT) extends ICalleeCandida
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
+// DO NOT SUBMIT are these all bounds? should we rename to BoundCalleeCandidate?
+case class PrototypeTemplataCalleeCandidate(
+    // We don't want a range because we want to merge all sorts of different bound functions DO NOT SUBMIT doc better
+    // We could give them the range of their parent perhaps... but no, that can be retrieved from
+    // from prototypeT.id.initSteps.last.template
+    // No, thisll make it easier for the humanizer to show the correct thing.
+    // Let's just manually merge them, itll make life easier.
+    // ...maybe later. for now let's just use internal ranges or something.
+    prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
@@ -264,7 +278,7 @@ case class ValidPrototypeTemplataCalleeCandidate(
     prototype == that.prototype
   }
 
-  override def range: Option[RangeS] = Some(prototype.declarationRange)
+  override def range: Option[RangeS] = Some(vimpl())
   override def paramTypes: Vector[CoordT] = prototype.prototype.id.localName.parameters.toVector
 }
 case class ValidCalleeCandidate(
@@ -479,7 +493,7 @@ case class PrototypeT[+T <: IFunctionNameT](
     id: IdT[T],
     returnType: CoordT) {
   this match {
-    case PrototypeT(IdT(_, Vector(StructTemplateNameT(StrI("BorkForwarder"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop"), _, _), Vector(), Vector(CoordT(own, RegionT(), KindPlaceholderT(IdT(_, Vector(InterfaceTemplateNameT(StrI("Bork")), FunctionTemplateNameT(StrI("bork"), _), OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(IdT(_, Vector(), ImplTemplateNameT(_))), Vector(), Vector(CoordT(borrow, RegionT(), InterfaceTT(IdT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Bork")), Vector()))))))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CaseRuneFromImplS(CodeRuneS(StrI("Lam"))))))))))), CoordT(share, RegionT(), VoidT())) => {
+    case PrototypeT(IdT(_, Vector(StructTemplateNameT(StrI("BorkForwarder"))), FunctionBoundNameT(FunctionBoundTemplateNameT(StrI("drop")), Vector(), Vector(CoordT(own, RegionT(), KindPlaceholderT(IdT(_, Vector(InterfaceTemplateNameT(StrI("Bork")), FunctionTemplateNameT(StrI("bork"), _), OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(IdT(_, Vector(), ImplTemplateNameT(_))), Vector(), Vector(CoordT(borrow, RegionT(), InterfaceTT(IdT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Bork")), Vector()))))))), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CaseRuneFromImplS(CodeRuneS(StrI("Lam"))))))))))), CoordT(share, RegionT(), VoidT())) => {
       vpass()
     }
     case _ =>

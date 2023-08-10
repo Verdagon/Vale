@@ -41,6 +41,7 @@ class InstantiatedCompilation(
   def getCompilerOutputs(): Result[HinputsT, ICompileErrorT] = typingPassCompilation.getCompilerOutputs()
   def expectCompilerOutputs(): HinputsT = typingPassCompilation.expectCompilerOutputs()
 
+  // DO NOT SUBMIT rename monouts
   def getMonouts(): HinputsI = {
     monoutsCache match {
       case Some(monouts) => monouts

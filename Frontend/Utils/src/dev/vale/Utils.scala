@@ -94,6 +94,17 @@ object U {
     }
     result.toVector
   }
+
+  def mapArr[T, R](vec: Array[T], func: scala.Function1[T, R])(implicit m: ClassTag[R]): Array[R] = {
+    //    vec.map(func)
+    val result = new Array[R](vec.size)
+    var i = 0
+    while (i < vec.size) {
+      result(i) = func(vec(i))
+      i = i + 1
+    }
+    result
+  }
   def mapRange[R](start: Int, until: Int, func: scala.Function1[Int, R])(implicit m: ClassTag[R]): Vector[R] = {
 //    (start until until).map(func).toVector
     val result = new Array[R](until - start)

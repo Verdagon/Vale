@@ -196,8 +196,8 @@ class StructDropMacro(
                       val substituter =
                         TemplataCompiler.getPlaceholderSubstituter(
                           interner, keywords,
-                          vimpl(),
-                          vimpl(),
+                          env.denizenTemplateId,
+                          true,
                           structTT.id,
                           // We received an instance of this type, so we can use the bounds from it.
                           InheritBoundsFromTypeItself)

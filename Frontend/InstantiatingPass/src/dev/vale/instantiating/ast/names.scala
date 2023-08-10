@@ -333,18 +333,23 @@ case class ForwarderFunctionNameI[+R <: IRegionsModeI](
 }
 
 case class FunctionBoundTemplateNameI[+R <: IRegionsModeI](
-  humanName: StrI,
-  codeLocation: RangeS
-) extends INameI[R] with IFunctionTemplateNameI[R] {
-//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): FunctionBoundNameI = {
-//    interner.intern(FunctionBoundNameI(this, templateArgs, params))
-//  }
-}
+  humanName: StrI
+) extends INameI[R] with IFunctionTemplateNameI[R]
 
 case class FunctionBoundNameI[+R <: IRegionsModeI](
   template: FunctionBoundTemplateNameI[R],
   templateArgs: Vector[ITemplataI[R]],
   parameters: Vector[CoordI[R]]
+) extends IFunctionNameI[R]
+
+case class ReachableFunctionTemplateNameI[+R <: IRegionsModeI](
+    humanName: StrI
+) extends INameI[R] with IFunctionTemplateNameI[R]
+
+case class ReachableFunctionNameI[+R <: IRegionsModeI](
+    template: ReachableFunctionTemplateNameI[R],
+    templateArgs: Vector[ITemplataI[R]],
+    parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R]
 
 case class FunctionTemplateNameI[+R <: IRegionsModeI](

@@ -113,14 +113,15 @@ class StructConstructorMacro(
       TemplataCompiler.getPlaceholderSubstituter(
         interner,
         keywords,
-        vimpl(),
-        vimpl(),
+        env.denizenTemplateId,
+        false,
         structTT.id,
         // We only know about this struct from the return type, we don't get to inherit any of its
         // bounds or guarantees from. Satisfy them from our environment instead.
         UseBoundsFromContainer(
-          definition.runeToFunctionBound,
-          definition.runeToImplBound,
+          definition.instantiationBoundParams,
+          // definition.runeToFunctionBound,
+          // definition.runeToImplBound,
           vassertSome(coutputs.getInstantiationBounds(structTT.id))))
     val members =
       definition.members.map({
@@ -137,12 +138,13 @@ class StructConstructorMacro(
       members.map({ case (name, coord) => ParameterT(name, None, false, coord) })
     val mutability =
       StructCompiler.getMutability(
-        interner, keywords, coutputs, RegionT(), structTT,
+        interner, keywords, coutputs, env.denizenTemplateId, RegionT(), structTT,
         // Not entirely sure if this is right, but it's consistent with using it for the return kind
         // and its the more conservative option so we'll go with it for now.
         UseBoundsFromContainer(
-          definition.runeToFunctionBound,
-          definition.runeToImplBound,
+          definition.instantiationBoundParams,
+          // definition.runeToFunctionBound,
+          // definition.runeToImplBound,
           vassertSome(coutputs.getInstantiationBounds(structTT.id))))
     val constructorReturnOwnership =
       mutability match {

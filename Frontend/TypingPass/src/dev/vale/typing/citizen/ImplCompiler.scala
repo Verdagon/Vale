@@ -215,7 +215,7 @@ class ImplCompiler(
         callLocation,
         outerEnv,
         RegionT())
-    val CompleteDefineSolve(inferences, runeToFunctionBound1, declaredBoundsFromSubCitizen, reachableBoundsFromSubCitizen) =
+    val CompleteDefineSolve(inferences, instantiationBoundParams) =
       inferCompiler.solveForDefining(
         envs,
         coutputs,
@@ -230,6 +230,11 @@ class ImplCompiler(
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(TypingPassDefiningError(List(implA.range), e))
       }
+    val reachableBoundsFromSubCitizens =
+      instantiationBoundParams.callerKindRuneToReachableBoundArguments
+          .values
+          .flatMap(_.citizenAndRuneAndReachablePrototypes.values)
+
 
     val subCitizen =
       inferences.get(implA.subCitizenRune.rune) match {
@@ -259,9 +264,11 @@ class ImplCompiler(
         implOuterEnv,
         implTemplateId,
         instantiatedId,
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (prototype, index) =>
-          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(prototype.id.localName.template.range, prototype))
-        }).toVector ++
+        reachableBoundsFromSubCitizens
+            .zipWithIndex
+            .map({ case (prototype, index) =>
+              interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(prototype))
+            }).toVector ++
         inferences.map({ case (nameS, templata) =>
           interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
         }).toVector)
@@ -283,10 +290,11 @@ class ImplCompiler(
           subCitizen,
           superInterface,
           superInterfaceTemplateId,
-          runeToNeededFunctionBound,
-          runeToNeededImplBound,
+          instantiationBoundParams,
+          // runeToNeededFunctionBound,
+          // runeToNeededImplBound,
           runeIndexToIndependence.toVector,
-          reachableBoundsFromSubCitizen))
+          reachableBoundsFromSubCitizens.toArray))
     coutputs.declareType(implTemplateId)
     coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)
     coutputs.declareTypeInnerEnv(implTemplateId, implInnerEnv)
@@ -668,8 +676,9 @@ class ImplCompiler(
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
         coutputs.addInstantiationBounds(
-          vimpl(),
-          impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+          interner,
+          callingEnv.denizenTemplateId,
+          impl.implName, InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](Map(), Map(), Map()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>
@@ -697,8 +706,11 @@ class ImplCompiler(
         val implTemplateId =
           implTemplata.env.id.addStep(
             nameTranslator.translateImplName(implTemplata.impl.name))
-        val instantiatedId = assembleImplName(implTemplateId, templateArgs, subKindTT.expectCitizen())
-        coutputs.addInstantiationBounds(vimpl(), instantiatedId, instantiationBoundArgs)
+        val instantiatedId =
+          assembleImplName(
+            implTemplateId, templateArgs, subKindTT.expectCitizen())
+        coutputs.addInstantiationBounds(
+          interner, callingEnv.rootCompilingDenizenEnv.denizenTemplateId, instantiatedId, instantiationBoundArgs)
         IsParent(implTemplata, conclusions, instantiatedId)
       }
       case None => IsntParent(errs.toVector)

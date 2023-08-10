@@ -57,7 +57,7 @@ object ITemplataT {
 
   def expectPrototypeTemplata(templata: ITemplataT[ITemplataType]): PrototypeTemplataT[IFunctionNameT] = {
     templata match {
-      case t@PrototypeTemplataT(_,_) => t
+      case t@PrototypeTemplataT(_) => t
       case other => vfail(other)
     }
   }
@@ -334,7 +334,7 @@ case class StringTemplataT(value: String) extends ITemplataT[StringTemplataType]
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: StringTemplataType = StringTemplataType()
 }
-case class PrototypeTemplataT[+T <: IFunctionNameT](declarationRange: RangeS, prototype: PrototypeT[T]) extends ITemplataT[PrototypeTemplataType] {
+case class PrototypeTemplataT[+T <: IFunctionNameT](prototype: PrototypeT[T]) extends ITemplataT[PrototypeTemplataType] {
   vpass()
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: PrototypeTemplataType = PrototypeTemplataType()
@@ -349,15 +349,15 @@ case class CoordListTemplataT(coords: Vector[CoordT]) extends ITemplataT[PackTem
   vpass()
 
 }
-
-// ExternFunction/ImplTemplata are here because for example when we create an anonymous interface
-// substruct, we want to add its forwarding functions and its impl to the environment, but it's
-// very difficult to add the ImplA and FunctionA for those. So, we allow having coutputs like
-// these directly in the environment.
-// These should probably be renamed from Extern to something else... they could be supplied
-// by plugins, but theyre also used internally.
-
-case class ExternFunctionTemplataT(header: FunctionHeaderT) extends ITemplataT[ITemplataType] {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def tyype: ITemplataType = vfail()
-}
+//
+// // ExternFunction/ImplTemplata are here because for example when we create an anonymous interface
+// // substruct, we want to add its forwarding functions and its impl to the environment, but it's
+// // very difficult to add the ImplA and FunctionA for those. So, we allow having coutputs like
+// // these directly in the environment.
+// // These should probably be renamed from Extern to something else... they could be supplied
+// // by plugins, but theyre also used internally.
+//
+// case class ExternFunctionTemplataT(header: FunctionHeaderT) extends ITemplataT[ITemplataType] {
+//   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//   override def tyype: ITemplataType = vfail()
+// }

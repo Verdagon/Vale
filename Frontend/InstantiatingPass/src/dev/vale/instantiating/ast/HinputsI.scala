@@ -14,7 +14,12 @@ import scala.collection.mutable
 
 case class InstantiationBoundArgumentsI(
   runeToFunctionBoundArg: Map[IRuneS, PrototypeI[sI]],
-  callerPlaceholderedCalleeBoundArgFunctionToInstantiatedBoundI: Map[PrototypeT[FunctionBoundNameT], PrototypeI[sI]], // DO NOT SUBMIT doc
+  // i think we might not need this because we just grab them from the target citizen's inner env's bounds DO NOT SUBMIT
+  // nope, we tried that, and the receiver had no idea where to get the runes.
+  // we couldnt look into the citizen's environment because we didnt actually *have* the citizens yet, we only had a
+  // collapsed cI/nI/something for them, and we needed a sI which we can only get by instantiating which we can only do if
+  // we have, you guessed it, the right bounds to instantiate it.
+  callerRuneToCitizenRuneToReachablePrototype: Map[IRuneS, Map[IRuneS, PrototypeI[sI]]], // DO NOT SUBMIT doc
   runeToImplBoundArg: Map[IRuneS, IdI[sI, IImplNameI[sI]]])
 
 case class HinputsI(

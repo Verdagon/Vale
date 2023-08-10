@@ -209,12 +209,12 @@ class OverloadResolver(
         getCandidateBannersInner(
           interfaceEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
-      case ExternFunctionTemplataT(header) => {
-        results.add(HeaderCalleeCandidate(header))
-      }
-      case PrototypeTemplataT(declarationRange, prototype) => {
+      // case ExternFunctionTemplataT(header) => {
+      //   results.add(HeaderCalleeCandidate(header))
+      // }
+      case PrototypeTemplataT(prototype) => {
         vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-        results.add(PrototypeTemplataCalleeCandidate(declarationRange, prototype))
+        results.add(PrototypeTemplataCalleeCandidate(prototype))
       }
       case ft@FunctionTemplataT(_, _) => {
         results.add(FunctionCalleeCandidate(ft))
@@ -387,7 +387,7 @@ class OverloadResolver(
           case Err(fff) => Err(fff)
         }
       }
-      case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
+      case PrototypeTemplataCalleeCandidate(prototype) => {
         // We get here if we're considering a function that's being passed in as a bound.
         vcurious(prototype.id.localName.templateArgs.isEmpty)
         val substituter =
@@ -415,7 +415,7 @@ class OverloadResolver(
             val bounds = Map[IRuneS, PrototypeTemplataT[IFunctionNameT]]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-            Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(declarationRange, prototype)))
+            Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(prototype)))
           }
           case Err(fff) => Err(fff)
         }
@@ -628,7 +628,10 @@ class OverloadResolver(
       survivingBannerIndices
         .groupBy(index => {
           banners(index) match {
-            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+              Some((firstHumanName, firstParameters, firstReturnType))
+            }
+            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(PrototypeT(IdT(_, _, ReachableFunctionNameT(ReachableFunctionTemplateNameT(firstHumanName), firstTemplateArgs, firstParameters)), firstReturnType))) => {
               Some((firstHumanName, firstParameters, firstReturnType))
             }
             case _ => None
@@ -640,10 +643,63 @@ class OverloadResolver(
       if (nonPrototypeCandidateIndices.nonEmpty) {
         nonPrototypeCandidateIndices
       } else {
-        // If all the candidates are bounds, then just pick one of them.
-        val prototypeCandidateIndices = (grouped - None).map(_._2.head)
-        prototypeCandidateIndices.toVector
+        // If all the candidates are bounds, make sure there's only one and then use that.
+        // There should only be one because we merge any redundant bound declarations and reachable bounds. DO NOT SUBMIT
+        // We actually grab the one with the shortest name, so we always get the first one.
+        val prototypeCandidatesAndIndices =
+          (grouped - None).toVector
+              .flatMap(_._2)
+              .map(i => {
+                val prototype =
+                  banners(i) match {
+                    case ValidPrototypeTemplataCalleeCandidate(prototype) => prototype
+                    case other => vwat(other)
+                  }
+                (prototype, i)
+              })
+              .sortBy({ case (prototype, bannerIndex) => prototype.prototype.id.steps.length })
+        if (prototypeCandidatesAndIndices.length == 1) {
+          val (bestPrototype, bestPrototypeIndex) = prototypeCandidatesAndIndices(0)
+          Vector(bestPrototypeIndex)
+        } else if (prototypeCandidatesAndIndices.length >= 2) {
+          val (bestPrototype, bestPrototypeIndex) = prototypeCandidatesAndIndices(0)
+          val (secondPrototype, secondPrototypeIndex) = prototypeCandidatesAndIndices(1)
+          vassert(
+            TemplataCompiler.getSuperTemplate(secondPrototype.prototype.id).initSteps
+                .startsWith(TemplataCompiler.getSuperTemplate(bestPrototype.prototype.id).initSteps))
+          Vector(bestPrototypeIndex)
+        } else {
+          vwat()
+        }
       }
+
+    // strt here DO NOT SUBMIT
+    // the problem is that in the override dispatcher function, the dispatcher grabs some bounds from its parameters
+    // or whatever, but then the cases also bring in their own stuff.
+    // we'll have this problem with match statements later on probably (is that true?)
+    // the solution could be to always call the most recently defined bound?
+    // we do need to bring them into our environment because sometimes theyre not related at all to the struct.
+    //   struct Moo<T> where func add(T,T)T { ... }
+    // we would never know to look in Moo's environment for this function. thats why we need to import them.
+    //
+    // i think the case doesnt actually need to import them though right? when it does the call to the end override
+    // then it should grab those particular bounds from its params.
+    //
+    // we could have the overloadresolver just default to using the first bound introduced, so they can all agree on it.
+    // but then what if this happens:
+    //   i =
+    //     thing match {
+    //       AStruct<T>[x] =>
+    //       BStruct<T>[y] =>
+    //     }
+    //   bork(i);
+    // where we only know about bork(T) from either AStruct or BStruct... if we bring in both of those bounds, they'll
+    // not agree when they're merged.
+    // so maybe not the best thing to use different environments in the same function.
+    // but can we really merge them all into the same function? i dont think so, because we need an actual instance to
+    // prove that the bound really exists.
+    //
+    // ...but maybe itll just work for now to default to the first one.
 
     val finalBannerIndex =
       if (dedupedCandidateIndices.size == 0) {
@@ -653,11 +709,12 @@ class OverloadResolver(
       } else if (dedupedCandidateIndices.size == 1) {
         dedupedCandidateIndices.head
       } else {
-        throw CompileErrorExceptionT(
-          CouldntNarrowDownCandidates(
-            callRange,
-            dedupedCandidateIndices.map(banners)
-              .map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
+        vimpl() // DO NOT SUBMIT
+        // throw CompileErrorExceptionT(
+        //   CouldntNarrowDownCandidates(
+        //     callRange,
+        //     dedupedCandidateIndices.map(banners)
+        //       .map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
       }
 
     val rejectedBanners =
@@ -692,7 +749,7 @@ class OverloadResolver(
       }
       case ValidHeaderCalleeCandidate(header) => {
         vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
-        PrototypeTemplataT(vassertSome(header.maybeOriginFunctionTemplata).function.range, header.toPrototype)
+        PrototypeTemplataT(header.toPrototype)
       }
     }
   }
@@ -736,7 +793,7 @@ class OverloadResolver(
       case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunctionTemplata).function.range
         vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
-        StampFunctionSuccess(PrototypeTemplataT(declarationRange, header.toPrototype), Map())
+        StampFunctionSuccess(PrototypeTemplataT(header.toPrototype), Map())
       }
       case ValidPrototypeTemplataCalleeCandidate(prototype) => {
         vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
