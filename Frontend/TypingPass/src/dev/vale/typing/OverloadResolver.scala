@@ -709,12 +709,11 @@ class OverloadResolver(
       } else if (dedupedCandidateIndices.size == 1) {
         dedupedCandidateIndices.head
       } else {
-        vimpl() // DO NOT SUBMIT
-        // throw CompileErrorExceptionT(
-        //   CouldntNarrowDownCandidates(
-        //     callRange,
-        //     dedupedCandidateIndices.map(banners)
-        //       .map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
+        throw CompileErrorExceptionT(
+          CouldntNarrowDownCandidates(
+            callRange,
+            dedupedCandidateIndices.map(banners)
+              .map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
       }
 
     val rejectedBanners =

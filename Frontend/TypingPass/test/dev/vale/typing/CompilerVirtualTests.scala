@@ -209,7 +209,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         |
         |#!DeriveStructDrop
         |struct BorkForwarder<Lam>
-        |where func drop(Lam)void, func __call(&Lam)int {
+        |where func __call(&Lam)int {
         |  lam Lam;
         |}
         |

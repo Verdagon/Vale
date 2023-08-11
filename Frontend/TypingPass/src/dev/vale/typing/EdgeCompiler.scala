@@ -327,7 +327,7 @@ class EdgeCompiler(
 
     // Step 2: Compile Dispatcher Function Given Interface, see CDFGI
 
-    val EvaluateFunctionSuccess(dispatchingFuncPrototype, dispatcherInnerInferences) =
+    val EvaluateFunctionSuccess(dispatchingFuncPrototype, dispatcherInnerInferences, dispatcherInstantiationBoundParams) =
       functionCompiler.evaluateGenericVirtualDispatcherFunctionForPrototype(
         coutputs,
         List(range, impl.templata.impl.range),
@@ -340,7 +340,7 @@ class EdgeCompiler(
         case EvaluateFunctionFailure(x) => {
           throw CompileErrorExceptionT(CouldntEvaluateFunction(List(range), x))
         }
-        case efs@EvaluateFunctionSuccess(_, _) => efs
+        case efs@EvaluateFunctionSuccess(_, _, _) => efs
       }
     val dispatcherParams =
       originFunctionTemplata.function.params.map(_.pattern.coordRune).map(vassertSome(_)).map(_.rune)
@@ -359,8 +359,8 @@ class EdgeCompiler(
           .map({ case (nameS, templata) =>
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
-    val dispatcherRuneToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(dispatcherInnerEnv.templatas)
-    val dispatcherRuneToImplBound = TemplataCompiler.assembleRuneToImplBound(dispatcherInnerEnv.templatas)
+    // val dispatcherRuneToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(dispatcherInnerEnv.templatas)
+    // val dispatcherRuneToImplBound = TemplataCompiler.assembleRuneToImplBound(dispatcherInnerEnv.templatas)
 
     // Step 3: Figure Out Dependent And Independent Runes, see FODAIR.
 
@@ -392,30 +392,30 @@ class EdgeCompiler(
     // ??? Supposedly here is where we'd pull in some bounds from the impl if it has any, like if it
     // inherits any from the struct (see ONBIFS).
 
-    // This is needed for pulling the impl bound args in for the override dispatcher's case.
-    val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
-      impl.reachableBoundsFromSubCitizen
-        .map({
-          case PrototypeT(IdT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
-            val funcBoundId = IdT(packageCoord, initSteps, fb)
-            val casePlaceholderedReachableFuncBoundId =
-              TemplataCompiler.substituteTemplatasInFunctionBoundId(
-                coutputs,
-                interner,
-                keywords,
-                dispatcherTemplateId,
-                // When we're in a case, we want to pull in the things that are callable for that struct. That'll help
-                // us call those functions later. ... i think DO NOT SUBMIT
-                true,
-                impl.templateId,
-                (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
-                // These are bounds we're bringing in from the sub citizen.
-                InheritBoundsFromTypeItself,
-                funcBoundId)
-            funcBoundId -> casePlaceholderedReachableFuncBoundId
-          }
-          case other => vimpl(other)
-        }).toMap
+    // // This is needed for pulling the impl bound args in for the override dispatcher's case.
+    // val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
+    //   impl.reachableBoundsFromSubCitizen
+    //     .map({
+    //       case PrototypeT(IdT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
+    //         val funcBoundId = IdT(packageCoord, initSteps, fb)
+    //         val casePlaceholderedReachableFuncBoundId =
+    //           TemplataCompiler.substituteTemplatasInFunctionBoundId(
+    //             coutputs,
+    //             interner,
+    //             keywords,
+    //             dispatcherTemplateId,
+    //             // When we're in a case, we want to pull in the things that are callable for that struct. That'll help
+    //             // us call those functions later. ... i think DO NOT SUBMIT
+    //             true,
+    //             impl.templateId,
+    //             (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
+    //             // These are bounds we're bringing in from the sub citizen.
+    //             InheritBoundsFromTypeItself,
+    //             funcBoundId)
+    //         funcBoundId -> casePlaceholderedReachableFuncBoundId
+    //       }
+    //       case other => vimpl(other)
+    //     }).toMap
 
     // Step 4: Figure Out Struct For Case, see FOSFC.
 
@@ -519,9 +519,10 @@ class EdgeCompiler(
       dispatcherId,
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
-      implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
-      dispatcherRuneToFunctionBound,
-      dispatcherRuneToImplBound,
+      // implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
+      // dispatcherRuneToFunctionBound,
+      // dispatcherRuneToImplBound,
+      dispatcherInstantiationBoundParams,
       dispatcherCaseEnv.id,
       foundFunction.prototype.prototype)
   }

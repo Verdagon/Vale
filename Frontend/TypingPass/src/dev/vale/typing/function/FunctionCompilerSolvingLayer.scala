@@ -71,7 +71,7 @@ class FunctionCompilerSolvingLayer(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
-    val CompleteDefineSolve(inferredTemplatas, runeToFunctionBound) =
+    val CompleteDefineSolve(inferredTemplatas, instantiationBoundParams) =
     // We could probably just solveForResolving (see DBDAR) but seems more future-proof to solveForDefining.
       inferCompiler.solveForDefining(
         InferEnv(originalCallingEnv, callRange, callLocation, outerEnv, contextRegion),
@@ -103,7 +103,7 @@ class FunctionCompilerSolvingLayer(
 
     coutputs.addInstantiationBounds(
       interner, outerEnv.denizenTemplateId, header.toPrototype.id, vimpl())//runeToFunctionBound)
-    EvaluateFunctionSuccess(PrototypeTemplataT(header.toPrototype), inferredTemplatas)
+    EvaluateFunctionSuccess(PrototypeTemplataT(header.toPrototype), inferredTemplatas, instantiationBoundParams)
   }
 
   // Preconditions:
@@ -167,7 +167,7 @@ class FunctionCompilerSolvingLayer(
         }),
         instantiationBoundParams.calleeRuneToCallerBoundArgImpl))
 
-    EvaluateFunctionSuccess(prototype, inferredTemplatas)
+    EvaluateFunctionSuccess(prototype, inferredTemplatas, instantiationBoundParams)
   }
 
   // This is called while we're trying to figure out what functionSs to call when there
@@ -240,7 +240,7 @@ class FunctionCompilerSolvingLayer(
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
         }),
         instantiationBoundParams.calleeRuneToCallerBoundArgImpl))
-    EvaluateFunctionSuccess(prototypeTemplata, inferences)
+    EvaluateFunctionSuccess(prototypeTemplata, inferences, instantiationBoundParams)
   }
 
   private def assembleKnownTemplatas(
@@ -498,7 +498,7 @@ class FunctionCompilerSolvingLayer(
 
     // Usually when we call a function, we add instantiation bounds. However, we're
     // not calling a function here, we're defining it.
-    EvaluateFunctionSuccess(PrototypeTemplataT(prototype), inferences)
+    EvaluateFunctionSuccess(PrototypeTemplataT(prototype), inferences, instantiationBoundParams)
   }
 
   def precompileGenericFunction(

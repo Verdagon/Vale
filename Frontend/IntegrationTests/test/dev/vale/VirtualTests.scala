@@ -101,11 +101,12 @@ class VirtualTests extends FunSuite with Matchers {
   test("Owning interface") {
     val compile = RunCompilation.test(
       """
+        |import v.builtins.opt.*;
         |exported func main() int {
         |  x Opt<int> = Some(7);
         |  return 7;
         |}
-        |""".stripMargin)
+        |""".stripMargin, false)
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 

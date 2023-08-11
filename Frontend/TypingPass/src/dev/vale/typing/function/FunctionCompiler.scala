@@ -73,7 +73,8 @@ trait IEvaluateFunctionResult
 
 case class EvaluateFunctionSuccess(
     prototype: PrototypeTemplataT[IFunctionNameT],
-    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
+    inferences: Map[IRuneS, ITemplataT[ITemplataType]],
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]
 ) extends IEvaluateFunctionResult
 
 case class EvaluateFunctionFailure(

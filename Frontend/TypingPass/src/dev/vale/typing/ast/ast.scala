@@ -132,14 +132,15 @@ case class OverrideT(
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
 
-  // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
-  // TIBANFC.
-  implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[IdT[FunctionBoundNameT], IdT[FunctionBoundNameT]],
+  // // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
+  // // TIBANFC.
+  // implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[IdT[FunctionBoundNameT], IdT[FunctionBoundNameT]],
 
-  // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
-  // bounds. This is the one for our conceptual dispatcher function.
-  dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  // // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
+  // // bounds. This is the one for our conceptual dispatcher function.
+  // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
+  // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
@@ -278,7 +279,7 @@ case class ValidPrototypeTemplataCalleeCandidate(
     prototype == that.prototype
   }
 
-  override def range: Option[RangeS] = Some(vimpl())
+  override def range: Option[RangeS] = None // DO NOT SUBMIT
   override def paramTypes: Vector[CoordT] = prototype.prototype.id.localName.parameters.toVector
 }
 case class ValidCalleeCandidate(

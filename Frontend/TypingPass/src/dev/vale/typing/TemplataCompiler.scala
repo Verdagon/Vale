@@ -713,7 +713,7 @@ object TemplataCompiler {
 
     val perhapsImportedId =
       tentativeId.localName match {
-        case n @ FunctionBoundNameT(template, templateArgs, parameters) => {
+        case n @ (FunctionBoundNameT(_, _, _) | ReachableFunctionNameT(_, _, _)) => {
           val importedId =
             if (impoort) {
               originalCallingDenizenId.addStep(n)
