@@ -24,7 +24,7 @@ case class NeededOverride(
   name: IImpreciseNameS,
   paramFilters: Vector[CoordT]
 ) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
-case class FoundFunction(prototype: PrototypeT) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+case class FoundFunction(prototype: PrototypeT[IFunctionNameT]) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class PartialEdgeT(
   struct: StructTT,
@@ -233,7 +233,7 @@ class EdgeCompiler(
     impl: ImplT,
     interfaceTemplateId: IdT[IInterfaceTemplateNameT],
     subCitizenTemplateId: IdT[ICitizenTemplateNameT],
-    abstractFunctionPrototype: PrototypeT,
+    abstractFunctionPrototype: PrototypeT[IFunctionNameT],
     abstractIndex: Int):
   OverrideT = {
     val abstractFuncTemplateId =

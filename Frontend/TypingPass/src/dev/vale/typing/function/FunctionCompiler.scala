@@ -72,7 +72,7 @@ trait IFunctionCompilerDelegate {
 trait IEvaluateFunctionResult
 
 case class EvaluateFunctionSuccess(
-    prototype: PrototypeTemplataT,
+    prototype: PrototypeTemplataT[IFunctionNameT],
     inferences: Map[IRuneS, ITemplataT[ITemplataType]]
 ) extends IEvaluateFunctionResult
 
@@ -84,7 +84,7 @@ case class EvaluateFunctionFailure(
 trait IStampFunctionResult
 
 case class StampFunctionSuccess(
-  prototype: PrototypeTemplataT,
+  prototype: PrototypeTemplataT[IFunctionNameT],
   inferences: Map[IRuneS, ITemplataT[ITemplataType]]
 ) extends IStampFunctionResult
 

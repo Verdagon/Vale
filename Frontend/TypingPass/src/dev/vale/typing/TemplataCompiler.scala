@@ -17,6 +17,7 @@ import dev.vale.typing.templata.ITemplataT._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
+import scala.annotation.tailrec
 import scala.collection.immutable.{List, Map, Set}
 
 // See SBITAFD, we need to register bounds for these new instantiations. This instructs us where
@@ -154,6 +155,20 @@ object TemplataCompiler {
       packageCoord,
       initSteps.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       getNameTemplate(last))
+  }
+
+  // Removes lambda citizens / lambda calls from the end, so we get the root function.
+  def getRootSuperTemplate(interner: Interner, id: IdT[INameT]): IdT[INameT] = {
+    @tailrec
+    def removeTrailingLambdas(tentativeId: IdT[INameT]): IdT[INameT] = {
+      tentativeId.localName match {
+        case LambdaCitizenTemplateNameT(_) | LambdaCallFunctionTemplateNameT(_, _) => {
+          removeTrailingLambdas(tentativeId.initId(interner))
+        }
+        case _ => tentativeId
+      }
+    }
+    removeTrailingLambdas(getSuperTemplate(id))
   }
 
   def getTemplate(id: IdT[IInstantiationNameT]): IdT[ITemplateNameT] = {
@@ -582,8 +597,8 @@ object TemplataCompiler {
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
-    originalPrototype: PrototypeT):
-  PrototypeT = {
+    originalPrototype: PrototypeT[IFunctionNameT]):
+  PrototypeT[IFunctionNameT] = {
     val PrototypeT(IdT(packageCoord, initSteps, funcName), returnType) = originalPrototype
     val substitutedTemplateArgs = funcName.templateArgs.map((templata: ITemplataT[ITemplataType]) => substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata))
     val substitutedParams = funcName.parameters.map((coord: CoordT) => substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coord))
@@ -632,7 +647,7 @@ object TemplataCompiler {
     def substituteForCoord(coutputs: CompilerOutputs, coordT: CoordT): CoordT
     def substituteForInterface(coutputs: CompilerOutputs, interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coutputs: CompilerOutputs, coordT: ITemplataT[ITemplataType]): ITemplataT[ITemplataType]
-    def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT): PrototypeT
+    def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT[IFunctionNameT]): PrototypeT[IFunctionNameT]
   }
   def getPlaceholderSubstituter(
     interner: Interner,
@@ -680,7 +695,7 @@ object TemplataCompiler {
       override def substituteForTemplata(coutputs: CompilerOutputs, templata: ITemplataT[ITemplataType]): ITemplataT[ITemplataType] = {
         TemplataCompiler.substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, templata)
       }
-      override def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT): PrototypeT = {
+      override def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT[IFunctionNameT]): PrototypeT[IFunctionNameT] = {
         TemplataCompiler.substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, proto)
       }
     }
@@ -715,7 +730,7 @@ object TemplataCompiler {
     keywords: Keywords,
     coutputs: CompilerOutputs,
     templata: ITemplataT[ITemplataType]):
-  Vector[PrototypeTemplataT] = {
+  Vector[PrototypeTemplataT[IFunctionNameT]] = {
     val maybeMentionedKind =
       templata match {
         case KindTemplataT(kind) => Some(kind)

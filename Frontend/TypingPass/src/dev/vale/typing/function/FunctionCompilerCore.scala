@@ -236,7 +236,7 @@ class FunctionCompilerCore(
       coutputs: CompilerOutputs,
     callRange: List[RangeS],
       params2: Vector[ParameterT]):
-  (PrototypeT) = {
+  (PrototypeT[IFunctionNameT]) = {
     getFunctionPrototypeInnerForCall(
       fullEnv, fullEnv.id)
   }
@@ -244,7 +244,7 @@ class FunctionCompilerCore(
   def getFunctionPrototypeInnerForCall(
     fullEnv: FunctionEnvironmentT,
     id: IdT[IFunctionNameT]):
-  PrototypeT = {
+  PrototypeT[IFunctionNameT] = {
     val retCoordRune = vassertSome(fullEnv.function.maybeRetCoordRune)
     val returnCoord =
       fullEnv.lookupNearestWithImpreciseName(
@@ -353,7 +353,7 @@ class FunctionCompilerCore(
             maybeOrigin)
 
         val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
-        val externPrototype = PrototypeT(externFunctionId, header.returnType)
+        val externPrototype = PrototypeT[ExternFunctionNameT](externFunctionId, header.returnType)
 
         coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArgumentsT(Map(), Map()))
 

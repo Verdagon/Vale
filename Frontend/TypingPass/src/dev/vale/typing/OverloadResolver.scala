@@ -405,7 +405,7 @@ class OverloadResolver(
             // We're calling a function that came from a bound.
             // Function bounds (like the `func drop(T)void` don't have bounds themselves)
             // so we just supply an empty map here.
-            val bounds = Map[IRuneS, PrototypeTemplataT]()
+            val bounds = Map[IRuneS, PrototypeTemplataT[IFunctionNameT]]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
             Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(declarationRange, prototype)))
@@ -649,7 +649,7 @@ class OverloadResolver(
     potentialBanner: IValidCalleeCandidate,
     contextRegion: RegionT,
     verifyConclusions: Boolean):
-  (PrototypeTemplataT) = {
+  (PrototypeTemplataT[IFunctionNameT]) = {
     potentialBanner match {
       case ValidCalleeCandidate(banner, _, ft @ FunctionTemplataT(_, _)) => {
 //        if (ft.function.isTemplate) {
@@ -724,7 +724,7 @@ class OverloadResolver(
     callLocation: LocationInDenizen,
     callableTE: ReferenceExpressionTE,
     contextRegion: RegionT):
-  PrototypeT = {
+  PrototypeT[IFunctionNameT] = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
       Vector(
@@ -746,7 +746,7 @@ class OverloadResolver(
     callableTE: ReferenceExpressionTE,
     elementType: CoordT,
     contextRegion: RegionT):
-  PrototypeT = {
+  PrototypeT[IFunctionNameT] = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
       Vector(

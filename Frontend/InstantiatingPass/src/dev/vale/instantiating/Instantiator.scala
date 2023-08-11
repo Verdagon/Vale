@@ -64,8 +64,8 @@ class InstantiatedOutputs() {
   // As we discover a new impl or a new abstract func, we'll later need to stamp a lot more overrides either way.
   val newImpls: mutable.Queue[(IdT[IImplNameT], IdI[nI, IImplNameI[nI]], InstantiationBoundArgumentsI)] = mutable.Queue()
   // The int is a virtual index
-  val newAbstractFuncs: mutable.Queue[(PrototypeT, PrototypeI[nI], Int, IdI[cI, IInterfaceNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
-  val newFunctions: mutable.Queue[(PrototypeT, PrototypeI[nI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgS])] = mutable.Queue()
+  val newAbstractFuncs: mutable.Queue[(PrototypeT[IFunctionNameT], PrototypeI[nI], Int, IdI[cI, IInterfaceNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
+  val newFunctions: mutable.Queue[(PrototypeT[IFunctionNameT], PrototypeI[nI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgS])] = mutable.Queue()
 
   def addMethodToVTable(
     implId: IdI[cI, IImplNameI[cI]],
@@ -529,7 +529,7 @@ class Instantiator(
     monouts: InstantiatedOutputs,
     implIdT: IdT[IImplNameT],
     implIdC: IdI[cI, IImplNameI[cI]],
-    abstractFuncPrototypeT: PrototypeT,
+    abstractFuncPrototypeT: PrototypeT[IFunctionNameT],
     abstractFuncPrototypeC: PrototypeI[cI]):
   Unit = {
     // Our ultimate goal in here is to make a PrototypeI[cI] for the override.
@@ -915,7 +915,7 @@ class Instantiator(
     keywords: Keywords,
     hinputs: HinputsT,
     monouts: InstantiatedOutputs,
-    desiredPrototypeT: PrototypeT,
+    desiredPrototypeT: PrototypeT[IFunctionNameT],
     desiredPrototypeN: PrototypeI[nI],
     suppliedBoundArgs: InstantiationBoundArgumentsI,
     // This is only Some if this is a lambda. This will contain the prototypes supplied to the top
@@ -1004,7 +1004,7 @@ class Instantiator(
       hinputs: HinputsT,
       monouts: InstantiatedOutputs,
       interfaceIdC: IdI[cI, IInterfaceNameI[cI]],
-      desiredAbstractPrototypeT: PrototypeT,
+      desiredAbstractPrototypeT: PrototypeT[IFunctionNameT],
       desiredAbstractPrototypeN: PrototypeI[nI],
       virtualIndex: Int,
       suppliedBoundArgs: InstantiationBoundArgumentsI):
@@ -1354,7 +1354,7 @@ class Instantiator(
     denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
-    desiredPrototypeT: PrototypeT):
+    desiredPrototypeT: PrototypeT[IFunctionNameT]):
   (PrototypeI[sI], PrototypeI[cI]) = {
     val PrototypeT(desiredPrototypeIdUnsubstituted, desiredPrototypeReturnTypeUnsubstituted) = desiredPrototypeT
 

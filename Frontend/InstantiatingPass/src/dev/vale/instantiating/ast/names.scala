@@ -347,6 +347,16 @@ case class FunctionBoundNameI[+R <: IRegionsModeI](
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R]
 
+case class ReachableFunctionTemplateNameI[+R <: IRegionsModeI](
+    humanName: StrI
+) extends INameI[R] with IFunctionTemplateNameI[R]
+
+case class ReachableFunctionNameI[+R <: IRegionsModeI](
+    template: ReachableFunctionTemplateNameI[R],
+    templateArgs: Vector[ITemplataI[R]],
+    parameters: Vector[CoordI[R]]
+) extends IFunctionNameI[R]
+
 case class FunctionTemplateNameI[+R <: IRegionsModeI](
     humanName: StrI,
     codeLocation: CodeLocationS

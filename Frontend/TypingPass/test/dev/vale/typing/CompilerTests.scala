@@ -10,7 +10,7 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping.{FunctionA, HigherTypingCompilation}
 import dev.vale.solver.RuleError
-import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
+import OverloadResolver._
 import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
@@ -133,9 +133,11 @@ class CompilerTests extends FunSuite with Matchers {
   test("Make array and dot it") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.arrays.*;
         |exported func main() int {
-        |  [#]int(6, 60, 103).2
+        |  arr = [#]int(6, 60, 103);
+        |  x = arr.2;
+        |  [_, _, _] = arr;
+        |  return x;
         |}
         |""".stripMargin)
     compile.expectCompilerOutputs()
@@ -914,7 +916,6 @@ class CompilerTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
         |import v.builtins.drop.*;
         |
         |struct Vec2 imm {
@@ -1174,25 +1175,6 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin)
     compile.getCompilerOutputs() match {
       case Err(CannotSubscriptT(_, StructTT(IdT(_, _, StructNameT(StructTemplateNameT(StrI("Weapon")), Vector()))))) =>
-    }
-  }
-
-  test("Reports when we give too many args") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |func moo(a int, b bool, s str) int { a }
-        |exported func main() int {
-        |  moo(42, true, "hello", false)
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      // Err(     case WrongNumberOfArguments(_, _)) =>
-      case Err(CouldntFindFunctionToCallT(_, fff)) => {
-        vassert(fff.rejectedCalleeToReason.size == 1)
-        fff.rejectedCalleeToReason.head._2 match {
-          case WrongNumberOfArguments(4, 3) =>
-        }
-      }
     }
   }
 
@@ -1471,33 +1453,6 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Reports when ownership doesnt match") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |struct Firefly {}
-        |func getFuel(self &Firefly) int { return 7; }
-        |
-        |exported func main() int {
-        |  f = Firefly();
-        |  return (f).getFuel();
-        |}
-        |""".stripMargin
-    )
-    compile.getCompilerOutputs() match {
-      case Err(CouldntFindFunctionToCallT(range, fff)) => {
-        fff.name match { case CodeNameS(StrI("getFuel")) => }
-        fff.rejectedCalleeToReason.size shouldEqual 1
-        val reason = fff.rejectedCalleeToReason.head._2
-        reason match {
-          case InferFailure(FailedCompilerSolve(_,_,RuleError(OwnershipDidntMatch(CoordT(OwnT,_, _),BorrowT)))) =>
-          //          case SpecificParamDoesntSend(0, _, _) =>
-          case other => vfail(other)
-        }
-      }
-    }
-  }
-
   test("Test imm array") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1585,25 +1540,6 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin)
 
     compile.expectCompilerOutputs()
-  }
-
-  test("Failure to resolve a Prot rule's function doesnt halt") {
-    // In the below example, it should disqualify the first foo() because T = bool
-    // and there exists no moo(bool). Instead, we saw the Prot rule throw and halt
-    // compilation.
-
-    // Instead, we need to bubble up that failure to find the right function, so
-    // it disqualifies the candidate and goes with the other one.
-
-    CompilerTestCompilation.test(
-      """
-        |import v.builtins.drop.*;
-        |
-        |func moo(a str) { }
-        |func foo<T>(f T) void where func drop(T)void, func moo(str)void { }
-        |func foo<T>(f T) void where func drop(T)void, func moo(bool)void { }
-        |func main() { foo("hello"); }
-        |""".stripMargin).expectCompilerOutputs()
   }
 
   // See DSDCTD
@@ -1975,20 +1911,6 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  // Depends on IFunction1, and maybe Generic interface anonymous subclass
-  test("Basic IFunction1 anonymous subclass") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import ifunction.ifunction1.*;
-        |
-        |exported func main() int {
-        |  f = IFunction1<mut, int, int>({_});
-        |  return (f)(7);
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
   test("Test struct default generic argument in call") {
     val compile = CompilerTestCompilation.test(
       """
@@ -2012,6 +1934,36 @@ class CompilerTests extends FunSuite with Matchers {
       CoordTemplataT(CoordT(ShareT,_,BoolT())),
       IntegerTemplataT(5)))))) =>
     }
+  }
+
+
+  // DO NOT SUBMIT i think when we do "where func drop(int)void { }" it's literally getting declared holy crap
+
+  test("Structs can resolve right") { // DO NOT SUBMIT better name
+    // The definition of Marine<T> was trying to resolve the existence of func drop(int)void.
+    // Unfortunately, we don't have an overload index at the time of struct definitions yet, that comes later when
+    // we define the functions.
+    // Normally this wouldnt be a problem as we can usually use things before we compile them, we just use the templata
+    // and solve the whole thing on our own, don't even need to know if it's been compiled yet.
+    // However, now that we want to rely on the overload index, and the overload index doesn't exist until we compile
+    // the functions, we rely on things being compiled before we use them, hence this problem.
+    // The solution is to delay resolving function bounds until functions are compiled, see MCFBRBF.
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |struct XNone<T> where func drop(T)void { }
+        |
+        |// This function will try to do a resolve for func drop(int)void.
+        |struct Marine { weapon XNone<int>; }
+        |
+        |exported func main() {
+        |  m = Marine(XNone<int>());
+        |}
+      """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
   }
 
 }

@@ -1,7 +1,7 @@
 package dev.vale.typing.ast
 
 import dev.vale.postparsing._
-import dev.vale.typing.TemplataCompiler
+import dev.vale.typing.{InstantiationBoundArgumentsT, TemplataCompiler}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -117,7 +117,7 @@ case class InterfaceDefinitionT(
   // This does not include abstract functions declared outside the interface.
   // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.
-  internalMethods: Vector[(PrototypeT, Int)]
+  internalMethods: Vector[(PrototypeT[IFunctionNameT], Int)]
 ) extends CitizenDefinitionT {
   def defaultRegion: RegionT = RegionT()
 

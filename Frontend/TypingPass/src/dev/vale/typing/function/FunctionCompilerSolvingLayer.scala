@@ -8,7 +8,7 @@ import dev.vale.postparsing.patterns._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.postparsing.{IEnvironmentS => _, _}
-import dev.vale.typing.OverloadResolver.InferFailure
+import dev.vale.typing.OverloadResolver._
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
@@ -249,7 +249,7 @@ class FunctionCompilerSolvingLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplataT[ITemplataType]],
-    reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplataT]
+    reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplataT[IFunctionNameT]]
     // I suspect we'll eventually need some impl bounds here
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT = {
     val BuildingFunctionEnvironmentWithClosuredsT(globalEnv, parentEnv, id, templatas, function, variables, isRootCompilingDenizen) = nearEnv

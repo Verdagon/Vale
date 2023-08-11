@@ -11,7 +11,7 @@ import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale.solver.FailedSolve
 import OverloadResolver._
 import dev.vale.typing.ast.{KindExportT, SignatureT}
-import dev.vale.typing.names.{IdT, IFunctionNameT, IFunctionTemplateNameT, INameT, IVarNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.ast._
 import dev.vale.typing.types.InterfaceTT
 

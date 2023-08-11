@@ -1,12 +1,12 @@
 package dev.vale.typing
 
-import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.ast._
-import dev.vale.typing.env.{CitizenEnvironmentT, FunctionEnvironmentT, IInDenizenEnvironmentT}
+import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names._
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass, vwat}
+import dev.vale._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata._
 import dev.vale.typing.types.InterfaceTT
@@ -16,7 +16,7 @@ import scala.collection.mutable
 
 
 case class DeferredEvaluatingFunctionBody(
-  prototypeT: PrototypeT,
+  prototypeT: PrototypeT[IFunctionNameT],
   call: (CompilerOutputs) => Unit)
 
 case class DeferredEvaluatingFunction(
@@ -97,8 +97,8 @@ case class CompilerOutputs() {
 
   // A queue of functions that our code uses, but we don't need to compile them right away.
   // We can compile them later. Perhaps in parallel, someday!
-  private val deferredFunctionBodyCompiles: mutable.LinkedHashMap[PrototypeT, DeferredEvaluatingFunctionBody] = mutable.LinkedHashMap()
-  private val finishedDeferredFunctionBodyCompiles: mutable.LinkedHashSet[PrototypeT] = mutable.LinkedHashSet()
+  private val deferredFunctionBodyCompiles: mutable.LinkedHashMap[PrototypeT[IFunctionNameT], DeferredEvaluatingFunctionBody] = mutable.LinkedHashMap()
+  private val finishedDeferredFunctionBodyCompiles: mutable.LinkedHashSet[PrototypeT[IFunctionNameT]] = mutable.LinkedHashSet()
 
   private val deferredFunctionCompiles: mutable.LinkedHashMap[IdT[INameT], DeferredEvaluatingFunction] = mutable.LinkedHashMap()
   private val finishedDeferredFunctionCompiles: mutable.LinkedHashSet[IdT[INameT]] = mutable.LinkedHashSet()
@@ -114,7 +114,7 @@ case class CompilerOutputs() {
   def peekNextDeferredFunctionBodyCompile(): Option[DeferredEvaluatingFunctionBody] = {
     deferredFunctionBodyCompiles.headOption.map(_._2)
   }
-  def markDeferredFunctionBodyCompiled(prototypeT: PrototypeT): Unit = {
+  def markDeferredFunctionBodyCompiled(prototypeT: PrototypeT[IFunctionNameT]): Unit = {
     vassert(prototypeT == vassertSome(deferredFunctionBodyCompiles.headOption)._1)
     finishedDeferredFunctionBodyCompiles += prototypeT
     deferredFunctionBodyCompiles -= prototypeT
@@ -358,7 +358,7 @@ case class CompilerOutputs() {
     kindExports += KindExportT(range, kind, id, exportedName)
   }
 
-  def addFunctionExport(range: RangeS, function: PrototypeT, exportId: IdT[ExportNameT], exportedName: StrI): Unit = {
+  def addFunctionExport(range: RangeS, function: PrototypeT[IFunctionNameT], exportId: IdT[ExportNameT], exportedName: StrI): Unit = {
     vassert(getInstantiationBounds(function.id).nonEmpty)
     functionExports += FunctionExportT(range, function, exportId, exportedName)
   }
@@ -367,7 +367,7 @@ case class CompilerOutputs() {
     kindExterns += KindExternT(kind, packageCoord, exportedName)
   }
 
-  def addFunctionExtern(range: RangeS, externPlaceholderedId: IdT[ExternNameT], function: PrototypeT, exportedName: StrI): Unit = {
+  def addFunctionExtern(range: RangeS, externPlaceholderedId: IdT[ExternNameT], function: PrototypeT[IFunctionNameT], exportedName: StrI): Unit = {
     functionExterns += FunctionExternT(range, externPlaceholderedId, function, exportedName)
   }
 

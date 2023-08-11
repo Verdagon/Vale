@@ -63,7 +63,7 @@ case class IsaFailed(sub: KindT, suuper: KindT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedMinNumArgs: Int, expectedMaxNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: List[RangeS], name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: List[RangeS]) extends ITypingPassSolverError
-case class ReturnTypeConflict(range: List[RangeS], expectedReturnType: CoordT, actual: PrototypeT) extends ITypingPassSolverError
+case class ReturnTypeConflict(range: List[RangeS], expectedReturnType: CoordT, actual: PrototypeT[IFunctionNameT]) extends ITypingPassSolverError
 
 trait IInfererDelegate {
 //  def lookupMemberTypes(
@@ -154,7 +154,7 @@ trait IInfererDelegate {
     name: StrI,
     paramCoords: Vector[CoordT],
     returnCoord: CoordT):
-  PrototypeTemplataT
+  PrototypeTemplataT[IFunctionNameT]
 
   def assemblePrototype(
     env: InferEnv,
@@ -163,7 +163,7 @@ trait IInfererDelegate {
     name: StrI,
     coords: Vector[CoordT],
     returnType: CoordT):
-  PrototypeT
+  PrototypeT[IFunctionNameT]
 
   def assembleImpl(
     env: InferEnv,

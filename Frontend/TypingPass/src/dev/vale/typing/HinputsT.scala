@@ -13,7 +13,7 @@ import dev.vale.typing.types._
 import scala.collection.mutable
 
 case class InstantiationBoundArgumentsT(
-  runeToFunctionBoundArg: Map[IRuneS, PrototypeT],
+  runeToFunctionBoundArg: Map[IRuneS, PrototypeT[IFunctionNameT]],
   runeToImplBoundArg: Map[IRuneS, IdT[IImplNameT]])
 
 case class HinputsT(

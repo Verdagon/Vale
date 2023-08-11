@@ -5,11 +5,11 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns._
 import dev.vale.typing.{AbstractMethodOutsideOpenInterface, CompileErrorExceptionT, CompilerOutputs, ConvertHelper, FunctionAlreadyExists, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast, env}
-import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, FunctionDefinitionT, ParameterT, PrototypeT, SealedT, SignatureT}
+import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT, ExpressionLookupContext, FunctionEnvironmentT, IInDenizenEnvironmentT, TemplataLookupContext}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, IdT, IFunctionNameT, IFunctionTemplateNameT, NameTranslator, TypingIgnoredParamNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -118,7 +118,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA):
-  (PrototypeTemplataT) = {
+  (PrototypeTemplataT[IFunctionNameT]) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
       vassert(runedEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(templateParam)), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty);
@@ -354,7 +354,7 @@ class FunctionCompilerMiddleLayer(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     function1: FunctionA):
-  (PrototypeT) = {
+  (PrototypeT[IFunctionNameT]) = {
 
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {

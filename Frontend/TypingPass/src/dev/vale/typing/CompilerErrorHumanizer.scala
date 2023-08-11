@@ -654,6 +654,11 @@ object CompilerErrorHumanizer {
       }
       case SelfNameT() => "self"
       case OverrideDispatcherTemplateNameT(implId) => "ovdt:" + humanizeId(codeMap, implId)
+      case OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(implId), templateArgs, parameters) => {
+        "ovd:" + humanizeId(codeMap, implId) +
+        humanizeGenericArgs(codeMap, templateArgs, None) +
+            "(" + parameters.map(CoordTemplataT).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
+      }
       case IteratorNameT(range) => "it:" + codeMap(range.begin)
       case IterableNameT(range) => "ib:" + codeMap(range.begin)
       case IterationOptionNameT(range) => "io:" + codeMap(range.begin)

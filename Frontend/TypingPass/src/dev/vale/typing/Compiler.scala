@@ -376,7 +376,7 @@ class Compiler(
           name: StrI,
           paramCoords: Vector[CoordT],
           returnCoord: CoordT):
-        PrototypeTemplataT = {
+        PrototypeTemplataT[IFunctionNameT] = {
           PrototypeTemplataT(
             functionRange,
             PrototypeT(
@@ -396,7 +396,7 @@ class Compiler(
             name: StrI,
             coords: Vector[CoordT],
             returnType: CoordT):
-        PrototypeT = {
+        PrototypeT[IFunctionNameT] = {
           val result =
             PrototypeT(
               envs.selfEnv.id.addStep(

@@ -7,16 +7,17 @@ import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.citizen.{IResolveOutcome, IsParent, IsParentResult, IsntParent, ResolveFailure, ResolveSuccess}
-import dev.vale.typing.env.{CitizenEnvironmentT, EnvironmentHelper, GeneralEnvironmentT, GlobalEnvironment, IEnvEntry, IEnvironmentT, IInDenizenEnvironmentT, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.ast._
+import dev.vale.typing.citizen._
+import dev.vale.typing.env._
 import dev.vale.typing.function._
-import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntFindImpl, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError, ReturnTypeConflict}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IImplNameT, INameT, ITemplateNameT, IdT, ImplNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
+import dev.vale.typing.infer._
+import dev.vale.typing.names._
+import dev.vale.typing.templata.ITemplataT._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
-import scala.collection.immutable.{List, Set}
+import scala.collection.immutable._
 
 //ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]
 
@@ -32,7 +33,7 @@ case class CompleteCompilerSolve(
   steps: Stream[Step[IRulexSR, IRuneS, ITemplataT[ITemplataType]]],
   conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
   runeToBound: InstantiationBoundArgumentsT,
-  reachableBounds: Vector[PrototypeTemplataT]
+  reachableBounds: Vector[PrototypeTemplataT[IFunctionNameT]]
 ) extends ICompilerSolverOutcome {
   override def getOrDie(): Map[IRuneS, ITemplataT[ITemplataType]] = conclusions
 }
@@ -269,35 +270,90 @@ class InferCompiler(
   def checkResolvingConclusionsAndResolve(
       envs: InferEnv, // See CSSNCE
       state: CompilerOutputs,
-      invocationRange: List[RangeS],
+      ranges: List[RangeS],
       callLocation: LocationInDenizen,
       runeToType: Map[IRuneS, ITemplataType],
-      initialRules: Vector[IRulexSR],
+      rules: Vector[IRulexSR],
       includeReachableBoundsForRunes: Vector[IRuneS],
       solver: Solver[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemplataType], ITypingPassSolverError]):
   Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
-    compilerSolver.interpretResults(runeToType, solver) match {
-      case CompleteSolve(steps, conclusions) => {
-        val reachableBounds =
-          includeReachableBoundsForRunes
-              .map(conclusions)
-              .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
-        val envWithConclusions = importReachableBounds(envs.originalCallingEnv, reachableBounds)
-        val runeToFunctionBound =
-          resolveConclusions(
-            envWithConclusions, state, invocationRange, callLocation, envs.contextRegion, initialRules, conclusions) match {
-            case Ok(c) => vassertSome(c)
+    val (steps, conclusions) =
+      compilerSolver.interpretResults(runeToType, solver) match {
+        case CompleteSolve(steps, conclusions) => (steps, conclusions)
+        case i @ IncompleteSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
+          return Err(IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions))
+        }
+        case FailedSolve(steps, unsolvedRules, error) => {
+          return Err(FailedCompilerSolve(steps, unsolvedRules, error))
+        }
+      }
+    // rules.collect({
+    //   case r@CallSR(_, RuneUsage(_, callerResolveResultRune), _, _) => {
+    //     val inferences =
+    //       resolveTemplateCallConclusion(envs.originalCallingEnv, state, ranges, callLocation, r, conclusions) match {
+    //         case Ok(i) => i
+    //         case Err(e) => return Err(FailedCompilerSolve(steps, Vector(), RuleError(CouldntResolveKind(e))))
+    //       }
+    //     val _ = inferences // We don't care, we just did the resolve so that we could instantiate it and add its
+    //   }
+    // })
+    val reachableBounds =
+      includeReachableBoundsForRunes
+          .map(conclusions)
+          .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
+    val envWithConclusions = importReachableBounds(envs.originalCallingEnv, reachableBounds)
+    // Check all template calls
+    rules.collect({
+      case r@CallSR(_, RuneUsage(_, callerResolveResultRune), _, _) => {
+        val inferences =
+          resolveTemplateCallConclusion(envWithConclusions, state, ranges, callLocation, r, conclusions) match {
+            case Ok(i) => i
+            case Err(e) => return Err(FailedCompilerSolve(steps, Vector(), RuleError(CouldntResolveKind(e))))
+          }
+        val _ = inferences // We don't care, we just did the resolve so that we could instantiate it and add its
+      }
+    })
+
+    val maybeRunesAndPrototypes =
+      rules.collect({
+        case r@ResolveSR(_, _, _, _, _) => {
+          resolveFunctionCallConclusion(envWithConclusions, state, ranges, callLocation, r, conclusions, envs.contextRegion) match {
+            case Ok(maybeRuneAndPrototype) => maybeRuneAndPrototype
             case Err(e) => return Err(FailedCompilerSolve(steps, Vector(), e))
           }
-        Ok(CompleteCompilerSolve(steps, conclusions, runeToFunctionBound, reachableBounds))
-      }
-      case i @ IncompleteSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
-        Err(IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions))
-      }
-      case FailedSolve(steps, unsolvedRules, error) => {
-        Err(FailedCompilerSolve(steps, unsolvedRules, error))
-      }
+        }
+      })
+    val runeToPrototype = maybeRunesAndPrototypes.flatten.toMap
+    if (runeToPrototype.size < maybeRunesAndPrototypes.size) {
+      // checkFunctionCall returns None if it was an incomplete solve and we didn't have some
+      // param types so it didn't attempt to resolve them.
+      // If that happened at all, return None for the entire time.
+      vwat()
     }
+
+    val maybeRunesAndImpls =
+      rules.collect({
+        case r@CallSiteCoordIsaSR(_, _, _, _) => {
+          resolveImplConclusion(envWithConclusions, state, ranges, callLocation, r, conclusions) match {
+            case Ok(maybeRuneAndPrototype) => maybeRuneAndPrototype
+            case Err(e) => return Err(FailedCompilerSolve(steps, Vector(), e))
+          }
+        }
+      })
+    val runeToImpl = maybeRunesAndImpls.flatten.toMap
+    if (runeToImpl.size < maybeRunesAndImpls.size) {
+      // checkFunctionCall returns None if it was an incomplete solve and we didn't have some
+      // param types so it didn't attempt to resolve them.
+      // If that happened at all, return None for the entire time.
+      vwat()
+    }
+
+    val instantiationBoundArgs =
+      InstantiationBoundArgumentsT(
+        runeToPrototype,
+        runeToImpl)
+
+    Ok(CompleteCompilerSolve(steps, conclusions, instantiationBoundArgs, reachableBounds))
   }
 
   def checkDefiningConclusionsAndResolve(
@@ -337,7 +393,7 @@ class InferCompiler(
 
   def importReachableBounds(
     originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
-    reachableBounds: Vector[PrototypeTemplataT]):
+    reachableBounds: Vector[PrototypeTemplataT[IFunctionNameT]]):
   GeneralEnvironmentT[INameT] = {
     GeneralEnvironmentT.childOf(
       interner,
@@ -353,7 +409,7 @@ class InferCompiler(
   def importConclusionsAndReachableBounds(
       originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-      reachableBounds: Vector[PrototypeTemplataT]):
+      reachableBounds: Vector[PrototypeTemplataT[IFunctionNameT]]):
   GeneralEnvironmentT[INameT] = {
     // If this is the original calling env, in other words, if we're the original caller for
     // this particular solve, then lets add all of our templatas to the environment.
@@ -438,7 +494,7 @@ class InferCompiler(
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
     contextRegion: RegionT):
-  Result[Option[(IRuneS, PrototypeT)], ISolverError[IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]] = {
+  Result[Option[(IRuneS, PrototypeT[IFunctionNameT])], ISolverError[IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]] = {
     val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
 
     // If it was an incomplete solve, then just skip.

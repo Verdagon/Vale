@@ -383,6 +383,42 @@ case class FunctionBoundNameT(
   parameters: Vector[CoordT]
 ) extends IFunctionNameT
 
+case class ReachableFunctionTemplateNameT(
+    humanName: StrI,
+    // DO NOT SUBMIT talk about why we dont have these. we want them to merge.
+    // reachableViaCitizen: ICitizenTT,
+    // runeInCitizen: IRuneS,
+) extends INameT with IFunctionTemplateNameT {
+  vpass()
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): ReachableFunctionNameT = {
+    interner.intern(ReachableFunctionNameT(this, templateArgs, params))
+  }
+}
+
+case class ReachableFunctionNameT(
+    template: ReachableFunctionTemplateNameT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
+    parameters: Vector[CoordT]
+) extends IFunctionNameT {
+  vpass()
+}
+
+// DO NOT SUBMIT doc
+case class PredictedFunctionTemplateNameT(
+    humanName: StrI
+) extends INameT with IFunctionTemplateNameT {
+  vpass()
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): PredictedFunctionNameT = {
+    interner.intern(PredictedFunctionNameT(this, templateArgs, params))
+  }
+}
+
+case class PredictedFunctionNameT(
+    template: PredictedFunctionTemplateNameT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
+    parameters: Vector[CoordT]
+) extends IFunctionNameT
+
 case class FunctionTemplateNameT(
     humanName: StrI,
     codeLocation: CodeLocationS
