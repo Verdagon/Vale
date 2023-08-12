@@ -26,8 +26,7 @@ case class StructDefinitionT(
   mutability: ITemplataT[MutabilityTemplataType],
   members: Vector[IStructMemberT],
   isClosure: Boolean,
-  runeToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]
 ) extends CitizenDefinitionT {
   def defaultRegion: RegionT = RegionT()
 
@@ -112,8 +111,7 @@ case class InterfaceDefinitionT(
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplataT[MutabilityTemplataType],
-  runeToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   // This does not include abstract functions declared outside the interface.
   // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.

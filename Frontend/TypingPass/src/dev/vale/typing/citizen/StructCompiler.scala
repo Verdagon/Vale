@@ -55,9 +55,9 @@ sealed trait IResolveOutcome[+T <: KindT] {
 case class ResolveSuccess[+T <: KindT](kind: T) extends IResolveOutcome[T] {
   override def expect(): ResolveSuccess[T] = this
 }
-case class ResolveFailure[+T <: KindT](range: List[RangeS], x: IIncompleteOrFailedCompilerSolve) extends IResolveOutcome[T] {
+case class ResolveFailure[+T <: KindT](range: List[RangeS], x: IResolvingError) extends IResolveOutcome[T] {
   override def expect(): ResolveSuccess[T] = {
-    throw CompileErrorExceptionT(TypingPassSolverError(range, x))
+    throw CompileErrorExceptionT(TypingPassResolvingError(range, x))
   }
 }
 

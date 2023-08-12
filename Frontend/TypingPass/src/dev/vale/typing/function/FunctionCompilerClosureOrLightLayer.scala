@@ -163,7 +163,7 @@ class FunctionCompilerClosureOrLightLayer(
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
     args: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult) = {
+  (IResolveFunctionResult) = {
     checkNotClosure(function);
 
     val outerEnvId = parentEnv.id.addStep(nameTranslator.translateGenericFunctionName(function.name))

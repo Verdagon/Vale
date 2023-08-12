@@ -85,8 +85,7 @@ class EdgeCompiler(
                 overridingImpl.instantiatedId,
                 overridingCitizen,
                 overridingImpl.superInterface.id,
-                overridingImpl.runeToFuncBound,
-                overridingImpl.runeToImplBound,
+                overridingImpl.instantiationBoundParams,
                 foundFunctions.toMap)
             val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateId)
             overridingCitizenDef.instantiatedCitizen.id -> edge
@@ -440,8 +439,8 @@ class EdgeCompiler(
         // Keep in mind, at the end of the solve, we're actually pulling in some reachable bounds
         // from the struct we're solving for here.
       ) match {
-        case Ok(CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromFullSolve)) => (conclusions, reachableBoundsFromFullSolve)
-        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), e))
+        case Ok(CompleteResolveSolve(conclusions, _, reachableBoundsFromFullSolve)) => (conclusions, reachableBoundsFromFullSolve)
+        case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(List(range), e))
       }
     val caseSubCitizen =
       expectKindTemplata(
@@ -508,8 +507,9 @@ class EdgeCompiler(
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
       implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
-      dispatcherRuneToFunctionBound,
-      dispatcherRuneToImplBound,
+      InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+        dispatcherRuneToFunctionBound,
+        dispatcherRuneToImplBound),
       dispatcherCaseEnv.id,
       foundFunction.prototype.prototype)
   }

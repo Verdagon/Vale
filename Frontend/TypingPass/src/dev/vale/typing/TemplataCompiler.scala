@@ -25,9 +25,8 @@ import scala.collection.immutable.{List, Map, Set}
 sealed trait IBoundArgumentsSource
 case object InheritBoundsFromTypeItself extends IBoundArgumentsSource
 case class UseBoundsFromContainer(
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
-  instantiationBoundArguments: InstantiationBoundArgumentsT
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  instantiationBoundArguments: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]
 ) extends IBoundArgumentsSource
 
 trait ITemplataCompilerDelegate {
@@ -243,10 +242,10 @@ object TemplataCompiler {
       last.template)
   }
 
-  def assembleRuneToFunctionBound(templatas: TemplatasStore): Map[IRuneS, IdT[FunctionBoundNameT]] = {
+  def assembleRuneToFunctionBound(templatas: TemplatasStore): Map[IRuneS, PrototypeT[FunctionBoundNameT]] = {
     templatas.entriesByNameT.toIterable.flatMap({
       case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(_, PrototypeT(IdT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)), returnType)))) => {
-        Some(rune -> IdT(packageCoord, initSteps, name))
+        Some(rune -> PrototypeT(IdT(packageCoord, initSteps, name), returnType))
       }
       case _ => None
     }).toMap
@@ -404,8 +403,8 @@ object TemplataCompiler {
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
-    instantiationBoundArgs: InstantiationBoundArgumentsT):
-  InstantiationBoundArgumentsT = {
+    instantiationBoundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
+  InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT] = {
     boundArgumentsSource match {
       case InheritBoundsFromTypeItself => {
         val x =
@@ -433,24 +432,24 @@ object TemplataCompiler {
         // This is the bound that MyList.drop will look for.
         x
       }
-      case UseBoundsFromContainer(containerRuneToFuncBound, containerRuneToImplBound, containerInstantiationBoundArgs) => {
+      case UseBoundsFromContainer(containerInstantiationBoundParams, containerInstantiationBoundArgs) => {
         // Here, we're grabbing something inside a struct, like with the dot operator. We'll want to
         // make some instantiation bound args for this new type that our function knows about.
         // Luckily, we can use some bounds from the containing struct to satisfy its members bounds.
 
         val containerFuncBoundToBoundArg =
           containerInstantiationBoundArgs.runeToFunctionBoundArg.map({ case (rune, containerFuncBoundArg) =>
-            vassertSome(containerRuneToFuncBound.get(rune)) -> containerFuncBoundArg
+            vassertSome(containerInstantiationBoundParams.runeToFunctionBoundArg.get(rune)) -> containerFuncBoundArg
           })
         val containerImplBoundToBoundArg =
           containerInstantiationBoundArgs.runeToImplBoundArg.map({ case (rune, containerImplBoundArg) =>
-            vassertSome(containerRuneToImplBound.get(rune)) -> containerImplBoundArg
+            vassertSome(containerInstantiationBoundParams.runeToImplBoundArg.get(rune)) -> containerImplBoundArg
           })
         InstantiationBoundArgumentsT(
           instantiationBoundArgs.runeToFunctionBoundArg.mapValues(funcBoundArg => {
-            funcBoundArg.id match {
-              case IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)) => {
-                vassertSome(containerFuncBoundToBoundArg.get(IdT(packageCoord, initSteps, fbn)))
+            funcBoundArg match {
+              case PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType) => {
+                vassertSome(containerFuncBoundToBoundArg.get(PrototypeT(IdT(packageCoord, initSteps, fbn), returnType)))
               }
               case _ => {
                 // Not sure if this call is really necessary...
@@ -513,8 +512,8 @@ object TemplataCompiler {
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
-    boundArgs: InstantiationBoundArgumentsT):
-  InstantiationBoundArgumentsT = {
+    boundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
+  InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT] = {
     val InstantiationBoundArgumentsT(runeToFunctionBoundArg, runeToImplBoundArg) = boundArgs
     InstantiationBoundArgumentsT(
       runeToFunctionBoundArg.mapValues(funcBoundArg => {

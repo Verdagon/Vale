@@ -42,9 +42,8 @@ case class ImplT(
   superInterface: InterfaceTT,
   superInterfaceTemplateId: IdT[IInterfaceTemplateNameT],
 
-  // This is similar to FunctionT.runeToFuncBound
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  // This is similar to FunctionT.runeToFuncBound DO NOT SUBMIT
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   runeIndexToIndependence: Vector[Boolean],
 
@@ -137,8 +136,9 @@ case class OverrideT(
 
   // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // bounds. This is the one for our conceptual dispatcher function.
-  dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
+  // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT
+  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
@@ -161,8 +161,7 @@ case class EdgeT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   superInterface: IdT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   abstractFuncToOverrideFunc: Map[IdT[IFunctionNameT], OverrideT]
 ) {
@@ -170,7 +169,7 @@ case class EdgeT(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case EdgeT(thatEdgeId, thatStruct, thatInterface, _, _, _) => {
+      case EdgeT(thatEdgeId, thatStruct, thatInterface, _, _) => {
         val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
           vassert(edgeId == thatEdgeId)
@@ -183,8 +182,7 @@ case class EdgeT(
 
 case class FunctionDefinitionT(
   header: FunctionHeaderT,
-  runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 

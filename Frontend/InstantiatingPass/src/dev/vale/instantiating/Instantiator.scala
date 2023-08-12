@@ -364,9 +364,9 @@ class Instantiator(
     val denizenBoundToDenizenCallerSuppliedThing =
       DenizenBoundToDenizenCallerBoundArgS(
         assembleCalleeDenizenFunctionBounds(
-          interfaceDefT.runeToFunctionBound, instantiationBoundArgs.runeToFunctionBoundArg),
+          interfaceDefT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundArgs.runeToFunctionBoundArg),
         assembleCalleeDenizenImplBounds(
-          interfaceDefT.runeToImplBound, instantiationBoundArgs.runeToImplBoundArg))
+          interfaceDefT.instantiationBoundParams.runeToImplBoundArg, instantiationBoundArgs.runeToImplBoundArg))
     monouts.interfaceToBounds.get(interfaceIdS) match {
       case Some(x) => {
         vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
@@ -450,9 +450,9 @@ class Instantiator(
     val denizenBoundToDenizenCallerSuppliedThing =
       DenizenBoundToDenizenCallerBoundArgS(
         assembleCalleeDenizenFunctionBounds(
-          structDefT.runeToFunctionBound, instantiationBoundArgs.runeToFunctionBoundArg),
+          structDefT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundArgs.runeToFunctionBoundArg),
         assembleCalleeDenizenImplBounds(
-          structDefT.runeToImplBound, instantiationBoundArgs.runeToImplBoundArg))
+          structDefT.instantiationBoundParams.runeToImplBoundArg, instantiationBoundArgs.runeToImplBoundArg))
     monouts.structToBounds.get(structIdS) match {
       case Some(x) => {
         vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
@@ -593,8 +593,7 @@ class Instantiator(
         implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
         // This is a map of the dispatcher's rune to the dispatcher's function bound, here:
         //   $1114 -> func abst/bound:drop(int)
-        dispatcherRuneToFunctionBound,
-        dispatcherRuneToImplBound,
+        InstantiationBoundArgumentsT(dispatcherRuneToFunctionBound, dispatcherRuneToImplBound),
         dispatcherCaseIdT,
         overridePrototypeT) =
       vassertSome(edgeT.abstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))
@@ -668,7 +667,7 @@ class Instantiator(
     // so it's really just a rearrangement of the typing phase's data, not quite useful yet.
     val dispatcherFunctionBoundToIncomingPrototype =
       assembleCalleeDenizenFunctionBounds(
-        dispatcherRuneToFunctionBound,
+        dispatcherRuneToFunctionBound.mapValues(_.id),
         dispatcherRuneToCallerSuppliedPrototype)
     // (this is empty in this example)
     val dispatcherImplBoundToIncomingImpl =
@@ -839,9 +838,9 @@ class Instantiator(
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
       DenizenBoundToDenizenCallerBoundArgS(
         assembleCalleeDenizenFunctionBounds(
-          implDefinition.runeToFuncBound, instantiationBoundsForUnsubstitutedImpl.runeToFunctionBoundArg),
+          implDefinition.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundsForUnsubstitutedImpl.runeToFunctionBoundArg),
         assembleCalleeDenizenImplBounds(
-          implDefinition.runeToImplBound, instantiationBoundsForUnsubstitutedImpl.runeToImplBoundArg))
+          implDefinition.instantiationBoundParams.runeToImplBoundArg, instantiationBoundsForUnsubstitutedImpl.runeToImplBoundArg))
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
       Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
         hoistBoundsFromParameter(hinputs, monouts, subCitizenT, subCitizenM)
@@ -939,9 +938,9 @@ class Instantiator(
       maybeDenizenBoundToDenizenCallerSuppliedThing.getOrElse({
         DenizenBoundToDenizenCallerBoundArgS(
           // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenFunctionBounds(funcT.runeToFuncBound, suppliedBoundArgs.runeToFunctionBoundArg),
+          assembleCalleeDenizenFunctionBounds(funcT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), suppliedBoundArgs.runeToFunctionBoundArg),
           // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenImplBounds(funcT.runeToImplBound, suppliedBoundArgs.runeToImplBoundArg))
+          assembleCalleeDenizenImplBounds(funcT.instantiationBoundParams.runeToImplBoundArg, suppliedBoundArgs.runeToImplBoundArg))
       })
     val argsM = desiredPrototypeS.id.localName.parameters.map(_.kind)
     val paramsT = funcT.header.params.map(_.tyype.kind)
@@ -1025,9 +1024,9 @@ class Instantiator(
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
         DenizenBoundToDenizenCallerBoundArgS(
           // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenFunctionBounds(funcT.runeToFuncBound, suppliedBoundArgs.runeToFunctionBoundArg),
+          assembleCalleeDenizenFunctionBounds(funcT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), suppliedBoundArgs.runeToFunctionBoundArg),
           // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenImplBounds(funcT.runeToImplBound, suppliedBoundArgs.runeToImplBoundArg))
+          assembleCalleeDenizenImplBounds(funcT.instantiationBoundParams.runeToImplBoundArg, suppliedBoundArgs.runeToImplBoundArg))
     val argsM = desiredAbstractPrototypeS.id.localName.parameters.map(_.kind)
     val paramsT = funcT.header.params.map(_.tyype.kind)
     val denizenBoundToDenizenCallerSuppliedThingFromParams =
@@ -1192,7 +1191,7 @@ class Instantiator(
         val structT = findStruct(hinputs, structIdT)
         val denizenBoundToDenizenCallerSuppliedThing =
           hoistBoundsFromParameterInner(
-            structDenizenBoundToDenizenCallerSuppliedThing, calleeRuneToBoundArgT, structT.runeToFunctionBound, structT.runeToImplBound)
+            structDenizenBoundToDenizenCallerSuppliedThing, calleeRuneToBoundArgT, structT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), structT.instantiationBoundParams.runeToImplBoundArg)
         Some(denizenBoundToDenizenCallerSuppliedThing)
       }
       case (InterfaceTT(interfaceIdT), InterfaceIT(interfaceIdM)) => {
@@ -1203,8 +1202,8 @@ class Instantiator(
           hoistBoundsFromParameterInner(
             interfaceDenizenBoundToDenizenCallerSuppliedThing,
             calleeRuneToBoundArgT,
-            interfaceT.runeToFunctionBound,
-            interfaceT.runeToImplBound)
+            interfaceT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id),
+            interfaceT.instantiationBoundParams.runeToImplBoundArg)
         Some(denizenBoundToDenizenCallerSuppliedThing)
       }
       case _ => None
@@ -1214,7 +1213,7 @@ class Instantiator(
   // See NBIFP
   private def hoistBoundsFromParameterInner(
     parameterDenizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
-    calleeRuneToBoundArgT: InstantiationBoundArgumentsT,
+    calleeRuneToBoundArgT: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT],
     calleeRuneToCalleeFunctionBoundT: Map[IRuneS, IdT[FunctionBoundNameT]],
     calleeRuneToCalleeImplBoundT: Map[IRuneS, IdT[ImplBoundNameT]]):
   DenizenBoundToDenizenCallerBoundArgS = {
@@ -1475,7 +1474,7 @@ class Instantiator(
     // This contains a map from rune to a prototype, specifically the prototype that we
     // (the *template* caller) is supplying to the *template* callee. This prototype might
     // be a placeholder, phrased in terms of our (the *template* caller's) placeholders
-    instantiationBoundArgsForCallUnsubstituted: InstantiationBoundArgumentsT):
+    instantiationBoundArgsForCallUnsubstituted: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
   InstantiationBoundArgumentsI = {
     val runeToSuppliedPrototypeForCallUnsubstituted =
       instantiationBoundArgsForCallUnsubstituted.runeToFunctionBoundArg
@@ -1532,7 +1531,7 @@ class Instantiator(
     newId: IdI[cI, IStructNameI[cI]],
     structDefT: StructDefinitionT):
   Unit = {
-    val StructDefinitionT(templateName, instantiatedCitizen, attributes, weakable, mutabilityT, members, isClosure, _, _) = structDefT
+    val StructDefinitionT(templateName, instantiatedCitizen, attributes, weakable, mutabilityT, members, isClosure, _) = structDefT
 
     if (opts.sanityCheck) {
       vassert(Collector.all(newId, { case KindPlaceholderNameT(_) => }).isEmpty)
@@ -1593,7 +1592,7 @@ class Instantiator(
       return
     }
 
-    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
+    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutabilityT, _, internalMethods) = interfaceDefT
 
     vassert(!monouts.interfaceToImplToAbstractPrototypeToOverride.contains(newIdC))
     monouts.interfaceToImplToAbstractPrototypeToOverride.put(newIdC, mutable.HashMap())
@@ -1698,7 +1697,7 @@ class Instantiator(
     desiredPrototypeC: PrototypeI[cI],
     functionT: FunctionDefinitionT):
   FunctionDefinitionI = {
-    val FunctionDefinitionT(headerT, _, _, bodyT) = functionT
+    val FunctionDefinitionT(headerT, _, bodyT) = functionT
 
     val FunctionHeaderT(fullName, attributes, params, returnType, maybeOriginFunctionTemplata) = headerT
 
@@ -3741,7 +3740,7 @@ class Instantiator(
     implIdC: IdI[cI, IImplNameI[cI]],
     implDefinition: EdgeT):
   Unit = {
-    val EdgeT(_, subCitizen, superInterface, runeToFuncBound, runeToImplBound, abstractFuncToOverrideFunc) = implDefinition
+    val EdgeT(_, subCitizen, superInterface, instantiationBoundParams, abstractFuncToOverrideFunc) = implDefinition
 
     if (opts.sanityCheck) {
       vassert(Collector.all(implIdS, { case KindPlaceholderNameT(_) => }).isEmpty)

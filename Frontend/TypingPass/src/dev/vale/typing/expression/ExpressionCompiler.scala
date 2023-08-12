@@ -55,7 +55,7 @@ trait IExpressionCompilerDelegate {
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
     args: Vector[CoordT]):
-  IEvaluateFunctionResult
+  IResolveFunctionResult
 
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
@@ -812,8 +812,7 @@ class ExpressionCompiler(
                     structTT.id,
                     // Use the bounds that we supplied to the struct
                     UseBoundsFromContainer(
-                      structDef.runeToFunctionBound,
-                      structDef.runeToImplBound,
+                      structDef.instantiationBoundParams,
                       vassertSome(coutputs.getInstantiationBounds(structTT.id))))
                     .substituteForCoord(coutputs, unsubstitutedMemberType)
 
@@ -1578,10 +1577,10 @@ class ExpressionCompiler(
     val someConstructor =
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, callLocation, someConstructorTemplata, Vector(CoordTemplataT(containedCoord)), contextRegion, Vector(containedCoord)) match {
-        case fff@EvaluateFunctionFailure(_) => {
+        case fff@ResolveFunctionFailure(_) => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         }
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case ResolveFunctionSuccess(p, conclusions) => p.prototype
       }
 
     val noneConstructorTemplata =
@@ -1592,12 +1591,12 @@ class ExpressionCompiler(
     val noneConstructor =
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, callLocation, noneConstructorTemplata, Vector(CoordTemplataT(containedCoord)), contextRegion, Vector()) match {
-        case fff@EvaluateFunctionFailure(_) => {
+        case fff@ResolveFunctionFailure(_) => {
           throw CompileErrorExceptionT(RangedInternalErrorT(
             range,
             fff.toString))
         }
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case ResolveFunctionSuccess(p, conclusions) => p.prototype
       }
 
     val someImplId =
@@ -1656,12 +1655,12 @@ class ExpressionCompiler(
         Vector(CoordTemplataT(containedSuccessCoord), CoordTemplataT(containedFailCoord)),
         region,
         Vector(containedSuccessCoord)) match {
-        case fff@EvaluateFunctionFailure(_) => {
+        case fff@ResolveFunctionFailure(_) => {
           throw CompileErrorExceptionT(RangedInternalErrorT(
             range,
             fff.toString))
         }
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case ResolveFunctionSuccess(p, conclusions) => p.prototype
       }
     val okKind = okConstructor.returnType.kind
     val okResultImpl =
@@ -1685,12 +1684,12 @@ class ExpressionCompiler(
         Vector(CoordTemplataT(containedSuccessCoord), CoordTemplataT(containedFailCoord)),
         region,
         Vector(containedFailCoord)) match {
-        case fff@EvaluateFunctionFailure(_) => {
+        case fff@ResolveFunctionFailure(_) => {
           throw CompileErrorExceptionT(RangedInternalErrorT(
             range,
             fff.toString))
         }
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case ResolveFunctionSuccess(p, conclusions) => p.prototype
       }
     val errKind = errConstructor.returnType.kind
     val errResultImpl =

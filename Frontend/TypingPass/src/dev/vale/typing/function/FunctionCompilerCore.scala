@@ -205,7 +205,12 @@ class FunctionCompilerCore(
           coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
           val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnv.templatas)
           val neededImplBounds = TemplataCompiler.assembleRuneToImplBound(fullEnv.templatas)
-          coutputs.addFunction(FunctionDefinitionT(header, neededFunctionBounds, neededImplBounds, body))
+          coutputs.addFunction(
+            FunctionDefinitionT(
+              header,
+              InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+                neededFunctionBounds, neededImplBounds),
+              body))
 
           if (header.toSignature != signature2) {
             throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
@@ -318,7 +323,12 @@ class FunctionCompilerCore(
     vassert(coutputs.lookupFunction(header.toSignature).isEmpty)
     val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnvSnapshot.templatas)
     val neededImplBounds = TemplataCompiler.assembleRuneToImplBound(fullEnvSnapshot.templatas)
-    val function2 = FunctionDefinitionT(header, neededFunctionBounds, neededImplBounds, body2);
+    val function2 =
+      FunctionDefinitionT(
+        header,
+        InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+          neededFunctionBounds, neededImplBounds),
+        body2);
     coutputs.addFunction(function2)
     header
   }
@@ -362,8 +372,7 @@ class FunctionCompilerCore(
         val function2 =
           FunctionDefinitionT(
             header,
-            Map(),
-            Map(),
+            InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](Map(), Map()),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
         coutputs.declareFunctionReturnType(header.toSignature, header.returnType)

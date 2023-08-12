@@ -151,7 +151,7 @@ class PatternCompiler(
             }
             val rulesA = ruleBuilder.toVector
 
-            val CompleteCompilerSolve(_, templatasByRune, _, Vector()) =
+            val CompleteDefineSolve(templatasByRune, _, Vector()) =
               // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
               // declaring a bunch of things.
               inferCompiler.solveForDefining(
@@ -168,8 +168,8 @@ class PatternCompiler(
                     receiverRune,
                     CoordTemplataT(unconvertedInputExpr.result.coord))),
                 Vector()) match {
-                case Err(f) => throw CompileErrorExceptionT(TypingPassSolverError(pattern.range :: parentRanges, f))
-                case Ok(c@CompleteCompilerSolve(_, _, _, _)) => c
+                case Err(f) => vimpl()//throw CompileErrorExceptionT(TypingPassSolverError(pattern.range :: parentRanges, f)) DO NOT SUBMIT
+                case Ok(c) => c
               }
 
             nenv.addEntries(
@@ -592,8 +592,7 @@ class PatternCompiler(
         structTT.id,
         // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(
-          structDefT.runeToFunctionBound,
-          structDefT.runeToImplBound,
+          structDefT.instantiationBoundParams,
           vassertSome(coutputs.getInstantiationBounds(structTT.id))))
         .substituteForCoord(coutputs, unsubstitutedMemberCoord)
 

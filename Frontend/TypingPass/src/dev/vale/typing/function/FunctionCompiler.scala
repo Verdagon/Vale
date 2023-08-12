@@ -77,8 +77,20 @@ case class EvaluateFunctionSuccess(
 ) extends IEvaluateFunctionResult
 
 case class EvaluateFunctionFailure(
-    reason: IFindFunctionFailureReason
+    reason: IDefiningError
 ) extends IEvaluateFunctionResult
+
+
+trait IResolveFunctionResult
+
+case class ResolveFunctionSuccess(
+    prototype: PrototypeTemplataT[IFunctionNameT],
+    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
+) extends IResolveFunctionResult
+
+case class ResolveFunctionFailure(
+    reason: IResolvingError
+) extends IResolveFunctionResult
 
 
 trait IStampFunctionResult
@@ -252,7 +264,7 @@ class FunctionCompiler(
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
     args: Vector[CoordT]):
-  IEvaluateFunctionResult = {
+  IResolveFunctionResult = {
     Profiler.frame(() => {
       val FunctionTemplataT(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(

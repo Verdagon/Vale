@@ -28,7 +28,7 @@ case class IsParent(
   implId: IdT[IImplNameT]
 ) extends IsParentResult
 case class IsntParent(
-  candidates: Vector[IIncompleteOrFailedCompilerSolve]
+  candidates: Vector[IResolvingError]
 ) extends IsParentResult
 
 class ImplCompiler(
@@ -48,7 +48,7 @@ class ImplCompiler(
       callingEnv: IInDenizenEnvironmentT,
       initialKnowns: Vector[InitialKnown],
       implTemplata: ImplDefinitionTemplataT):
-  Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
+  Result[CompleteResolveSolve, IResolvingError] = {
 
     val ImplDefinitionTemplataT(parentEnv, impl) = implTemplata
     val ImplA(
@@ -89,7 +89,7 @@ class ImplCompiler(
 
     inferCompiler.continue(envs, coutputs, solver) match {
       case Ok(()) =>
-      case Err(e) => return Err(e)
+      case Err(e) => return Err(ResolvingSolveFailedOrIncomplete(e))
     }
 
     inferCompiler.checkResolvingConclusionsAndResolve(
@@ -217,7 +217,7 @@ class ImplCompiler(
         callLocation,
         outerEnv,
         RegionT())
-    val CompleteCompilerSolve(_, inferences, runeToFunctionBound1, reachableBoundsFromSubCitizen) =
+    val CompleteDefineSolve(inferences, runeToFunctionBound1, reachableBoundsFromSubCitizen) =
       inferCompiler.solveForDefining(
         envs,
         coutputs,
@@ -230,7 +230,7 @@ class ImplCompiler(
         // We include reachable bounds for the struct so we don't have to re-specify all its bounds in the impl.
         Vector(structKindRune.rune)) match {
         case Ok(i) => i
-        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implA.range), e))
+        case Err(e) => throw CompileErrorExceptionT(TypingPassDefiningError(List(implA.range), e))
       }
 
     val subCitizen =
@@ -284,8 +284,8 @@ class ImplCompiler(
           subCitizen,
           superInterface,
           superInterfaceTemplateId,
-          runeToNeededFunctionBound,
-          runeToNeededImplBound,
+          InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+            runeToNeededFunctionBound, runeToNeededImplBound),
           runeIndexToIndependence.toVector,
           reachableBoundsFromSubCitizen.map(_.prototype)))
     coutputs.declareType(implTemplateId)
@@ -544,7 +544,7 @@ class ImplCompiler(
     callingEnv: IInDenizenEnvironmentT,
     implTemplata: ImplDefinitionTemplataT,
     child: ICitizenTT):
-  Result[InterfaceTT, IIncompleteOrFailedCompilerSolve] = {
+  Result[InterfaceTT, IResolvingError] = {
     val initialKnowns =
       Vector(
         InitialKnown(implTemplata.impl.subCitizenRune, KindTemplataT(child)))
@@ -552,9 +552,9 @@ class ImplCompiler(
       coutputs.getOuterEnvForType(
         parentRanges,
         TemplataCompiler.getCitizenTemplate(child.id))
-    val CompleteCompilerSolve(_, conclusions, _, _) =
+    val CompleteResolveSolve(conclusions, _, _) =
       resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata) match {
-        case Ok(ccs @ CompleteCompilerSolve(_, _, _, _)) => ccs
+        case Ok(ccs) => ccs
         case Err(x) => return Err(x)
       }
     val parentTT = conclusions.get(implTemplata.impl.interfaceKindRune.rune)
@@ -683,14 +683,14 @@ class ImplCompiler(
             InitialKnown(impl.impl.subCitizenRune, KindTemplataT(subKindTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplataT(superKindTT)))
         resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, impl) match {
-          case Ok(ccs @ CompleteCompilerSolve(_, _, _, _)) => Ok((impl, ccs))
+          case Ok(ccs) => Ok((impl, ccs))
           case Err(x) => Err(x)
         }
       })
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some((implTemplata, CompleteCompilerSolve(_, conclusions, runeToSuppliedFunction, reachableBoundsFromSubCitizen))) => {
+      case Some((implTemplata, CompleteResolveSolve(conclusions, runeToSuppliedFunction, reachableBoundsFromSubCitizen))) => {
         // Dont need this for anything yet
         val _ = reachableBoundsFromSubCitizen
 

@@ -12,9 +12,9 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
-case class InstantiationBoundArgumentsT(
-  runeToFunctionBoundArg: Map[IRuneS, PrototypeT[IFunctionNameT]],
-  runeToImplBoundArg: Map[IRuneS, IdT[IImplNameT]])
+case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
+  runeToFunctionBoundArg: Map[IRuneS, PrototypeT[BF]],
+  runeToImplBoundArg: Map[IRuneS, IdT[BI]])
 
 case class HinputsT(
   interfaces: Vector[InterfaceDefinitionT],
@@ -28,7 +28,7 @@ case class HinputsT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[IdT[IInterfaceNameT], Map[IdT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT],
+  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -73,7 +73,7 @@ case class HinputsT(
     vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implId))
   }
 
-  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT = {
+  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT] = {
     vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 

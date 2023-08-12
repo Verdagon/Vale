@@ -71,7 +71,7 @@ class FunctionCompilerSolvingLayer(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
-    val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
+    val CompleteResolveSolve(inferredTemplatas, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveForResolving(
         InferEnv(originalCallingEnv, callRange, callLocation, outerEnv, contextRegion),
         coutputs,
@@ -83,7 +83,7 @@ class FunctionCompilerSolvingLayer(
         initialSends,
         Vector()
       ) match {
-        case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
+        case Err(e) => vimpl()//return (EvaluateFunctionFailure(InferFailure(e))) DO NOT SUBMIT
         case Ok(i) => (i)
       }
 
@@ -125,7 +125,7 @@ class FunctionCompilerSolvingLayer(
             function.rules, function.genericParameters, 0)
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
-    val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) = {
+    val CompleteDefineSolve(inferredTemplatas, runeToFunctionBound, reachableBounds) = {
       // We could probably just solveForResolving (see DBDAR) but seems more future-proof to solveForDefining.
       inferCompiler.solveForDefining(
         InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
@@ -138,7 +138,7 @@ class FunctionCompilerSolvingLayer(
         initialSends,
         Vector()
       ) match {
-        case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
+        case Err(e) => return EvaluateFunctionFailure(e)
         case Ok(i) => (i)
       }
     }
@@ -186,7 +186,7 @@ class FunctionCompilerSolvingLayer(
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
     val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
-    val CompleteCompilerSolve(_, inferences, runeToFunctionBound, reachableBounds) =
+    val CompleteDefineSolve(inferences, runeToFunctionBound, reachableBounds) =
     // We could probably just solveForResolving (see DBDAR) but seems more future-proof to solveForDefining.
       inferCompiler.solveForDefining(
         InferEnv(originalCallingEnv, callRange, callLocation, nearEnv, contextRegion),
@@ -198,7 +198,7 @@ class FunctionCompilerSolvingLayer(
         initialKnowns,
         initialSends,
         Vector()) match {
-      case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
+      case Err(e) => return EvaluateFunctionFailure(e)
       case Ok(inferredTemplatas) => inferredTemplatas
     }
 
@@ -294,7 +294,7 @@ class FunctionCompilerSolvingLayer(
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
     args: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult) = {
+  (IResolveFunctionResult) = {
     val function = outerEnv.function
     // Check preconditions
     checkClosureConcernsHandled(outerEnv)
@@ -348,16 +348,16 @@ class FunctionCompilerSolvingLayer(
           }
         }
       }) match {
-      case Err(f@FailedCompilerSolve(_, _, err)) => {
-        return (EvaluateFunctionFailure(InferFailure(f)))
+      case Err(f@FailedCompilerSolve(_, _, _)) => {
+        return (ResolveFunctionFailure(ResolvingSolveFailedOrIncomplete(f)))
       }
       case Ok(true) =>
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
+    val CompleteResolveSolve(inferredTemplatas, runeToFunctionBound, reachableBounds) =
       inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, includeReachableBoundsForRunes, solver) match {
-        case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
+        case Err(e) => return (ResolveFunctionFailure(e))
         case Ok(i) => (i)
       }
 
@@ -374,7 +374,7 @@ class FunctionCompilerSolvingLayer(
 
     coutputs.addInstantiationBounds(prototype.id, runeToFunctionBound)
 
-    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferredTemplatas)
+    ResolveFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferredTemplatas)
   }
 
   def evaluateGenericVirtualDispatcherFunctionForPrototype(
@@ -446,7 +446,7 @@ class FunctionCompilerSolvingLayer(
     // Now that we have placeholders, let's do the rest of the solve, so we can get a full
     // prototype out of it.
 
-    val CompleteCompilerSolve(_, inferences, runeToFunctionBound, reachableBounds) =
+    val CompleteDefineSolve(inferences, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveForDefining(
         InferEnv(callingEnv, callRange, callLocation, nearEnv, RegionT()),
         coutputs,
@@ -457,8 +457,8 @@ class FunctionCompilerSolvingLayer(
         placeholderInitialKnownsFromFunction,
         Vector(),
         function.params.flatMap(_.pattern.coordRune.map(_.rune))) match {
-        case Err(f) => throw CompileErrorExceptionT(TypingPassSolverError(function.range :: callRange, f))
-        case Ok(c@CompleteCompilerSolve(_, _, _, _)) => c
+        case Err(f) => vimpl()//throw CompileErrorExceptionT(TypingPassSolverError(function.range :: callRange, f)) DO NOT SUBMIT
+        case Ok(c) => c
       }
     val runedEnv =
       addRunedDataToNearEnv(
@@ -528,11 +528,16 @@ class FunctionCompilerSolvingLayer(
         case Ok(true) =>
         case Ok(false) => // Incomplete, will be detected in the below checkDefiningConclusionsAndResolve
       }
-    val CompleteCompilerSolve(_, inferences, _, reachableBoundsFromParamsAndReturn) =
+    val inferences =
+      inferCompiler.interpretResults(function.runeToType, solver) match {
+        case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, e))
+        case Ok(conclusions) => conclusions
+      }
+    val CompleteDefineSolve(_, _, reachableBoundsFromParamsAndReturn) =
       inferCompiler.checkDefiningConclusionsAndResolve(
-        envs, coutputs, range, callLocation, function.runeToType, definitionRules, paramRunes, solver) match {
-        case Err(f) => throw CompileErrorExceptionT(typing.TypingPassSolverError(range, f))
-        case Ok(c@CompleteCompilerSolve(_, _, _, _)) => c
+        envs, coutputs, range, callLocation, definitionRules, paramRunes, inferences) match {
+        case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(range, DefiningResolveConclusionError(f)))
+        case Ok(c) => c
       }
 
     val runedEnv =

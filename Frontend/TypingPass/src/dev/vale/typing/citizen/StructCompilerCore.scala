@@ -152,8 +152,9 @@ class StructCompilerCore(
         mutability,
         members,
         false,
-        runeToFunctionBound,
-        runeToImplBound)
+        InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+          runeToFunctionBound,
+          runeToImplBound))
 
     coutputs.addStruct(structDefT);
   }
@@ -228,8 +229,9 @@ class StructCompilerCore(
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
-        runeToFunctionBound,
-        runeToImplBound,
+        InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+          runeToFunctionBound,
+          runeToImplBound),
         internalMethods)
     coutputs.addInterface(interfaceDef2)
 
@@ -376,8 +378,9 @@ class StructCompilerCore(
         members,
         true,
         // Closures have no function bounds or impl bounds
-        Map(),
-        Map());
+        InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+          Map(),
+          Map()));
     coutputs.addStruct(closureStructDefinition)
 
     val closuredVarsStructRef = understructStructTT;

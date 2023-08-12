@@ -681,7 +681,7 @@ class Compiler(
           explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
           contextRegion: RegionT,
           args: Vector[CoordT]):
-        IEvaluateFunctionResult = {
+        IResolveFunctionResult = {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
             coutputs, callRange, callLocation, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args)
         }
@@ -730,6 +730,9 @@ class Compiler(
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[HinputsT, ICompileErrorT] = {
     try {
       Profiler.frame(() => {
+        // DO NOT SUBMIT
+        println("Using overload index? " + opts.globalOptions.useOverloadIndex)
+
         val nameToStructDefinedMacro =
           Map(
             structConstructorMacro.macroName -> structConstructorMacro,
@@ -896,7 +899,7 @@ class Compiler(
                         coutputs, exportEnv, List(structA.range), LocationInDenizen(Vector()), templata, Vector()) match {
                         case ResolveSuccess(kind) => kind
                         case ResolveFailure(range, reason) => {
-                          throw CompileErrorExceptionT(CouldntEvaluateStruct(range, reason))
+                          throw CompileErrorExceptionT(TypingPassResolvingError(range, reason))
                         }
                       }
 
@@ -937,7 +940,7 @@ class Compiler(
                         coutputs, exportEnv, List(interfaceA.range), LocationInDenizen(Vector()), templata, Vector()) match {
                         case ResolveSuccess(kind) => kind
                         case ResolveFailure(range, reason) => {
-                          throw CompileErrorExceptionT(CouldntEvaluateInterface(range, reason))
+                          throw CompileErrorExceptionT(TypingPassResolvingError(range, reason))
                         }
                       }
 
@@ -1013,9 +1016,9 @@ class Compiler(
                           Vector(),
                           regionPlaceholder,
                           Vector()) match {
-                          case EvaluateFunctionSuccess(prototype, inferences) => prototype.prototype
-                          case EvaluateFunctionFailure(reason) => {
-                            throw CompileErrorExceptionT(CouldntEvaluateFunction(List(functionA.range), reason))
+                          case ResolveFunctionSuccess(prototype, inferences) => prototype.prototype
+                          case ResolveFunctionFailure(reason) => {
+                            throw CompileErrorExceptionT(TypingPassResolvingError(List(functionA.range), reason))
                           }
                         }
 
@@ -1097,9 +1100,9 @@ class Compiler(
                       val exportPlaceholderedPrototype =
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
                           coutputs, List(functionA.range), LocationInDenizen(Vector()), exportEnv, templata, Vector(), regionPlaceholder, Vector()) match {
-                          case EvaluateFunctionSuccess(prototype, inferences) => prototype.prototype
-                          case EvaluateFunctionFailure(reason) => {
-                            throw CompileErrorExceptionT(CouldntEvaluateFunction(List(functionA.range), reason))
+                          case ResolveFunctionSuccess(prototype, inferences) => prototype.prototype
+                          case ResolveFunctionFailure(reason) => {
+                            throw CompileErrorExceptionT(TypingPassResolvingError(List(functionA.range), reason))
                           }
                         }
 
@@ -1144,13 +1147,13 @@ class Compiler(
               ExportEnvironmentT(
                 globalEnv, packageEnv, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
 
-            val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
+            val CompleteDefineSolve(templataByRune, _, Vector()) =
               inferCompiler.solveForDefining(
                 InferEnv(exportEnv, List(range), LocationInDenizen(Vector()), exportEnv, regionPlaceholder),
                 coutputs, rules, runeToType, List(range),
                 LocationInDenizen(Vector()), Vector(), Vector(), Vector()) match {
-                case Err(f) => throw CompileErrorExceptionT(typing.TypingPassSolverError(List(range), f))
-                case Ok(c@CompleteCompilerSolve(_, _, _, _)) => c
+                case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(List(range), f))
+                case Ok(c) => c
               }
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplataT(kind)) => {
