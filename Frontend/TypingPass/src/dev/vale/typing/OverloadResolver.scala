@@ -347,7 +347,7 @@ class OverloadResolver(
                     functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
                       coutputs, callingEnv, callRange, callLocation, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, contextRegion, args) match {
                       case (EvaluateFunctionFailure(reason)) => Err(CouldntEvaluateTemplateError(reason))
-                      case (EvaluateFunctionSuccess(prototype, conclusions)) => {
+                      case (EvaluateFunctionSuccess(prototype, conclusions, _)) => {
                         paramsMatch(coutputs, callingEnv, callRange, callLocation, args, prototype.prototype.paramTypes, exact) match {
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
@@ -737,7 +737,7 @@ class OverloadResolver(
     potentialBanner match {
       case ValidCalleeCandidate(banner, _, ft @ FunctionTemplataT(_, _)) => {
 //        if (ft.function.isTemplate) {
-          val (EvaluateFunctionSuccess(successBanner, conclusions)) =
+          val (EvaluateFunctionSuccess(successBanner, conclusions, _)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForPrototype(
               coutputs, callingEnv, callRange, callLocation, ft, Vector.empty, contextRegion, banner.paramTypes);
           successBanner
@@ -768,7 +768,7 @@ class OverloadResolver(
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
                 coutputs,callRange, callLocation, callingEnv, ft, templateArgs, contextRegion, args) match {
-              case EvaluateFunctionSuccess(prototype, inferences) => StampFunctionSuccess(prototype, inferences)
+              case EvaluateFunctionSuccess(prototype, inferences, _) => StampFunctionSuccess(prototype, inferences)
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
 //          } else {
