@@ -72,7 +72,7 @@ class StructCompilerGenericArgsLayer(
         case Ok(()) =>
         case Err(x) => return ResolveFailure(callRange, ResolvingSolveFailedOrIncomplete(x))
       }
-      val CompleteResolveSolve(inferences, runeToFunctionBound, Vector()) =
+      val CompleteResolveSolve(inferences, runeToFunctionBound) =
         inferCompiler.checkResolvingConclusionsAndResolve(
           envs,
           coutputs,
@@ -81,7 +81,8 @@ class StructCompilerGenericArgsLayer(
           structA.headerRuneToType,
           callSiteRules,
           Vector(),
-          solver) match {
+          solver,
+          false) match {
           case Ok(ccs) => ccs
           case Err(x) => return ResolveFailure(callRange, x)
         }
@@ -265,7 +266,7 @@ class StructCompilerGenericArgsLayer(
       val contextRegion = RegionT()
 
       // This checks to make sure it's a valid use of this template.
-      val CompleteResolveSolve(inferences, runeToFunctionBound, Vector()) =
+      val CompleteResolveSolve(inferences, runeToFunctionBound) =
         inferCompiler.solveForResolving(
         InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
         coutputs,
@@ -348,7 +349,7 @@ class StructCompilerGenericArgsLayer(
           case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, e))
           case Ok(conclusions) => conclusions
         }
-      val CompleteDefineSolve(_, _, reachableBoundsFromParamsAndReturn) =
+      val CompleteDefineSolve(_, _) =
         inferCompiler.checkDefiningConclusionsAndResolve(
           envs, coutputs, structA.range :: parentRanges, callLocation, definitionRules, Vector(), inferences) match {
           case Err(f) => vimpl()//throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f)) DO NOT SUBMIT
@@ -440,7 +441,7 @@ class StructCompilerGenericArgsLayer(
           case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, e))
           case Ok(conclusions) => conclusions
         }
-      val CompleteDefineSolve(_, _, reachableBoundsFromParamsAndReturn) =
+      val CompleteDefineSolve(_, _) =
         inferCompiler.checkDefiningConclusionsAndResolve(
           envs, coutputs, interfaceA.range :: parentRanges, callLocation, definitionRules, Vector(), inferences) match {
           case Err(f) => vimpl()//throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f)) DO NOT SUBMIT

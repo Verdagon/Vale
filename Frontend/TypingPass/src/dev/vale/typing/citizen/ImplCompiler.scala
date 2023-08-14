@@ -47,7 +47,8 @@ class ImplCompiler(
       callLocation: LocationInDenizen,
       callingEnv: IInDenizenEnvironmentT,
       initialKnowns: Vector[InitialKnown],
-      implTemplata: ImplDefinitionTemplataT):
+      implTemplata: ImplDefinitionTemplataT,
+      doingOverrideThing: Boolean):
   Result[CompleteResolveSolve, IResolvingError] = {
 
     val ImplDefinitionTemplataT(parentEnv, impl) = implTemplata
@@ -102,7 +103,8 @@ class ImplCompiler(
       // We include the reachable bounds for the struct rune. Those are bounds that this impl will
       // have to satisfy when it calls the interface.
       Vector(structKindRune.rune),
-      solver)
+      solver,
+      doingOverrideThing)
   }
 
   // WARNING: Doesn't verify conclusions to make sure that any bounds are satisfied!
@@ -217,7 +219,7 @@ class ImplCompiler(
         callLocation,
         outerEnv,
         RegionT())
-    val CompleteDefineSolve(inferences, runeToFunctionBound1, reachableBoundsFromSubCitizen) =
+    val CompleteDefineSolve(inferences, runeToFunctionBound1 @ InstantiationBoundArgumentsT(_, reachableBoundsFromSubCitizen, _)) =
       inferCompiler.solveForDefining(
         envs,
         coutputs,
@@ -260,7 +262,7 @@ class ImplCompiler(
         interner,
         implOuterEnv,
         instantiatedId,
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, index) =>
+        reachableBoundsFromSubCitizen.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, index) =>
           interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(templata)
         }).toVector ++
         inferences.map({ case (nameS, templata) =>
@@ -285,9 +287,10 @@ class ImplCompiler(
           superInterface,
           superInterfaceTemplateId,
           InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
-            runeToNeededFunctionBound, runeToNeededImplBound),
-          runeIndexToIndependence.toVector,
-          reachableBoundsFromSubCitizen.map(_.prototype)))
+            runeToNeededFunctionBound,
+            reachableBoundsFromSubCitizen,
+            runeToNeededImplBound),
+          runeIndexToIndependence.toVector))
     coutputs.declareType(implTemplateId)
     coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)
     coutputs.declareTypeInnerEnv(implTemplateId, implInnerEnv)
@@ -552,8 +555,8 @@ class ImplCompiler(
       coutputs.getOuterEnvForType(
         parentRanges,
         TemplataCompiler.getCitizenTemplate(child.id))
-    val CompleteResolveSolve(conclusions, _, _) =
-      resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata) match {
+    val CompleteResolveSolve(conclusions, _) =
+      resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata, false) match {
         case Ok(ccs) => ccs
         case Err(x) => return Err(x)
       }
@@ -668,7 +671,7 @@ class ImplCompiler(
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
-        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArgumentsT(Map(), Map()))
+        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>
@@ -682,7 +685,7 @@ class ImplCompiler(
           Vector(
             InitialKnown(impl.impl.subCitizenRune, KindTemplataT(subKindTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplataT(superKindTT)))
-        resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, impl) match {
+        resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, impl, false) match {
           case Ok(ccs) => Ok((impl, ccs))
           case Err(x) => Err(x)
         }
@@ -690,10 +693,7 @@ class ImplCompiler(
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some((implTemplata, CompleteResolveSolve(conclusions, runeToSuppliedFunction, reachableBoundsFromSubCitizen))) => {
-        // Dont need this for anything yet
-        val _ = reachableBoundsFromSubCitizen
-
+      case Some((implTemplata, CompleteResolveSolve(conclusions, runeToSuppliedFunction))) => {
         val templateArgs =
           implTemplata.impl.genericParams.map(_.rune.rune).map(conclusions)
         val implTemplateId =

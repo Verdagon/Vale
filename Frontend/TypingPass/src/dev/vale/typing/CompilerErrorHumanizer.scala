@@ -425,6 +425,9 @@ object CompilerErrorHumanizer {
       reason: IFindFunctionFailureReason): String = {
 
     (reason match {
+      case FindFunctionResolveFailure(reason) => {
+        humanizeResolvingError(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, reason)
+      }
       case RuleTypeSolveFailure(RuneTypeSolveError(range, failedSolve)) => {
         SolverErrorHumanizer.humanizeFailedSolve(
           codeMap,

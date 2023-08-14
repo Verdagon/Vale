@@ -154,6 +154,7 @@ class StructCompilerCore(
         false,
         InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
           runeToFunctionBound,
+          Map(), // Structs don't have reachable bounds
           runeToImplBound))
 
     coutputs.addStruct(structDefT);
@@ -231,6 +232,7 @@ class StructCompilerCore(
         mutability,
         InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
           runeToFunctionBound,
+          Map(), // Interfaces don't have reachable bounds
           runeToImplBound),
         internalMethods)
     coutputs.addInterface(interfaceDef2)
@@ -319,7 +321,12 @@ class StructCompilerCore(
       containingFunctionEnv.id.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
-    coutputs.addInstantiationBounds(understructInstantiatedId, InstantiationBoundArgumentsT(Map(), Map()))
+    coutputs.addInstantiationBounds(
+      understructInstantiatedId,
+      InstantiationBoundArgumentsT(
+        Map(),
+        Map(), // Structs don't have reachable bounds
+        Map()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
     val dropFuncNameT =
@@ -380,6 +387,7 @@ class StructCompilerCore(
         // Closures have no function bounds or impl bounds
         InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
           Map(),
+          Map(), // Structs don't have reachable bounds
           Map()));
     coutputs.addStruct(closureStructDefinition)
 

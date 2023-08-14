@@ -336,7 +336,7 @@ class OverloadResolver(
                 case (Err(e)) => {
                   Err(FindFunctionResolveFailure(e))
                 }
-                case (Ok(CompleteResolveSolve(explicitRuneSToTemplata, _, Vector()))) => {
+                case (Ok(CompleteResolveSolve(explicitRuneSToTemplata, _))) => {
                   val explicitlySpecifiedTemplateArgTemplatas =
                     explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
 
@@ -605,6 +605,9 @@ class OverloadResolver(
         .groupBy(index => {
           banners(index) match {
             case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+              Some((firstHumanName, firstParameters, firstReturnType))
+            }
+            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplataT(_, PrototypeT(IdT(_, _, ReachableFunctionNameT(ReachableFunctionTemplateNameT(firstHumanName), firstTemplateArgs, firstParameters)), firstReturnType))) => {
               Some((firstHumanName, firstParameters, firstReturnType))
             }
             case _ => None

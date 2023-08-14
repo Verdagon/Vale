@@ -19,6 +19,7 @@ import scala.collection.mutable
 
 case class DenizenBoundToDenizenCallerBoundArgS(
   funcBoundToCallerSuppliedBoundArgFunc: Map[IdT[FunctionBoundNameT], PrototypeI[sI]],
+  funcReachableToCallerSuppliedReachableArgFunc: Map[IdT[ReachableFunctionNameT], PrototypeI[sI]], // DO NOT SUBMIT rename
   implBoundToCallerSuppliedBoundArgImpl: Map[IdT[ImplBoundNameT], IdI[sI, IImplNameI[sI]]])
 
 class InstantiatedOutputs() {
@@ -139,7 +140,7 @@ class Instantiator(
           Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
             exportTemplateIdT -> assemblePlaceholderMap(exportPlaceholderedIdT, exportIdS))
 
-        val denizenBoundToDenizenCallerSuppliedThing = DenizenBoundToDenizenCallerBoundArgS(Map(), Map())
+        val denizenBoundToDenizenCallerSuppliedThing = DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map())
         val kindIT =
           translateKind(
             exportPlaceholderedIdT, denizenBoundToDenizenCallerSuppliedThing, substitutions, RegionT(), tyype)
@@ -170,7 +171,7 @@ class Instantiator(
         val (_, prototypeC) =
           translatePrototype(
             exportPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgS(Map(), Map()),
+            DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map()),
             substitutions,
             perspectiveRegionT,
             prototypeT)
@@ -200,7 +201,7 @@ class Instantiator(
         val (_, prototypeC) =
           translatePrototype(
             externPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgS(Map(), Map()),
+            DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map()),
             substitutions,
             perspectiveRegionT,
             prototypeT)
@@ -362,11 +363,9 @@ class Instantiator(
     val interfaceDefT = findInterface(hinputs, interfaceIdT)
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        assembleCalleeDenizenFunctionBounds(
-          interfaceDefT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundArgs.runeToFunctionBoundArg),
-        assembleCalleeDenizenImplBounds(
-          interfaceDefT.instantiationBoundParams.runeToImplBoundArg, instantiationBoundArgs.runeToImplBoundArg))
+      assembleInstantiationBoundParamToArg(
+        interfaceDefT.instantiationBoundParams,
+        instantiationBoundArgs)
     monouts.interfaceToBounds.get(interfaceIdS) match {
       case Some(x) => {
         vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
@@ -405,6 +404,35 @@ class Instantiator(
 
     translateCollapsedInterfaceDefinition(
       interfaceIdT, denizenBoundToDenizenCallerSuppliedThing, substitutions, interfaceIdC, interfaceDefT)
+  }
+
+  def assembleInstantiationBoundParamToArg(
+      instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+      instantiationBoundArgs: InstantiationBoundArgumentsI): DenizenBoundToDenizenCallerBoundArgS = {
+    vassert(instantiationBoundArgs.runeToFunctionBoundArg.size == instantiationBoundParams.runeToFunctionBoundArg.size)
+    vassert(
+      instantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc.count(_._2.nonEmpty) ==
+          instantiationBoundParams.callerKindRuneToReachableBoundArguments.count(_._2.citizenRuneToReachablePrototype.nonEmpty))
+    vassert(instantiationBoundArgs.runeToImplBoundArg.size == instantiationBoundParams.runeToImplBoundArg.size)
+    DenizenBoundToDenizenCallerBoundArgS(
+      instantiationBoundArgs.runeToFunctionBoundArg.map({ case (calleeRune, suppliedFunctionI) =>
+        vassertSome(instantiationBoundParams.runeToFunctionBoundArg.get(calleeRune)).id -> suppliedFunctionI
+      }),
+      instantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc.flatMap({ case (callerRune, calleeRuneToReachableFunc) =>
+        if (calleeRuneToReachableFunc.nonEmpty) {
+          val m = vassertSome(instantiationBoundParams.callerKindRuneToReachableBoundArguments.get(callerRune))
+          vassert(m.citizenRuneToReachablePrototype.size == calleeRuneToReachableFunc.size)
+          calleeRuneToReachableFunc.map({ case (calleeRune, reachableFuncI) =>
+            val reachableFuncT = vassertSome(m.citizenRuneToReachablePrototype.get(calleeRune))
+            reachableFuncT.prototype.id -> reachableFuncI
+          })
+        } else {
+          List()
+        }
+      }),
+      instantiationBoundArgs.runeToImplBoundArg.map({ case (calleeRune, suppliedImplT) =>
+        vassertSome(instantiationBoundParams.runeToImplBoundArg.get(calleeRune)) -> suppliedImplT
+      }))
   }
 
   def assembleCalleeDenizenFunctionBounds(
@@ -448,11 +476,12 @@ class Instantiator(
     val structDefT = findStruct(hinputs, structIdT)
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        assembleCalleeDenizenFunctionBounds(
-          structDefT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundArgs.runeToFunctionBoundArg),
-        assembleCalleeDenizenImplBounds(
-          structDefT.instantiationBoundParams.runeToImplBoundArg, instantiationBoundArgs.runeToImplBoundArg))
+      assembleInstantiationBoundParamToArg(structDefT.instantiationBoundParams, instantiationBoundArgs)
+      // DenizenBoundToDenizenCallerBoundArgS(
+      //   assembleCalleeDenizenFunctionBounds(
+      //     .runeToFunctionBoundArg.mapValues(_.id), instantiationBoundArgs.runeToFunctionBoundArg),
+      //   assembleCalleeDenizenImplBounds(
+      //     structDefT.instantiationBoundParams.runeToImplBoundArg, instantiationBoundArgs.runeToImplBoundArg))
     monouts.structToBounds.get(structIdS) match {
       case Some(x) => {
         vcurious(x == denizenBoundToDenizenCallerSuppliedThing)
@@ -576,6 +605,8 @@ class Instantiator(
         hinputs.functions
           .find(func => TemplataCompiler.getFunctionTemplate(func.header.id) == abstractFuncTemplateName))
         .header.id
+    val InstantiationBoundArgumentsT(edgeRuneToBoundFunctionParam, edgeRuneToSubCitizenRuneToReachableFunctionParam, edgeRuneToBoundImplParam) =
+      edgeT.instantiationBoundParams
 
     // Luckily, the typing phase knows what the override is.
     // In this example, it's func launch<Y, Z>(self &Raza<Y, Z>, bork int)
@@ -590,13 +621,36 @@ class Instantiator(
         dispatcherIdT,
         implPlaceholderToDispatcherPlaceholder,
         implPlaceholderToCasePlaceholder,
-        implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
         // This is a map of the dispatcher's rune to the dispatcher's function bound, here:
         //   $1114 -> func abst/bound:drop(int)
-        InstantiationBoundArgumentsT(dispatcherRuneToFunctionBound, dispatcherRuneToImplBound),
+        dispatcherBoundArgs @ InstantiationBoundArgumentsT(dispatcherRuneToBoundFunctionArg, dispatcherRuneToSubCitizenRuneToReachableFunctionArg, dispatcherRuneToBoundImplArg),
         dispatcherCaseIdT,
         overridePrototypeT) =
       vassertSome(edgeT.abstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))
+
+
+    val implBoundFunctionToCaseBoundFunction =
+      edgeT.instantiationBoundParams.runeToFunctionBoundArg
+          .toVector
+          .map({ case (rune, boundFunctionArg) =>
+            val boundFunctionParam = vassertSome(edgeRuneToBoundFunctionParam.get(rune))
+            boundFunctionParam.id -> boundFunctionArg.id
+          })
+          .toMap
+    val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
+      edgeT.instantiationBoundParams.callerKindRuneToReachableBoundArguments
+          .toVector
+          .flatMap({ case (callerRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
+              citizenRuneToReachablePrototype
+                  .toVector
+                  .map({ case (citizenRune, overrideReachablePrototype) =>
+                    val implReachableFunctionArgT =
+                    vassertSome(vassertSome(edgeRuneToSubCitizenRuneToReachableFunctionParam.get(callerRune))
+                        .citizenRuneToReachablePrototype.get(citizenRune))
+                    implReachableFunctionArgT.prototype.id -> overrideReachablePrototype.prototype.id
+                  })
+          })
+          .toMap
 
     val (
         // This is a map of, from the original abstract function's caller's perspective, what the actual instantiated
@@ -665,15 +719,10 @@ class Instantiator(
     // into this:
     //   launch/bound:drop(int) -> func v/builtins/drop(int)void
     // so it's really just a rearrangement of the typing phase's data, not quite useful yet.
-    val dispatcherFunctionBoundToIncomingPrototype =
-      assembleCalleeDenizenFunctionBounds(
-        dispatcherRuneToFunctionBound.mapValues(_.id),
-        dispatcherRuneToCallerSuppliedPrototype)
-    // (this is empty in this example)
-    val dispatcherImplBoundToIncomingImpl =
-      assembleCalleeDenizenImplBounds(
-        dispatcherRuneToImplBound,
-        dispatcherRuneToCallerSuppliedImpl)
+    val dispatcherBoundParamToArg @ DenizenBoundToDenizenCallerBoundArgS(dispatcherFunctionBoundToIncomingPrototype, dispatcherFunctionReachableToIncomingPrototype, dispatcherImplBoundToIncomingImpl) =
+      assembleInstantiationBoundParamToArg(
+        dispatcherBoundArgs,
+        abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs)
 
     val dispatcherTemplateId = TemplataCompiler.getTemplate(dispatcherIdT)
     dispatcherPlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherTemplateId))
@@ -717,8 +766,17 @@ class Instantiator(
         // original impl's placeholders.
         edgeDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
           .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) =>
-            vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
+            vassertSome(implBoundFunctionToCaseBoundFunction.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
           })
+    val caseFunctionReachableToIncomingPrototype =
+      dispatcherFunctionReachableToIncomingPrototype ++
+          // We're using the supplied prototypes from the impl, but we need to rephrase the keys
+          // of this map to be in terms of the override dispatcher function's placeholders, not the
+          // original impl's placeholders.
+          edgeDenizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc
+              .map({ case (implPlaceholderedReachable, implPlaceholderedReachableArg) =>
+                vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedReachable)) -> implPlaceholderedReachableArg
+              })
     val caseImplBoundToIncomingImpl =
       dispatcherImplBoundToIncomingImpl ++
         edgeDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl
@@ -729,6 +787,7 @@ class Instantiator(
     val caseDenizenBoundToDenizenCallerSuppliedThing =
       DenizenBoundToDenizenCallerBoundArgS(
         caseFunctionBoundToIncomingPrototype,
+        caseFunctionReachableToIncomingPrototype,
         caseImplBoundToIncomingImpl)
 
     // we should pull in all the impl's placeholders
@@ -836,23 +895,30 @@ class Instantiator(
       }
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
-      DenizenBoundToDenizenCallerBoundArgS(
-        assembleCalleeDenizenFunctionBounds(
-          implDefinition.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundsForUnsubstitutedImpl.runeToFunctionBoundArg),
-        assembleCalleeDenizenImplBounds(
-          implDefinition.instantiationBoundParams.runeToImplBoundArg, instantiationBoundsForUnsubstitutedImpl.runeToImplBoundArg))
-    val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
-      Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
-        hoistBoundsFromParameter(hinputs, monouts, subCitizenT, subCitizenM)
+      assembleInstantiationBoundParamToArg(
+        implDefinition.instantiationBoundParams,
+        instantiationBoundsForUnsubstitutedImpl)
+      // DenizenBoundToDenizenCallerBoundArgS(
+      //   assembleCalleeDenizenFunctionBounds(
+      //     implDefinition.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), instantiationBoundsForUnsubstitutedImpl.runeToFunctionBoundArg),
+      //   assembleCalleeDenizenImplBounds(
+      //     implDefinition.instantiationBoundParams.runeToImplBoundArg, instantiationBoundsForUnsubstitutedImpl.runeToImplBoundArg))
+    // val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
+    //   Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
+    //     hoistBoundsFromParameter(hinputs, monouts, subCitizenT, subCitizenM)
 
-    val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-          .map(_.funcBoundToCallerSuppliedBoundArgFunc)
-          .reduceOption(_ ++ _).getOrElse(Map()),
-        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-          .map(_.implBoundToCallerSuppliedBoundArgImpl)
-          .reduceOption(_ ++ _).getOrElse(Map()))
+    val denizenBoundToDenizenCallerSuppliedThing = denizenBoundToDenizenCallerSuppliedThingFromDenizenItself
+
+      // DenizenBoundToDenizenCallerBoundArgS(
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //     .map(_.funcBoundToCallerSuppliedBoundArgFunc)
+      //     .reduceOption(_ ++ _).getOrElse(Map()),
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //       .map(_.funcReachableToCallerSuppliedReachableArgFunc)
+      //       .reduceOption(_ ++ _).getOrElse(Map()),
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //     .map(_.implBoundToCallerSuppliedBoundArgImpl)
+      //     .reduceOption(_ ++ _).getOrElse(Map()))
 
     val substitutions =
       Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
@@ -936,31 +1002,37 @@ class Instantiator(
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
       maybeDenizenBoundToDenizenCallerSuppliedThing.getOrElse({
-        DenizenBoundToDenizenCallerBoundArgS(
-          // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenFunctionBounds(funcT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), suppliedBoundArgs.runeToFunctionBoundArg),
-          // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenImplBounds(funcT.instantiationBoundParams.runeToImplBoundArg, suppliedBoundArgs.runeToImplBoundArg))
+        assembleInstantiationBoundParamToArg(funcT.instantiationBoundParams, suppliedBoundArgs)
+        // DenizenBoundToDenizenCallerBoundArgS(
+        //   // This is a top level denizen, and someone's calling it. Assemble the bounds!
+        //   assembleCalleeDenizenFunctionBounds(funcT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), suppliedBoundArgs.runeToFunctionBoundArg),
+        //   // This is a top level denizen, and someone's calling it. Assemble the bounds!
+        //   assembleCalleeDenizenImplBounds(funcT.instantiationBoundParams.runeToImplBoundArg, suppliedBoundArgs.runeToImplBoundArg))
       })
     val argsM = desiredPrototypeS.id.localName.parameters.map(_.kind)
     val paramsT = funcT.header.params.map(_.tyype.kind)
-    val denizenBoundToDenizenCallerSuppliedThingFromParams =
-      paramsT.zip(argsM).flatMap({ case (a, x) =>
-        hoistBoundsFromParameter(hinputs, monouts, a, x)
-      })
+    // val denizenBoundToDenizenCallerSuppliedThingFromParams =
+    //   paramsT.zip(argsM).flatMap({ case (a, x) =>
+    //     hoistBoundsFromParameter(hinputs, monouts, a, x)
+    //   })
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
-      Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
-        denizenBoundToDenizenCallerSuppliedThingFromParams
+      denizenBoundToDenizenCallerSuppliedThingFromDenizenItself
+      // Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
+      //   denizenBoundToDenizenCallerSuppliedThingFromParams
 
     val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-          .map(_.funcBoundToCallerSuppliedBoundArgFunc)
-          .reduceOption(_ ++ _).getOrElse(Map()),
-        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-          .map(_.implBoundToCallerSuppliedBoundArgImpl)
-          .reduceOption(_ ++ _).getOrElse(Map()))
+      denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      // DenizenBoundToDenizenCallerBoundArgS(
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //     .map(_.funcBoundToCallerSuppliedBoundArgFunc)
+      //     .reduceOption(_ ++ _).getOrElse(Map()),
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //       .map(_.funcReachableToCallerSuppliedReachableArgFunc)
+      //       .reduceOption(_ ++ _).getOrElse(Map()),
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //     .map(_.implBoundToCallerSuppliedBoundArgImpl)
+      //     .reduceOption(_ ++ _).getOrElse(Map()))
 
 
     val topLevelDenizenId =
@@ -1022,30 +1094,34 @@ class Instantiator(
 
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
-        DenizenBoundToDenizenCallerBoundArgS(
-          // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenFunctionBounds(funcT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), suppliedBoundArgs.runeToFunctionBoundArg),
-          // This is a top level denizen, and someone's calling it. Assemble the bounds!
-          assembleCalleeDenizenImplBounds(funcT.instantiationBoundParams.runeToImplBoundArg, suppliedBoundArgs.runeToImplBoundArg))
+      assembleInstantiationBoundParamToArg(funcT.instantiationBoundParams, suppliedBoundArgs)
+        // DenizenBoundToDenizenCallerBoundArgS(
+        //   // This is a top level denizen, and someone's calling it. Assemble the bounds!
+        //   assembleCalleeDenizenFunctionBounds(funcT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), suppliedBoundArgs.runeToFunctionBoundArg),
+        //   // This is a top level denizen, and someone's calling it. Assemble the bounds!
+        //   assembleCalleeDenizenImplBounds(funcT.instantiationBoundParams.runeToImplBoundArg, suppliedBoundArgs.runeToImplBoundArg))
     val argsM = desiredAbstractPrototypeS.id.localName.parameters.map(_.kind)
     val paramsT = funcT.header.params.map(_.tyype.kind)
-    val denizenBoundToDenizenCallerSuppliedThingFromParams =
-      paramsT.zip(argsM).flatMap({ case (a, x) =>
-        hoistBoundsFromParameter(hinputs, monouts, a, x)
-      })
+    // val denizenBoundToDenizenCallerSuppliedThingFromParams =
+    //   paramsT.zip(argsM).flatMap({ case (a, x) =>
+    //     hoistBoundsFromParameter(hinputs, monouts, a, x)
+    //   })
 
-    val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
-      Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
-          denizenBoundToDenizenCallerSuppliedThingFromParams
+    // val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
+    //   Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
+    //       denizenBoundToDenizenCallerSuppliedThingFromParams
 
-    val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-            .map(_.funcBoundToCallerSuppliedBoundArgFunc)
-            .reduceOption(_ ++ _).getOrElse(Map()),
-        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-            .map(_.implBoundToCallerSuppliedBoundArgImpl)
-            .reduceOption(_ ++ _).getOrElse(Map()))
+    val denizenBoundToDenizenCallerSuppliedThing = denizenBoundToDenizenCallerSuppliedThingFromDenizenItself
+      // DenizenBoundToDenizenCallerBoundArgS(
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //       .map(_.funcBoundToCallerSuppliedBoundArgFunc)
+      //       .reduceOption(_ ++ _).getOrElse(Map()),
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //       .map(_.funcReachableToCallerSuppliedReachableArgFunc)
+      //       .reduceOption(_ ++ _).getOrElse(Map()),
+      //   denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+      //       .map(_.implBoundToCallerSuppliedBoundArgImpl)
+      //       .reduceOption(_ ++ _).getOrElse(Map()))
 
 
     vassert(!monouts.abstractFuncToBounds.contains(desiredAbstractPrototypeC.id))
@@ -1175,106 +1251,144 @@ class Instantiator(
         .toMap
   }
 
-  // This isn't just for parameters, it's for impl subcitizens, and someday for cases too.
-  // See NBIFP
-  private def hoistBoundsFromParameter(
-    hinputs: HinputsT,
-    monouts: InstantiatedOutputs,
-    paramT: KindT,
-    paramS: KindIT[sI]):
-  Option[DenizenBoundToDenizenCallerBoundArgS] = {
-    (paramT, paramS) match {
-      case (StructTT(structIdT), StructIT(structIdI)) => {
-        val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(structIdT)
-        val structDenizenBoundToDenizenCallerSuppliedThing =
-          vassertSome(monouts.structToBounds.get(structIdI))
-        val structT = findStruct(hinputs, structIdT)
-        val denizenBoundToDenizenCallerSuppliedThing =
-          hoistBoundsFromParameterInner(
-            structDenizenBoundToDenizenCallerSuppliedThing, calleeRuneToBoundArgT, structT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id), structT.instantiationBoundParams.runeToImplBoundArg)
-        Some(denizenBoundToDenizenCallerSuppliedThing)
-      }
-      case (InterfaceTT(interfaceIdT), InterfaceIT(interfaceIdM)) => {
-        val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(interfaceIdT)
-        val interfaceDenizenBoundToDenizenCallerSuppliedThing = vassertSome(monouts.interfaceToBounds.get(interfaceIdM))
-        val interfaceT = findInterface(hinputs, interfaceIdT)
-        val denizenBoundToDenizenCallerSuppliedThing =
-          hoistBoundsFromParameterInner(
-            interfaceDenizenBoundToDenizenCallerSuppliedThing,
-            calleeRuneToBoundArgT,
-            interfaceT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id),
-            interfaceT.instantiationBoundParams.runeToImplBoundArg)
-        Some(denizenBoundToDenizenCallerSuppliedThing)
-      }
-      case _ => None
-    }
-  }
+  // // This isn't just for parameters, it's for impl subcitizens, and someday for cases too.
+  // // See NBIFP
+  // private def hoistBoundsFromParameter(
+  //   hinputs: HinputsT,
+  //   monouts: InstantiatedOutputs,
+  //   paramT: KindT,
+  //   paramS: KindIT[sI]):
+  // Option[DenizenBoundToDenizenCallerBoundArgS] = {
+  //   (paramT, paramS) match {
+  //     case (StructTT(structIdT), StructIT(structIdI)) => {
+  //       val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(structIdT)
+  //       val structDenizenBoundToDenizenCallerSuppliedThing =
+  //         vassertSome(monouts.structToBounds.get(structIdI))
+  //       val structT = findStruct(hinputs, structIdT)
+  //       val denizenBoundToDenizenCallerSuppliedThing =
+  //         hoistBoundsFromParameterInner(
+  //           structDenizenBoundToDenizenCallerSuppliedThing,
+  //           calleeRuneToBoundArgT,
+  //           structT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id),
+  //           structT.instantiationBoundParams.callerKindRuneToReachableBoundArguments.mapValues(_.citizenRuneToReachablePrototype.mapValues(_.prototype.id)),
+  //           structT.instantiationBoundParams.runeToImplBoundArg)
+  //       Some(denizenBoundToDenizenCallerSuppliedThing)
+  //     }
+  //     case (InterfaceTT(interfaceIdT), InterfaceIT(interfaceIdM)) => {
+  //       val calleeRuneToBoundArgT = hinputs.getInstantiationBoundArgs(interfaceIdT)
+  //       val interfaceDenizenBoundToDenizenCallerSuppliedThing = vassertSome(monouts.interfaceToBounds.get(interfaceIdM))
+  //       val interfaceT = findInterface(hinputs, interfaceIdT)
+  //       val denizenBoundToDenizenCallerSuppliedThing =
+  //         hoistBoundsFromParameterInner(
+  //           interfaceDenizenBoundToDenizenCallerSuppliedThing,
+  //           calleeRuneToBoundArgT,
+  //           interfaceT.instantiationBoundParams.runeToFunctionBoundArg.mapValues(_.id),
+  //           interfaceT.instantiationBoundParams.callerKindRuneToReachableBoundArguments.mapValues(_.citizenRuneToReachablePrototype.mapValues(_.prototype.id)),
+  //           interfaceT.instantiationBoundParams.runeToImplBoundArg)
+  //       Some(denizenBoundToDenizenCallerSuppliedThing)
+  //     }
+  //     case _ => None
+  //   }
+  // }
 
-  // See NBIFP
-  private def hoistBoundsFromParameterInner(
-    parameterDenizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
-    calleeRuneToBoundArgT: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT],
-    calleeRuneToCalleeFunctionBoundT: Map[IRuneS, IdT[FunctionBoundNameT]],
-    calleeRuneToCalleeImplBoundT: Map[IRuneS, IdT[ImplBoundNameT]]):
-  DenizenBoundToDenizenCallerBoundArgS = {
-    val calleeFunctionBoundTToBoundArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
-    val implBoundTToBoundArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl
-
-    val callerSuppliedBoundToInstantiatedFunction =
-      calleeRuneToCalleeFunctionBoundT.map({ case (calleeRune, calleeBoundT) =>
-        // We don't care about the callee bound, we only care about what we're sending in to it.
-        val (_) = calleeBoundT
-
-        // This is the prototype the caller is sending in to the callee to satisfy its bounds.
-        val boundArgT = vassertSome(calleeRuneToBoundArgT.runeToFunctionBoundArg.get(calleeRune))
-        boundArgT.id match {
-          case IdT(packageCoord, initSteps, last@FunctionBoundNameT(_, _, _)) => {
-            // The bound arg is also the same thing as the caller bound.
-            val callerBoundT = IdT(packageCoord, initSteps, last)
-
-            // The bound arg we're sending in is actually one of our (the caller) own bounds.
-            //
-            // "But wait, we didn't specify any bounds."
-            // This is actually a bound that was implicitly added from NBIFP.
-            //
-            // We're going to pull this in as our own bound.
-            val instantiatedPrototype = vassertSome(calleeFunctionBoundTToBoundArgM.get(calleeBoundT))
-            Some(callerBoundT -> instantiatedPrototype)
-          }
-          case _ => None
-        }
-      }).flatten.toMap
-
-    val callerSuppliedBoundToInstantiatedImpl =
-      calleeRuneToCalleeImplBoundT.map({
-        case (calleeRune, calleeBoundT) =>
-          // We don't care about the callee bound, we only care about what we're sending in to it.
-          val (_) = calleeBoundT
-
-          // This is the prototype the caller is sending in to the callee to satisfy its bounds.
-          val boundArgT = vassertSome(calleeRuneToBoundArgT.runeToImplBoundArg.get(calleeRune))
-          boundArgT match {
-            case IdT(packageCoord, initSteps, last@ImplBoundNameT(_, _)) => {
-              val boundT = IdT(packageCoord, initSteps, last)
-              // The bound arg we're sending in is actually one of our (the caller) own bounds.
-              //
-              // "But wait, we didn't specify any bounds."
-              // This is actually a bound that was implicitly added from NBIFP.
-              //
-              // We're going to pull this in as our own bound.
-              val instantiatedPrototype = vassertSome(implBoundTToBoundArgM.get(boundT))
-              Some(boundT -> instantiatedPrototype)
-            }
-            case _ => None
-          }
-      }).flatten.toMap
-
-    val denizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        callerSuppliedBoundToInstantiatedFunction,
-        callerSuppliedBoundToInstantiatedImpl)
-    denizenBoundToDenizenCallerSuppliedThing
-  }
+  // // See NBIFP
+  // private def hoistBoundsFromParameterInner(
+  //   parameterDenizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
+  //   calleeRuneToBoundArgT: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT],
+  //   calleeRuneToCalleeFunctionBoundT: Map[IRuneS, IdT[FunctionBoundNameT]],
+  //   callerRuneToCalleeRuneToCalleeFunctionReachableT: Map[IRuneS, Map[IRuneS, IdT[ReachableFunctionNameT]]],
+  //   calleeRuneToCalleeImplBoundT: Map[IRuneS, IdT[ImplBoundNameT]]):
+  // DenizenBoundToDenizenCallerBoundArgS = {
+  //   val calleeFunctionBoundTToBoundArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
+  //   val calleeFunctionReachableTToReachableArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc
+  //   val implBoundTToBoundArgM = parameterDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl
+  //
+  //   val callerSuppliedBoundToInstantiatedFunction =
+  //     calleeRuneToCalleeFunctionBoundT.map({ case (calleeRune, calleeBoundT) =>
+  //       // We don't care about the callee bound, we only care about what we're sending in to it.
+  //       val (_) = calleeBoundT
+  //
+  //       // This is the prototype the caller is sending in to the callee to satisfy its bounds.
+  //       val boundArgT = vassertSome(calleeRuneToBoundArgT.runeToFunctionBoundArg.get(calleeRune))
+  //       boundArgT.id match {
+  //         case IdT(packageCoord, initSteps, last@FunctionBoundNameT(_, _, _)) => {
+  //           // The bound arg is also the same thing as the caller bound.
+  //           val callerBoundT = IdT(packageCoord, initSteps, last)
+  //
+  //           // The bound arg we're sending in is actually one of our (the caller) own bounds.
+  //           //
+  //           // "But wait, we didn't specify any bounds."
+  //           // This is actually a bound that was implicitly added from NBIFP.
+  //           //
+  //           // We're going to pull this in as our own bound.
+  //           val instantiatedPrototype = vassertSome(calleeFunctionBoundTToBoundArgM.get(calleeBoundT))
+  //           Some(callerBoundT -> instantiatedPrototype)
+  //         }
+  //         case _ => vcurious(); None
+  //       }
+  //     }).flatten.toMap
+  //
+  //   val callerSuppliedReachableToInstantiatedFunction =
+  //     callerRuneToCalleeRuneToCalleeFunctionReachableT.flatMap({ case (callerRune, calleeRuneToCalleeFunctionReachableT) =>
+  //       calleeRuneToCalleeFunctionReachableT.flatMap({ case (calleeRune, calleeReachableT) =>
+  //         // We don't care about the callee bound, we only care about what we're sending in to it.
+  //         val (_) = calleeReachableT
+  //
+  //         // This is the prototype the caller is sending in to the callee to satisfy its bounds.
+  //         val boundArgT =
+  //           vassertSome(
+  //             vassertSome(calleeRuneToBoundArgT.callerKindRuneToReachableBoundArguments.get(callerRune))
+  //                 .citizenRuneToReachablePrototype.get(calleeRune))
+  //         boundArgT.prototype.id match {
+  //           case IdT(packageCoord, initSteps, last@ReachableFunctionNameT(_, _, _)) => {
+  //             // The bound arg is also the same thing as the caller bound.
+  //             val callerReachableT = IdT(packageCoord, initSteps, last)
+  //
+  //             // The bound arg we're sending in is actually one of our (the caller) own bounds.
+  //             //
+  //             // "But wait, we didn't specify any bounds."
+  //             // This is actually a bound that was implicitly added from NBIFP.
+  //             //
+  //             // We're going to pull this in as our own bound.
+  //             val instantiatedPrototype = vassertSome(calleeFunctionReachableTToReachableArgM.get(calleeReachableT))
+  //             Some(callerReachableT -> instantiatedPrototype)
+  //           }
+  //           case _ => vcurious(); None
+  //         }
+  //       })
+  //     })
+  //
+  //   val callerSuppliedBoundToInstantiatedImpl =
+  //     calleeRuneToCalleeImplBoundT.map({
+  //       case (calleeRune, calleeBoundT) =>
+  //         // We don't care about the callee bound, we only care about what we're sending in to it.
+  //         val (_) = calleeBoundT
+  //
+  //         // This is the prototype the caller is sending in to the callee to satisfy its bounds.
+  //         val boundArgT = vassertSome(calleeRuneToBoundArgT.runeToImplBoundArg.get(calleeRune))
+  //         boundArgT match {
+  //           case IdT(packageCoord, initSteps, last@ImplBoundNameT(_, _)) => {
+  //             val boundT = IdT(packageCoord, initSteps, last)
+  //             // The bound arg we're sending in is actually one of our (the caller) own bounds.
+  //             //
+  //             // "But wait, we didn't specify any bounds."
+  //             // This is actually a bound that was implicitly added from NBIFP.
+  //             //
+  //             // We're going to pull this in as our own bound.
+  //             val instantiatedPrototype = vassertSome(implBoundTToBoundArgM.get(boundT))
+  //             Some(boundT -> instantiatedPrototype)
+  //           }
+  //           case _ => vcurious(); None
+  //         }
+  //     }).flatten.toMap
+  //
+  //   val denizenBoundToDenizenCallerSuppliedThing =
+  //     DenizenBoundToDenizenCallerBoundArgS(
+  //       callerSuppliedBoundToInstantiatedFunction,
+  //       callerSuppliedReachableToInstantiatedFunction,
+  //       callerSuppliedBoundToInstantiatedImpl)
+  //   denizenBoundToDenizenCallerSuppliedThing
+  // }
 
 //  def translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, templata: ITemplataT[ITemplataType]): ITemplataI = {
 //    vimpl()
@@ -1387,6 +1501,15 @@ class Instantiator(
 
         (prototypeS, prototypeC)
       }
+
+      case IdT(packageCoord, initSteps, name@ReachableFunctionNameT(_, _, _)) => {
+        val actualPrototypeS =
+          vassertSome(denizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc.get(IdT(packageCoord, initSteps, name)))
+
+        val actualDesiredPrototypeC =
+          RegionCollapserIndividual.collapsePrototype(actualPrototypeS)
+        (actualPrototypeS, actualDesiredPrototypeC)
+      }
       case IdT(_, _, ExternFunctionNameT(_, _)) => {
         if (opts.sanityCheck) {
           vassert(Collector.all(desiredPrototypeS, { case KindPlaceholderTemplateNameT(_, _) => }).isEmpty)
@@ -1459,6 +1582,18 @@ class Instantiator(
               // We need to supply our bounds to our lambdas, see LCCPGB and LCNBAFA.
               Some(denizenBoundToDenizenCallerSuppliedThing)
             } else {
+              if (opts.sanityCheck) {
+                val desiredFuncSuperTemplateName = TemplataCompiler.getSuperTemplate(desiredPrototypeT.id)
+                val funcT =
+                  vassertOne(
+                    hinputs.functions
+                        .filter(funcT => TemplataCompiler.getSuperTemplate(funcT.header.id) == desiredFuncSuperTemplateName))
+                vassert(runeToBoundArgsForCall.runeToFunctionBoundArg.size == funcT.instantiationBoundParams.runeToFunctionBoundArg.size)
+                vassert(
+                  runeToBoundArgsForCall.callerRuneToCalleeRuneToReachableFunc.count(_._2.nonEmpty) ==
+                      funcT.instantiationBoundParams.callerKindRuneToReachableBoundArguments.count(_._2.citizenRuneToReachablePrototype.nonEmpty))
+                vassert(runeToBoundArgsForCall.runeToImplBoundArg.size == funcT.instantiationBoundParams.runeToImplBoundArg.size)
+              }
               None
             }))
         (desiredPrototypeS, desiredPrototypeC)
@@ -1476,11 +1611,11 @@ class Instantiator(
     // be a placeholder, phrased in terms of our (the *template* caller's) placeholders
     instantiationBoundArgsForCallUnsubstituted: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
   InstantiationBoundArgumentsI = {
-    val runeToSuppliedPrototypeForCallUnsubstituted =
+    val runeToSuppliedBoundPrototypeForCallUnsubstituted =
       instantiationBoundArgsForCallUnsubstituted.runeToFunctionBoundArg
     val runeToSuppliedPrototypeForCall =
     // For any that are placeholders themselves, let's translate those into actual prototypes.
-      runeToSuppliedPrototypeForCallUnsubstituted.map({ case (rune, suppliedPrototypeUnsubstituted) =>
+      runeToSuppliedBoundPrototypeForCallUnsubstituted.map({ case (rune, suppliedPrototypeUnsubstituted) =>
         rune ->
           (suppliedPrototypeUnsubstituted.id match {
             case IdT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)) => {
@@ -1495,6 +1630,32 @@ class Instantiator(
               prototypeI
             }
           })
+      })
+    // And now we have a map from the callee's rune to the *instantiated* callee's prototypes.
+
+    val callerRuneToCalleeRuneToSuppliedReachablePrototypeForCallUnsubstituted =
+      instantiationBoundArgsForCallUnsubstituted.callerKindRuneToReachableBoundArguments
+    val runeToSuppliedReachablePrototypeForCall =
+    // For any that are placeholders themselves, let's translate those into actual prototypes.
+      callerRuneToCalleeRuneToSuppliedReachablePrototypeForCallUnsubstituted.map({ case (callerRune, calleeRuneToSuppliedReachablePrototypeForCallUnsubstituted) =>
+        callerRune ->
+        calleeRuneToSuppliedReachablePrototypeForCallUnsubstituted.citizenRuneToReachablePrototype
+            .map({ case (calleeRune, suppliedReachablePrototypeForCallUnsubstituted) =>
+              calleeRune ->
+                  (suppliedReachablePrototypeForCallUnsubstituted.prototype.id match {
+                    case IdT(packageCoord, initSteps, name@ReachableFunctionNameT(_, _, _)) => {
+                      vassertSome(
+                        denizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc.get(
+                          IdT(packageCoord, initSteps, name)))
+                    }
+                    case _ => {
+                      val (prototypeI, prototypeC) =
+                        translatePrototype(
+                          denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, suppliedReachablePrototypeForCallUnsubstituted.prototype)
+                      prototypeI
+                    }
+                  })
+            })
       })
     // And now we have a map from the callee's rune to the *instantiated* callee's prototypes.
 
@@ -1520,7 +1681,10 @@ class Instantiator(
       })
     // And now we have a map from the callee's rune to the *instantiated* callee's impls.
 
-    InstantiationBoundArgumentsI(runeToSuppliedPrototypeForCall, runeToSuppliedImplForCall)
+    InstantiationBoundArgumentsI(
+      runeToSuppliedPrototypeForCall,
+      runeToSuppliedReachablePrototypeForCall,
+      runeToSuppliedImplForCall)
   }
 
   def translateCollapsedStructDefinition(
@@ -3536,6 +3700,12 @@ class Instantiator(
       case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLocation), templateArgs, params) => {
         FunctionBoundNameI(
           FunctionBoundTemplateNameI(humanName, codeLocation),
+          templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
+          params.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
+      }
+      case ReachableFunctionNameT(ReachableFunctionTemplateNameT(humanName), templateArgs, params) => {
+        ReachableFunctionNameI(
+          ReachableFunctionTemplateNameI(humanName),
           templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
           params.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
       }

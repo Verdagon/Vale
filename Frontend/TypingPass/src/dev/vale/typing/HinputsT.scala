@@ -12,8 +12,13 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
+case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
+  citizenRuneToReachablePrototype: Map[IRuneS, PrototypeTemplataT[R]]
+)
+
 case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
   runeToFunctionBoundArg: Map[IRuneS, PrototypeT[BF]],
+  callerKindRuneToReachableBoundArguments: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
   runeToImplBoundArg: Map[IRuneS, IdT[BI]])
 
 case class HinputsT(

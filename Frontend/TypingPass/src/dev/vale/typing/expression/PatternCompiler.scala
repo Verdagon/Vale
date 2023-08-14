@@ -151,7 +151,7 @@ class PatternCompiler(
             }
             val rulesA = ruleBuilder.toVector
 
-            val CompleteDefineSolve(templatasByRune, _, Vector()) =
+            val CompleteDefineSolve(templatasByRune, _) =
               // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
               // declaring a bunch of things.
               inferCompiler.solveForDefining(

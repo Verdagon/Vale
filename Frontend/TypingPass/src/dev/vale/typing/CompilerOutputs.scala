@@ -147,6 +147,13 @@ case class CompilerOutputs() {
     instantiationId: IdT[IInstantiationNameT],
     functionBoundToRune: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
   Unit = {
+    instantiationId match {
+      case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("moo"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(borrow,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplataT(CoordT(_,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))))))))))) => {
+        vpass()
+      }
+      case _ =>
+    }
+
     // We'll do this when we can cache instantiations from StructTemplar etc.
     // // We should only add instantiation bounds in exactly one place: the place that makes the
     // // PrototypeT/StructTT/InterfaceTT.

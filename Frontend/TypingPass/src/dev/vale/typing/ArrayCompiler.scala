@@ -91,7 +91,7 @@ class ArrayCompiler(
     }
     val rulesA = ruleBuilder.toVector
 
-    val CompleteResolveSolve(templatas, _, Vector()) =
+    val CompleteResolveSolve(templatas, _) =
       inferCompiler.solveForResolving(
         InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
         coutputs,
@@ -206,8 +206,8 @@ class ArrayCompiler(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteResolveSolve(templatas, runeToFunctionBound, reachableBounds) =
-      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
+    val CompleteResolveSolve(templatas, runeToFunctionBound) =
+      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver, false) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
       }
@@ -395,8 +395,8 @@ class ArrayCompiler(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteResolveSolve(templatas, runeToFunctionBound, reachableBounds) =
-      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
+    val CompleteResolveSolve(templatas, runeToFunctionBound) =
+      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver, false) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
       }

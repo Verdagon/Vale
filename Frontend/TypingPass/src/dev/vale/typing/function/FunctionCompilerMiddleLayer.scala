@@ -117,7 +117,8 @@ class FunctionCompilerMiddleLayer(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    function1: FunctionA):
+    function1: FunctionA,
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]):
   (PrototypeTemplataT[IFunctionNameT]) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
@@ -131,7 +132,7 @@ class FunctionCompilerMiddleLayer(
     val banner = ast.FunctionBannerT(Some(namedEnv.templata), namedEnv.id)//, params2)
 
     coutputs.lookupFunction(SignatureT(banner.name)) match {
-      case Some(FunctionDefinitionT(header, _, _, _)) => {
+      case Some(FunctionDefinitionT(header, _, _)) => {
         PrototypeTemplataT(function1.range, header.toPrototype)
       }
       case None => {
@@ -140,7 +141,7 @@ class FunctionCompilerMiddleLayer(
         coutputs.declareFunctionInnerEnv(namedEnv.id, runedEnv)
 
         val header =
-          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2)
+          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)
         if (!header.toBanner.same(banner)) {
           val bannerFromHeader = header.toBanner
           vfail("wut\n" + bannerFromHeader + "\n" + banner)
@@ -163,7 +164,8 @@ class FunctionCompilerMiddleLayer(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    function1: FunctionA):
+    function1: FunctionA,
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]):
   (FunctionHeaderT) = {
 
     // Check preconditions
@@ -181,7 +183,7 @@ class FunctionCompilerMiddleLayer(
     val functionId = assembleName(runedEnv.id, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionId)
     coutputs.lookupFunction(needleSignature) match {
-      case Some(FunctionDefinitionT(header, _, _, _)) => {
+      case Some(FunctionDefinitionT(header, _, _)) => {
         (header)
       }
       case None => {
@@ -198,7 +200,7 @@ class FunctionCompilerMiddleLayer(
 
         val header =
           core.evaluateFunctionForHeader(
-            namedEnv, coutputs, callRange, callLocation, params2)
+            namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)
         vassert(header.toSignature == needleSignature)
         (header)
       }

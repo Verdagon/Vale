@@ -389,25 +389,25 @@ class EdgeCompiler(
     // inherits any from the struct (see ONBIFS).
 
     // This is needed for pulling the impl bound args in for the override dispatcher's case.
-    val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
-      impl.reachableBoundsFromSubCitizen
-        .map({
-          case PrototypeT(IdT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
-            val funcBoundId = IdT(packageCoord, initSteps, fb)
-            val casePlaceholderedReachableFuncBoundId =
-              TemplataCompiler.substituteTemplatasInFunctionBoundId(
-                coutputs,
-                interner,
-                keywords,
-                impl.templateId,
-                (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
-                // These are bounds we're bringing in from the sub citizen.
-                InheritBoundsFromTypeItself,
-                funcBoundId)
-            funcBoundId -> casePlaceholderedReachableFuncBoundId
-          }
-          case other => vimpl(other)
-        }).toMap
+    val implRuneToCaseSubCitizenRuneToReachablePrototype = // DO NOT SUBMIT rename
+      impl.instantiationBoundParams.callerKindRuneToReachableBoundArguments
+        .map({ case (callerRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
+          callerRune ->
+              InstantiationReachableBoundArgumentsT[ReachableFunctionNameT](
+                citizenRuneToReachablePrototype.map({ case (citizenRune, PrototypeTemplataT(range, reachablePrototype)) =>
+                  val casePlaceholderedReachableFuncBoundId =
+                    TemplataCompiler.substituteTemplatasInPrototype(
+                      coutputs,
+                      interner,
+                      keywords,
+                      impl.templateId,
+                      (implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder).map(_._2),
+                      // These are bounds we're bringing in from the sub citizen.
+                      InheritBoundsFromTypeItself,
+                      reachablePrototype)
+                  citizenRune -> PrototypeTemplataT(range, casePlaceholderedReachableFuncBoundId)
+                }))
+        })
 
     // Step 4: Figure Out Struct For Case, see FOSFC.
 
@@ -435,11 +435,12 @@ class EdgeCompiler(
             KindTemplataT(dispatcherPlaceholderedInterface))) ++
         implRuneToCasePlaceholder
           .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }),
-        impl.templata
+        impl.templata,
+        true
         // Keep in mind, at the end of the solve, we're actually pulling in some reachable bounds
         // from the struct we're solving for here.
       ) match {
-        case Ok(CompleteResolveSolve(conclusions, _, reachableBoundsFromFullSolve)) => (conclusions, reachableBoundsFromFullSolve)
+        case Ok(CompleteResolveSolve(conclusions, InstantiationBoundArgumentsT(_, reachableBoundsFromFullSolve, _))) => (conclusions, reachableBoundsFromFullSolve)
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(List(range), e))
       }
     val caseSubCitizen =
@@ -463,9 +464,9 @@ class EdgeCompiler(
           interner.intern(
             OverrideDispatcherCaseNameT(implRuneToCasePlaceholder.map(_._2)))),
         // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here.
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, num) =>
+        reachableBoundsFromSubCitizen.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, num) =>
           interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(templata)
-        }))
+        }).toVector)
 
     // Step 6: Use Case Environment to Find Override, see UCEFO.
 
@@ -506,9 +507,9 @@ class EdgeCompiler(
       dispatcherId,
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
-      implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
       InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
         dispatcherRuneToFunctionBound,
+        implRuneToCaseSubCitizenRuneToReachablePrototype,
         dispatcherRuneToImplBound),
       dispatcherCaseEnv.id,
       foundFunction.prototype.prototype)

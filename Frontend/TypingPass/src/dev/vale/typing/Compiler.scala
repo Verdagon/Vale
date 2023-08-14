@@ -405,7 +405,7 @@ class Compiler(
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
-          state.addInstantiationBounds(result.id, InstantiationBoundArgumentsT(Map(), Map()))
+          state.addInstantiationBounds(result.id, InstantiationBoundArgumentsT(Map(), Map(), Map()))
 
           result
         }
@@ -1147,7 +1147,7 @@ class Compiler(
               ExportEnvironmentT(
                 globalEnv, packageEnv, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
 
-            val CompleteDefineSolve(templataByRune, _, Vector()) =
+            val CompleteDefineSolve(templataByRune, _) =
               inferCompiler.solveForDefining(
                 InferEnv(exportEnv, List(range), LocationInDenizen(Vector()), exportEnv, regionPlaceholder),
                 coutputs, rules, runeToType, List(range),

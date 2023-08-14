@@ -43,20 +43,22 @@ case class ImplT(
   superInterfaceTemplateId: IdT[IInterfaceTemplateNameT],
 
   // This is similar to FunctionT.runeToFuncBound DO NOT SUBMIT
+
+    // re: the reachable bounds inside:
+    // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
+    // citizen, and a case block from its receiving kind.
+    // We'll need to remember those, so the instantiator can do its thing.
+    // See TIBANFC for more.
   instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   runeIndexToIndependence: Vector[Boolean],
 
-  // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
-  // citizen, and a case block from its receiving kind.
-  // We'll need to remember those, so the instantiator can do its thing.
-  // See TIBANFC for more.
-  reachableBoundsFromSubCitizen: Vector[PrototypeT[IFunctionNameT]]
-
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
 //  subCitizenFromPlaceholderedParentInterface: ICitizenTT,
-) extends IInterning
+) extends IInterning { // DO NOT SUBMIT why interning
+  vpass()
+}
 
 case class KindExportT(
   range: RangeS,
@@ -130,14 +132,13 @@ case class OverrideT(
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
 
-  // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
-  // TIBANFC.
-  implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[IdT[FunctionBoundNameT], IdT[FunctionBoundNameT]],
-
   // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // bounds. This is the one for our conceptual dispatcher function.
   // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
   // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT
+    // re: the reachable stuff inside DO NOT SUBMIT
+    // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
+    // TIBANFC.
   dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
@@ -165,6 +166,8 @@ case class EdgeT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   abstractFuncToOverrideFunc: Map[IdT[IFunctionNameT], OverrideT]
 ) {
+  vpass()
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def equals(obj: Any): Boolean = {
@@ -184,6 +187,13 @@ case class FunctionDefinitionT(
   header: FunctionHeaderT,
   instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
+  header.id match {
+    case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T0")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("T1"))))))))),Vector(CoordT(_,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Tup2")),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T0")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("T1")))))))))))))))) => {
+      vpass()
+    }
+    case _ =>
+  }
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   // We always end a function with a ret, whose result is a Never.
