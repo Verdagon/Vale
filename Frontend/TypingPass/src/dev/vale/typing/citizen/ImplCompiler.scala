@@ -48,7 +48,8 @@ class ImplCompiler(
       callingEnv: IInDenizenEnvironmentT,
       initialKnowns: Vector[InitialKnown],
       implTemplata: ImplDefinitionTemplataT,
-      doingOverrideThing: Boolean):
+      doingOverrideThing: Boolean
+  ):
   Result[CompleteResolveSolve, IResolvingError] = {
 
     val ImplDefinitionTemplataT(parentEnv, impl) = implTemplata

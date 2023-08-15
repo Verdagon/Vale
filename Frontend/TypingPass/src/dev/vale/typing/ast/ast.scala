@@ -132,6 +132,9 @@ case class OverrideT(
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
 
+  // This could be useful for grabbing its bounds DO NOT SUBMIT
+  caseSubCitizen: ICitizenTT,
+
   // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // bounds. This is the one for our conceptual dispatcher function.
   // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],

@@ -543,8 +543,8 @@ class InferCompiler(
       rules.collect({
         case r@DefinitionFuncSR(_, RuneUsage(_, resultRune), _, _, _) => {
           vassertSome(conclusions.get(resultRune)) match {
-            case PrototypeTemplataT(_, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(template, templateArgs, params)), returnType)) => {
-              resultRune -> PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(template, templateArgs, params))), returnType)
+            case PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(template, templateArgs, params)), returnType)) => {
+              resultRune -> PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(template, templateArgs, params))), returnType))
             }
             case other => vwat(other)
           }
@@ -592,7 +592,7 @@ class InferCompiler(
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
     contextRegion: RegionT):
-  Result[(IRuneS, PrototypeT[IFunctionNameT]), IConclusionResolveError] = {
+  Result[(IRuneS, PrototypeTemplataT[IFunctionNameT]), IConclusionResolveError] = {
     val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
 
     // If it was an incomplete solve, then just skip.
@@ -617,7 +617,7 @@ class InferCompiler(
       return Err(ReturnTypeConflictInConclusionResolve(range :: ranges, returnCoord, funcSuccess.prototype.prototype))
     }
 
-    Ok((resultRune.rune, funcSuccess.prototype.prototype))
+    Ok((resultRune.rune, funcSuccess.prototype))
   }
 
   // Returns None for any call that we don't even have params for,

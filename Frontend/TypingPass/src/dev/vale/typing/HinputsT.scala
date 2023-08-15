@@ -17,7 +17,7 @@ case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
 )
 
 case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
-  runeToFunctionBoundArg: Map[IRuneS, PrototypeT[BF]],
+  runeToFunctionBoundArg: Map[IRuneS, PrototypeTemplataT[BF]],
   callerKindRuneToReachableBoundArguments: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
   runeToImplBoundArg: Map[IRuneS, IdT[BI]])
 

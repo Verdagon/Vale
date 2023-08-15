@@ -242,10 +242,10 @@ object TemplataCompiler {
       last.template)
   }
 
-  def assembleRuneToFunctionBound(templatas: TemplatasStore): Map[IRuneS, PrototypeT[FunctionBoundNameT]] = {
+  def assembleRuneToFunctionBound(templatas: TemplatasStore): Map[IRuneS, PrototypeTemplataT[FunctionBoundNameT]] = {
     templatas.entriesByNameT.toIterable.flatMap({
-      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(_, PrototypeT(IdT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)), returnType)))) => {
-        Some(rune -> PrototypeT(IdT(packageCoord, initSteps, name), returnType))
+      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)), returnType)))) => {
+        Some(rune -> PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, name), returnType)))
       }
       case _ => None
     }).toMap
@@ -448,12 +448,12 @@ object TemplataCompiler {
         InstantiationBoundArgumentsT(
           instantiationBoundArgs.runeToFunctionBoundArg.mapValues(funcBoundArg => {
             funcBoundArg match {
-              case PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType) => {
-                vassertSome(containerFuncBoundToBoundArg.get(PrototypeT(IdT(packageCoord, initSteps, fbn), returnType)))
+              case PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType)) => {
+                vassertSome(containerFuncBoundToBoundArg.get(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, fbn), returnType))))
               }
               case _ => {
                 // Not sure if this call is really necessary...
-                substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
+                PrototypeTemplataT(funcBoundArg.declarationRange, substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg.prototype))
               }
             }
           }),
@@ -462,17 +462,15 @@ object TemplataCompiler {
                 InstantiationReachableBoundArgumentsT(
                   citizenRuneToReachablePrototype.map({ case (citizenRune, PrototypeTemplataT(range, reachablePrototype)) =>
                     citizenRune ->
-                        PrototypeTemplataT(
-                          range,
-                          reachablePrototype match {
-                            case PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType) => {
-                              vassertSome(containerFuncBoundToBoundArg.get(PrototypeT(IdT(packageCoord, initSteps, fbn), returnType)))
-                            }
-                            case _ => {
-                              // Not sure if this call is really necessary...
-                              substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, reachablePrototype)
-                            }
-                          })
+                        (reachablePrototype match {
+                          case PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType) => {
+                            vassertSome(containerFuncBoundToBoundArg.get(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, fbn), returnType))))
+                          }
+                          case _ => {
+                            // Not sure if this call is really necessary...
+                            PrototypeTemplataT(range, substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, reachablePrototype))
+                          }
+                        })
                   }))
           }),
           instantiationBoundArgs.runeToImplBoundArg.mapValues(implBoundArg => {
@@ -534,8 +532,11 @@ object TemplataCompiler {
   InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT] = {
     val InstantiationBoundArgumentsT(runeToFunctionBoundArg, callerKindRuneToReachableBoundArguments, runeToImplBoundArg) = boundArgs
     InstantiationBoundArgumentsT(
-      runeToFunctionBoundArg.mapValues(funcBoundArg => {
-        substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
+      runeToFunctionBoundArg.mapValues({ case PrototypeTemplataT(range, funcBoundArg) =>
+        PrototypeTemplataT(
+          range,
+          substituteTemplatasInPrototype(
+            coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg))
       }),
       callerKindRuneToReachableBoundArguments.map({ case (callerRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
         callerRune ->

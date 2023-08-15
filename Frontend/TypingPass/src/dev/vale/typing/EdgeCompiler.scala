@@ -507,6 +507,7 @@ class EdgeCompiler(
       dispatcherId,
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
+      caseSubCitizen,
       InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
         dispatcherRuneToFunctionBound,
         implRuneToCaseSubCitizenRuneToReachablePrototype,
