@@ -543,6 +543,8 @@ func HashMap<K Ref imm, V, H, E>(hasher H, equator E) HashMap<K, V, H, E> {
 
 It failed because `main` wasn't passing any functions to satisfy the bounds which were expected by the `HashMap<K, V, H, E>(hasher, equator, 0)` invocation (it expected a `drop(H)`). At best, we can hoist the _requirements_ from the return type, but we can't use the return type as evidence that a type satisfies some bounds.
 
+Note from later: couldn't we leave it up to the call site to try to instantiate the return type? Then the definition could assume that everything exists and things will be fine. It seems that Rust allows a function definition to inherit bounds from its return value, so that hints that it might be fine.
+
 
 ### Monomorphizer
 

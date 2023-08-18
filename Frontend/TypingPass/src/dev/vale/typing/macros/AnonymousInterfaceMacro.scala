@@ -399,7 +399,11 @@ class AnonymousInterfaceMacro(
     val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, body) = method
 
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
-    val genericParams = struct.genericParameters
+    val genericParams =
+      struct.genericParameters
+          .map({ case GenericParameterS(range, RuneUsage(runeRange, rune), tyype, default) =>
+            GenericParameterS(range, RuneUsage(runeRange, inheritedMethodRune(interface, method, rune)), tyype, default)
+          })
 
     val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
     val rules = new Accumulator[IRulexSR]()
@@ -426,7 +430,7 @@ class AnonymousInterfaceMacro(
 
     // Now we're going to pull in the struct, which we'll use instead of the interface for the overriding param coord
     // rune.
-    runeToType ++= struct.genericParameters.map(param => param.rune.rune -> param.tyype.tyype)
+    runeToType ++= struct.genericParameters.map(param => inheritedMethodRune(interface, method, param.rune.rune) -> param.tyype.tyype)
     // We don't want to pull in all of its rules, we don't need to now that we have reachable bounds DO NOT SUBMIT
     // runeToType ++= struct.headerRuneToType
     // runeToType ++= struct.membersRuneToType
@@ -448,6 +452,9 @@ class AnonymousInterfaceMacro(
 //    rules.addAll(methodOriginalRules)
 //     rules.addAll(struct.headerRules.toIterable)
 //     rules.addAll(struct.memberRules.toIterable)
+
+    // DO NOT SUBMIT we might need to add some equals rules that can do R = $AFunction2.anon.doCall:R
+    // or perhaps just use the same runes?
 
     val abstractParamIndex =
       originalParams.indexWhere(param => {

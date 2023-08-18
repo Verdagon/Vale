@@ -799,38 +799,27 @@ object TemplataCompiler {
     interner: Interner,
     keywords: Keywords,
     coutputs: CompilerOutputs,
-    templata: ITemplataT[ITemplataType]):
+    citizen: ICitizenTT):
   InstantiationReachableBoundArgumentsT[FunctionBoundNameT] = {
-    val maybeMentionedKind =
-      templata match {
-        case KindTemplataT(kind) => Some(kind)
-        case CoordTemplataT(CoordT(_, _, kind)) => Some(kind)
-        case _ => None
-      }
+    val substituter =
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner, keywords,
+        citizen.id,
+        // This function is all about gathering bounds from the incoming parameter types.
+        InheritBoundsFromTypeItself)
+    val citizenTemplateId = TemplataCompiler.getCitizenTemplate(citizen.id)
+    val innerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
     InstantiationReachableBoundArgumentsT(
-      maybeMentionedKind match {
-        case Some(c @ ICitizenTT(id)) => {
-          val substituter =
-            TemplataCompiler.getPlaceholderSubstituter(
-              interner, keywords,
-              id,
-              // This function is all about gathering bounds from the incoming parameter types.
-              InheritBoundsFromTypeItself)
-          val citizenTemplateId = TemplataCompiler.getCitizenTemplate(id)
-          val innerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
-          innerEnv
-              .templatas
-              .entriesByNameT
-              .collect({
-                case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLoc), templateArgs, params)), returnType)))) => {
-                  val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(interner.intern(FunctionBoundTemplateNameT(humanName, codeLoc)), templateArgs, params))), returnType)
-                  rune -> PrototypeTemplataT(range, substituter.substituteForPrototype(coutputs, prototype))
-                }
-              })
-              .toMap
-        }
-        case _ => Map()
-      })
+      innerEnv
+          .templatas
+          .entriesByNameT
+          .collect({
+            case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLoc), templateArgs, params)), returnType)))) => {
+              val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(interner.intern(FunctionBoundTemplateNameT(humanName, codeLoc)), templateArgs, params))), returnType)
+              rune -> PrototypeTemplataT(range, substituter.substituteForPrototype(coutputs, prototype))
+            }
+          })
+          .toMap)
   }
 
   def getFirstUnsolvedIdentifyingRune(

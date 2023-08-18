@@ -275,8 +275,7 @@ class StructCompilerGenericArgsLayer(
           callRange,
         callLocation,
           initialKnowns,
-          Vector(),
-        Vector()) match {
+          Vector()) match {
           case Ok(ccs) => ccs
           case Err(x) => return ResolveFailure(callRange, x)
         }

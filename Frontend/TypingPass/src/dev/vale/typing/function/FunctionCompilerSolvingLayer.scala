@@ -331,7 +331,8 @@ class FunctionCompilerSolvingLayer(
     val runeToType = function.runeToType
     val invocationRange = callRange
     val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
-    val includeReachableBoundsForRunes = function.params.flatMap(_.pattern.coordRune.map(_.rune))
+    val includeReachableBoundsForRunes =
+      function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)
 
     val solver =
       inferCompiler.makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
@@ -373,6 +374,13 @@ class FunctionCompilerSolvingLayer(
       }
       case Ok(true) =>
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
+    }
+
+    outerEnv.id match {
+      case IdT(_,Vector(),FunctionTemplateNameT(StrI("Bork"),_)) => {
+        vpass()
+      }
+      case _ =>
     }
 
     val CompleteResolveSolve(inferredTemplatas, runeToFunctionBound) =
@@ -476,7 +484,7 @@ class FunctionCompilerSolvingLayer(
         callLocation,
         placeholderInitialKnownsFromFunction,
         Vector(),
-        function.params.flatMap(_.pattern.coordRune.map(_.rune))) match {
+        function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)) match {
         case Err(f) => vimpl()//throw CompileErrorExceptionT(TypingPassSolverError(function.range :: callRange, f)) DO NOT SUBMIT
         case Ok(c) => c
       }
@@ -516,14 +524,8 @@ class FunctionCompilerSolvingLayer(
     val definitionRules = function.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
     // This is so we can automatically grab the bounds from parameters and returns, see NBIFP.
-    val paramRunes =
-      function.params.flatMap(_.pattern.coordRune.map(_.rune)).distinct.toVector
-    strt here
-    // figure out whether constructors should either:
-    // - copy the rules of the struct
-    // - inherit the bounds of the mentioned return type
-    // i suspect there is some disagreement on this point between typing phase and instantiator.
-    // it could be something completely different though.
+    val paramAndReturnRunes =
+      (function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)).distinct.toVector
 
     val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT())
     val solver =
@@ -569,7 +571,7 @@ class FunctionCompilerSolvingLayer(
 
     val CompleteDefineSolve(_, instantiationBoundParams) =
       inferCompiler.checkDefiningConclusionsAndResolve(
-        envs, coutputs, range, callLocation, definitionRules, paramRunes, inferences) match {
+        envs, coutputs, range, callLocation, definitionRules, paramAndReturnRunes, inferences) match {
         case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(range, DefiningResolveConclusionError(f)))
         case Ok(c) => c
       }

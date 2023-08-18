@@ -200,8 +200,7 @@ class InferCompiler(
       invocationRange: List[RangeS],
       callLocation: LocationInDenizen,
       initialKnowns: Vector[InitialKnown],
-      initialSends: Vector[InitialSend],
-      includeReachableBoundsForRunes: Vector[IRuneS]):
+      initialSends: Vector[InitialSend]):
   Result[CompleteResolveSolve, IResolvingError] = {
     val solver =
       makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
@@ -210,7 +209,7 @@ class InferCompiler(
       case Err(e) => return Err(ResolvingSolveFailedOrIncomplete(e))
     }
     checkResolvingConclusionsAndResolve(
-      envs, coutputs, invocationRange, callLocation, runeToType, rules, includeReachableBoundsForRunes, solver, false)
+      envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver, false)
   }
 
   def partialSolve(
@@ -315,13 +314,33 @@ class InferCompiler(
     //     val _ = inferences // We don't care, we just did the resolve so that we could instantiate it and add its
     //   }
     // })
-    val reachableBounds =
+
+    val citizensFromCalls =
+      rules
+          .collect({ case CallSR(_, RuneUsage(_, resultRune), _, _) => resultRune })
+          .map(rune => vassertSome(conclusions.get(rune)))
+          .collect({
+            case KindTemplataT(c @ ICitizenTT(_)) => c
+            case CoordTemplataT(CoordT(_, _, c @ ICitizenTT(_))) => c
+          })
+
+    val includeReachableBoundsForRunesWithCitizens =
       includeReachableBoundsForRunes
           .map(rune => rune -> vassertSome(conclusions.get(rune)))
+          .collect({
+            case (rune, KindTemplataT(c @ ICitizenTT(_))) => rune -> c
+            case (rune, CoordTemplataT(CoordT(_, _, c @ ICitizenTT(_)))) => rune -> c
+          })
+          // See OIRCRR, we intersect the CallSR result runes with includeReachableBoundsForRunes because we only want
+          // to supply reachable functions for things that the function definition knows are citizen calls.
+          .filter({ case (rune, citizen) => citizensFromCalls.contains(citizen) })
+
+    val reachableBounds =
+      includeReachableBoundsForRunesWithCitizens
           .toMap
-          .mapValues(conc => {
+          .mapValues(citizen => {
             InstantiationReachableBoundArgumentsT(
-              TemplataCompiler.getReachableBounds(interner, keywords, state, conc)
+              TemplataCompiler.getReachableBounds(interner, keywords, state, citizen)
                   .citizenRuneToReachablePrototype.map({ case (citizenRune, callerPlaceholderedCitizenBound) =>
                 if (doingOverrideThing) {
                   citizenRune -> callerPlaceholderedCitizenBound

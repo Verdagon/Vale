@@ -234,7 +234,10 @@ case class FunctionDefinitionT(
   instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
   header.id match {
-    case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),Vector(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
+    case IdT(_,Vector(),FunctionNameT(
+      FunctionTemplateNameT(StrI("Bork"),_),
+      Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),
+      Vector(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
       vpass()
     }
     case _ =>

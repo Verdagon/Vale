@@ -36,3 +36,5 @@ exported func main() int {
   forEach(&list, { print(_); });
   return 0;
 }
+
+// DO NOT SUBMIT lets change where func drop(T)void to where exists drop(T)void

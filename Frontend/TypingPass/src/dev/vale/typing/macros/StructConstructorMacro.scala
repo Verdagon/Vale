@@ -46,12 +46,26 @@ class StructConstructorMacro(
       return Vector()
     }
     val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
-    runeToType ++= structA.headerRuneToType
-    runeToType ++= structA.membersRuneToType
-
     val rules = mutable.ArrayBuffer[IRulexSR]()
+
+    // We dont need these, they really just contain bounds and stuff, which we'd inherit from our parameters anyway.
+    // However, if we leave it out, then this (from an IRAGP test):
+    //   struct Bork<T, Y> where T = Y { t T; y Y; }
+    // thing's constructor would be:
+    //   func Bork<T, Y>(t T, y Y) Bork<T, Y> { ... }
+    // and it fails to resolve that return type there because it doesn't meet the struct's conditions, because it didn't
+    // repeat the rules from the struct's header, specifically the T = Y rule.
+    // So, we just include all the rules from the constructor's header.
+    // If we ever need to drop that functionality (the T = Y nonsense) then we can probably take out the inheriting of
+    // the header rules.
+    runeToType ++= structA.headerRuneToType
     rules ++= structA.headerRules
+
+    // We include these because they become our parameters. If a struct contains a Opt<^MyNode<T>> we want those two
+    // CallSRs in our function rules too.
+    runeToType ++= structA.membersRuneToType
     rules ++= structA.memberRules
+
 
     val retRune = RuneUsage(structA.name.range, ReturnRuneS())
     runeToType += (retRune.rune -> CoordTemplataType())
@@ -76,6 +90,7 @@ class StructConstructorMacro(
           Vector()
         }
       })
+    runeToType ++= params.flatMap(_.pattern.coordRune.map(_.rune)).map(_ -> CoordTemplataType())
 
     val functionA =
       FunctionA(

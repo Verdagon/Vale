@@ -331,7 +331,6 @@ class OverloadResolver(
                 callRange,
                 callLocation,
                 initialKnowns,
-                Vector(),
                 Vector()) match {
                 case (Err(e)) => {
                   Err(FindFunctionResolveFailure(e))

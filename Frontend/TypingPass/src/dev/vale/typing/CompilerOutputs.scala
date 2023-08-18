@@ -145,10 +145,10 @@ case class CompilerOutputs() {
 
   def addInstantiationBounds(
     instantiationId: IdT[IInstantiationNameT],
-    functionBoundToRune: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
+    functionBoundToRune: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]): // DO NOT SUBMIT rename
   Unit = {
     instantiationId match {
-      case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("moo"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(borrow,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplataT(CoordT(_,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))))))))))) => {
+      case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32)))),Vector(CoordT(_,RegionT(),IntT(32))))) => {
         vpass()
       }
       case _ =>

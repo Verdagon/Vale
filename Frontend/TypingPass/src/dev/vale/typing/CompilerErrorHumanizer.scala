@@ -741,7 +741,7 @@ object CompilerErrorHumanizer {
           "(" + parameters.map(CoordTemplataT).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case AnonymousSubstructConstructorTemplateNameT(substruct) => {
-        "asc:" + humanizeName(codeMap, substruct)
+        "asc:" + humanizeName(codeMap, substruct) // DO NOT SUBMIT use squaries instead
       }
       case SelfNameT() => "self"
       case OverrideDispatcherTemplateNameT(implId) => "ovdt:" + humanizeId(codeMap, implId)
