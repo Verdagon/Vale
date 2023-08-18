@@ -180,7 +180,7 @@ class FunctionCompilerClosureOrLightLayer(
     callLocation: LocationInDenizen,
     function: FunctionA,
     args: Vector[Option[CoordT]]):
-  IEvaluateFunctionResult = {
+  IDefineFunctionResult = {
     checkNotClosure(function);
     val outerEnvId = parentEnv.id.addStep(nameTranslator.translateGenericFunctionName(function.name))
     val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvId, true)

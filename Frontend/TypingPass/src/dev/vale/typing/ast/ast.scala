@@ -132,17 +132,13 @@ case class OverrideT(
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
 
-  // This could be useful for grabbing its bounds DO NOT SUBMIT
-  caseSubCitizen: ICitizenTT,
+  // These are the prototypes we'll pull from the impl's own bounds, and the rune that the impl internally refers to them as.
+  dispatcherPlaceholderedReachablePrototypes: Vector[PrototypeT[CaseFunctionFromImplNameT]],
+  // DO NOT SUBMIT isnt it case placeholdered?
 
-  // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
-  // bounds. This is the one for our conceptual dispatcher function.
-  // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT
-    // re: the reachable stuff inside DO NOT SUBMIT
-    // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
-    // TIBANFC.
-  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  // This should also have the correct instantiation bounds (though it'll refer to the above map's keys).
+  dispatcherCasePlaceholderedSubCitizen: ICitizenTT,
+
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
@@ -154,7 +150,54 @@ case class OverrideT(
   // The override function we're calling.
   // Conceptually, this is being called from the case's environment. It might even have some complex stuff
   // in the template args.
-  overridePrototype: PrototypeT[IFunctionNameT]
+  overridePrototype: PrototypeT[IFunctionNameT],
+
+  // // DO NOT SUBMIT centralize docs
+  // // The instantiator's next step for an override is to bring in some bound functions from the impl that already exists.
+  // // Let's say we have this:
+  // //   interface IObserver<W> { }
+  // //   abstract func handleLaunch<X>(self virtual &IObserver<LaunchEvent<X>>);
+  // //   struct Firefly<Y> { }
+  // //   impl<Z> IObserver<LaunchEvent<Z>> for Firefly<Engine<Z>>;
+  // //   func handleLaunch<T>(self &Ship<LaunchEvent<T>>) { ... }
+  // // What we need is the sub citizen for this interface, in terms of the abstract function.
+  // //
+  // // To do that, the first step is to pretend we're compiling the abstract function, like so:
+  // //   func handleLaunch<launch$X>(self &IObserver<LaunchEvent<launch$X>>) { ... }
+  // // and have it feed the interface self param into the impl to make it resolve the struct, like so:
+  // //   impl<Z> (IObserver<LaunchEvent<launch$X>> = IObserver<LaunchEvent<Z>>) for Firefly<Engine<Z>>;
+  // // which solves for Firefly<Engine<launch$X>> and (because of a flag DO NOT SUBMIT) predicts that some bounds should exist:
+  // // - ZD = func impl.predicted:drop(Firefly<Engine<$launchX>>);
+  // //
+  // // At this point, we're going to conjure some bounds from that, knowing that the instantiator can fill the actual ones
+  // // from the impl.
+  // // We *could* use the PredictedFunctionNameT that come out of the solver, buuut let's not. Let's turn it from:
+  // // - ZD = func impl                   .predicted:drop(Firefly<Engine<$launchX>>);
+  // // into:
+  // // - ZD = func dispatcher:handleLaunch.bound:drop    (Firefly<Engine<$launchX>>);
+  // // remembering the impl rune it came from.
+  // implRuneToDispatcherBoundPrototype: Map[IRuneS, PrototypeTemplataT[FunctionBoundNameT]],
+  //
+  // implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
+  // implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
+  //
+  // // This could be useful for grabbing its bounds DO NOT SUBMIT
+  // caseSubCitizen: ICitizenTT,
+  //
+  // // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
+  // // bounds. This is the one for our conceptual dispatcher function.
+  // // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
+  // // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT
+  //   // re: the reachable stuff inside DO NOT SUBMIT
+  //   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
+  //   // TIBANFC.
+  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  // caseInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+
+  // // The override function we're calling.
+  // // Conceptually, this is being called from the case's environment. It might even have some complex stuff
+  // // in the template args.
+  // overridePrototype: PrototypeT[IFunctionNameT]
 )
 
 case class EdgeT(
@@ -191,7 +234,7 @@ case class FunctionDefinitionT(
   instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
   header.id match {
-    case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T0")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("T1"))))))))),Vector(CoordT(_,RegionT(),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Tup2")),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T0")))))))), CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("drop"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(1,CodeRuneS(StrI("T1")))))))))))))))) => {
+    case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),Vector(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
       vpass()
     }
     case _ =>

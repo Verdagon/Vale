@@ -403,6 +403,24 @@ case class ReachableFunctionNameT(
   vpass()
 }
 
+case class CaseFunctionFromImplTemplateNameT(
+    humanName: StrI,
+    runeInImpl: IRuneS,
+    runeInCitizen: IRuneS
+) extends INameT with IFunctionTemplateNameT {
+  vpass()
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): CaseFunctionFromImplNameT = {
+    interner.intern(CaseFunctionFromImplNameT(this, templateArgs, params))
+  }
+}
+case class CaseFunctionFromImplNameT(
+    template: CaseFunctionFromImplTemplateNameT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
+    parameters: Vector[CoordT]
+) extends IFunctionNameT {
+  vpass()
+}
+
 // DO NOT SUBMIT doc
 case class PredictedFunctionTemplateNameT(
     humanName: StrI

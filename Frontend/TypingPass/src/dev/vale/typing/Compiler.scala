@@ -429,10 +429,8 @@ class Compiler(
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
           templata: InterfaceDefinitionTemplataT,
-          templateArgs: Vector[ITemplataT[ITemplataType]],
-          verifyConclusions: Boolean):
+          templateArgs: Vector[ITemplataT[ITemplataType]]):
         IResolveOutcome[InterfaceTT] = {
-          vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
           structCompiler.resolveInterface(state, callingEnv, callRange, callLocation, templata, templateArgs)
         }
 
@@ -442,10 +440,8 @@ class Compiler(
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
           templata: StructDefinitionTemplataT,
-          templateArgs: Vector[ITemplataT[ITemplataType]],
-          verifyConclusions: Boolean):
+          templateArgs: Vector[ITemplataT[ITemplataType]]):
         IResolveOutcome[StructTT] = {
-          vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
           structCompiler.resolveStruct(state, callingEnv, callRange,callLocation, templata, templateArgs)
         }
 

@@ -267,6 +267,23 @@ case class OverrideDispatcherCaseNameI[+R <: IRegionsModeI](
   override def templateArgs: Vector[ITemplataI[R]] = independentImplTemplateArgs
 }
 
+case class CaseFunctionFromImplNameI[+R <: IRegionsModeI](
+    template: CaseFunctionFromImplTemplateNameI[R],
+    // This will have placeholders in it after the typing pass.
+    templateArgs: Vector[ITemplataI[R]],
+    parameters: Vector[CoordI[R]]
+) extends IFunctionNameI[R] {
+  vpass()
+}
+
+case class CaseFunctionFromImplTemplateNameI[+R <: IRegionsModeI](
+    humanName: StrI,
+    runeInImpl: IRuneS,
+    runeInCitizen: IRuneS
+) extends IFunctionTemplateNameI[R] {
+  vpass()
+}
+
 sealed trait IVarNameI[+R <: IRegionsModeI] extends INameI[R]
 case class TypingPassBlockResultVarNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
 case class TypingPassFunctionResultVarNameI[+R <: IRegionsModeI]() extends IVarNameI[R]

@@ -79,7 +79,7 @@ class ImplCompiler(
     // Remember, impls can have rules too, such as:
     //   impl<T> Opt<T> for Some<T> where func drop(T)void;
     // so we do need to filter them out when compiling.
-    val definitionRules = rules.filter(InferCompiler.includeRuleInCallSiteSolve)
+    val callSiteRules = rules.filter(InferCompiler.includeRuleInCallSiteSolve)
 
     // This is callingEnv because we might be coming from an abstract function that's trying
     // to evaluate an override.
@@ -87,7 +87,7 @@ class ImplCompiler(
     val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT())
     val solver =
       inferCompiler.makeSolver(
-        envs, coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector())
+        envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
 
     inferCompiler.continue(envs, coutputs, solver) match {
       case Ok(()) =>
@@ -100,7 +100,7 @@ class ImplCompiler(
       range :: parentRanges,
       callLocation,
       runeToType,
-      definitionRules,
+      callSiteRules,
       // We include the reachable bounds for the struct rune. Those are bounds that this impl will
       // have to satisfy when it calls the interface.
       Vector(structKindRune.rune),
@@ -145,7 +145,7 @@ class ImplCompiler(
     // Remember, impls can have rules too, such as:
     //   impl<T> Opt<T> for Some<T> where func drop(T)void;
     // so we do need to filter them out when compiling.
-    val definitionRules = rules.filter(InferCompiler.includeRuleInCallSiteSolve)
+    val callSiteRules = rules.filter(InferCompiler.includeRuleInCallSiteSolve)
 
     // This is callingEnv because we might be coming from an abstract function that's trying
     // to evaluate an override.
@@ -153,7 +153,7 @@ class ImplCompiler(
     val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT())
     val solver =
       inferCompiler.makeSolver(
-        envs, coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector())
+        envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
     inferCompiler.continue(envs, coutputs, solver) match {
       case Ok(()) =>
       case Err(e) => return Err(e)

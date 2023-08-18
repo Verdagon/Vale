@@ -156,7 +156,7 @@ object PostParserErrorHumanizer {
       case SelfRuneS() => "(self)"
       case SelfCoordRuneS() => "(self ref)"
       case ReturnRuneS() => "(ret)"
-      case AnonymousSubstructParentInterfaceTemplateRuneS() => "(anon sub parent interface)"
+      case AnonymousSubstructParentInterfaceTemplateRuneS() => "(anon sub parent interface template)"
       case ImplDropVoidRuneS() => "(impl drop void)"
       case ImplDropCoordRuneS() => "(impl drop coord)"
       case FreeOverrideInterfaceRuneS() => "(freeing interface)"
@@ -164,7 +164,7 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructKindRuneS() => "(anon substruct kind)"
       case AnonymousSubstructCoordRuneS() => "(anon substruct ref)"
       case AnonymousSubstructTemplateRuneS() => "(anon substruct template)"
-      case AnonymousSubstructParentInterfaceTemplateRuneS() => "(anon sub parent template)"
+      case AnonymousSubstructParentInterfaceTemplateRuneS() => "(anon sub parent interface template)"
       case AnonymousSubstructParentInterfaceKindRuneS() => "(anon sub parent kind)"
       case AnonymousSubstructParentInterfaceCoordRuneS() => "(anon sub parent ref)"
       case StructNameRuneS(inner) => humanizeName(inner)

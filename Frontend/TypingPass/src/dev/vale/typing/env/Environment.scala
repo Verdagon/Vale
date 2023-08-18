@@ -228,6 +228,8 @@ object TemplatasStore {
       case LambdaCallFunctionNameT(_, _, _) => {
         None // I don't think anyone will ever need to look up a specific lambda incarnation by name
       }
+      case CaseFunctionFromImplTemplateNameT(humanName, _, _) => Some(interner.intern(CodeNameS(humanName)))
+      case CaseFunctionFromImplNameT(inner, _, _) => getImpreciseName(interner, inner)
 //      case AnonymousSubstructImplTemplateNameT(inner) => getImpreciseName(interner, inner).map(ImplImpreciseNameS)
 //      case OverrideVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
 //      case AbstractVirtualFreeNameT(_, _) => Some(interner.intern(VirtualFreeImpreciseNameS()))

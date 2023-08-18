@@ -101,8 +101,7 @@ trait IInferCompilerDelegate {
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     templata: StructDefinitionTemplataT,
-    templateArgs: Vector[ITemplataT[ITemplataType]],
-    verifyConclusions: Boolean):
+    templateArgs: Vector[ITemplataT[ITemplataType]]):
   IResolveOutcome[StructTT]
 
   def resolveInterface(
@@ -111,8 +110,7 @@ trait IInferCompilerDelegate {
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     templata: InterfaceDefinitionTemplataT,
-    templateArgs: Vector[ITemplataT[ITemplataType]],
-    verifyConclusions: Boolean):
+    templateArgs: Vector[ITemplataT[ITemplataType]]):
   IResolveOutcome[InterfaceTT]
 
   def resolveStaticSizedArrayKind(
@@ -440,18 +438,30 @@ class InferCompiler(
                 case CoordTemplataT(CoordT(_, _, kind)) => Some(kind)
                 case _ => None
               }
-            InstantiationReachableBoundArgumentsT(
+            val maybeIdAndTemplateId =
               maybeMentionedKind match {
-                case Some(c@ICitizenTT(id)) => {
+                case Some(ICitizenTT(id)) => Some((id, TemplataCompiler.getCitizenTemplate(id)))
+                // This can happen if we have for example:
+                //   struct Bork<T> { x T; }
+                //   func Bork<T>(x T) { ... }
+                // we're trying to see if there are any bounds we can grab from that placeholder.
+                // buuuut let's comment it out because it'll just get caught by the below Some(_) case.
+                // case Some(KindPlaceholderT(id)) => Some((id, TemplataCompiler.getPlaceholderTemplate(id)))
+                case Some(_) => None
+                case None => None
+              }
+            InstantiationReachableBoundArgumentsT(
+              maybeIdAndTemplateId match {
+                case None => Map[IRuneS, PrototypeTemplataT[ReachableFunctionNameT]]()
+                case Some((id, templateId)) => {
+                  val innerEnv = state.getInnerEnvForType(templateId)
                   val substituter =
                     TemplataCompiler.getPlaceholderSubstituter(
                       interner, keywords,
                       id,
                       // This function is all about gathering bounds from the incoming parameter types.
                       InheritBoundsFromTypeItself)
-                  val citizenTemplateId = TemplataCompiler.getCitizenTemplate(id)
-                  val innerEnv = state.getInnerEnvForType(citizenTemplateId)
-                  innerEnv
+                    innerEnv
                       .templatas
                       .entriesByNameT
                       .collect({
@@ -468,7 +478,6 @@ class InferCompiler(
                       })
                       .toMap
                 }
-                case _ => Map()
               })
           })
     val environmentForFinalizing =
@@ -544,7 +553,8 @@ class InferCompiler(
         case r@DefinitionFuncSR(_, RuneUsage(_, resultRune), _, _, _) => {
           vassertSome(conclusions.get(resultRune)) match {
             case PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(template, templateArgs, params)), returnType)) => {
-              resultRune -> PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(template, templateArgs, params))), returnType))
+              val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(template, templateArgs, params))), returnType)
+              resultRune -> PrototypeTemplataT(range, prototype)
             }
             case other => vwat(other)
           }
@@ -560,14 +570,13 @@ class InferCompiler(
 
     val maybeRunesAndImpls =
       rules.collect({
-        case r@CallSiteCoordIsaSR(_, _, _, _) => {
-          resolveImplConclusion(env, state, ranges, callLocation, r, conclusions) match {
-            case Ok((rune, IdT(packageCoord, initSteps, ImplBoundNameT(template, templateArgs)))) => {
-              (rune, IdT(packageCoord, initSteps, ImplBoundNameT(template, templateArgs)))
+        case r@DefinitionCoordIsaSR(_, RuneUsage(_, resultRune), _, _) => {
+          vassertSome(conclusions.get(resultRune)) match {
+            case IsaTemplataT(range, IdT(packageCoord, initSteps, ImplBoundNameT(template, templateArgs)), subKind, superKind) => {
+              val implId = IdT(packageCoord, initSteps, interner.intern(ImplBoundNameT(template, templateArgs)))
+              resultRune -> implId
             }
-            // DO NOT SUBMIT
-            case Ok(other) => vwat(other)
-            case Err(e) => return Err(e)
+            case other => vwat(other)
           }
         }
       })
@@ -741,14 +750,14 @@ class InferCompiler(
         Ok(())
       }
       case it @ StructDefinitionTemplataT(_, _) => {
-        delegate.resolveStruct(callingEnv, state, range :: ranges, callLocation, it, args.toVector, true) match {
+        delegate.resolveStruct(callingEnv, state, range :: ranges, callLocation, it, args.toVector) match {
           case ResolveSuccess(kind) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
         }
         Ok(())
       }
       case it @ InterfaceDefinitionTemplataT(_, _) => {
-        delegate.resolveInterface(callingEnv, state, range :: ranges, callLocation, it, args.toVector, true) match {
+        delegate.resolveInterface(callingEnv, state, range :: ranges, callLocation, it, args.toVector) match {
           case ResolveSuccess(kind) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
         }

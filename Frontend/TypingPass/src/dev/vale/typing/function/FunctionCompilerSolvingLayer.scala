@@ -98,16 +98,15 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         outerEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    coutputs.addInstantiationBounds(
-      header.id,
-      // DO NOT SUBMIT
-      InstantiationBoundArgumentsT(
+    val instantiationBoundArgs = // DO NOT SUBMIT
+      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToFunctionBoundArg,
         instantiationBoundParams.callerKindRuneToReachableBoundArguments.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
         }),
-        instantiationBoundParams.runeToImplBoundArg))
-    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, header.toPrototype), inferredTemplatas)
+        instantiationBoundParams.runeToImplBoundArg)
+    coutputs.addInstantiationBounds(header.id, instantiationBoundArgs)
+    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, header.toPrototype), inferredTemplatas, instantiationBoundArgs)
   }
 
   // Preconditions:
@@ -162,17 +161,15 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         declaringEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    coutputs.addInstantiationBounds(
-      prototype.prototype.id,
-      // DO NOT SUBMIT
-      InstantiationBoundArgumentsT(
+    val instantiationBoundArgs = // DO NOT SUBMIT
+      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToFunctionBoundArg,
         instantiationBoundParams.callerKindRuneToReachableBoundArguments.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
         }),
-        instantiationBoundParams.runeToImplBoundArg))
-
-    EvaluateFunctionSuccess(prototype, inferredTemplatas)
+        instantiationBoundParams.runeToImplBoundArg)
+    coutputs.addInstantiationBounds(prototype.prototype.id, instantiationBoundArgs)
+    EvaluateFunctionSuccess(prototype, inferredTemplatas, instantiationBoundArgs)
   }
 
   // This is called while we're trying to figure out what functionSs to call when there
@@ -230,16 +227,15 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         nearEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    coutputs.addInstantiationBounds(
-      prototypeTemplata.prototype.id,
-      // DO NOT SUBMIT
-      InstantiationBoundArgumentsT(
+    val instantiationBoundArgs = // DO NOT SUBMIT
+      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToFunctionBoundArg,
         instantiationBoundParams.callerKindRuneToReachableBoundArguments.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
         }),
-        instantiationBoundParams.runeToImplBoundArg))
-    EvaluateFunctionSuccess(prototypeTemplata, inferences)
+        instantiationBoundParams.runeToImplBoundArg)
+    coutputs.addInstantiationBounds(prototypeTemplata.prototype.id, instantiationBoundArgs)
+    EvaluateFunctionSuccess(prototypeTemplata, inferences, instantiationBoundArgs)
   }
 
   private def assembleKnownTemplatas(
@@ -409,7 +405,7 @@ class FunctionCompilerSolvingLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     args: Vector[Option[CoordT]]):
-  IEvaluateFunctionResult = {
+  IDefineFunctionResult = {
     val function = nearEnv.function
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
@@ -497,7 +493,7 @@ class FunctionCompilerSolvingLayer(
 
     // Usually when we call a function, we add instantiation bounds. However, we're
     // not calling a function here, we're defining it.
-    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferences)
+    DefineFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferences, runeToFunctionBound)
   }
 
   // Preconditions:
@@ -522,6 +518,12 @@ class FunctionCompilerSolvingLayer(
     // This is so we can automatically grab the bounds from parameters and returns, see NBIFP.
     val paramRunes =
       function.params.flatMap(_.pattern.coordRune.map(_.rune)).distinct.toVector
+    strt here
+    // figure out whether constructors should either:
+    // - copy the rules of the struct
+    // - inherit the bounds of the mentioned return type
+    // i suspect there is some disagreement on this point between typing phase and instantiator.
+    // it could be something completely different though.
 
     val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT())
     val solver =
@@ -557,6 +559,13 @@ class FunctionCompilerSolvingLayer(
         case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, e))
         case Ok(conclusions) => conclusions
       }
+
+    nearEnv.id match {
+      case IdT(_,Vector(),FunctionTemplateNameT(StrI("Bork"),_)) => {
+        vpass()
+      }
+      case _ =>
+    }
 
     val CompleteDefineSolve(_, instantiationBoundParams) =
       inferCompiler.checkDefiningConclusionsAndResolve(

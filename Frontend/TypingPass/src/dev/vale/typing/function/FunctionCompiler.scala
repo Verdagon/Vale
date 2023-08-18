@@ -73,12 +73,25 @@ trait IEvaluateFunctionResult
 
 case class EvaluateFunctionSuccess(
     prototype: PrototypeTemplataT[IFunctionNameT],
-    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
+    inferences: Map[IRuneS, ITemplataT[ITemplataType]],
+    instantiationBoundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]
 ) extends IEvaluateFunctionResult
 
 case class EvaluateFunctionFailure(
     reason: IDefiningError
 ) extends IEvaluateFunctionResult
+
+trait IDefineFunctionResult
+
+case class DefineFunctionSuccess(
+    prototype: PrototypeTemplataT[IFunctionNameT],
+    inferences: Map[IRuneS, ITemplataT[ITemplataType]],
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]
+) extends IDefineFunctionResult
+
+case class DefineFunctionFailure(
+    reason: IDefiningError
+) extends IDefineFunctionResult
 
 
 trait IResolveFunctionResult
@@ -247,7 +260,7 @@ class FunctionCompiler(
     callingEnv: IInDenizenEnvironmentT, // See CSSNCE
     functionTemplata: FunctionTemplataT,
     args: Vector[Option[CoordT]]):
-  IEvaluateFunctionResult = {
+  IDefineFunctionResult = {
     Profiler.frame(() => {
       val FunctionTemplataT(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericVirtualDispatcherFunctionForPrototype(

@@ -488,17 +488,17 @@ object TemplataCompiler {
     }
   }
 
-  def substituteTemplatasInImplId(
+  def substituteTemplatasInImplId[T <: IImplNameT](
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
     needleTemplateName: IdT[ITemplateNameT],
     newSubstitutingTemplatas: Vector[ITemplataT[ITemplataType]],
     boundArgumentsSource: IBoundArgumentsSource,
-    implId: IdT[IImplNameT]):
-  IdT[IImplNameT] = {
+    implId: IdT[T]):
+  IdT[T] = {
     val IdT(packageCoord, initSteps, last) = implId
-    val newImplId =
+    val substitutedImplId =
       IdT(
         packageCoord,
         initSteps,
@@ -515,10 +515,15 @@ object TemplataCompiler {
     val instantiationBoundArgs = vassertSome(coutputs.getInstantiationBounds(implId))
     // See SBITAFD, we need to register bounds for these new instantiations.
     coutputs.addInstantiationBounds(
-      newImplId,
+      substitutedImplId,
       translateInstantiationBounds(
         coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
-    newImplId
+
+    vassert(substitutedImplId.localName.getClass.equals(implId.localName.getClass))
+    vassert(substitutedImplId.getClass.equals(implId.getClass))
+    val result = substitutedImplId.asInstanceOf[IdT[T]]
+    assert(result != null)
+    return result
   }
 
   def substituteTemplatasInBounds(
@@ -636,7 +641,7 @@ object TemplataCompiler {
 
     val perhapsImportedId =
       tentativeId.localName match {
-        case n @ (FunctionBoundNameT(_, _, _) | ReachableFunctionNameT(_, _, _)) => {
+        case n @ (FunctionBoundNameT(_, _, _) | ReachableFunctionNameT(_, _, _) | CaseFunctionFromImplNameT(_, _, _)) => {
           val importedId = tentativeId
         // It's a function bound, it has no function bounds of its own.
           coutputs.addInstantiationBounds(
@@ -709,6 +714,7 @@ object TemplataCompiler {
     def substituteForInterface(coutputs: CompilerOutputs, interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coutputs: CompilerOutputs, coordT: ITemplataT[ITemplataType]): ITemplataT[ITemplataType]
     def substituteForPrototype[T <: IFunctionNameT](coutputs: CompilerOutputs, proto: PrototypeT[T]): PrototypeT[T]
+    def substituteForImplId[T <: IImplNameT](coutputs: CompilerOutputs, implId: IdT[T]): IdT[T]
   }
   def getPlaceholderSubstituter(
     interner: Interner,
@@ -758,6 +764,9 @@ object TemplataCompiler {
       }
       override def substituteForPrototype[T <: IFunctionNameT](coutputs: CompilerOutputs, proto: PrototypeT[T]): PrototypeT[T] = {
         TemplataCompiler.substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, proto)
+      }
+      override def substituteForImplId[T <: IImplNameT](coutputs: CompilerOutputs, implId: IdT[T]): IdT[T] = {
+        TemplataCompiler.substituteTemplatasInImplId(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implId)
       }
     }
   }

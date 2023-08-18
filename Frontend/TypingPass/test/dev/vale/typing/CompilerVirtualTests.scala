@@ -364,3 +364,4 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   }
 
 }
+

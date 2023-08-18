@@ -19,8 +19,25 @@ import scala.collection.mutable
 
 case class DenizenBoundToDenizenCallerBoundArgS(
   funcBoundToCallerSuppliedBoundArgFunc: Map[IdT[FunctionBoundNameT], PrototypeI[sI]],
+  caseBoundToCallerSuppliedBoundArgFunc: Map[IdT[CaseFunctionFromImplNameT], PrototypeI[sI]],
   funcReachableToCallerSuppliedReachableArgFunc: Map[IdT[ReachableFunctionNameT], PrototypeI[sI]], // DO NOT SUBMIT rename
-  implBoundToCallerSuppliedBoundArgImpl: Map[IdT[ImplBoundNameT], IdI[sI, IImplNameI[sI]]])
+  implBoundToCallerSuppliedBoundArgImpl: Map[IdT[ImplBoundNameT], IdI[sI, IImplNameI[sI]]]) {
+
+  def plus(that: DenizenBoundToDenizenCallerBoundArgS): DenizenBoundToDenizenCallerBoundArgS = {
+    val DenizenBoundToDenizenCallerBoundArgS(
+      thatFuncBoundToCallerSuppliedBoundArgFunc,
+      thatCaseBoundToCallerSuppliedBoundArgFunc,
+      thatFuncReachableToCallerSuppliedReachableArgFunc,
+      thatImplBoundToCallerSuppliedBoundArgImpl
+    ) = that
+
+    DenizenBoundToDenizenCallerBoundArgS(
+      U.unionMapsExpectDisjoint(funcBoundToCallerSuppliedBoundArgFunc, thatFuncBoundToCallerSuppliedBoundArgFunc),
+      U.unionMapsExpectDisjoint(caseBoundToCallerSuppliedBoundArgFunc, thatCaseBoundToCallerSuppliedBoundArgFunc),
+      U.unionMapsExpectDisjoint(funcReachableToCallerSuppliedReachableArgFunc, thatFuncReachableToCallerSuppliedReachableArgFunc),
+      U.unionMapsExpectDisjoint(implBoundToCallerSuppliedBoundArgImpl, thatImplBoundToCallerSuppliedBoundArgImpl))
+  }
+}
 
 class InstantiatedOutputs() {
   val functions: mutable.HashMap[IdI[cI, IFunctionNameI[cI]], FunctionDefinitionI] =
@@ -50,7 +67,7 @@ class InstantiatedOutputs() {
   val impls:
     mutable.HashMap[
       IdI[cI, IImplNameI[cI]],
-      (ICitizenIT[cI], IdI[cI, IInterfaceNameI[cI]], DenizenBoundToDenizenCallerBoundArgS)] =
+      (ICitizenIT[cI], IdI[cI, IInterfaceNameI[cI]], DenizenBoundToDenizenCallerBoundArgS, InstantiationBoundArgumentsI)] =
     mutable.HashMap()
   // We already know from the hinputs that Opt<T has drop> has func drop(T).
   // In this map, we'll know that Opt<int> has func drop(int).
@@ -140,7 +157,7 @@ class Instantiator(
           Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
             exportTemplateIdT -> assemblePlaceholderMap(exportPlaceholderedIdT, exportIdS))
 
-        val denizenBoundToDenizenCallerSuppliedThing = DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map())
+        val denizenBoundToDenizenCallerSuppliedThing = DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map(), Map())
         val kindIT =
           translateKind(
             exportPlaceholderedIdT, denizenBoundToDenizenCallerSuppliedThing, substitutions, RegionT(), tyype)
@@ -171,7 +188,7 @@ class Instantiator(
         val (_, prototypeC) =
           translatePrototype(
             exportPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map()),
+            DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map(), Map()),
             substitutions,
             perspectiveRegionT,
             prototypeT)
@@ -201,7 +218,7 @@ class Instantiator(
         val (_, prototypeC) =
           translatePrototype(
             externPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map()),
+            DenizenBoundToDenizenCallerBoundArgS(Map(), Map(), Map(), Map()),
             substitutions,
             perspectiveRegionT,
             prototypeT)
@@ -268,7 +285,7 @@ class Instantiator(
       monouts.interfaceToImpls.map({ case (interface, impls) =>
         interface ->
           impls.map({ case (implIdT, implIdI) =>
-            val (subCitizen, parentInterface, _) = vassertSome(monouts.impls.get(implIdI))
+            val (subCitizen, parentInterface, _, _) = vassertSome(monouts.impls.get(implIdI))
             vassert(parentInterface == interface)
             val abstractFuncToVirtualIndex =
               vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(interface))
@@ -418,6 +435,7 @@ class Instantiator(
       instantiationBoundArgs.runeToFunctionBoundArg.map({ case (calleeRune, suppliedFunctionI) =>
         vassertSome(instantiationBoundParams.runeToFunctionBoundArg.get(calleeRune)).prototype.id -> suppliedFunctionI
       }),
+      Map(),
       instantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc.flatMap({ case (callerRune, calleeRuneToReachableFunc) =>
         if (calleeRuneToReachableFunc.nonEmpty) {
           val m = vassertSome(instantiationBoundParams.callerKindRuneToReachableBoundArguments.get(callerRune))
@@ -560,7 +578,9 @@ class Instantiator(
     implIdC: IdI[cI, IImplNameI[cI]],
     abstractFuncDefT: FunctionDefinitionT,
     abstractFuncPrototypeT: PrototypeT[IFunctionNameT],
-    abstractFuncPrototypeC: PrototypeI[cI]):
+    abstractFuncPrototypeC: PrototypeI[cI],
+    abstractFuncInstantiationBoundParamsToArgs: DenizenBoundToDenizenCallerBoundArgS,
+    abstractFuncInstantiationBoundArgs: InstantiationBoundArgumentsI):
   Unit = {
     // Our ultimate goal in here is to make a PrototypeI[cI] for the override.
     // To do that, we're going to compile a dispatcher function given an impl, see CDFGI.
@@ -622,83 +642,65 @@ class Instantiator(
         dispatcherIdT,
         implPlaceholderToDispatcherPlaceholder,
         implPlaceholderToCasePlaceholder,
-        caseSubCitizenTT,
-        // This is a map of the dispatcher's rune to the dispatcher's function bound, here:
-        //   $1114 -> func abst/bound:drop(int)
-        caseBoundArgs @ InstantiationBoundArgumentsT(dispatcherRuneToBoundFunctionArg, dispatcherRuneToSubCitizenRuneToReachableFunctionArg, dispatcherRuneToBoundImplArg),
+        dispatcherPlaceholderedReachablePrototypes,
+        dispatcherCasePlaceholderedSubCitizen,
         dispatcherCaseIdT,
-        overridePrototypeT) =
+        overridePrototypeT,
+        dispatcherInstantiationBoundParams) =
+        // dispatcherIdT,
+        // caseSubCitizenTT,
+        // // This is a map of the dispatcher's rune to the dispatcher's function bound, here:
+        // //   $1114 -> func abst/bound:drop(int)
+        // dispatcherInstantiationBoundArgsT,
+        // caseBoundArgs @ InstantiationBoundArgumentsT(dispatcherRuneToBoundFunctionArg, dispatcherRuneToSubCitizenRuneToReachableFunctionArg, dispatcherRuneToBoundImplArg),
+        // dispatcherCaseIdT,
+        // overridePrototypeT) =
       vassertSome(edgeT.abstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))
+    val dispatcherTemplateId = TemplataCompiler.getTemplate(dispatcherIdT)
 
-
-    val implBoundFunctionToCaseBoundFunction =
-      edgeT.instantiationBoundParams.runeToFunctionBoundArg
-          .toVector
-          .map({ case (rune, boundFunctionArg) =>
-            val boundFunctionParam = vassertSome(edgeRuneToBoundFunctionParam.get(rune))
-            boundFunctionParam.prototype.id -> boundFunctionArg.prototype.id
-          })
-          .toMap
-    val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
-      edgeT.instantiationBoundParams.callerKindRuneToReachableBoundArguments
-          .toVector
-          .flatMap({ case (callerRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
-              citizenRuneToReachablePrototype
-                  .toVector
-                  .map({ case (citizenRune, overrideReachablePrototype) =>
-                    val implReachableFunctionArgT =
-                    vassertSome(vassertSome(edgeRuneToSubCitizenRuneToReachableFunctionParam.get(callerRune))
-                        .citizenRuneToReachablePrototype.get(citizenRune))
-                    implReachableFunctionArgT.prototype.id -> overrideReachablePrototype.prototype.id
-                  })
-          })
+    // These are the bounds that the impl was made with.
+    val implRuneToImplInstantiationBoundArgs = vassertSome(monouts.impls.get(implIdC))._4
+    val boundParamToBoundArgFromImpl =
+      // This is how the typing phase referred to the impl's bound prototypes.
+      // We're making a map from those names to the actual prototypes the impl was instantiated with.
+      dispatcherPlaceholderedReachablePrototypes.map({ case prototypeT @ PrototypeT(IdT(packageCoord, initSteps, CaseFunctionFromImplNameT(CaseFunctionFromImplTemplateNameT(_, runeInImpl, runeInCitizen), _, _)), _) =>
+        val prototypeI =
+          vassertSome(
+            vassertSome(
+              implRuneToImplInstantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc
+                .get(runeInImpl))
+            .get(runeInCitizen))
+        prototypeT.id -> prototypeI
+      })
           .toMap
 
-    val (
-        // This is a map of, from the original abstract function's caller's perspective, what the actual instantiated
-        // functions are to use for the bounds.
-        // In this example, the original abstract function:
-        //   abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
-        // had that bound:
-        //   where exists drop(Y)void
-        // so this map here will be:
-        //   abst/bound:drop(^abst:bound:drop$X) -> func v/builtins/drop(int)void
-        abstractFunctionDenizenBoundToDenizenCallerThing,
-        // This is similar, a map of rune to the bound to use:
-        //   $1114 -> func v/builtins/drop(int)void
-        abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs) =
-      vassertSome(monouts.abstractFuncToBounds.get(abstractFuncPrototypeC.id))
-    // The dispatcher was originally made from the abstract function, so they have the same runes.
-    // This will be:
-    //   $1114 -> func v/builtins/drop(int)void
-    val dispatcherRuneToCallerSuppliedPrototype = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToFunctionBoundArg
-    // (this will be empty in this example) TODO: make an example that shows stuff here
-    val dispatcherRuneToCallerSuppliedImpl = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToImplBoundArg
+    val dispatcherInstantiationBoundParamsToArgs =
+      // DO NOT SUBMIT this only works because the runes of the dispatcher line up with the runes of the abstract function.
+      // which isnt really a coincidence, and kind of makes sense.
+      assembleInstantiationBoundParamToArg(
+        dispatcherInstantiationBoundParams,
+        abstractFuncInstantiationBoundArgs)
 
-    // (this will be empty in this example) TODO: make an example that shows stuff here
-    // DO NOT SUBMIT figure out impl/edge naming
-    val (implSubCitizen, _, edgeDenizenBoundToDenizenCallerBoundArgS) = vassertSome(monouts.impls.get(implIdC))
-    val subCitizenInstantiationBoundArgsI =
-      implSubCitizen match {
-        case StructIT(structId) => vassertSome(monouts.structs.get(structId)).runeToFunctionBound
-        case InterfaceIT(interfaceId) => vassertSome(monouts.interfacesWithoutMethods.get(interfaceId)).runeToFunctionBound
-      }
-    // strt here
-    // i think we should consider pulling bounds from the citizen there.
-    // though, it might not help because they might still appear as "reachable" because the bounds were still originally
-    // defined by the impl as reachables.
-    // kind of annoying.
+    val caseThing = // DO NOT SUBMIT rename
+      dispatcherInstantiationBoundParamsToArgs
+          .plus(
+            DenizenBoundToDenizenCallerBoundArgS(
+              Map(),
+              boundParamToBoundArgFromImpl,
+              Map(),
+              Map()))
 
+    // val subCitizenI =
+    //   translateCitizen(
+    //     dispatcherCallId,
+    //     thing,
+    //     Map(
+    //       dispatcherCallId ->
+    //
+    //     )
+    //   )
 
-    // We currently know the abstract function's caller's runes and how they map to the instantiated values,
-    // - abst$A = int
-    // - abst$B = str
-    // - abst$C = bool
-    // ...but this dispatcher function is different than the abstract function. The dispatcher function has its own
-    // runes, here:
-    // - dis$I
-    // - dis$J
-    // So we'll map the abstract function's caller's runes to the dispatcher's runes.
+    // DO NOT SUBMIT simplify these
     val dispatcherPlaceholderIdToSuppliedTemplata =
       dispatcherIdT.localName.templateArgs
         .map(dispatcherPlaceholderTemplata => {
@@ -719,32 +721,6 @@ class Instantiator(
           // TODO(regions): Figure out how to turn this into an sI.
           dispatcherPlaceholderId -> vregionmut(templataC.asInstanceOf[ITemplataI[sI]])
         })
-    // In this case we'll end up with:
-    //   dis/dis$I -> bool
-    //   dis/dis$J -> str
-
-    // Now that we have the values for the dispatcher placeholders, let's get the values for the function/impl bounds.
-
-    // This turns the above:
-    //   $1114 -> func abst/bound:drop(int)
-    // and
-    //   $1114 -> func v/builtins/drop(int)void
-    // into this:
-    //   launch/bound:drop(int) -> func v/builtins/drop(int)void
-    // so it's really just a rearrangement of the typing phase's data, not quite useful yet.
-    val dispatcherBoundParamToArg @ DenizenBoundToDenizenCallerBoundArgS(dispatcherFunctionBoundToIncomingPrototype, dispatcherFunctionReachableToIncomingPrototype, dispatcherImplBoundToIncomingImpl) =
-      assembleInstantiationBoundParamToArg(
-        caseBoundArgs, //strt here
-        abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs)
-
-    val dispatcherTemplateId = TemplataCompiler.getTemplate(dispatcherIdT)
-    dispatcherPlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherTemplateId))
-
-    // These are the instantiated values that should be visible from inside the dispatcher case.
-    // These will be used to call the override properly.
-
-    // Sometimes (such as in the Milano case, see OMCNAGP) we have independent runes that need to be filled.
-    // Here we grab what their templatas really are, now that we know them because we're instantiating.
     val dispatcherCasePlaceholderIdToSuppliedTemplata =
       dispatcherCaseIdT.localName.independentImplTemplateArgs.zipWithIndex.map({
         case (casePlaceholderTemplata, index) => {
@@ -765,72 +741,6 @@ class Instantiator(
           //          dispatcherCasePlaceholderId -> templataGivenToCaseFromImpl
         }
       })
-
-    val edgeDenizenBoundToDenizenCallerSuppliedThing =
-      edgeDenizenBoundToDenizenCallerBoundArgS
-
-
-    // See TIBANFC, we need this map to bring in the impl bound args for the override dispatcher
-    // case.
-    val caseFunctionBoundToIncomingPrototype =
-      dispatcherFunctionBoundToIncomingPrototype ++
-        // We're using the supplied prototypes from the impl, but we need to rephrase the keys
-        // of this map to be in terms of the override dispatcher function's placeholders, not the
-        // original impl's placeholders.
-        edgeDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
-          .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) =>
-            vassertSome(implBoundFunctionToCaseBoundFunction.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
-          })
-    val caseFunctionReachableToIncomingPrototype =
-      dispatcherFunctionReachableToIncomingPrototype ++
-          // We're using the supplied prototypes from the impl, but we need to rephrase the keys
-          // of this map to be in terms of the override dispatcher function's placeholders, not the
-          // original impl's placeholders.
-          edgeDenizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc
-              .map({ case (implPlaceholderedReachable, implPlaceholderedReachableArg) =>
-                vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedReachable)) -> implPlaceholderedReachableArg
-              })
-    val caseImplBoundToIncomingImpl =
-      dispatcherImplBoundToIncomingImpl ++
-        edgeDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl
-          .map({ case (key, value) => {
-            vimpl()
-          }})
-
-    val caseDenizenBoundToDenizenCallerSuppliedThing =
-      DenizenBoundToDenizenCallerBoundArgS(
-        caseFunctionBoundToIncomingPrototype,
-        caseFunctionReachableToIncomingPrototype,
-        caseImplBoundToIncomingImpl)
-
-    // we should pull in all the impl's placeholders
-    // override should have info: what extra args there are, and what index from the impl full name
-
-
-    //    val caseRuneToSuppliedFunction =
-    //      abstractFunctionRuneToSuppliedFunction
-
-
-
-    //    val denizenBoundToDenizenCallerSuppliedThingFromParams =
-    //      paramsT.zip(argsM).flatMap({ case (a, x) =>
-    //        hoistBoundsFromParameter(hinputs, monouts, a, x)
-    //      })
-    //    val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
-    //      Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
-    //        denizenBoundToDenizenCallerSuppliedThingFromParams
-    //    val denizenBoundToDenizenCallerSuppliedThing =
-    //      DenizenBoundToDenizenCallerSuppliedThing(
-    //        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-    //          .map(_.functionBoundToCallerSuppliedPrototype)
-    //          .reduceOption(_ ++ _).getOrElse(Map()),
-    //        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
-    //          .map(_.implBoundToCallerSuppliedImpl)
-    //          .reduceOption(_ ++ _).getOrElse(Map()))
-
-    dispatcherPlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherTemplateId))
-    dispatcherCasePlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherIdT))
-
     val dispatcherPlaceholderIdToSuppliedTemplataMap = dispatcherPlaceholderIdToSuppliedTemplata.toMap
     val dispatcherCasePlaceholderIdToSuppliedTemplataMap = dispatcherCasePlaceholderIdToSuppliedTemplata.toMap
     // Sanity check there's no overlap
@@ -842,28 +752,11 @@ class Instantiator(
       Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
         dispatcherTemplateId -> dispatcherPlaceholderIdToSuppliedTemplataMap,
         dispatcherIdT -> dispatcherCasePlaceholderIdToSuppliedTemplataMap)
-//    val caseInstantiator =
-//      new Instantiator(
-//        opts,
-//        interner,
-//        keywords,
-//        hinputs,
-//        monouts,
-//        dispatcherCaseIdT,
-//        dispatcherCaseIdT,
-//        caseDenizenBoundToDenizenCallerSuppliedThing)
-
-
-    // right here we're calling it from the perspective of the abstract function
-    // we need to call it from the perspective of the abstract dispatcher function's case.
-    // we might need a sub-instantiator if that makes sense...
-
-    // we need to make a instantiator that thinks in terms of impl overrides.
 
     val (overridePrototypeS, overridePrototypeC) =
       translatePrototype(
         dispatcherCaseIdT,
-        caseDenizenBoundToDenizenCallerSuppliedThing,
+        caseThing,
         caseSubstitutions,
         RegionT(),
         overridePrototypeT)
@@ -871,6 +764,250 @@ class Instantiator(
     val superInterfaceId = vassertSome(monouts.impls.get(implIdC))._2
 
     monouts.addMethodToVTable(implIdC, superInterfaceId, abstractFuncPrototypeC, overridePrototypeC)
+//
+//     val implBoundFunctionToCaseBoundFunction =
+//       edgeT.instantiationBoundParams.runeToFunctionBoundArg
+//           .toVector
+//           .map({ case (rune, boundFunctionArg) =>
+//             val boundFunctionParam = vassertSome(edgeRuneToBoundFunctionParam.get(rune))
+//             boundFunctionParam.prototype.id -> boundFunctionArg.prototype.id
+//           })
+//           .toMap
+//     val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
+//       edgeT.instantiationBoundParams.callerKindRuneToReachableBoundArguments
+//           .toVector
+//           .flatMap({ case (callerRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
+//               citizenRuneToReachablePrototype
+//                   .toVector
+//                   .map({ case (citizenRune, overrideReachablePrototype) =>
+//                     val implReachableFunctionArgT =
+//                     vassertSome(vassertSome(edgeRuneToSubCitizenRuneToReachableFunctionParam.get(callerRune))
+//                         .citizenRuneToReachablePrototype.get(citizenRune))
+//                     implReachableFunctionArgT.prototype.id -> overrideReachablePrototype.prototype.id
+//                   })
+//           })
+//           .toMap
+//
+//     val (
+//         // This is a map of, from the original abstract function's caller's perspective, what the actual instantiated
+//         // functions are to use for the bounds.
+//         // In this example, the original abstract function:
+//         //   abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+//         // had that bound:
+//         //   where exists drop(Y)void
+//         // so this map here will be:
+//         //   abst/bound:drop(^abst:bound:drop$X) -> func v/builtins/drop(int)void
+//         abstractFunctionDenizenBoundToDenizenCallerThing,
+//         // This is similar, a map of rune to the bound to use:
+//         //   $1114 -> func v/builtins/drop(int)void
+//         abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs) =
+//       vassertSome(monouts.abstractFuncToBounds.get(abstractFuncPrototypeC.id))
+//     // The dispatcher was originally made from the abstract function, so they have the same runes.
+//     // This will be:
+//     //   $1114 -> func v/builtins/drop(int)void
+//     val dispatcherRuneToCallerSuppliedPrototype = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToFunctionBoundArg
+//     // (this will be empty in this example) TODO: make an example that shows stuff here
+//     val dispatcherRuneToCallerSuppliedImpl = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToImplBoundArg
+//
+//     // (this will be empty in this example) TODO: make an example that shows stuff here
+//     // DO NOT SUBMIT figure out impl/edge naming
+//     val (implSubCitizen, _, edgeDenizenBoundToDenizenCallerBoundArgS, _) = vassertSome(monouts.impls.get(implIdC))
+//     val subCitizenInstantiationBoundArgsI =
+//       implSubCitizen match {
+//         case StructIT(structId) => vassertSome(monouts.structs.get(structId)).runeToFunctionBound
+//         case InterfaceIT(interfaceId) => vassertSome(monouts.interfacesWithoutMethods.get(interfaceId)).runeToFunctionBound
+//       }
+//     // strt here
+//     // i think we should consider pulling bounds from the citizen there.
+//     // though, it might not help because they might still appear as "reachable" because the bounds were still originally
+//     // defined by the impl as reachables.
+//     // kind of annoying.
+//
+//
+//     // We currently know the abstract function's caller's runes and how they map to the instantiated values,
+//     // - abst$A = int
+//     // - abst$B = str
+//     // - abst$C = bool
+//     // ...but this dispatcher function is different than the abstract function. The dispatcher function has its own
+//     // runes, here:
+//     // - dis$I
+//     // - dis$J
+//     // So we'll map the abstract function's caller's runes to the dispatcher's runes.
+//     val dispatcherPlaceholderIdToSuppliedTemplata =
+//       dispatcherIdT.localName.templateArgs
+//         .map(dispatcherPlaceholderTemplata => {
+//           val dispatcherPlaceholderId =
+//             TemplataCompiler.getPlaceholderTemplataId(dispatcherPlaceholderTemplata)
+//           val implPlaceholder =
+//             vassertSome(
+//               // This implPlaceholderToDispatcherPlaceholder has a map of the impl runes to the dispatcher runes, like:
+//               // - ri$I -> dis$I
+//               // - ri$J -> dis$J
+//               implPlaceholderToDispatcherPlaceholder
+//                   .find(_._2 == dispatcherPlaceholderTemplata))._1
+//           val IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) = implPlaceholder
+//           // Here we're grabbing it from the instantiated impl that we're overriding, here ri<bool, str>.
+//           val templataC = implIdC.localName.templateArgs(index)
+//           // This is a collapsed, but it needs to be subjective from this dispatcher's perspective.
+//
+//           // TODO(regions): Figure out how to turn this into an sI.
+//           dispatcherPlaceholderId -> vregionmut(templataC.asInstanceOf[ITemplataI[sI]])
+//         })
+//     // In this case we'll end up with:
+//     //   dis/dis$I -> bool
+//     //   dis/dis$J -> str
+//
+//     // Now that we have the values for the dispatcher placeholders, let's get the values for the function/impl bounds.
+//
+//     // This turns the above:
+//     //   $1114 -> func abst/bound:drop(int)
+//     // and
+//     //   $1114 -> func v/builtins/drop(int)void
+//     // into this:
+//     //   launch/bound:drop(int) -> func v/builtins/drop(int)void
+//     // so it's really just a rearrangement of the typing phase's data, not quite useful yet.
+//     val dispatcherBoundParamToArg @ DenizenBoundToDenizenCallerBoundArgS(dispatcherFunctionBoundToIncomingPrototype, dispatcherFunctionReachableToIncomingPrototype, dispatcherImplBoundToIncomingImpl) =
+//       assembleInstantiationBoundParamToArg(
+//         dispatcherInstantiationBoundArgsT, //strt here
+//         abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs)
+//
+//     val dispatcherTemplateId = TemplataCompiler.getTemplate(dispatcherIdT)
+//     dispatcherPlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherTemplateId))
+//
+//     // These are the instantiated values that should be visible from inside the dispatcher case.
+//     // These will be used to call the override properly.
+//
+//     // Sometimes (such as in the Milano case, see OMCNAGP) we have independent runes that need to be filled.
+//     // Here we grab what their templatas really are, now that we know them because we're instantiating.
+//     val dispatcherCasePlaceholderIdToSuppliedTemplata =
+//       dispatcherCaseIdT.localName.independentImplTemplateArgs.zipWithIndex.map({
+//         case (casePlaceholderTemplata, index) => {
+//           val casePlaceholderId =
+//             TemplataCompiler.getPlaceholderTemplataId(casePlaceholderTemplata)
+//           val implPlaceholder =
+//             vassertSome(
+//               implPlaceholderToCasePlaceholder.find(_._2 == casePlaceholderTemplata))._1
+//           val IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) = implPlaceholder
+//           val templata = implIdC.localName.templateArgs(index)
+//           // TODO(regions): Figure out how to turn this into an sI.
+//           casePlaceholderId -> vregionmut(templata.asInstanceOf[ITemplataI[sI]])
+//           //          // templata is the value from the edge that's doing the overriding. It comes from the impl.
+//           //          val dispatcherCasePlaceholderId =
+//           //            dispatcherCaseIdT.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
+//           //          val templataGivenToCaseFromImpl =
+//           //            edgetranslateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, templataGivenToCaseFromImplT)
+//           //          dispatcherCasePlaceholderId -> templataGivenToCaseFromImpl
+//         }
+//       })
+//
+//     val edgeDenizenBoundToDenizenCallerSuppliedThing =
+//       edgeDenizenBoundToDenizenCallerBoundArgS
+//
+//
+//     // See TIBANFC, we need this map to bring in the impl bound args for the override dispatcher
+//     // case.
+//     val caseFunctionBoundToIncomingPrototype =
+//       dispatcherFunctionBoundToIncomingPrototype ++
+//         // We're using the supplied prototypes from the impl, but we need to rephrase the keys
+//         // of this map to be in terms of the override dispatcher function's placeholders, not the
+//         // original impl's placeholders.
+//         edgeDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
+//           .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) =>
+//             vassertSome(implBoundFunctionToCaseBoundFunction.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
+//           })
+//     val caseFunctionReachableToIncomingPrototype =
+//       dispatcherFunctionReachableToIncomingPrototype ++
+//           // We're using the supplied prototypes from the impl, but we need to rephrase the keys
+//           // of this map to be in terms of the override dispatcher function's placeholders, not the
+//           // original impl's placeholders.
+//     strt here // this might be where theres some problems. are these using the impl-placeholdered things?
+//     // theyre originally coming from the edge. meanwhile, we aren't even using the override's caseBoundArgs.
+//     // BUT FIRST, CHECK THE TEXT FILE. SOME SUS STUFF IN THERE.
+//           edgeDenizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc
+//               .map({ case (implPlaceholderedReachable, implPlaceholderedReachableArg) =>
+//                 vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedReachable)) -> implPlaceholderedReachableArg
+//               })
+//     val caseImplBoundToIncomingImpl =
+//       dispatcherImplBoundToIncomingImpl ++
+//         edgeDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedBoundArgImpl
+//           .map({ case (key, value) => {
+//             vimpl()
+//           }})
+//
+//     val caseDenizenBoundToDenizenCallerSuppliedThing =
+//       DenizenBoundToDenizenCallerBoundArgS(
+//         caseFunctionBoundToIncomingPrototype,
+//         caseFunctionReachableToIncomingPrototype,
+//         caseImplBoundToIncomingImpl)
+//
+//     // we should pull in all the impl's placeholders
+//     // override should have info: what extra args there are, and what index from the impl full name
+//
+//
+//     //    val caseRuneToSuppliedFunction =
+//     //      abstractFunctionRuneToSuppliedFunction
+//
+//
+//
+//     //    val denizenBoundToDenizenCallerSuppliedThingFromParams =
+//     //      paramsT.zip(argsM).flatMap({ case (a, x) =>
+//     //        hoistBoundsFromParameter(hinputs, monouts, a, x)
+//     //      })
+//     //    val denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams =
+//     //      Vector(denizenBoundToDenizenCallerSuppliedThingFromDenizenItself) ++
+//     //        denizenBoundToDenizenCallerSuppliedThingFromParams
+//     //    val denizenBoundToDenizenCallerSuppliedThing =
+//     //      DenizenBoundToDenizenCallerSuppliedThing(
+//     //        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+//     //          .map(_.functionBoundToCallerSuppliedPrototype)
+//     //          .reduceOption(_ ++ _).getOrElse(Map()),
+//     //        denizenBoundToDenizenCallerSuppliedThingFromDenizenItselfAndParams
+//     //          .map(_.implBoundToCallerSuppliedImpl)
+//     //          .reduceOption(_ ++ _).getOrElse(Map()))
+//
+//     dispatcherPlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherTemplateId))
+//     dispatcherCasePlaceholderIdToSuppliedTemplata.map(_._1).foreach(x => vassert(x.initId(interner) == dispatcherIdT))
+//
+//     val dispatcherPlaceholderIdToSuppliedTemplataMap = dispatcherPlaceholderIdToSuppliedTemplata.toMap
+//     val dispatcherCasePlaceholderIdToSuppliedTemplataMap = dispatcherCasePlaceholderIdToSuppliedTemplata.toMap
+//     // Sanity check there's no overlap
+//     vassert(
+//       (dispatcherPlaceholderIdToSuppliedTemplataMap ++ dispatcherCasePlaceholderIdToSuppliedTemplataMap).size ==
+//         dispatcherPlaceholderIdToSuppliedTemplataMap.size + dispatcherCasePlaceholderIdToSuppliedTemplataMap.size)
+//
+//     val caseSubstitutions =
+//       Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
+//         dispatcherTemplateId -> dispatcherPlaceholderIdToSuppliedTemplataMap,
+//         dispatcherIdT -> dispatcherCasePlaceholderIdToSuppliedTemplataMap)
+// //    val caseInstantiator =
+// //      new Instantiator(
+// //        opts,
+// //        interner,
+// //        keywords,
+// //        hinputs,
+// //        monouts,
+// //        dispatcherCaseIdT,
+// //        dispatcherCaseIdT,
+// //        caseDenizenBoundToDenizenCallerSuppliedThing)
+//
+//
+//     // right here we're calling it from the perspective of the abstract function
+//     // we need to call it from the perspective of the abstract dispatcher function's case.
+//     // we might need a sub-instantiator if that makes sense...
+//
+//     // we need to make a instantiator that thinks in terms of impl overrides.
+//
+//     val (overridePrototypeS, overridePrototypeC) =
+//       translatePrototype(
+//         dispatcherCaseIdT,
+//         caseDenizenBoundToDenizenCallerSuppliedThing,
+//         caseSubstitutions,
+//         RegionT(),
+//         overridePrototypeT)
+//
+//     val superInterfaceId = vassertSome(monouts.impls.get(implIdC))._2
+//
+//     monouts.addMethodToVTable(implIdC, superInterfaceId, abstractFuncPrototypeC, overridePrototypeC)
   }
 
   def translateImpl(
@@ -949,6 +1086,7 @@ class Instantiator(
 //    instantiator.translateImplDefinition(substitutions, implIdT, implIdI, implDefinition)
     translateCollapsedImplDefinition(
       implIdT,
+      instantiationBoundsForUnsubstitutedImpl,
       denizenBoundToDenizenCallerSuppliedThing,
       substitutions,
       implIdT,
@@ -1145,7 +1283,7 @@ class Instantiator(
     abstractFuncs.put(desiredAbstractPrototypeC, virtualIndex)
 
     vassertSome(monouts.interfaceToImpls.get(interfaceIdC)).foreach({ case (implT, impl) =>
-      translateOverride(opts, interner, keywords, hinputs, monouts, implT, impl, funcT, desiredAbstractPrototypeT, desiredAbstractPrototypeC)
+      translateOverride(opts, interner, keywords, hinputs, monouts, implT, impl, funcT, desiredAbstractPrototypeT, desiredAbstractPrototypeC, denizenBoundToDenizenCallerSuppliedThing, suppliedBoundArgs)
     })
   }
 
@@ -1636,6 +1774,11 @@ class Instantiator(
                 denizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc.get(
                   IdT(packageCoord, initSteps, name)))
             }
+            case IdT(packageCoord, initSteps, name@CaseFunctionFromImplNameT(_, _, _)) => {
+              vassertSome(
+                denizenBoundToDenizenCallerSuppliedThing.caseBoundToCallerSuppliedBoundArgFunc.get(
+                  IdT(packageCoord, initSteps, name)))
+            }
             case _ => {
               val (prototypeI, prototypeC) =
                 translatePrototype(
@@ -1659,6 +1802,11 @@ class Instantiator(
                     case IdT(packageCoord, initSteps, name@ReachableFunctionNameT(_, _, _)) => {
                       vassertSome(
                         denizenBoundToDenizenCallerSuppliedThing.funcReachableToCallerSuppliedReachableArgFunc.get(
+                          IdT(packageCoord, initSteps, name)))
+                    }
+                    case IdT(packageCoord, initSteps, name@CaseFunctionFromImplNameT(_, _, _)) => {
+                      vassertSome(
+                        denizenBoundToDenizenCallerSuppliedThing.caseBoundToCallerSuppliedBoundArgFunc.get(
                           IdT(packageCoord, initSteps, name)))
                     }
                     case _ => {
@@ -3742,6 +3890,19 @@ class Instantiator(
           templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
           paramTypes.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
       }
+      case OverrideDispatcherNameT(OverrideDispatcherTemplateNameT(implTemplateId), templateArgs, paramTypes) => {
+        OverrideDispatcherNameI(
+          OverrideDispatcherTemplateNameI(
+            translateId[IImplTemplateNameT, IImplTemplateNameI[sI]](implTemplateId, translateImplTemplateName)),
+          templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
+          paramTypes.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
+      }
+      case CaseFunctionFromImplNameT(CaseFunctionFromImplTemplateNameT(humanName, runeInImpl, runeInCitizen), templateArgs, paramTypes) => {
+        CaseFunctionFromImplNameI(
+          CaseFunctionFromImplTemplateNameI(humanName, runeInImpl, runeInCitizen),
+          templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
+          paramTypes.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
+      }
       case other => vimpl(other)
     }
   }
@@ -3791,6 +3952,19 @@ class Instantiator(
               substitutions,
               perspectiveRegionT,
               hinputs.getInstantiationBoundArgs(subCitizen.id))))
+      }
+    }
+  }
+
+  def translateImplTemplateName(
+      name: IImplTemplateNameT):
+  IImplTemplateNameI[sI] = {
+    name match {
+      case ImplTemplateNameT(codeLocationS) => ImplTemplateNameI(codeLocationS)
+      case ImplBoundTemplateNameT(codeLocationS) => ImplBoundTemplateNameI(codeLocationS)
+      case AnonymousSubstructImplTemplateNameT(interface) => {
+        AnonymousSubstructImplTemplateNameI(
+          translateInterfaceTemplateName(interface))
       }
     }
   }
@@ -3916,6 +4090,7 @@ class Instantiator(
 
   def translateCollapsedImplDefinition(
     denizenName: IdT[IInstantiationNameT],
+    implInstantiationBoundArgs: InstantiationBoundArgumentsI,
     denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     implIdT: IdT[IImplNameT],
@@ -3971,7 +4146,7 @@ class Instantiator(
 
     // We assemble the EdgeI at the very end of the instantiating stage.
 
-    monouts.impls.put(implIdC, (subCitizenC, superInterfaceC, denizenBoundToDenizenCallerSuppliedThing))
+    monouts.impls.put(implIdC, (subCitizenC, superInterfaceC, denizenBoundToDenizenCallerSuppliedThing, implInstantiationBoundArgs))
 
     vassertSome(monouts.interfaceToImplToAbstractPrototypeToOverride.get(superInterfaceC))
       .put(implIdC, mutable.HashMap())

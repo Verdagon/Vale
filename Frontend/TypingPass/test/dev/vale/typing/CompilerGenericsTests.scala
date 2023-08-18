@@ -25,6 +25,7 @@ class CompilerGenericsTests extends FunSuite with Matchers {
 
 
   test("Upcasting with generic bounds") {
+
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.panic.*;
