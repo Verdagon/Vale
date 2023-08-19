@@ -264,12 +264,7 @@ class VirtualTests extends FunSuite with Matchers {
     val coutputs = compile.getHamuts()
   }
 
-  test("Splork") { // DO NOT SUBMIT
-    // strt here
-    // when the instantiator is translating bork's param self, it looks in the ambient bounds for a splork
-    // to translate bounds and it cant find them.
-    // we should probably have typing phase add those to the instantiation bounds maybe?
-    // or maybe those bounds should be satisfied by types themselves?
+  test("Feeding instantiation bounds for something created in same function") {
     val compile = RunCompilation.test(
       """
         |#!DeriveStructDrop
@@ -279,14 +274,14 @@ class VirtualTests extends FunSuite with Matchers {
         |}
         |
         |func bork<T, Y>(
-        |  self &Spork<T, Y> // It has trouble here finding the bound for splork
+        |  self &Spork<T, Y> // It had trouble here finding the bound for splork
         |) { }
         |
         |func splork(x int) {}
         |
         |exported func main() int {
         |  f = Spork<int>(42);
-        |  f.bork(); // shouldnt we be feeding in Spork's instantiation bounds here for the params' reachables?
+        |  f.bork(); // We should be feeding in Spork's instantiation bounds here for the params' reachables?
         |  [z] = f;
         |  return z;
         |}

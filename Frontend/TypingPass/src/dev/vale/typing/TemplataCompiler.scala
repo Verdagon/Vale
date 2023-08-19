@@ -438,15 +438,15 @@ object TemplataCompiler {
         // Luckily, we can use some bounds from the containing struct to satisfy its members bounds.
 
         val containerFuncBoundToBoundArg =
-          containerInstantiationBoundArgs.runeToFunctionBoundArg.map({ case (rune, containerFuncBoundArg) =>
-            vassertSome(containerInstantiationBoundParams.runeToFunctionBoundArg.get(rune)) -> containerFuncBoundArg
+          containerInstantiationBoundArgs.runeToBoundPrototype.map({ case (rune, containerFuncBoundArg) =>
+            vassertSome(containerInstantiationBoundParams.runeToBoundPrototype.get(rune)) -> containerFuncBoundArg
           })
         val containerImplBoundToBoundArg =
-          containerInstantiationBoundArgs.runeToImplBoundArg.map({ case (rune, containerImplBoundArg) =>
-            vassertSome(containerInstantiationBoundParams.runeToImplBoundArg.get(rune)) -> containerImplBoundArg
+          containerInstantiationBoundArgs.runeToBoundImpl.map({ case (rune, containerImplBoundArg) =>
+            vassertSome(containerInstantiationBoundParams.runeToBoundImpl.get(rune)) -> containerImplBoundArg
           })
         InstantiationBoundArgumentsT(
-          instantiationBoundArgs.runeToFunctionBoundArg.mapValues(funcBoundArg => {
+          instantiationBoundArgs.runeToBoundPrototype.mapValues(funcBoundArg => {
             funcBoundArg match {
               case PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType)) => {
                 vassertSome(containerFuncBoundToBoundArg.get(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, fbn), returnType))))
@@ -457,7 +457,7 @@ object TemplataCompiler {
               }
             }
           }),
-          instantiationBoundArgs.callerKindRuneToReachableBoundArguments.map({ case (calleeRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
+          instantiationBoundArgs.runeToCitizenRuneToReachablePrototype.map({ case (calleeRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
             calleeRune ->
                 InstantiationReachableBoundArgumentsT(
                   citizenRuneToReachablePrototype.map({ case (citizenRune, PrototypeTemplataT(range, reachablePrototype)) =>
@@ -473,7 +473,7 @@ object TemplataCompiler {
                         })
                   }))
           }),
-          instantiationBoundArgs.runeToImplBoundArg.mapValues(implBoundArg => {
+          instantiationBoundArgs.runeToBoundImpl.mapValues(implBoundArg => {
             implBoundArg match {
               case IdT(packageCoord, initSteps, ibn@ImplBoundNameT(_, _)) => {
                 vassertSome(containerImplBoundToBoundArg.get(IdT(packageCoord, initSteps, ibn)))

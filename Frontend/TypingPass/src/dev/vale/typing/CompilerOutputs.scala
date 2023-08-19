@@ -145,7 +145,7 @@ case class CompilerOutputs() {
 
   def addInstantiationBounds(
     instantiationId: IdT[IInstantiationNameT],
-    functionBoundToRune: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]): // DO NOT SUBMIT rename
+    instantiationBoundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
   Unit = {
     instantiationId match {
       case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32)))),Vector(CoordT(_,RegionT(),IntT(32))))) => {
@@ -171,7 +171,7 @@ case class CompilerOutputs() {
       case None =>
     }
 
-    instantiationNameToInstantiationBounds.put(instantiationId, functionBoundToRune)
+    instantiationNameToInstantiationBounds.put(instantiationId, instantiationBoundArgs)
   }
 
 //  // This means we've at least started to evaluate this function's body.

@@ -329,7 +329,7 @@ In fact, we do solving *between* adding placeholders as well. If we just populat
 func bork<T, Y>(a T) Y where T = Y { return a; }
 ```
 
-Because the placeholder for T is of course not equial to the placeholder for Y.
+Because the placeholder for T is of course not equal to the placeholder for Y.
 
 So, we populate placeholders one at a time, doing a solve inbetween each new one.
 
@@ -1624,3 +1624,32 @@ The difference between solveForDefining and solveForResolving is whether we decl
 When we're defining something, and it requires function bounds, we want to declare them, and then get some instantiation bounds for them.
 
 When we're just resolving something, we instead resolve them against the calling environment to get their instantiation bounds.
+
+
+# Only Include Reachables for Call Rules' Results (OIRCRR)
+
+We have a bug where the Spork<...>(...) call site sees that it's calling:
+
+```
+func Spork<Bork<int>>(Bork)Spork<Bork<int>>
+```
+
+and it sees that it's supplying a Bork, and so it supplies Bork's bounds as part of the instantiation reachable functions.
+
+However, the definition of Spork constructor is:
+
+```
+func Spork<T>(a T) Spork<T> { construct<Spork<T>>(a) }
+```
+
+and sees that the parameter is a T, and doesn't expect any particular reachable functions.
+
+The call site thinks "I'm giving an argument that's a citizen with bounds. I should include it in the instantiation args.".
+
+What it should really think is "I should only give the arguments that the receiver expects."
+
+And the receiver only expects reachable functions for params that it *knows* are citizens. Params that the *definition* calls.
+
+We can know that by looking at the CallSR rules of the function we're calling, and only include reachables for what comes out of those.
+
+

@@ -31,7 +31,7 @@ case class ImplT(
 
   templata: ImplDefinitionTemplataT,
 
-  implOuterEnv: IInDenizenEnvironmentT,
+  //implOuterEnv: IInDenizenEnvironmentT,
 
   instantiatedId: IdT[IImplNameT],
   templateId: IdT[IImplTemplateNameT],
@@ -42,20 +42,15 @@ case class ImplT(
   superInterface: InterfaceTT,
   superInterfaceTemplateId: IdT[IInterfaceTemplateNameT],
 
-  // This is similar to FunctionT.runeToFuncBound DO NOT SUBMIT
-
-    // re: the reachable bounds inside:
-    // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
-    // citizen, and a case block from its receiving kind.
-    // We'll need to remember those, so the instantiator can do its thing.
-    // See TIBANFC for more.
+  // This is similar to FunctionT.instantiationBoundParams DO NOT SUBMIT doc
+  // re: the reachable bounds inside:
+  // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
+  // citizen, and a case block from its receiving kind.
+  // We'll need to remember those, so the instantiator can do its thing.
+  // See TIBANFC for more.
   instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   runeIndexToIndependence: Vector[Boolean],
-
-//  // Starting from a placeholdered super interface, this is the interface that would result.
-//  // We get this by solving the impl, given a placeholdered sub citizen.
-//  subCitizenFromPlaceholderedParentInterface: ICitizenTT,
 ) extends IInterning { // DO NOT SUBMIT why interning
   vpass()
 }
@@ -132,13 +127,9 @@ case class OverrideT(
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
 
-  // These are the prototypes we'll pull from the impl's own bounds, and the rune that the impl internally refers to them as.
-  dispatcherPlaceholderedReachablePrototypes: Vector[PrototypeT[CaseFunctionFromImplNameT]],
-  // DO NOT SUBMIT isnt it case placeholdered?
-
-  // This should also have the correct instantiation bounds (though it'll refer to the above map's keys).
-  dispatcherCasePlaceholderedSubCitizen: ICitizenTT,
-
+  // These are the prototypes we'll pull from the impl's own bounds, and these CaseFunctionFromImplNameT names contain
+  // the rune that the impl internally refers to them as.
+  casePlaceholderedReachablePrototypesFromImpl: Vector[PrototypeT[CaseFunctionFromImplNameT]],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the

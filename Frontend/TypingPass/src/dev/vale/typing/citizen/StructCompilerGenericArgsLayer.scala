@@ -81,8 +81,7 @@ class StructCompilerGenericArgsLayer(
           structA.headerRuneToType,
           callSiteRules,
           Vector(),
-          solver,
-          false) match {
+          solver) match {
           case Ok(ccs) => ccs
           case Err(x) => return ResolveFailure(callRange, x)
         }
@@ -348,12 +347,14 @@ class StructCompilerGenericArgsLayer(
           case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, e))
           case Ok(conclusions) => conclusions
         }
-      val CompleteDefineSolve(_, _) =
+      val instantiationBoundArgsUNUSED =
         inferCompiler.checkDefiningConclusionsAndResolve(
           envs, coutputs, structA.range :: parentRanges, callLocation, definitionRules, Vector(), inferences) match {
-          case Err(f) => vimpl()//throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f)) DO NOT SUBMIT
+          case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(structA.range :: parentRanges, DefiningResolveConclusionError(f)))
           case Ok(c) => c
         }
+      // We don't care about these, we just wanted things to be added to the coutputs.
+      val _ = instantiationBoundArgsUNUSED
 
 
       structA.maybePredictedMutability match {
@@ -440,12 +441,14 @@ class StructCompilerGenericArgsLayer(
           case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, e))
           case Ok(conclusions) => conclusions
         }
-      val CompleteDefineSolve(_, _) =
+      val instantiationBoundArgsUNUSED =
         inferCompiler.checkDefiningConclusionsAndResolve(
           envs, coutputs, interfaceA.range :: parentRanges, callLocation, definitionRules, Vector(), inferences) match {
-          case Err(f) => vimpl()//throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f)) DO NOT SUBMIT
+          case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(interfaceA.range :: parentRanges, DefiningResolveConclusionError(f)))
           case Ok(c) => c
         }
+      // We don't care about these, we just wanted things to be added to the coutputs.
+      val _ = instantiationBoundArgsUNUSED
 
       interfaceA.maybePredictedMutability match {
         case None => {

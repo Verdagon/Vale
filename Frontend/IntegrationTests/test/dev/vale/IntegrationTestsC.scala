@@ -294,7 +294,7 @@ class IntegrationTestsC extends FunSuite with Matchers {
   }
 
   test("Supplying bounded struct to struct accepting") {
-    // # Only Include Reachables for Call Rules' Results (OIRCRR) DO NOT SUBMIT move to docs
+    // See OIRCRR.
     //
     // We have a bug where the Spork<...>(...) call site sees that it's calling:
     //   func Spork<Bork<int>>(Bork)Spork<Bork<int>>

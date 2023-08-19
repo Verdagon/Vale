@@ -870,9 +870,6 @@ class CompilerRuleSolver(
 
             val innerKind = outerKind
 
-//            val innerCoord = CoordT(innerOwnership, innerRegion, innerKind)
-            // DO NOT SUBMIT
-            // trying out outerRegion here to see if it passes
             val innerCoord = CoordT(innerOwnership, outerRegion, innerKind)
 
             stepState.concludeRune[ITypingPassSolverError](

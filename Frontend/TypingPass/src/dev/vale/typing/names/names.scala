@@ -195,6 +195,7 @@ case class RawArrayNameT(
   selfRegion: RegionT
 ) extends INameT
 
+// This num is really just here to disambiguate it from other reachable prototypes in the environment
 case class ReachablePrototypeNameT(num: Int) extends INameT
 
 case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {

@@ -119,7 +119,6 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
 
     manualStep(initiallyKnownRunes).getOrDie()
 
-    // DO NOT SUBMIT print out when sanity check is turned on lol
     if (sanityCheck) {
       solverState.sanityCheck()
     }

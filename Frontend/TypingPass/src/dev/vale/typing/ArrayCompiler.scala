@@ -206,7 +206,7 @@ class ArrayCompiler(
     }
 
     val CompleteResolveSolve(templatas, runeToFunctionBound) =
-      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver, false) match {
+      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
       }
@@ -395,7 +395,7 @@ class ArrayCompiler(
     }
 
     val CompleteResolveSolve(templatas, runeToFunctionBound) =
-      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver, false) match {
+      inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
       }

@@ -176,9 +176,9 @@ class AnonymousInterfaceMacro(
     }
   }
 
-  // (I think) these are how the forwarder function refers to runes from the abstract function it's overriding. After
-  // all, the forwarder function copies all the runes and rules from the abstract function, so we rename them here to
-  // avoid any weird collisions. DO NOT SUBMIT
+  // These are how the forwarder function refers to runes from the abstract function it's overriding. After all, the
+  // forwarder function copies all the runes and rules from the abstract function, so we rename them here to avoid any
+  // weird collisions.
   private def inheritedMethodRune(interfaceA: InterfaceA, method: FunctionA, rune: IRuneS): IRuneS = {
     AnonymousSubstructMethodInheritedRuneS(interfaceA.name, method.name, rune)
   }
@@ -431,7 +431,7 @@ class AnonymousInterfaceMacro(
     // Now we're going to pull in the struct, which we'll use instead of the interface for the overriding param coord
     // rune.
     runeToType ++= struct.genericParameters.map(param => inheritedMethodRune(interface, method, param.rune.rune) -> param.tyype.tyype)
-    // We don't want to pull in all of its rules, we don't need to now that we have reachable bounds DO NOT SUBMIT
+    // We don't want to pull in all of their rules, we can already reach their bounds. DO NOT SUBMIT doc
     // runeToType ++= struct.headerRuneToType
     // runeToType ++= struct.membersRuneToType
 
@@ -448,13 +448,6 @@ class AnonymousInterfaceMacro(
     runeToType.put(selfCoordRune, CoordTemplataType())
     val selfKindTemplateRune = SelfKindTemplateRuneS(struct.range.begin)
     runeToType.put(selfKindTemplateRune, structType)
-
-//    rules.addAll(methodOriginalRules)
-//     rules.addAll(struct.headerRules.toIterable)
-//     rules.addAll(struct.memberRules.toIterable)
-
-    // DO NOT SUBMIT we might need to add some equals rules that can do R = $AFunction2.anon.doCall:R
-    // or perhaps just use the same runes?
 
     val abstractParamIndex =
       originalParams.indexWhere(param => {

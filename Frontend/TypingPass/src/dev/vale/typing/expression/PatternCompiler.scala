@@ -168,7 +168,7 @@ class PatternCompiler(
                     receiverRune,
                     CoordTemplataT(unconvertedInputExpr.result.coord))),
                 Vector()) match {
-                case Err(f) => vimpl()//throw CompileErrorExceptionT(TypingPassSolverError(pattern.range :: parentRanges, f)) DO NOT SUBMIT
+                case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(pattern.range :: parentRanges, f))
                 case Ok(c) => c
               }
 

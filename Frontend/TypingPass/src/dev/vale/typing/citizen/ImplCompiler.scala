@@ -47,8 +47,7 @@ class ImplCompiler(
       callLocation: LocationInDenizen,
       callingEnv: IInDenizenEnvironmentT,
       initialKnowns: Vector[InitialKnown],
-      implTemplata: ImplDefinitionTemplataT,
-      doingOverrideThing: Boolean
+      implTemplata: ImplDefinitionTemplataT
   ):
   Result[CompleteResolveSolve, IResolvingError] = {
 
@@ -104,8 +103,7 @@ class ImplCompiler(
       // We include the reachable bounds for the struct rune. Those are bounds that this impl will
       // have to satisfy when it calls the interface.
       Vector(structKindRune.rune),
-      solver,
-      doingOverrideThing)
+      solver)
   }
 
   // WARNING: Doesn't verify conclusions to make sure that any bounds are satisfied!
@@ -280,7 +278,7 @@ class ImplCompiler(
       interner.intern(
         ImplT(
           implTemplata,
-          implOuterEnv,
+          //implOuterEnv,
           instantiatedId,
           implTemplateId,
           subCitizenTemplateId,
@@ -557,7 +555,7 @@ class ImplCompiler(
         parentRanges,
         TemplataCompiler.getCitizenTemplate(child.id))
     val CompleteResolveSolve(conclusions, _) =
-      resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata, false) match {
+      resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata) match {
         case Ok(ccs) => ccs
         case Err(x) => return Err(x)
       }
@@ -686,7 +684,7 @@ class ImplCompiler(
           Vector(
             InitialKnown(impl.impl.subCitizenRune, KindTemplataT(subKindTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplataT(superKindTT)))
-        resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, impl, false) match {
+        resolveImpl(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, impl) match {
           case Ok(ccs) => Ok((impl, ccs))
           case Err(x) => Err(x)
         }

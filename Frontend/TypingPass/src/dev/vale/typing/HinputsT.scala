@@ -17,9 +17,10 @@ case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
 )
 
 case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
-  runeToFunctionBoundArg: Map[IRuneS, PrototypeTemplataT[BF]],
-  callerKindRuneToReachableBoundArguments: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
-  runeToImplBoundArg: Map[IRuneS, IdT[BI]])
+  // DO NOT SUBMIT doc
+  runeToBoundPrototype: Map[IRuneS, PrototypeTemplataT[BF]],
+  runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
+  runeToBoundImpl: Map[IRuneS, IdT[BI]])
 
 case class HinputsT(
   interfaces: Vector[InterfaceDefinitionT],

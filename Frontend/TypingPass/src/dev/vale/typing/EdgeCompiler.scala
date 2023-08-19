@@ -324,7 +324,7 @@ class EdgeCompiler(
 
     // Step 2: Compile Dispatcher Function Given Interface, see CDFGI
 
-    val DefineFunctionSuccess(dispatchingFuncPrototype, dispatcherInnerInferences, dispatcherInstantiationBoundParams) = // DO NOT SUBMIT name
+    val DefineFunctionSuccess(dispatchingFuncPrototype, dispatcherInnerInferences, dispatcherInstantiationBoundParams) =
       functionCompiler.evaluateGenericVirtualDispatcherFunctionForPrototype(
         coutputs,
         List(range, impl.templata.impl.range),
@@ -455,7 +455,7 @@ class EdgeCompiler(
         dispatcherInnerEnv,
         dispatcherInnerEnv.id,
         casePlaceholderedReachablePrototypesFromImpl.zipWithIndex.map({ case (dispatcherPlaceholderedReachablePrototype, index) =>
-          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(dispatcherPlaceholderedReachablePrototype) // DO NOT SUBMIT not sure about index here
+          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(dispatcherPlaceholderedReachablePrototype)
         }).toVector)
     // Above we did a partial solve, but now we've conjured the bounds that should make the sub citizen work, so let's
     // do an actual solve.
@@ -485,8 +485,7 @@ class EdgeCompiler(
             KindTemplataT(dispatcherPlaceholderedInterface))) ++
             implIndependentRuneToCasePlaceholder
                 .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }),
-        impl.templata,
-        false) match {
+        impl.templata) match {
         case Ok(CompleteResolveSolve(conclusions, InstantiationBoundArgumentsT(_, reachableBoundsFromFullSolve, _))) => (conclusions, reachableBoundsFromFullSolve)
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(List(range), e))
       }
@@ -495,88 +494,8 @@ class EdgeCompiler(
     // we'll be grabbing them from the impl. DO NOT SUBMIT is that all correct
     val _ = implInstantiationBoundArgsUNUSED
 
-    //
-    // // ??? Supposedly here is where we'd pull in some bounds from the impl if it has any, like if it
-    // // inherits any from the struct (see ONBIFS).
-    //
-    // // This is needed for pulling the impl bound args in for the override dispatcher's case.
-    // // I think this converts the impl's reachable bounds (in other words, the sub citizen struct's bounds)
-    // // to be phrased in terms of the dispatcher and the case. DO NOT SUBMIT
-    // val implPlaceholderToDispatcherAndCasePlaceholderSubstituter =
-    //   TemplataCompiler.getPlaceholderSubstituter(
-    //     interner, keywords,
-    //     impl.templateId,
-    //     (implPlaceholderToDispatcherPlaceholder ++ implIndependentPlaceholderToCasePlaceholder).map(_._2),
-    //     // These are bounds we're bringing in from the sub citizen.
-    //     InheritBoundsFromTypeItself)
-    // val implRuneToDispatcherAndCasePlaceholderedBoundPrototype =
-    //   impl.instantiationBoundParams.runeToFunctionBoundArg
-    //       .map({ case (rune, PrototypeTemplataT(range, boundPrototype)) =>
-    //         val dispatcherAndCasePlaceholderedBoundPrototypeId =
-    //           implPlaceholderToDispatcherAndCasePlaceholderSubstituter.substituteForPrototype(
-    //             coutputs, boundPrototype)
-    //         rune -> PrototypeTemplataT(range, dispatcherAndCasePlaceholderedBoundPrototypeId)
-    //       })
-    // val implRuneToDispatcherAndCasePlaceholderedBoundImpl =
-    //   impl.instantiationBoundParams.runeToImplBoundArg
-    //       .map({ case (rune, boundImplId) =>
-    //         val dispatcherAndCasePlaceholderedBoundImplId =
-    //           implPlaceholderToDispatcherAndCasePlaceholderSubstituter.substituteForImplId(
-    //             coutputs, boundImplId)
-    //         rune -> dispatcherAndCasePlaceholderedBoundImplId
-    //       })
-    // val implRuneToSubCitizenRuneToDispatcherAndCasePlaceholderedReachablePrototype = // DO NOT SUBMIT rename
-    //   impl.instantiationBoundParams.callerKindRuneToReachableBoundArguments
-    //     .map({ case (callerRune, InstantiationReachableBoundArgumentsT(citizenRuneToReachablePrototype)) =>
-    //       callerRune ->
-    //           InstantiationReachableBoundArgumentsT[ReachableFunctionNameT](
-    //             citizenRuneToReachablePrototype.map({ case (citizenRune, PrototypeTemplataT(range, reachablePrototype)) =>
-    //               val dispatcherAndCasePlaceholderedReachablePrototypeId =
-    //                 implPlaceholderToDispatcherAndCasePlaceholderSubstituter.substituteForPrototype(
-    //                   coutputs, reachablePrototype)
-    //               citizenRune -> PrototypeTemplataT(range, dispatcherAndCasePlaceholderedReachablePrototypeId)
-    //             }))
-    //     })
-    // val dispatcherAndCasePlaceholderedInstantiationBoundArgs =
-    //   InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
-    //     implRuneToDispatcherAndCasePlaceholderedBoundPrototype,
-    //     implRuneToSubCitizenRuneToDispatcherAndCasePlaceholderedReachablePrototype,
-    //     implRuneToDispatcherAndCasePlaceholderedBoundImpl)
-    //
-    // // Step 4: Figure Out Struct For Case, see FOSFC.
-    //
-    // // Avoids a collision below
-    // vassert(!implRuneToCasePlaceholder.exists(_._1 == impl.templata.impl.interfaceKindRune.rune))
-    //
-    // // See IBFCS, ONBIFS and NBIFP for why we need reachableBoundsFromSubCitizen in our below env.
-    // val (caseConclusions, implInstantiationBoundArgs) =
-    //   implCompiler.resolveImpl(
-    //     coutputs,
-    //     List(range),
-    //     callLocation,
-    //     dispatcherInnerEnv,
-    //     // For example, if we're doing the Milano case:
-    //     //   impl<I, J, K, L> ISpaceship<I, J, K> for Milano<I, J, K, L>;
-    //     // Then right now we're feeding in:
-    //     //   interfaceKindRune = ISpaceship<dis$0, dis$1, dis$2>
-    //     //   L = case$3
-    //     // so we should get a complete solve.
-    //     Vector(
-    //       InitialKnown(
-    //         impl.templata.impl.interfaceKindRune,
-    //         // We may be feeding in something interesting like IObserver<Opt<T>> here should be fine,
-    //         // the impl will receive it and match it to its own unknown runes appropriately.
-    //         KindTemplataT(dispatcherPlaceholderedInterface))) ++
-    //     implRuneToCasePlaceholder
-    //       .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }),
-    //     impl.templata,
-    //     true
-    //     // Keep in mind, at the end of the solve, we're actually pulling in some reachable bounds
-    //     // from the struct we're solving for here.
-    //   ) match {
-    //     case Ok(CompleteResolveSolve(conclusions, InstantiationBoundArgumentsT(_, reachableBoundsFromFullSolve, _))) => (conclusions, reachableBoundsFromFullSolve)
-    //     case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(List(range), e))
-    //   }
+    // Step 4: Figure Out Struct For Case, see FOSFC.
+
     val dispatcherCasePlaceholderedSubCitizen =
       expectKindTemplata(
         vassertSome(implConclusions.get(impl.templata.impl.subCitizenRune.rune)))
@@ -644,7 +563,7 @@ class EdgeCompiler(
       implPlaceholderToDispatcherPlaceholder.toVector,
       implIndependentPlaceholderToCasePlaceholder.toVector,
       casePlaceholderedReachablePrototypesFromImpl.map(_.prototype).toVector,
-      dispatcherCasePlaceholderedSubCitizen,
+      // dispatcherCasePlaceholderedSubCitizen,
       // dispatcherAndCasePlaceholderedInstantiationBoundArgs,
       dispatcherCaseEnv.id,
       foundFunction.prototype.prototype,

@@ -185,7 +185,7 @@ class InferCompiler(
       }
     checkDefiningConclusionsAndResolve(
       envs, coutputs, invocationRange, callLocation, rules, includeReachableBoundsForRunes, conclusions) match {
-      case Ok(x) => Ok(x)
+      case Ok(instantiationBoundArgs) => Ok(CompleteDefineSolve(conclusions, instantiationBoundArgs))
       case Err(x) => Err(DefiningResolveConclusionError(x))
     }
   }
@@ -209,7 +209,7 @@ class InferCompiler(
       case Err(e) => return Err(ResolvingSolveFailedOrIncomplete(e))
     }
     checkResolvingConclusionsAndResolve(
-      envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver, false)
+      envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver)
   }
 
   def partialSolve(
@@ -291,8 +291,7 @@ class InferCompiler(
       runeToType: Map[IRuneS, ITemplataType],
       rules: Vector[IRulexSR],
       includeReachableBoundsForRunes: Vector[IRuneS],
-      solver: Solver[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemplataType], ITypingPassSolverError],
-      doingOverrideThing: Boolean):
+      solver: Solver[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplataT[ITemplataType], ITypingPassSolverError]):
   Result[CompleteResolveSolve, IResolvingError] = {
     val (steps, conclusions) =
       compilerSolver.interpretResults(runeToType, solver) match {
@@ -342,26 +341,22 @@ class InferCompiler(
             InstantiationReachableBoundArgumentsT(
               TemplataCompiler.getReachableBounds(interner, keywords, state, citizen)
                   .citizenRuneToReachablePrototype.map({ case (citizenRune, callerPlaceholderedCitizenBound) =>
-                if (doingOverrideThing) {
-                  citizenRune -> callerPlaceholderedCitizenBound
-                } else {
-                  // If foo<T> is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop bound, then
-                  // callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
-                  // But what we actually want is DO NOT SUBMIT
-                  val returnCoord = callerPlaceholderedCitizenBound.prototype.returnType
-                  val paramCoords = callerPlaceholderedCitizenBound.prototype.paramTypes
-                  val funcSuccess =
-                    delegate.resolveFunction(
-                      envs.originalCallingEnv, state, ranges, callLocation, callerPlaceholderedCitizenBound.prototype.id.localName.template.humanName, paramCoords, envs.contextRegion, true) match {
-                      case Err(e) => return Err(ResolvingResolveConclusionError(CouldntFindFunctionForConclusionResolve(ranges, e)))
-                      case Ok(x) => x
-                    }
-                  if (funcSuccess.prototype.prototype.returnType != returnCoord) {
-                    return Err(ResolvingResolveConclusionError(ReturnTypeConflictInConclusionResolve(ranges, returnCoord, funcSuccess.prototype.prototype)))
+                // If foo<T> is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop bound, then
+                // callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
+                // But what we actually want is DO NOT SUBMIT doc
+                val returnCoord = callerPlaceholderedCitizenBound.prototype.returnType
+                val paramCoords = callerPlaceholderedCitizenBound.prototype.paramTypes
+                val funcSuccess =
+                  delegate.resolveFunction(
+                    envs.originalCallingEnv, state, ranges, callLocation, callerPlaceholderedCitizenBound.prototype.id.localName.template.humanName, paramCoords, envs.contextRegion, true) match {
+                    case Err(e) => return Err(ResolvingResolveConclusionError(CouldntFindFunctionForConclusionResolve(ranges, e)))
+                    case Ok(x) => x
                   }
-                  // strt here
-                  citizenRune -> funcSuccess.prototype
+                if (funcSuccess.prototype.prototype.returnType != returnCoord) {
+                  return Err(ResolvingResolveConclusionError(ReturnTypeConflictInConclusionResolve(ranges, returnCoord, funcSuccess.prototype.prototype)))
                 }
+                // strt here
+                citizenRune -> funcSuccess.prototype
               }))
           })
           .toMap
@@ -436,7 +431,6 @@ class InferCompiler(
     }
   }
 
-  // DO NOT SUBMIT this both takes in and returns conclusions lol
   def checkDefiningConclusionsAndResolve(
       envs: InferEnv, // See CSSNCE
       state: CompilerOutputs,
@@ -445,7 +439,7 @@ class InferCompiler(
       initialRules: Vector[IRulexSR],
       includeReachableBoundsForRunes: Vector[IRuneS],
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
-  Result[CompleteDefineSolve, IConclusionResolveError] = {
+  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT], IConclusionResolveError] = {
     val reachableBounds =
       includeReachableBoundsForRunes
           .map(rune => rune -> vassertSome(conclusions.get(rune)))
@@ -507,7 +501,7 @@ class InferCompiler(
           case Ok(c) => c
           case Err(e) => return Err(e)
         }
-    Ok(CompleteDefineSolve(conclusions, instantiationBoundArgs))
+    Ok(instantiationBoundArgs)
   }
 
   def importReachableBounds(
@@ -646,46 +640,6 @@ class InferCompiler(
     }
 
     Ok((resultRune.rune, funcSuccess.prototype))
-  }
-
-  // Returns None for any call that we don't even have params for,
-  // like in the case of an incomplete solve.
-  // DO NOT SUBMIT name
-  // also DO NOT SUBMIT didnt we define these, why would we need to resolve them
-  def resolveFunctionCallConclusionForDefining(
-      callingEnv: IInDenizenEnvironmentT,
-      state: CompilerOutputs,
-      ranges: List[RangeS],
-      callLocation: LocationInDenizen,
-      c: DefinitionFuncSR,
-      conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-      contextRegion: RegionT):
-  Result[(IRuneS, PrototypeT[IFunctionNameT]), IConclusionResolveError] = {
-    val DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) = c
-
-    // If it was an incomplete solve, then just skip.
-    val returnCoord =
-      conclusions.get(returnRune.rune) match {
-        case Some(CoordTemplataT(t)) => t
-        case None => vwat()
-      }
-    val paramCoords =
-      conclusions.get(paramsListRune.rune) match {
-        case None => vwat()
-        case Some(CoordListTemplataT(paramList)) => paramList
-      }
-
-    val funcSuccess =
-      delegate.resolveFunction(callingEnv, state, range :: ranges, callLocation, name, paramCoords, contextRegion, true) match {
-        case Err(e) => return Err(CouldntFindFunctionForConclusionResolve(range :: ranges, e))
-        case Ok(x) => x
-      }
-
-    if (funcSuccess.prototype.prototype.returnType != returnCoord) {
-      return Err(ReturnTypeConflictInConclusionResolve(range :: ranges, returnCoord, funcSuccess.prototype.prototype))
-    }
-
-    Ok((resultRune.rune, funcSuccess.prototype.prototype))
   }
 
   // Returns None for any call that we don't even have params for,

@@ -726,8 +726,8 @@ class Compiler(
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[HinputsT, ICompileErrorT] = {
     try {
       Profiler.frame(() => {
-        // DO NOT SUBMIT
-        println("Using overload index? " + opts.globalOptions.useOverloadIndex)
+        println("Using overload index? " + opts.globalOptions.useOverloadIndex) // DO NOT SUBMIT
+        println("Using sanity check? " + opts.globalOptions.sanityCheck) // DO NOT SUBMIT
 
         val nameToStructDefinedMacro =
           Map(
