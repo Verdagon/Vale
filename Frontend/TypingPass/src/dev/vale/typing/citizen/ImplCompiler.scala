@@ -218,7 +218,7 @@ class ImplCompiler(
         callLocation,
         outerEnv,
         RegionT())
-    val CompleteDefineSolve(inferences, runeToFunctionBound1 @ InstantiationBoundArgumentsT(_, reachableBoundsFromSubCitizen, _)) =
+    val CompleteDefineSolve(inferences, InstantiationBoundArgumentsT(_, reachableBoundsFromSubCitizen, _)) =
       inferCompiler.solveForDefining(
         envs,
         coutputs,
@@ -260,6 +260,7 @@ class ImplCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         implOuterEnv,
+        implTemplateId,
         instantiatedId,
         reachableBoundsFromSubCitizen.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, index) =>
           interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(templata)
@@ -670,7 +671,10 @@ class ImplCompiler(
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
-        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+        coutputs.addInstantiationBounds(
+          interner,
+          callingEnv.denizenTemplateId,
+          impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>
@@ -699,7 +703,9 @@ class ImplCompiler(
           implTemplata.env.id.addStep(
             nameTranslator.translateImplName(implTemplata.impl.name))
         val instantiatedId = assembleImplName(implTemplateId, templateArgs, subKindTT.expectCitizen())
-        coutputs.addInstantiationBounds(instantiatedId, runeToSuppliedFunction)
+        coutputs.addInstantiationBounds(
+          interner, callingEnv.rootCompilingDenizenEnv.denizenTemplateId,
+          instantiatedId, runeToSuppliedFunction)
         IsParent(implTemplata, conclusions, instantiatedId)
       }
       case None => IsntParent(errs.toVector)

@@ -390,6 +390,8 @@ class OverloadResolver(
           TemplataCompiler.getPlaceholderSubstituter(
             interner,
             keywords,
+            callingEnv.denizenTemplateId,
+            false,
             prototype.id,
             // These types are phrased in terms of the calling denizen already, so we can grab their
             // bounds.

@@ -224,15 +224,6 @@ case class FunctionDefinitionT(
   header: FunctionHeaderT,
   instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
-  header.id match {
-    case IdT(_,Vector(),FunctionNameT(
-      FunctionTemplateNameT(StrI("Bork"),_),
-      Vector(CoordTemplataT(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),
-      Vector(CoordT(_,RegionT(),KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("Bork"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))) => {
-      vpass()
-    }
-    case _ =>
-  }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
@@ -284,7 +275,15 @@ case class FunctionCalleeCandidate(ft: FunctionTemplataT) extends ICalleeCandida
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
+case class PrototypeTemplataCalleeCandidate(
+  // We don't want a range because we want to merge all sorts of different bound functions DO NOT SUBMIT doc better
+  // We could give them the range of their parent perhaps... but no, that can be retrieved from
+  // from prototypeT.id.initSteps.last.template
+  // No, thisll make it easier for the humanizer to show the correct thing.
+  // Let's just manually merge them, itll make life easier.
+  // ...maybe later. for now let's just use internal ranges or something.
+  range: RangeS,
+  prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
@@ -303,7 +302,14 @@ case class ValidHeaderCalleeCandidate(
 case class ValidPrototypeTemplataCalleeCandidate(
   prototype: PrototypeTemplataT[IFunctionNameT]
 ) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def equals(obj: Any): Boolean = {
+    val that = obj.asInstanceOf[ValidPrototypeTemplataCalleeCandidate]
+    if (that == null) {
+      return false
+    }
+    prototype == that.prototype
+  }
 
   override def range: Option[RangeS] = Some(prototype.declarationRange)
   override def paramTypes: Vector[CoordT] = prototype.prototype.id.localName.parameters.toVector

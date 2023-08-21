@@ -340,6 +340,8 @@ class ExpressionCompiler(
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords,
+        nenv.functionEnvironment.templateId,
+        false,
         closureStructRef.id,
         InheritBoundsFromTypeItself)
     // Note, this is where the unordered closuredNames set becomes ordered.
@@ -809,6 +811,8 @@ class ExpressionCompiler(
                 val memberType =
                   TemplataCompiler.getPlaceholderSubstituter(
                     interner, keywords,
+                    nenv.functionEnvironment.templateId,
+                    false,
                     structTT.id,
                     // Use the bounds that we supplied to the struct
                     UseBoundsFromContainer(
@@ -1391,6 +1395,8 @@ class ExpressionCompiler(
                 val substituter =
                   TemplataCompiler.getPlaceholderSubstituter(
                     interner, keywords,
+                    nenv.functionEnvironment.templateId,
+                    false,
                     structTT.id,
                     // This type is already phrased in terms of our placeholders, so it can use the
                     // bounds it already has.

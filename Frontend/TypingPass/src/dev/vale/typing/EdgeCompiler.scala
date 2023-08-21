@@ -202,7 +202,7 @@ class EdgeCompiler(
     coutputs.declareType(placeholderTemplateId)
     coutputs.declareTypeOuterEnv(
       placeholderTemplateId,
-      GeneralEnvironmentT.childOf(interner, dispatcherOuterEnv, placeholderTemplateId))
+      GeneralEnvironmentT.childOf(interner, dispatcherOuterEnv, placeholderTemplateId, placeholderTemplateId))
 
     val result =
       originalTemplataToMimic match {
@@ -262,6 +262,7 @@ class EdgeCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         abstractFuncOuterEnv,
+        dispatcherTemplateId,
         dispatcherTemplateId)
 
     // Step 1: Get The Compiled Impl's Interface, see GTCII.
@@ -308,6 +309,8 @@ class EdgeCompiler(
           coutputs,
           interner,
           keywords,
+          dispatcherTemplateId,
+          true, // True because we're kind of defining the dispatcher here, though lazily. DO NOT SUBMIT
           impl.templateId,
           implPlaceholderToDispatcherPlaceholder.map(_._2),
           // The dispatcher is receiving these types as parameters, so it can bring in bounds from
@@ -350,6 +353,7 @@ class EdgeCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         dispatcherOuterEnv,
+        dispatcherTemplateId,
         dispatcherId,
         dispatcherInnerInferences
           .map({ case (nameS, templata) =>
@@ -426,7 +430,7 @@ class EdgeCompiler(
             // We'll use this to interpret the things that are inside the citizen's env, to be in terms of our own placeholders and stuff.
             val substituter =
               TemplataCompiler.getPlaceholderSubstituter(
-                interner, keywords, citizenId, InheritBoundsFromTypeItself)
+                interner, keywords, dispatcherTemplateId, true, citizenId, InheritBoundsFromTypeItself)
             val citizenInnerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
             citizenInnerEnv
                 .templatas
@@ -453,6 +457,7 @@ class EdgeCompiler(
       GeneralEnvironmentT.childOf(
         interner,
         dispatcherInnerEnv,
+        dispatcherInnerEnv.templateId,
         dispatcherInnerEnv.id,
         casePlaceholderedReachablePrototypesFromImpl.zipWithIndex.map({ case (dispatcherPlaceholderedReachablePrototype, index) =>
           interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(dispatcherPlaceholderedReachablePrototype)
@@ -509,13 +514,16 @@ class EdgeCompiler(
     // We want an environment with the above inferences instead.
     val overrideImpreciseName =
       vassertSome(TemplatasStore.getImpreciseName(interner, abstractFunctionPrototype.id.localName))
+    val dispatcherCaseId =
+      dispatcherInnerEnvWithBoundsForSubCitizen.id.addStep(
+        interner.intern(
+          OverrideDispatcherCaseNameT(implIndependentRuneToCasePlaceholder.map(_._2))))
     val dispatcherCaseEnv =
       GeneralEnvironmentT.childOf(
         interner,
         dispatcherInnerEnvWithBoundsForSubCitizen,
-        dispatcherInnerEnvWithBoundsForSubCitizen.id.addStep(
-          interner.intern(
-            OverrideDispatcherCaseNameT(implIndependentRuneToCasePlaceholder.map(_._2)))),
+        dispatcherCaseId,
+        dispatcherCaseId,
         // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here. DO NOT SUBMIT still true? theyre in the dispatcherInnerEnvWithBoundsForSubCitizen
         // implInstantiationBoundArgs.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, num) =>
         //   interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(templata)

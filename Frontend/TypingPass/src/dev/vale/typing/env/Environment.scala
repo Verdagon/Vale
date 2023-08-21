@@ -97,6 +97,7 @@ trait IInDenizenEnvironmentT extends IEnvironmentT {
   def rootCompilingDenizenEnv: IInDenizenEnvironmentT
 
   def denizenId: IdT[INameT]
+  def denizenTemplateId: IdT[ITemplateNameT]
 }
 
 trait IDenizenEnvironmentBoxT extends IInDenizenEnvironmentT {
@@ -451,6 +452,7 @@ case class CitizenEnvironmentT[+T <: INameT, +Y <: ITemplateNameT](
   vassert(templatas.templatasStoreName == id)
 
   override def denizenId: IdT[INameT] = templateId
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -513,14 +515,16 @@ object GeneralEnvironmentT {
   def childOf[Y <: INameT](
     interner: Interner,
     parentEnv: IInDenizenEnvironmentT,
-    newName: IdT[Y],
+    newTemplateId: IdT[ITemplateNameT],
+    newId: IdT[Y],
     newEntriesList: Vector[(INameT, IEnvEntry)] = Vector()):
   GeneralEnvironmentT[Y] = {
     GeneralEnvironmentT(
       parentEnv.globalEnv,
       parentEnv,
-      newName,
-      new TemplatasStore(newName, Map(), Map())
+      newTemplateId,
+      newId,
+      new TemplatasStore(newId, Map(), Map())
         .addEntries(interner, newEntriesList))
   }
 }
@@ -528,12 +532,14 @@ object GeneralEnvironmentT {
 case class ExportEnvironmentT(
     globalEnv: GlobalEnvironment,
     parentEnv: PackageEnvironmentT[INameT],
+    templateId: IdT[ITemplateNameT],
     id: IdT[INameT],
     //  defaultRegion: ITemplata[RegionTemplataType],
     templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
   override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = this
   override def denizenId: IdT[INameT] = id
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   override def lookupWithNameInner(
       name: INameT,
@@ -557,12 +563,14 @@ case class ExportEnvironmentT(
 case class ExternEnvironmentT(
     globalEnv: GlobalEnvironment,
     parentEnv: PackageEnvironmentT[INameT],
+    templateId: IdT[ITemplateNameT],
     id: IdT[INameT],
     //  defaultRegion: ITemplata[RegionTemplataType],
     templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
   override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = this
   override def denizenId: IdT[INameT] = id
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   override def lookupWithNameInner(
       name: INameT,
@@ -586,10 +594,12 @@ case class ExternEnvironmentT(
 case class GeneralEnvironmentT[+T <: INameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IInDenizenEnvironmentT,
+  templateId: IdT[ITemplateNameT],
   id: IdT[T],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
   override def denizenId: IdT[INameT] = id
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
 
   override def equals(obj: Any): Boolean = vcurious();
 

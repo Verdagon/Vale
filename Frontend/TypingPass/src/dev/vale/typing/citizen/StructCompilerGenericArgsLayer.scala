@@ -94,7 +94,7 @@ class StructCompilerGenericArgsLayer(
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
       val id = declaringEnv.id.addStep(structName)
 
-      coutputs.addInstantiationBounds(id, runeToFunctionBound)
+      coutputs.addInstantiationBounds(interner, originalCallingEnv.denizenTemplateId, id, runeToFunctionBound)
       val structTT = interner.intern(StructTT(id))
 
       ResolveSuccess(structTT)
@@ -287,7 +287,8 @@ class StructCompilerGenericArgsLayer(
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
       val id = declaringEnv.id.addStep(interfaceName)
 
-      coutputs.addInstantiationBounds(id, runeToFunctionBound)
+      coutputs.addInstantiationBounds(
+        interner, originalCallingEnv.denizenTemplateId, id, runeToFunctionBound)
       val interfaceTT = interner.intern(InterfaceTT(id))
 
       ResolveSuccess(interfaceTT)

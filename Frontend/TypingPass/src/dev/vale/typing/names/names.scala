@@ -366,12 +366,6 @@ case class FunctionBoundTemplateNameT(
   humanName: StrI,
   codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
-  this match {
-    case FunctionBoundTemplateNameT(StrI("drop"),CodeLocationS(FileCoordinate(_,"opt.vale"), 67)) => {
-      vpass()
-    }
-    case _ =>
-  }
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {
     interner.intern(FunctionBoundNameT(this, templateArgs, params))
@@ -442,12 +436,6 @@ case class FunctionTemplateNameT(
     humanName: StrI,
     codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
-  this match {
-    case FunctionTemplateNameT(StrI("drop"),CodeLocationS(FileCoordinate(_,"opt.vale"), 67)) => {
-      vpass()
-    }
-    case _ =>
-  }
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
     interner.intern(FunctionNameT(this, templateArgs, params))

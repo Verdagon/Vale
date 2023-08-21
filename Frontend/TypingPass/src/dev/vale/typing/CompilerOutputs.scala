@@ -144,15 +144,117 @@ case class CompilerOutputs() {
   }
 
   def addInstantiationBounds(
+    interner: Interner, // DO NOT SUBMIT take this out
+    originalCallingTemplateId: IdT[ITemplateNameT],
     instantiationId: IdT[IInstantiationNameT],
     instantiationBoundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
   Unit = {
+    val InstantiationBoundArgumentsT(
+    runeToBoundPrototype,
+    runeToCitizenRuneToReachablePrototype,
+    runeToBoundImpl) =
+      instantiationBoundArgs
+
     instantiationId match {
       case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32)))),Vector(CoordT(_,RegionT(),IntT(32))))) => {
         vpass()
       }
       case _ =>
     }
+
+    // // We do this so that there's no random selection of where we get a particular bound from. Keeps things nice and
+    // // consistent so we dont run into any more oddities downstream. DO NOT SUBMIT
+    // runeToCitizenRuneToReachablePrototype.foreach({ case (callerRUne, reachableBoundArgs) =>
+    //   val InstantiationReachableBoundArgumentsT(citizenAndRuneAndReachablePrototypes) =
+    //     reachableBoundArgs
+    //   citizenAndRuneAndReachablePrototypes.foreach({
+    //     case (calleeRune, reachablePrototype) => {
+    //       val reachableFuncSuperTemplateIdInitSteps =
+    //         TemplataCompiler.getSuperTemplate(reachablePrototype.prototype.id).initSteps
+    //       val originalCallingSuperTemplateIdInitSteps =
+    //         TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
+    //       vassert(reachableFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
+    //     }
+    //   })
+    // })
+    // runeToBoundPrototype.foreach({ case (rune, callerBoundArgFunction) =>
+    //   callerBoundArgFunction.prototype.id.localName match {
+    //     case FunctionBoundNameT(_, _, _) => {
+    //       // DO NOT SUBMIT wrap in sanity check
+    //       val callerBoundArgFuncSuperTemplateIdInitSteps =
+    //         TemplataCompiler.getSuperTemplate(callerBoundArgFunction.prototype.id).initSteps
+    //       val originalCallingSuperTemplateIdInitSteps =
+    //         TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
+    //       vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
+    //     }
+    //     case _ =>
+    //   }
+    // })
+    // // DO NOT SUBMIT shouldnt we have asserts for the impls too
+
+
+    // We do this so that there's no random selection of where we get a particular bound from. Keeps things nice and
+    // consistent so we dont run into any more oddities downstream. DO NOT SUBMIT
+    runeToCitizenRuneToReachablePrototype.foreach({ case (callerRUne, reachableBoundArgs) =>
+      val InstantiationReachableBoundArgumentsT(citizenAndRuneAndReachablePrototypes) =
+        reachableBoundArgs
+      citizenAndRuneAndReachablePrototypes.foreach({
+        case (calleeRune, reachablePrototype) => {
+          reachablePrototype.prototype.id.localName match {
+            case FunctionBoundNameT(_, _, _) => {
+              val reachableFuncSuperTemplateIdInitSteps =
+                TemplataCompiler.getSuperTemplate(reachablePrototype.prototype.id).initSteps
+              val originalCallingSuperTemplateIdInitSteps =
+                TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
+              vassert(reachableFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
+            }
+            case _ =>
+          }
+        }
+      })
+    })
+    // If we're instantiating with a bound, then make sure that it's one that comes from our root compiling denizen env.
+    // That'll help ensure that we're not doing anything tricky, and ensure we don't trigger any mismatches below.
+    runeToBoundPrototype.foreach({ case (rune, callerBoundArgFunction) =>
+      callerBoundArgFunction.prototype.id.localName match {
+        case FunctionBoundNameT(_, _, _) => {
+          // DO NOT SUBMIT wrap in sanity check
+          val callerBoundArgFuncSuperTemplateIdInitSteps =
+            TemplataCompiler.getSuperTemplate(callerBoundArgFunction.prototype.id).initSteps
+          val originalCallingSuperTemplateIdInitSteps =
+            TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
+          vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
+        }
+        case _ =>
+      }
+    })
+    // DO NOT SUBMIT shouldnt we have asserts for the impls too
+
+    // DO NOT SUBMIT
+    Collector.all(instantiationId, {
+      case id @ IdT(_, initSteps, KindPlaceholderNameT(_)) => {
+        val x: IdT[INameT] = id
+
+        vassert(
+          TemplataCompiler.getSuperTemplate(x).initSteps
+              .startsWith(TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps))
+        // DO NOT SUBMIT
+
+        // // vassert(initSteps == originalCallingTemplateId.steps)
+        // originalCallingTemplateId.localName match {
+        //   case OverrideDispatcherCaseNameT(independentImplTemplateArgs) => {
+        //     // These have their own name, so just use their init steps
+        //     vassert(initSteps.init == originalCallingTemplateId.initSteps.init)
+        //     vassert(initSteps.last == (originalCallingTemplateId.initSteps.last match { case o @ OverrideDispatcherNameT(_, _, _) => o.template }))
+        //   }
+        //   case _ => {
+        //     vassert(
+        //       TemplataCompiler.getSuperTemplate(id).initSteps
+        //           .startsWith(TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps))
+        //   }
+        // }
+      }
+    })
 
     // We'll do this when we can cache instantiations from StructTemplar etc.
     // // We should only add instantiation bounds in exactly one place: the place that makes the
@@ -166,7 +268,8 @@ case class CompilerOutputs() {
         // It's gonna be especially tricky because we get each function bounds from the overload
         // resolver which only returns one. We might need to make it not arbitrarily choose a
         // function to call. Perhaps it should tiebreak and choose the first bound that works.
-        // vassert(existing == functionBoundToRune)
+        // DO NOT SUBMIT
+        vassert(existing == instantiationBoundArgs)
       }
       case None =>
     }

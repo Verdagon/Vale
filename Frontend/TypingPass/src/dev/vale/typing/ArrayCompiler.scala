@@ -205,7 +205,7 @@ class ArrayCompiler(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteResolveSolve(templatas, runeToFunctionBound) =
+    val CompleteResolveSolve(templatas, _) =
       inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)
@@ -394,7 +394,7 @@ class ArrayCompiler(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val CompleteResolveSolve(templatas, runeToFunctionBound) =
+    val CompleteResolveSolve(templatas, _) =
       inferCompiler.checkResolvingConclusionsAndResolve(envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver) match {
         case Err(e) => throw CompileErrorExceptionT(TypingPassResolvingError(invocationRange, e))
         case Ok(i) => (i)

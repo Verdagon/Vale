@@ -322,6 +322,8 @@ class StructCompilerCore(
 
     // Lambdas have no bounds, so we just supply Map()
     coutputs.addInstantiationBounds(
+      interner,
+      understructTemplatedId,
       understructInstantiatedId,
       InstantiationBoundArgumentsT(
         Map(),

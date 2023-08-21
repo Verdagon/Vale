@@ -25,6 +25,9 @@ case class BuildingFunctionEnvironmentWithClosuredsT(
   isRootCompilingDenizen: Boolean
 ) extends IInDenizenEnvironmentT {
 
+  def templata = FunctionTemplataT(parentEnv, function)
+
+  override def denizenTemplateId: IdT[ITemplateNameT] = id
   override def denizenId: IdT[INameT] = id
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
@@ -86,6 +89,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT(
   defaultRegion: RegionT
 ) extends IInDenizenEnvironmentT {
 
+  override def denizenTemplateId: IdT[ITemplateNameT] = id
   override def denizenId: IdT[INameT] = id
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
@@ -165,6 +169,7 @@ case class NodeEnvironmentT(
     }
   }
 
+  override def denizenTemplateId: IdT[ITemplateNameT] = parentFunctionEnv.denizenTemplateId
   override def denizenId: IdT[INameT] = parentFunctionEnv.denizenId
 
   override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = {
@@ -541,6 +546,7 @@ case class FunctionEnvironmentT(
 ) extends IInDenizenEnvironmentT {
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
 
+  override def denizenTemplateId: IdT[ITemplateNameT] = templateId
   override def denizenId: IdT[INameT] = templateId
 
   override def equals(obj: Any): Boolean = {
@@ -662,6 +668,7 @@ case class FunctionEnvironmentT(
 case class FunctionEnvironmentBoxT(var functionEnvironment: FunctionEnvironmentT) extends IDenizenEnvironmentBoxT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
+  override def denizenTemplateId: IdT[ITemplateNameT] = functionEnvironment.denizenTemplateId
   override def denizenId: IdT[INameT] = functionEnvironment.denizenId
 
   override def snapshot: FunctionEnvironmentT = functionEnvironment
