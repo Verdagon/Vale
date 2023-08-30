@@ -276,7 +276,7 @@ class ArrayCompiler(
           }
 
         val elementType =
-          prototype.prototype.returnType.kind match {
+          prototype.returnType.kind match {
             case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, elementType, _)))) => {
               if (mutability != MutabilityTemplataT(MutableT)) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Array function returned wrong mutability!"))
@@ -291,14 +291,14 @@ class ArrayCompiler(
           val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
           if (elementType != expectedElementType) {
             throw CompileErrorExceptionT(
-              UnexpectedArrayElementType(parentRanges, expectedElementType, prototype.prototype.returnType))
+              UnexpectedArrayElementType(parentRanges, expectedElementType, prototype.returnType))
           }
         })
-        vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
         val resultTE =
-          prototype.prototype.returnType
+          prototype.returnType
         val callTE =
-          FunctionCallTE(prototype.prototype, Vector(sizeTE) ++ maybeCallableTE, resultTE)
+          FunctionCallTE(prototype, Vector(sizeTE) ++ maybeCallableTE, resultTE)
         callTE
         //        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't construct a mutable runtime array from a callable!"))
       }

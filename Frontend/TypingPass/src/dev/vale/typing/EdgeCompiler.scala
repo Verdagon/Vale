@@ -438,8 +438,8 @@ class EdgeCompiler(
                 .toVector
                 .collect({
                   // We're getting the FunctionBoundNameT under their name in their environment, and producing a
-                  // ReachableFunctionNameT under our name for our environment.
-                  case (RuneNameT(runeInCitizen), TemplataEnvEntry(PrototypeTemplataT(range, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _), templateArgs, params)), returnType)))) => {
+                  // CaseFunctionFromImplNameT under our name for our environment.
+                  case (RuneNameT(runeInCitizen), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _), templateArgs, params)), returnType)))) => {
                     val subCitizenPlaceholderedPrototype =
                       PrototypeT(
                         dispatcherId.addStep(
@@ -448,7 +448,7 @@ class EdgeCompiler(
                         returnType)
                     val dispatcherPlaceholderedPrototype =
                       substituter.substituteForPrototype[CaseFunctionFromImplNameT](coutputs, subCitizenPlaceholderedPrototype)
-                    val prototypeTemplata = PrototypeTemplataT[CaseFunctionFromImplNameT](range, dispatcherPlaceholderedPrototype)
+                    val prototypeTemplata = PrototypeTemplataT[CaseFunctionFromImplNameT](dispatcherPlaceholderedPrototype)
                     prototypeTemplata
                   }
                 })
@@ -481,7 +481,7 @@ class EdgeCompiler(
         // so we should get a complete solve.
         // HOWEVER we're not actually resolving anything, we're just predicting.
         // This solve will produce types that don't exist, and don't have instantiation bounds.
-        // That's okay, because all we really want is the sub citizen, and then we'll conjure its bounds ourselves.
+        // That's okay, because all we really want is the sub citizen, and then we'll conjure its bounds ourselves. DO NOT SUBMIT doesnt seem to be true anymore
         Vector(
           InitialKnown(
             impl.templata.impl.interfaceKindRune,
@@ -563,7 +563,7 @@ class EdgeCompiler(
         case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(List(range, impl.templata.impl.range), e))
         case Ok(x) => x
       }
-    vassert(coutputs.getInstantiationBounds(foundFunction.prototype.prototype.id).nonEmpty)
+    vassert(coutputs.getInstantiationBounds(foundFunction.prototype.id).nonEmpty)
 
     OverrideT(
       dispatcherId,
@@ -574,7 +574,7 @@ class EdgeCompiler(
       // dispatcherCasePlaceholderedSubCitizen,
       // dispatcherAndCasePlaceholderedInstantiationBoundArgs,
       dispatcherCaseEnv.id,
-      foundFunction.prototype.prototype,
+      foundFunction.prototype,
       dispatcherInstantiationBoundParams)
   }
 

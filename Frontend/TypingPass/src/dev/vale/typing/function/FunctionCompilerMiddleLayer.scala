@@ -133,7 +133,7 @@ class FunctionCompilerMiddleLayer(
 
     coutputs.lookupFunction(SignatureT(banner.name)) match {
       case Some(FunctionDefinitionT(header, _, _)) => {
-        PrototypeTemplataT(function1.range, header.toPrototype)
+        PrototypeTemplataT(header.toPrototype)
       }
       case None => {
         coutputs.declareFunction(callRange, namedEnv.id)
@@ -149,7 +149,7 @@ class FunctionCompilerMiddleLayer(
 
         //        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
 
-        PrototypeTemplataT(function1.range, header.toPrototype)
+        PrototypeTemplataT(header.toPrototype)
       }
     }
   }

@@ -92,7 +92,7 @@ class FunctionCompilerSolvingLayer(
         outerEnv,
         function.genericParameters.map(_.rune.rune),
         inferredTemplatas,
-        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector)
+        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
@@ -108,7 +108,7 @@ class FunctionCompilerSolvingLayer(
     coutputs.addInstantiationBounds(
       interner, outerEnv.denizenTemplateId,
       header.id, instantiationBoundArgs)
-    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, header.toPrototype), inferredTemplatas, instantiationBoundArgs)
+    EvaluateFunctionSuccess(PrototypeTemplataT(header.toPrototype), inferredTemplatas, instantiationBoundArgs)
   }
 
   // Preconditions:
@@ -157,7 +157,7 @@ class FunctionCompilerSolvingLayer(
         declaringEnv,
         function.genericParameters.map(_.rune.rune),
         inferredTemplatas,
-        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector)
+        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 
     val prototype =
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
@@ -225,7 +225,7 @@ class FunctionCompilerSolvingLayer(
         nearEnv,
         function.genericParameters.map(_.rune.rune),
         inferences,
-        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector)
+        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 
     val prototypeTemplata =
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
@@ -401,7 +401,7 @@ class FunctionCompilerSolvingLayer(
         outerEnv,
         function.genericParameters.map(_.rune.rune),
         inferredTemplatas,
-        runeToFunctionBound.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector)
+        runeToFunctionBound.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -411,7 +411,7 @@ class FunctionCompilerSolvingLayer(
       interner, callingEnv.rootCompilingDenizenEnv.denizenTemplateId,
       prototype.id, runeToFunctionBound)
 
-    ResolveFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferredTemplatas)
+    ResolveFunctionSuccess(PrototypeTemplataT(prototype), inferredTemplatas)
   }
 
   def evaluateGenericVirtualDispatcherFunctionForPrototype(
@@ -502,7 +502,7 @@ class FunctionCompilerSolvingLayer(
         nearEnv,
         function.genericParameters.map(_.rune.rune),
         inferences,
-        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector)
+        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -510,7 +510,7 @@ class FunctionCompilerSolvingLayer(
 
     // Usually when we call a function, we add instantiation bounds. However, we're
     // not calling a function here, we're defining it.
-    DefineFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferences, instantiationBoundParams)
+    DefineFunctionSuccess(PrototypeTemplataT(prototype), inferences, instantiationBoundParams)
   }
 
   // Preconditions:
@@ -588,7 +588,7 @@ class FunctionCompilerSolvingLayer(
     val runedEnv =
       addRunedDataToNearEnv(
         nearEnv, function.genericParameters.map(_.rune.rune), inferences,
-        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector)
+        instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(

@@ -18,6 +18,13 @@ case class IdT[+T <: INameT](
   initSteps: Vector[INameT],
   localName: T
 )  {
+  this match {
+    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(_,Vector(),ImplTemplateNameT(_)))),CaseFunctionFromImplNameT(CaseFunctionFromImplTemplateNameT(StrI("drop"),ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1))),ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 4)))),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(_,Vector(),ImplTemplateNameT(_)))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,DispatcherRuneFromImplS(CodeRuneS(StrI("T"))))))))))) => {
+      vpass()
+    }
+    case _ =>
+  }
+
   // Placeholders should only be the last name, getPlaceholdersInKind assumes it
   initSteps.foreach({
     case KindPlaceholderNameT(_) => vfail()

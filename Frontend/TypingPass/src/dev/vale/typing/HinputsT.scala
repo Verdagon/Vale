@@ -13,12 +13,12 @@ import dev.vale.typing.types._
 import scala.collection.mutable
 
 case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
-  citizenRuneToReachablePrototype: Map[IRuneS, PrototypeTemplataT[R]]
+  citizenRuneToReachablePrototype: Map[IRuneS, PrototypeT[R]]
 )
 
 case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
   // DO NOT SUBMIT doc
-  runeToBoundPrototype: Map[IRuneS, PrototypeTemplataT[BF]],
+  runeToBoundPrototype: Map[IRuneS, PrototypeT[BF]],
   runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
   runeToBoundImpl: Map[IRuneS, IdT[BI]])
 

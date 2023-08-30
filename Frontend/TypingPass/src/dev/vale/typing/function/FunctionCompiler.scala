@@ -109,7 +109,7 @@ case class ResolveFunctionFailure(
 trait IStampFunctionResult
 
 case class StampFunctionSuccess(
-  prototype: PrototypeTemplataT[IFunctionNameT],
+  prototype: PrototypeT[IFunctionNameT],
   inferences: Map[IRuneS, ITemplataT[ITemplataType]]
 ) extends IStampFunctionResult
 

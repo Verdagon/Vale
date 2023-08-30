@@ -153,7 +153,7 @@ class Compiler(
             case StructDefinitionTemplataT(_,_) =>
             case ImplDefinitionTemplataT(_,_) =>
             case CoordListTemplataT(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
-            case PrototypeTemplataT(_, prototype) => {
+            case PrototypeTemplataT(prototype) => {
               getPlaceholdersInId(accum, prototype.id)
               prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
               getPlaceholdersInKind(accum, prototype.returnType.kind)
@@ -378,7 +378,6 @@ class Compiler(
           returnCoord: CoordT):
         PrototypeTemplataT[IFunctionNameT] = {
           PrototypeTemplataT(
-            functionRange,
             PrototypeT(
               envs.selfEnv.id.addStep(
                 interner.intern(

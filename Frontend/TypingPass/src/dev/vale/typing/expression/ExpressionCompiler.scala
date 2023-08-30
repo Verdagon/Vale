@@ -1016,7 +1016,7 @@ class ExpressionCompiler(
                 32,
                 region), Set())
             }
-            case pt @ PrototypeTemplataT(_, _) => {
+            case pt @ PrototypeTemplataT(_) => {
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)
                   .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))

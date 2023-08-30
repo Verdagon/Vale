@@ -433,7 +433,7 @@ class Instantiator(
     vassert(instantiationBoundArgs.runeToImplBoundArg.size == instantiationBoundParams.runeToBoundImpl.size)
     DenizenBoundToDenizenCallerBoundArgS(
       instantiationBoundArgs.runeToFunctionBoundArg.map({ case (calleeRune, suppliedFunctionI) =>
-        vassertSome(instantiationBoundParams.runeToBoundPrototype.get(calleeRune)).prototype.id -> suppliedFunctionI
+        vassertSome(instantiationBoundParams.runeToBoundPrototype.get(calleeRune)).id -> suppliedFunctionI
       }),
       Map(),
       instantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc.flatMap({ case (callerRune, calleeRuneToReachableFunc) =>
@@ -442,7 +442,7 @@ class Instantiator(
           vassert(m.citizenRuneToReachablePrototype.size == calleeRuneToReachableFunc.size)
           calleeRuneToReachableFunc.map({ case (calleeRune, reachableFuncI) =>
             val reachableFuncT = vassertSome(m.citizenRuneToReachablePrototype.get(calleeRune))
-            reachableFuncT.prototype.id -> reachableFuncI
+            reachableFuncT.id -> reachableFuncI
           })
         } else {
           List()
@@ -1426,7 +1426,7 @@ class Instantiator(
     // For any that are placeholders themselves, let's translate those into actual prototypes.
       runeToSuppliedBoundPrototypeForCallUnsubstituted.map({ case (rune, suppliedPrototypeUnsubstituted) =>
         rune ->
-          (suppliedPrototypeUnsubstituted.prototype.id match {
+          (suppliedPrototypeUnsubstituted.id match {
             case IdT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)) => {
               vassertSome(
                 denizenBoundToDenizenCallerSuppliedThing.boundParamFuncIdToBoundArgPrototype.get(
@@ -1440,7 +1440,7 @@ class Instantiator(
             case _ => {
               val (prototypeI, prototypeC) =
                 translatePrototype(
-                  denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, suppliedPrototypeUnsubstituted.prototype)
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, suppliedPrototypeUnsubstituted)
               prototypeI
             }
           })
@@ -1456,7 +1456,7 @@ class Instantiator(
         calleeRuneToSuppliedReachablePrototypeForCallUnsubstituted.citizenRuneToReachablePrototype
             .map({ case (calleeRune, suppliedReachablePrototypeForCallUnsubstituted) =>
               calleeRune ->
-                  (suppliedReachablePrototypeForCallUnsubstituted.prototype.id match {
+                  (suppliedReachablePrototypeForCallUnsubstituted.id match {
                     case IdT(packageCoord, initSteps, name@ReachableFunctionNameT(_, _, _)) => {
                       vassertSome(
                         denizenBoundToDenizenCallerSuppliedThing.reachableParamPrototypeToReachableArgPrototype.get(
@@ -1470,7 +1470,7 @@ class Instantiator(
                     case _ => {
                       val (prototypeI, prototypeC) =
                         translatePrototype(
-                          denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, suppliedReachablePrototypeForCallUnsubstituted.prototype)
+                          denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, suppliedReachablePrototypeForCallUnsubstituted)
                       prototypeI
                     }
                   })

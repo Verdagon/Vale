@@ -282,48 +282,49 @@ case class PrototypeTemplataCalleeCandidate(
   // No, thisll make it easier for the humanizer to show the correct thing.
   // Let's just manually merge them, itll make life easier.
   // ...maybe later. for now let's just use internal ranges or something.
-  range: RangeS,
+  // Nope, took it out because took the PrototypeTemplataT.
+  // range: RangeS,
   prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
-sealed trait IValidCalleeCandidate {
-  def range: Option[RangeS]
-  def paramTypes: Vector[CoordT]
-}
-case class ValidHeaderCalleeCandidate(
-  header: FunctionHeaderT
-) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-
-  override def range: Option[RangeS] = header.maybeOriginFunctionTemplata.map(_.function.range)
-  override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
-}
-case class ValidPrototypeTemplataCalleeCandidate(
-  prototype: PrototypeTemplataT[IFunctionNameT]
-) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def equals(obj: Any): Boolean = {
-    val that = obj.asInstanceOf[ValidPrototypeTemplataCalleeCandidate]
-    if (that == null) {
-      return false
-    }
-    prototype == that.prototype
-  }
-
-  override def range: Option[RangeS] = Some(prototype.declarationRange)
-  override def paramTypes: Vector[CoordT] = prototype.prototype.id.localName.parameters.toVector
-}
-case class ValidCalleeCandidate(
-  banner: FunctionHeaderT,
-  templateArgs: Vector[ITemplataT[ITemplataType]],
-  function: FunctionTemplataT
-) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-
-  override def range: Option[RangeS] = banner.maybeOriginFunctionTemplata.map(_.function.range)
-  override def paramTypes: Vector[CoordT] = banner.paramTypes.toVector
-}
+//sealed trait IValidCalleeCandidate {
+//  def range: Option[RangeS]
+//  def paramTypes: Vector[CoordT]
+//}
+//case class ValidHeaderCalleeCandidate(
+//  header: FunctionHeaderT
+//) extends IValidCalleeCandidate {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+//
+//  override def range: Option[RangeS] = header.maybeOriginFunctionTemplata.map(_.function.range)
+//  override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
+//}
+//case class ValidPrototypeTemplataCalleeCandidate(
+//  prototype: PrototypeTemplataT[IFunctionNameT]
+//) extends IValidCalleeCandidate {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  override def equals(obj: Any): Boolean = {
+//    val that = obj.asInstanceOf[ValidPrototypeTemplataCalleeCandidate]
+//    if (that == null) {
+//      return false
+//    }
+//    prototype == that.prototype
+//  }
+//
+//  override def range: Option[RangeS] = None
+//  override def paramTypes: Vector[CoordT] = prototype.prototype.id.localName.parameters.toVector
+//}
+////case class ValidCalleeCandidate(
+////  banner: FunctionHeaderT,
+////  templateArgs: Vector[ITemplataT[ITemplataType]],
+////  function: FunctionTemplataT
+////) extends IValidCalleeCandidate {
+////  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+////
+////  override def range: Option[RangeS] = banner.maybeOriginFunctionTemplata.map(_.function.range)
+////  override def paramTypes: Vector[CoordT] = banner.paramTypes.toVector
+////}
 
 // A "signature" is just the things required for overload resolution, IOW function name and arg types.
 

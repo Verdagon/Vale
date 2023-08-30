@@ -595,8 +595,8 @@ object CompilerErrorHumanizer {
       case HeaderCalleeCandidate(header) => {
         humanizeId(codeMap, header.id)
       }
-      case PrototypeTemplataCalleeCandidate(range, prototypeT) => {
-        val begin = lineRangeContaining(range.begin).begin
+      case PrototypeTemplataCalleeCandidate(prototypeT) => {
+        val begin = vimpl()//lineRangeContaining(range.begin).begin DO NOT SUBMIT
         codeMap(begin) + ":\n" +
           lineRangeContaining(begin).begin + "\n"
       }
@@ -638,7 +638,7 @@ object CompilerErrorHumanizer {
           case ShareT => "share"
         }
       }
-      case PrototypeTemplataT(range, prototype) => {
+      case PrototypeTemplataT(prototype) => {
         humanizeId(codeMap, prototype.id)
       }
       case CoordTemplataT(coord) => {

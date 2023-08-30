@@ -159,6 +159,9 @@ case class CompilerOutputs() {
       case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32)))),Vector(CoordT(_,RegionT(),IntT(32))))) => {
         vpass()
       }
+      case IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("XOpt")),Vector(CoordTemplataT(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(_,Vector(),ImplTemplateNameT(_)))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,DispatcherRuneFromImplS(CodeRuneS(StrI("T")))))))))))) => {
+        vpass()
+      }
       case _ =>
     }
 
@@ -200,10 +203,10 @@ case class CompilerOutputs() {
         reachableBoundArgs
       citizenAndRuneAndReachablePrototypes.foreach({
         case (calleeRune, reachablePrototype) => {
-          reachablePrototype.prototype.id.localName match {
+          reachablePrototype.id.localName match {
             case FunctionBoundNameT(_, _, _) => {
               val reachableFuncSuperTemplateIdInitSteps =
-                TemplataCompiler.getSuperTemplate(reachablePrototype.prototype.id).initSteps
+                TemplataCompiler.getSuperTemplate(reachablePrototype.id).initSteps
               val originalCallingSuperTemplateIdInitSteps =
                 TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
               vassert(reachableFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
@@ -216,11 +219,11 @@ case class CompilerOutputs() {
     // If we're instantiating with a bound, then make sure that it's one that comes from our root compiling denizen env.
     // That'll help ensure that we're not doing anything tricky, and ensure we don't trigger any mismatches below.
     runeToBoundPrototype.foreach({ case (rune, callerBoundArgFunction) =>
-      callerBoundArgFunction.prototype.id.localName match {
+      callerBoundArgFunction.id.localName match {
         case FunctionBoundNameT(_, _, _) => {
           // DO NOT SUBMIT wrap in sanity check
           val callerBoundArgFuncSuperTemplateIdInitSteps =
-            TemplataCompiler.getSuperTemplate(callerBoundArgFunction.prototype.id).initSteps
+            TemplataCompiler.getSuperTemplate(callerBoundArgFunction.id).initSteps
           val originalCallingSuperTemplateIdInitSteps =
             TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
           vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))

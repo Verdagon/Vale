@@ -263,7 +263,7 @@ class ImplCompiler(
         implTemplateId,
         instantiatedId,
         reachableBoundsFromSubCitizen.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, index) =>
-          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(templata)
+          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(templata))
         }).toVector ++
         inferences.map({ case (nameS, templata) =>
           interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)

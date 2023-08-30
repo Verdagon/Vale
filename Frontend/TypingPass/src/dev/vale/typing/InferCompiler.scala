@@ -344,16 +344,16 @@ class InferCompiler(
                 // If foo<T> is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop bound, then
                 // callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
                 // But what we actually want is DO NOT SUBMIT doc
-                val returnCoord = callerPlaceholderedCitizenBound.prototype.returnType
-                val paramCoords = callerPlaceholderedCitizenBound.prototype.paramTypes
+                val returnCoord = callerPlaceholderedCitizenBound.returnType
+                val paramCoords = callerPlaceholderedCitizenBound.paramTypes
                 val funcSuccess =
                   delegate.resolveFunction(
-                    envs.originalCallingEnv, state, ranges, callLocation, callerPlaceholderedCitizenBound.prototype.id.localName.template.humanName, paramCoords, envs.contextRegion, true) match {
+                    envs.originalCallingEnv, state, ranges, callLocation, callerPlaceholderedCitizenBound.id.localName.template.humanName, paramCoords, envs.contextRegion, true) match {
                     case Err(e) => return Err(ResolvingResolveConclusionError(CouldntFindFunctionForConclusionResolve(ranges, e)))
                     case Ok(x) => x
                   }
-                if (funcSuccess.prototype.prototype.returnType != returnCoord) {
-                  return Err(ResolvingResolveConclusionError(ReturnTypeConflictInConclusionResolve(ranges, returnCoord, funcSuccess.prototype.prototype)))
+                if (funcSuccess.prototype.returnType != returnCoord) {
+                  return Err(ResolvingResolveConclusionError(ReturnTypeConflictInConclusionResolve(ranges, returnCoord, funcSuccess.prototype)))
                 }
                 // strt here
                 citizenRune -> funcSuccess.prototype
@@ -465,7 +465,7 @@ class InferCompiler(
               }
             InstantiationReachableBoundArgumentsT(
               maybeIdAndTemplateId match {
-                case None => Map[IRuneS, PrototypeTemplataT[ReachableFunctionNameT]]()
+                case None => Map[IRuneS, PrototypeT[ReachableFunctionNameT]]()
                 case Some((id, templateId)) => {
                   val innerEnv = state.getInnerEnvForType(templateId)
                   val substituter =
@@ -481,14 +481,14 @@ class InferCompiler(
                       .entriesByNameT
                       .collect({
                         // We're looking for FunctionBoundNameT, but producing ReachableFunctionNameT.
-                        case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLoc), templateArgs, params)), returnType)))) => {
+                        case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLoc), templateArgs, params)), returnType)))) => {
                           val prototype =
                             PrototypeT(
                               IdT(packageCoord, initSteps,
                                 interner.intern(ReachableFunctionNameT(
                                   interner.intern(ReachableFunctionTemplateNameT(humanName)), templateArgs, params))),
                               returnType)
-                          rune -> PrototypeTemplataT[ReachableFunctionNameT](range, substituter.substituteForPrototype[ReachableFunctionNameT](state, prototype))
+                          rune -> substituter.substituteForPrototype[ReachableFunctionNameT](state, prototype)
                         }
                       })
                       .toMap
@@ -517,7 +517,7 @@ class InferCompiler(
       originalCallingEnv.id,
       // These are the bounds we pulled in from the parameters, return type, impl sub citizen, etc.
       reachableBounds.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (reachableBound, index) =>
-        interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
+        interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(reachableBound))
       }).toVector)
   }
 
@@ -540,7 +540,7 @@ class InferCompiler(
           }).toVector ++
           // These are the bounds we pulled in from the parameters, return type, impl sub citizen, etc.
           reachableBounds.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (reachableBound, index) =>
-            interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
+            interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(reachableBound))
           }))
   }
 
@@ -569,9 +569,9 @@ class InferCompiler(
       rules.collect({
         case r@DefinitionFuncSR(_, RuneUsage(_, resultRune), _, _, _) => {
           vassertSome(conclusions.get(resultRune)) match {
-            case PrototypeTemplataT(range, PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(template, templateArgs, params)), returnType)) => {
+            case PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(template, templateArgs, params)), returnType)) => {
               val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(template, templateArgs, params))), returnType)
-              resultRune -> PrototypeTemplataT(range, prototype)
+              resultRune -> prototype
             }
             case other => vwat(other)
           }
@@ -618,7 +618,7 @@ class InferCompiler(
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
     contextRegion: RegionT):
-  Result[(IRuneS, PrototypeTemplataT[IFunctionNameT]), IConclusionResolveError] = {
+  Result[(IRuneS, PrototypeT[IFunctionNameT]), IConclusionResolveError] = {
     val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
 
     // If it was an incomplete solve, then just skip.
@@ -639,8 +639,8 @@ class InferCompiler(
         case Ok(x) => x
       }
 
-    if (funcSuccess.prototype.prototype.returnType != returnCoord) {
-      return Err(ReturnTypeConflictInConclusionResolve(range :: ranges, returnCoord, funcSuccess.prototype.prototype))
+    if (funcSuccess.prototype.returnType != returnCoord) {
+      return Err(ReturnTypeConflictInConclusionResolve(range :: ranges, returnCoord, funcSuccess.prototype))
     }
 
     Ok((resultRune.rune, funcSuccess.prototype))
