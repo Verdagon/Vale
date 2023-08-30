@@ -48,7 +48,7 @@ case class ImplT(
   // citizen, and a case block from its receiving kind.
   // We'll need to remember those, so the instantiator can do its thing.
   // See TIBANFC for more.
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
 
   runeIndexToIndependence: Vector[Boolean],
 ) extends IInterning { // DO NOT SUBMIT why interning
@@ -129,7 +129,7 @@ case class OverrideT(
 
   // These are the prototypes we'll pull from the impl's own bounds, and these CaseFunctionFromImplNameT names contain
   // the rune that the impl internally refers to them as.
-  casePlaceholderedReachablePrototypesFromImpl: Vector[PrototypeT[CaseFunctionFromImplNameT]],
+  casePlaceholderedReachablePrototypesFromImpl: Vector[PrototypeT[FunctionBoundNameT]],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
@@ -182,7 +182,7 @@ case class OverrideT(
   //   // re: the reachable stuff inside DO NOT SUBMIT
   //   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
   //   // TIBANFC.
-  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
   // caseInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
 
   // // The override function we're calling.
@@ -199,7 +199,7 @@ case class EdgeT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   superInterface: IdT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   abstractFuncToOverrideFunc: Map[IdT[IFunctionNameT], OverrideT]
 ) {
@@ -222,7 +222,7 @@ case class EdgeT(
 
 case class FunctionDefinitionT(
   header: FunctionHeaderT,
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

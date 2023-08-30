@@ -118,7 +118,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA,
-    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]):
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT]):
   (PrototypeTemplataT[IFunctionNameT]) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
@@ -165,7 +165,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA,
-    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]):
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT]):
   (FunctionHeaderT) = {
 
     // Check preconditions

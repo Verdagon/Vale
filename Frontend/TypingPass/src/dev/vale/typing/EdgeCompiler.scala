@@ -439,16 +439,16 @@ class EdgeCompiler(
                 .collect({
                   // We're getting the FunctionBoundNameT under their name in their environment, and producing a
                   // CaseFunctionFromImplNameT under our name for our environment.
-                  case (RuneNameT(runeInCitizen), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _), templateArgs, params)), returnType)))) => {
+                  case (RuneNameT(runeInCitizen), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName), templateArgs, params)), returnType)))) => {
                     val subCitizenPlaceholderedPrototype =
                       PrototypeT(
                         dispatcherId.addStep(
-                          interner.intern(CaseFunctionFromImplNameT(
-                            interner.intern(CaseFunctionFromImplTemplateNameT(humanName, runeInImpl, runeInCitizen)), templateArgs, params))),
+                          interner.intern(FunctionBoundNameT(
+                            interner.intern(FunctionBoundTemplateNameT(humanName)), templateArgs, params))),
                         returnType)
                     val dispatcherPlaceholderedPrototype =
-                      substituter.substituteForPrototype[CaseFunctionFromImplNameT](coutputs, subCitizenPlaceholderedPrototype)
-                    val prototypeTemplata = PrototypeTemplataT[CaseFunctionFromImplNameT](dispatcherPlaceholderedPrototype)
+                      substituter.substituteForPrototype[FunctionBoundNameT](coutputs, subCitizenPlaceholderedPrototype)
+                    val prototypeTemplata = PrototypeTemplataT[FunctionBoundNameT](dispatcherPlaceholderedPrototype)
                     prototypeTemplata
                   }
                 })

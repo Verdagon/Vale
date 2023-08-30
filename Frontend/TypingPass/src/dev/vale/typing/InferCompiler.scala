@@ -29,7 +29,7 @@ case class CompleteResolveSolve(
 
 case class CompleteDefineSolve(
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-    runeToBound: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT])
+    runeToBound: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT])
 
 sealed trait IIncompleteOrFailedCompilerSolve extends IResolveSolveOutcome {
   def unsolvedRules: Vector[IRulexSR]
@@ -439,7 +439,7 @@ class InferCompiler(
       initialRules: Vector[IRulexSR],
       includeReachableBoundsForRunes: Vector[IRuneS],
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
-  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT], IConclusionResolveError] = {
+  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
     val reachableBounds =
       includeReachableBoundsForRunes
           .map(rune => rune -> vassertSome(conclusions.get(rune)))
@@ -465,7 +465,7 @@ class InferCompiler(
               }
             InstantiationReachableBoundArgumentsT(
               maybeIdAndTemplateId match {
-                case None => Map[IRuneS, PrototypeT[ReachableFunctionNameT]]()
+                case None => Map[IRuneS, PrototypeT[FunctionBoundNameT]]()
                 case Some((id, templateId)) => {
                   val innerEnv = state.getInnerEnvForType(templateId)
                   val substituter =
@@ -481,14 +481,14 @@ class InferCompiler(
                       .entriesByNameT
                       .collect({
                         // We're looking for FunctionBoundNameT, but producing ReachableFunctionNameT.
-                        case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLoc), templateArgs, params)), returnType)))) => {
+                        case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName), templateArgs, params)), returnType)))) => {
                           val prototype =
                             PrototypeT(
                               IdT(packageCoord, initSteps,
-                                interner.intern(ReachableFunctionNameT(
-                                  interner.intern(ReachableFunctionTemplateNameT(humanName)), templateArgs, params))),
+                                interner.intern(FunctionBoundNameT(
+                                  interner.intern(FunctionBoundTemplateNameT(humanName)), templateArgs, params))),
                               returnType)
-                          rune -> substituter.substituteForPrototype[ReachableFunctionNameT](state, prototype)
+                          rune -> substituter.substituteForPrototype[FunctionBoundNameT](state, prototype)
                         }
                       })
                       .toMap
@@ -525,7 +525,7 @@ class InferCompiler(
   def importConclusionsAndReachableBounds(
       originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-      reachableBounds: Map[IRuneS, InstantiationReachableBoundArgumentsT[ReachableFunctionNameT]]):
+      reachableBounds: Map[IRuneS, InstantiationReachableBoundArgumentsT[FunctionBoundNameT]]):
   GeneralEnvironmentT[INameT] = {
     // If this is the original calling env, in other words, if we're the original caller for
     // this particular solve, then lets add all of our templatas to the environment.
@@ -552,8 +552,8 @@ class InferCompiler(
     contextRegion: RegionT,
     rules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-    reachableBounds: Map[IRuneS, InstantiationReachableBoundArgumentsT[ReachableFunctionNameT]]):
-  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT], IConclusionResolveError] = {
+    reachableBounds: Map[IRuneS, InstantiationReachableBoundArgumentsT[FunctionBoundNameT]]):
+  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
     // Check all template calls
     rules.foreach({
       case r@CallSR(_, _, _, _) => {

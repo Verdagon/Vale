@@ -591,60 +591,48 @@ class OverloadResolver(
         case (a, b) => a.intersect(b)
       })
 
-    val (normalIndicesAndCandidates, boundIndicesAndCandidates, reachableIndicesAndCandidates, caseIndicesAndCandidates) =
+    val (normalIndicesAndCandidates, boundIndicesAndCandidates) =
       survivingBannerIndices
           .map(i => i -> banners(i))
-          .foldLeft((List[(Int, PrototypeT[IFunctionNameT])](), List[(Int, PrototypeT[FunctionBoundNameT])](), List[(Int, PrototypeT[ReachableFunctionNameT])](), List[(Int, PrototypeT[CaseFunctionFromImplNameT])]()))({
-            case ((normalCandidates, boundCandidates, reachableCandidates, caseIndicesAndCandidates), (index, thisCandidate)) => {
+          .foldLeft((List[(Int, PrototypeT[IFunctionNameT])](), List[(Int, PrototypeT[FunctionBoundNameT])]()))({
+            case ((normalCandidates, boundCandidates), (index, thisCandidate)) => {
               thisCandidate match {
                 case PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType) => {
                   val thisBoundCandidate = PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType)
-                  (normalCandidates, (index -> thisBoundCandidate) :: boundCandidates, reachableCandidates, caseIndicesAndCandidates)
-                }
-                case PrototypeT(IdT(packageCoord, initSteps, ReachableFunctionNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType) => {
-                  val thisReachableCandidate = PrototypeT(IdT(packageCoord, initSteps, ReachableFunctionNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType)
-                  (normalCandidates, boundCandidates, (index -> thisReachableCandidate) :: reachableCandidates, caseIndicesAndCandidates)
-                }
-                case PrototypeT(IdT(packageCoord, initSteps, CaseFunctionFromImplNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType) => {
-                  val thisReachableCandidate = PrototypeT(IdT(packageCoord, initSteps, CaseFunctionFromImplNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType)
-                  (normalCandidates, boundCandidates, reachableCandidates, (index -> thisReachableCandidate) :: caseIndicesAndCandidates)
+                  (normalCandidates, (index -> thisBoundCandidate) :: boundCandidates)
                 }
                 case other => {
-                  ((index -> other) :: normalCandidates, boundCandidates, reachableCandidates, caseIndicesAndCandidates)
+                  ((index -> other) :: normalCandidates, boundCandidates)
                 }
               }
             }
           })
 
     // DO NOT SUBMIT r
-    val dedupedCandidateIndices =
-      if (normalIndicesAndCandidates.nonEmpty) {
-        normalIndicesAndCandidates.map(_._1)
-      } else if (boundIndicesAndCandidates.nonEmpty) {
-        boundIndicesAndCandidates.map(_._1)
-      } else if (reachableIndicesAndCandidates.nonEmpty) {
-        reachableIndicesAndCandidates.map(_._1)
-      } else if (caseIndicesAndCandidates.nonEmpty) {
-        caseIndicesAndCandidates.map(_._1)
-      } else {
-        Vector()
-      }
-
-
     val finalBannerIndex =
-      if (dedupedCandidateIndices.size == 0) {
-        // This can happen if the parameters don't agree who the best
-        // candidates are.
-        vfail("No candidate is a clear winner!")
-      } else if (dedupedCandidateIndices.size == 1) {
-        dedupedCandidateIndices.head
-      } else {
-        val duplicateBanners = dedupedCandidateIndices.map(banners)
+      if (normalIndicesAndCandidates.size > 1) {
+        val duplicateBanners = normalIndicesAndCandidates.map(_._2)
         throw CompileErrorExceptionT(
           CouldntNarrowDownCandidates(
             callRange,
             vimpl()))
-//            duplicateBanners.map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
+        //            duplicateBanners.map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
+      } else if (normalIndicesAndCandidates.size == 1) {
+        normalIndicesAndCandidates.head._1
+      } else if (boundIndicesAndCandidates.nonEmpty) {
+        val sortedByNameLength = boundIndicesAndCandidates.sortBy(_._2.id.steps.length)
+        val (shortestCandidateIndex, shortestCandidate) = sortedByNameLength.head
+        sortedByNameLength.tail.foreach(otherCandidate => {
+          vassert(otherCandidate._2.id.initSteps.startsWith(shortestCandidate.id.initSteps))
+//          val duplicateBanners = normalIndicesAndCandidates.map(_._2)
+//          throw CompileErrorExceptionT(
+//            CouldntNarrowDownCandidates(
+//              callRange,
+//              vimpl()))
+        })
+        shortestCandidateIndex
+      } else {
+        vfail("No candidate is a clear winner!")
       }
 
     val rejectedBanners =

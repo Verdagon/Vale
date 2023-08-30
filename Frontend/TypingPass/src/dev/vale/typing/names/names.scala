@@ -19,9 +19,6 @@ case class IdT[+T <: INameT](
   localName: T
 )  {
   this match {
-    case IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(_,Vector(),ImplTemplateNameT(_)))),CaseFunctionFromImplNameT(CaseFunctionFromImplTemplateNameT(StrI("drop"),ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1))),ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 4)))),Vector(),Vector(CoordT(own,RegionT(),KindPlaceholderT(IdT(_,Vector(InterfaceTemplateNameT(StrI("XOpt")), FunctionTemplateNameT(StrI("harvest"),_), OverrideDispatcherTemplateNameT(IdT(_,Vector(),ImplTemplateNameT(_)))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,DispatcherRuneFromImplS(CodeRuneS(StrI("T"))))))))))) => {
-      vpass()
-    }
     case _ =>
   }
 
@@ -371,7 +368,8 @@ case class ForwarderFunctionNameT(
 
 case class FunctionBoundTemplateNameT(
   humanName: StrI,
-  codeLocation: CodeLocationS
+    // Removed this because everything is a function bound now. DO NOT SUBMIT
+//  codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {
@@ -379,49 +377,36 @@ case class FunctionBoundTemplateNameT(
   }
 }
 
+// We tried splitting this out into a ReachableFunctionNameT, so each function could
+// keep separate its direct instantiation bound params (e.g. where func drop(T)void on
+// the function itself) as opposed to its indirect instantiation bound params (ones
+// declared on the params' kind struct/interfaces' definitions).
+// It turns out, we can still do that, without having a
+// FunctionBoundNameT/ReachableFunctionNameT distinction.
+// We keep them in different fields of the InstantiationBoundArgumentsT.
+//
+// The reason we combined them all to have one name, FunctionBoundNameT, is because
+// these bounds can come from a lot of different places. For example, in the override
+// dispatcher function, we resolve the impl, and in doing so, we resolve its subcitizen
+// and the superinterface. We did a substitution to phrase those in terms of the override
+// dispatcher's placeholders (IOW, bring them into the override dispatcher's perspective)
+// but in doing that substitution, we translated the instantiation bound arguments as
+// ReachableFunctionNameT. That later conflicted with when the override dispatcher
+// instantiated the interface directly, and the interface directly used on of the bounds
+// from the virtual function, a FunctionBoundNameT. Uh oh, that means we've registered
+// the same interface with different instantiation bound args. Assertion tripped in
+// addInstantiationBounds.
+//
+// The moral of the story is that we can get bounds from anywhere, and making their names
+// line up so that every instantiation is calling the right bound from the environment
+// is pretty difficult.
+//
+// DO NOT SUBMIT consider putting this into doc
 case class FunctionBoundNameT(
   template: FunctionBoundTemplateNameT,
   templateArgs: Vector[ITemplataT[ITemplataType]],
   parameters: Vector[CoordT]
 ) extends IFunctionNameT
-
-case class ReachableFunctionTemplateNameT(
-    humanName: StrI,
-    // DO NOT SUBMIT talk about why we dont have these. we want them to merge.
-    // reachableViaCitizen: ICitizenTT,
-    // runeInCitizen: IRuneS,
-) extends INameT with IFunctionTemplateNameT {
-  vpass()
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): ReachableFunctionNameT = {
-    interner.intern(ReachableFunctionNameT(this, templateArgs, params))
-  }
-}
-
-case class ReachableFunctionNameT(
-    template: ReachableFunctionTemplateNameT,
-    templateArgs: Vector[ITemplataT[ITemplataType]],
-    parameters: Vector[CoordT]
-) extends IFunctionNameT {
-  vpass()
-}
-
-case class CaseFunctionFromImplTemplateNameT(
-    humanName: StrI,
-    runeInImpl: IRuneS,
-    runeInCitizen: IRuneS
-) extends INameT with IFunctionTemplateNameT {
-  vpass()
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): CaseFunctionFromImplNameT = {
-    interner.intern(CaseFunctionFromImplNameT(this, templateArgs, params))
-  }
-}
-case class CaseFunctionFromImplNameT(
-    template: CaseFunctionFromImplTemplateNameT,
-    templateArgs: Vector[ITemplataT[ITemplataType]],
-    parameters: Vector[CoordT]
-) extends IFunctionNameT {
-  vpass()
-}
 
 // DO NOT SUBMIT doc
 case class PredictedFunctionTemplateNameT(

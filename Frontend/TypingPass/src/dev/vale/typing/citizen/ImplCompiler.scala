@@ -286,7 +286,7 @@ class ImplCompiler(
           subCitizen,
           superInterface,
           superInterfaceTemplateId,
-          InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT](
+          InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT](
             runeToNeededFunctionBound,
             reachableBoundsFromSubCitizen,
             runeToNeededImplBound),

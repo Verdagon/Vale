@@ -86,7 +86,7 @@ trait IDefineFunctionResult
 case class DefineFunctionSuccess(
     prototype: PrototypeTemplataT[IFunctionNameT],
     inferences: Map[IRuneS, ITemplataT[ITemplataType]],
-    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT]
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT]
 ) extends IDefineFunctionResult
 
 case class DefineFunctionFailure(

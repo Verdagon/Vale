@@ -379,7 +379,7 @@ class Compiler(
         PrototypeTemplataT[IFunctionNameT] = {
           PrototypeTemplataT(
             PrototypeT(
-              envs.selfEnv.id.addStep(
+              envs.originalCallingEnv.id.addStep(
                 interner.intern(
                   FunctionNameT(
                     interner.intern(FunctionTemplateNameT(name, functionRange.begin)),
@@ -398,9 +398,9 @@ class Compiler(
         PrototypeT[IFunctionNameT] = {
           val result =
             PrototypeT(
-              envs.selfEnv.id.addStep(
+              envs.originalCallingEnv.id.addStep(
                 interner.intern(FunctionBoundNameT(
-                  interner.intern(FunctionBoundTemplateNameT(name, range.begin)), Vector(), coords))),
+                  interner.intern(FunctionBoundTemplateNameT(name)), Vector(), coords))),
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
@@ -412,7 +412,7 @@ class Compiler(
         override def assembleImpl(env: InferEnv, range: RangeS, subKind: KindT, superKind: KindT): IsaTemplataT = {
           IsaTemplataT(
             range,
-            env.selfEnv.id.addStep(
+            env.originalCallingEnv.id.addStep(
               interner.intern(
                 ImplBoundNameT(
                   interner.intern(ImplBoundTemplateNameT(range.begin)),

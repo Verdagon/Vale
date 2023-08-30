@@ -16,6 +16,7 @@ case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
   citizenRuneToReachablePrototype: Map[IRuneS, PrototypeT[R]]
 )
 
+// DO NOT SUBMIT BF and RF are redundant now
 case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
   // DO NOT SUBMIT doc
   runeToBoundPrototype: Map[IRuneS, PrototypeT[BF]],

@@ -25,7 +25,7 @@ import scala.collection.immutable.{List, Map, Set}
 sealed trait IBoundArgumentsSource
 case object InheritBoundsFromTypeItself extends IBoundArgumentsSource
 case class UseBoundsFromContainer(
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
   instantiationBoundArguments: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]
 ) extends IBoundArgumentsSource
 
@@ -666,7 +666,7 @@ object TemplataCompiler {
 
     val perhapsImportedId =
       tentativeId.localName match {
-        case n @ (FunctionBoundNameT(_, _, _) | ReachableFunctionNameT(_, _, _) | CaseFunctionFromImplNameT(_, _, _)) => {
+        case n @ (FunctionBoundNameT(_, _, _) | FunctionBoundNameT(_, _, _) | FunctionBoundNameT(_, _, _)) => {
           val importedId =
              if (impoort) {
                originalCallingDenizenId.addStep(n)
@@ -867,8 +867,8 @@ object TemplataCompiler {
           .templatas
           .entriesByNameT
           .collect({
-            case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLoc), templateArgs, params)), returnType)))) => {
-              val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(interner.intern(FunctionBoundTemplateNameT(humanName, codeLoc)), templateArgs, params))), returnType)
+            case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName), templateArgs, params)), returnType)))) => {
+              val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(interner.intern(FunctionBoundTemplateNameT(humanName)), templateArgs, params))), returnType)
               rune -> substituter.substituteForPrototype(coutputs, prototype)
             }
           })
