@@ -449,7 +449,7 @@ class EdgeCompiler(
                     val dispatcherPlaceholderedPrototype =
                       substituter.substituteForPrototype[FunctionBoundNameT](coutputs, subCitizenPlaceholderedPrototype)
                     val prototypeTemplata = PrototypeTemplataT[FunctionBoundNameT](dispatcherPlaceholderedPrototype)
-                    prototypeTemplata
+                    (runeInImpl, runeInCitizen, prototypeTemplata)
                   }
                 })
           })
@@ -459,7 +459,7 @@ class EdgeCompiler(
         dispatcherInnerEnv,
         dispatcherInnerEnv.templateId,
         dispatcherInnerEnv.id,
-        casePlaceholderedReachablePrototypesFromImpl.zipWithIndex.map({ case (dispatcherPlaceholderedReachablePrototype, index) =>
+        casePlaceholderedReachablePrototypesFromImpl.zipWithIndex.map({ case ((_, _, dispatcherPlaceholderedReachablePrototype), index) =>
           interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(dispatcherPlaceholderedReachablePrototype)
         }).toVector)
     // Above we did a partial solve, but now we've conjured the bounds that should make the sub citizen work, so let's
@@ -570,7 +570,9 @@ class EdgeCompiler(
       // implRuneToDispatcherBoundPrototype,
       implPlaceholderToDispatcherPlaceholder.toVector,
       implIndependentPlaceholderToCasePlaceholder.toVector,
-      casePlaceholderedReachablePrototypesFromImpl.map(_.prototype).toVector,
+      casePlaceholderedReachablePrototypesFromImpl
+          .groupBy(_._1)
+          .mapValues(_.map({ case (_, a, b) => (a, b.prototype) }).toMap),
       // dispatcherCasePlaceholderedSubCitizen,
       // dispatcherAndCasePlaceholderedInstantiationBoundArgs,
       dispatcherCaseEnv.id,

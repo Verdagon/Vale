@@ -152,8 +152,7 @@ case class CompilerOutputs() {
     val InstantiationBoundArgumentsT(
     runeToBoundPrototype,
     runeToCitizenRuneToReachablePrototype,
-    runeToBoundImpl) =
-      instantiationBoundArgs
+    runeToBoundImpl) = instantiationBoundArgs
 
     instantiationId match {
       case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("Bork"),_),Vector(CoordTemplataT(CoordT(_,RegionT(),IntT(32)))),Vector(CoordT(_,RegionT(),IntT(32))))) => {

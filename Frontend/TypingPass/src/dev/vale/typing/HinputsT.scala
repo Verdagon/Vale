@@ -21,7 +21,9 @@ case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNam
   // DO NOT SUBMIT doc
   runeToBoundPrototype: Map[IRuneS, PrototypeT[BF]],
   runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
-  runeToBoundImpl: Map[IRuneS, IdT[BI]])
+  runeToBoundImpl: Map[IRuneS, IdT[BI]]) {
+  vassert(!runeToCitizenRuneToReachablePrototype.exists(_._2.citizenRuneToReachablePrototype.isEmpty))
+}
 
 case class HinputsT(
   interfaces: Vector[InterfaceDefinitionT],

@@ -28,8 +28,9 @@ case class DenizenBoundToDenizenCallerBoundArgS(
     ) = that
 
     DenizenBoundToDenizenCallerBoundArgS(
-      U.unionMapsExpectDisjoint(funcIdToBoundArgPrototype, thatFuncIdToBoundArgPrototype),
-      U.unionMapsExpectDisjoint(boundParamImplIdToBoundArgImplId, thatBoundParamImplIdToBoundArgImplId))
+      U.unionMapsExpectNoConflict[IdT[FunctionBoundNameT], PrototypeI[sI]](funcIdToBoundArgPrototype, thatFuncIdToBoundArgPrototype, _==_),
+      U.unionMapsExpectNoConflict[IdT[ImplBoundNameT], IdI[sI, IImplNameI
+          [sI]]](boundParamImplIdToBoundArgImplId, thatBoundParamImplIdToBoundArgImplId, _==_))
   }
 }
 
@@ -645,20 +646,22 @@ class Instantiator(
     val boundParamToBoundArgFromImpl =
       // This is how the typing phase referred to the impl's bound prototypes.
       // We're making a map from those names to the actual prototypes the impl was instantiated with.
-      dispatcherPlaceholderedReachablePrototypes.map({ case prototypeT @ PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(_), _, _)), _) =>
-        val prototypeI =
-          vimpl()
-        strt here
-        // we need to find some way to look up the correct thing in implRuneToImplInstantiationBoundArgs.
-
-            //          vassertSome(
-//            vassertSome(
-//              implRuneToImplInstantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc
-//                .get(runeInImpl))
-//            .get(runeInCitizen))
-            prototypeT.id -> prototypeI
+      dispatcherPlaceholderedReachablePrototypes.toVector.flatMap({
+        case (runeInImpl, citizenRuneToBound) => {
+          citizenRuneToBound.toVector.map({
+            case (runeInCitizen, prototypeT@PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(_), _, _)), _)) => {
+              val prototypeI =
+                vassertSome(
+                  vassertSome(
+                    implRuneToImplInstantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc
+                        .get(runeInImpl))
+                      .get(runeInCitizen))
+              prototypeT.id -> prototypeI
+            }
+          })
+        }
       })
-          .toMap
+            .toMap
 
     val dispatcherInstantiationBoundParamsToArgs =
       // DO NOT SUBMIT this only works because the runes of the dispatcher line up with the runes of the abstract function.

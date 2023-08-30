@@ -410,7 +410,7 @@ class InferCompiler(
     val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
         runeToPrototype,
-        reachableBounds,
+        reachableBounds.filter(_._2.citizenRuneToReachablePrototype.nonEmpty),
         runeToImpl)
 
     Ok(CompleteResolveSolve(conclusions, instantiationBoundArgs))
@@ -605,7 +605,7 @@ class InferCompiler(
       vwat()
     }
 
-    Ok(InstantiationBoundArgumentsT(runeToPrototype, reachableBounds, runeToImpl))
+    Ok(InstantiationBoundArgumentsT(runeToPrototype, reachableBounds.filter(_._2.citizenRuneToReachablePrototype.nonEmpty), runeToImpl))
   }
 
   // Returns None for any call that we don't even have params for,

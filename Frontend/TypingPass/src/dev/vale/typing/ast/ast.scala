@@ -129,7 +129,7 @@ case class OverrideT(
 
   // These are the prototypes we'll pull from the impl's own bounds, and these CaseFunctionFromImplNameT names contain
   // the rune that the impl internally refers to them as.
-  casePlaceholderedReachablePrototypesFromImpl: Vector[PrototypeT[FunctionBoundNameT]],
+  casePlaceholderedReachablePrototypesFromImpl: Map[IRuneS, Map[IRuneS, PrototypeT[FunctionBoundNameT]]],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
