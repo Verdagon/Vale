@@ -22,6 +22,7 @@ import dev.vale.typing.templata._
 import scala.collection.mutable
 
 class StructDropMacro(
+  opts: TypingPassOptions,
   interner: Interner,
   keywords: Keywords,
   nameTranslator: NameTranslator,
@@ -195,6 +196,7 @@ class StructDropMacro(
                     case NormalStructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
                       val substituter =
                         TemplataCompiler.getPlaceholderSubstituter(
+                          opts.globalOptions.sanityCheck,
                           interner, keywords,
                           env.denizenTemplateId,
                           structTT.id,

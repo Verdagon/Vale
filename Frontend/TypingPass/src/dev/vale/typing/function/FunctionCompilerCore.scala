@@ -371,6 +371,7 @@ class FunctionCompilerCore(
         val externPrototype = PrototypeT[ExternFunctionNameT](externFunctionId, header.returnType)
 
         coutputs.addInstantiationBounds(
+          opts.globalOptions.sanityCheck,
           interner,
           env.templateId,
           externPrototype.id,

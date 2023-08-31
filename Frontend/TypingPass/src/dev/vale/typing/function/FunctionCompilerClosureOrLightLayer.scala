@@ -444,6 +444,7 @@ class FunctionCompilerClosureOrLightLayer(
     val closureStructDef = coutputs.lookupStruct(closureStructRef.id);
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
+        opts.globalOptions.sanityCheck,
         interner, keywords,
         originalCallingDenizenId,
         closureStructRef.id,

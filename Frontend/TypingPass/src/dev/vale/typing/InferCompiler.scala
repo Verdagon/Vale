@@ -339,7 +339,7 @@ class InferCompiler(
           .toMap
           .mapValues(citizen => {
             InstantiationReachableBoundArgumentsT(
-              TemplataCompiler.getReachableBounds(interner, keywords, envs.originalCallingEnv.denizenTemplateId, state, citizen)
+              TemplataCompiler.getReachableBounds(opts.globalOptions.sanityCheck, interner, keywords, envs.originalCallingEnv.denizenTemplateId, state, citizen)
                   .citizenRuneToReachablePrototype.map({ case (citizenRune, callerPlaceholderedCitizenBound) =>
                 // If foo<T> is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop bound, then
                 // callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
@@ -469,6 +469,7 @@ class InferCompiler(
                   val innerEnv = state.getInnerEnvForType(templateId)
                   val substituter =
                     TemplataCompiler.getPlaceholderSubstituter(
+                      opts.globalOptions.sanityCheck,
                       interner, keywords,
                       envs.originalCallingEnv.denizenTemplateId,
                       id,

@@ -285,6 +285,7 @@ object StructCompiler {
   }
 
   def getMutability(
+    sanityCheck: Boolean,
     interner: Interner,
     keywords: Keywords,
     coutputs: CompilerOutputs,
@@ -296,6 +297,7 @@ object StructCompiler {
     val definition = coutputs.lookupStruct(structTT.id)
     val transformer =
       TemplataCompiler.getPlaceholderSubstituter(
+        sanityCheck,
         interner, keywords,
         originalCallingDenizenId,
         structTT.id, boundArgumentsSource)

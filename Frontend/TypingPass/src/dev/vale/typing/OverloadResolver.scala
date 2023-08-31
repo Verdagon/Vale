@@ -389,6 +389,7 @@ class OverloadResolver(
         // We get here if we're considering a function that's being passed in as a bound.
         val substituter =
           TemplataCompiler.getPlaceholderSubstituter(
+            opts.globalOptions.sanityCheck,
             interner,
             keywords,
             callingEnv.denizenTemplateId,

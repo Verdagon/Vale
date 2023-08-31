@@ -596,7 +596,7 @@ object CompilerErrorHumanizer {
         humanizeId(codeMap, header.id)
       }
       case PrototypeTemplataCalleeCandidate(prototypeT) => {
-        val begin = vimpl()//lineRangeContaining(range.begin).begin DO NOT SUBMIT X
+        val begin = vimpl()//lineRangeContaining(range.begin).begin DO NOT SUBMIT errs
         codeMap(begin) + ":\n" +
           lineRangeContaining(begin).begin + "\n"
       }

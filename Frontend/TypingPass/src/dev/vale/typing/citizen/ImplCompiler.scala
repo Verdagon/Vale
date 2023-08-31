@@ -671,6 +671,7 @@ class ImplCompiler(
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
         coutputs.addInstantiationBounds(
+          opts.globalOptions.sanityCheck,
           interner,
           callingEnv.denizenTemplateId,
           impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
@@ -703,6 +704,7 @@ class ImplCompiler(
             nameTranslator.translateImplName(implTemplata.impl.name))
         val instantiatedId = assembleImplName(implTemplateId, templateArgs, subKindTT.expectCitizen())
         coutputs.addInstantiationBounds(
+          opts.globalOptions.sanityCheck,
           interner, callingEnv.rootCompilingDenizenEnv.denizenTemplateId,
           instantiatedId, runeToSuppliedFunction)
         IsParent(implTemplata, conclusions, instantiatedId)

@@ -404,7 +404,8 @@ class Compiler(
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
-          state.addInstantiationBounds(interner, envs.originalCallingEnv.denizenTemplateId, result.id, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+          state.addInstantiationBounds(
+            opts.globalOptions.sanityCheck, interner, envs.originalCallingEnv.denizenTemplateId, result.id, InstantiationBoundArgumentsT(Map(), Map(), Map()))
 
           result
         }
@@ -693,11 +694,11 @@ class Compiler(
         }
       })
 
-  val edgeCompiler = new EdgeCompiler(interner, keywords, functionCompiler, overloadResolver, implCompiler)
+  val edgeCompiler = new EdgeCompiler(opts, interner, keywords, functionCompiler, overloadResolver, implCompiler)
 
   val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator, destructorCompiler)
-  val structDropMacro = new StructDropMacro(interner, keywords, nameTranslator, destructorCompiler)
+  val structDropMacro = new StructDropMacro(opts, interner, keywords, nameTranslator, destructorCompiler)
 //  val structFreeMacro = new StructFreeMacro(interner, keywords, nameTranslator, destructorCompiler)
 //  val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, nameTranslator)
   val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler, destructorCompiler)
@@ -1067,6 +1068,7 @@ class Compiler(
                       // Though, we do need to add some instantiation bounds for this new IdT we
                       // just made.
                       coutputs.addInstantiationBounds(
+                        opts.globalOptions.sanityCheck,
                         interner,
                         templateId,
                         externPrototype.id,
@@ -1454,6 +1456,7 @@ class Compiler(
 
             val substituter =
               TemplataCompiler.getPlaceholderSubstituter(
+                opts.globalOptions.sanityCheck,
                 interner,
                 keywords,
                 structDef.templateName,

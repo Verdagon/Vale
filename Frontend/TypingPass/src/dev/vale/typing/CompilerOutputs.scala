@@ -144,7 +144,8 @@ case class CompilerOutputs() {
   }
 
   def addInstantiationBounds(
-    interner: Interner, // DO NOT SUBMIT X take this out
+    sanityCheck: Boolean,
+    interner: Interner,
     originalCallingTemplateId: IdT[ITemplateNameT],
     instantiationId: IdT[IInstantiationNameT],
     instantiationBoundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT]):
@@ -167,39 +168,8 @@ case class CompilerOutputs() {
       case _ =>
     }
 
-    // // We do this so that there's no random selection of where we get a particular bound from. Keeps things nice and
-    // // consistent so we dont run into any more oddities downstream. DO NOT SUBMIT X
-    // runeToCitizenRuneToReachablePrototype.foreach({ case (callerRUne, reachableBoundArgs) =>
-    //   val InstantiationReachableBoundArgumentsT(citizenAndRuneAndReachablePrototypes) =
-    //     reachableBoundArgs
-    //   citizenAndRuneAndReachablePrototypes.foreach({
-    //     case (calleeRune, reachablePrototype) => {
-    //       val reachableFuncSuperTemplateIdInitSteps =
-    //         TemplataCompiler.getSuperTemplate(reachablePrototype.prototype.id).initSteps
-    //       val originalCallingSuperTemplateIdInitSteps =
-    //         TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
-    //       vassert(reachableFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
-    //     }
-    //   })
-    // })
-    // runeToBoundPrototype.foreach({ case (rune, callerBoundArgFunction) =>
-    //   callerBoundArgFunction.prototype.id.localName match {
-    //     case FunctionBoundNameT(_, _, _) => {
-    //       // DO NOT SUBMIT X wrap in sanity check
-    //       val callerBoundArgFuncSuperTemplateIdInitSteps =
-    //         TemplataCompiler.getSuperTemplate(callerBoundArgFunction.prototype.id).initSteps
-    //       val originalCallingSuperTemplateIdInitSteps =
-    //         TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
-    //       vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
-    //     }
-    //     case _ =>
-    //   }
-    // })
-    // // DO NOT SUBMIT X shouldnt we have asserts for the impls too
-
-
-    // We do this so that there's no random selection of where we get a particular bound from. Keeps things nice and
-    // consistent so we dont run into any more oddities downstream. DO NOT SUBMIT X
+    // We do this so that there's no random selection of where we get a particular bound from, see MFBFDP.
+    // Keeps things nice and consistent so we dont run into any oddities with the overload index.
     runeToCitizenRuneToReachablePrototype.foreach({ case (callerRUne, reachableBoundArgs) =>
       val InstantiationReachableBoundArgumentsT(citizenAndRuneAndReachablePrototypes) =
         reachableBoundArgs
@@ -218,33 +188,37 @@ case class CompilerOutputs() {
         }
       })
     })
-    // If we're instantiating with a bound, then make sure that it's one that comes from our root compiling denizen env.
+    // If we're instantiating with a bound, then make sure that it's one that comes from our root compiling denizen env;
+    // make sure we imported it correctly, see MFBFDP.
     // That'll help ensure that we're not doing anything tricky, and ensure we don't trigger any mismatches below.
     runeToBoundPrototype.foreach({ case (rune, callerBoundArgFunction) =>
       callerBoundArgFunction.id.localName match {
         case FunctionBoundNameT(_, _, _) => {
-          vassert({
+          if (sanityCheck) {
             val callerBoundArgFuncSuperTemplateIdInitSteps =
               TemplataCompiler.getSuperTemplate(callerBoundArgFunction.id).initSteps
             val originalCallingSuperTemplateIdInitSteps =
               TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
             vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
-          })
+          }
         }
         case _ =>
       }
     })
     // DO NOT SUBMIT X shouldnt we have asserts for the impls too
 
-    // DO NOT SUBMIT X
-    Collector.all(instantiationId, {
-      case id @ IdT(_, initSteps, KindPlaceholderNameT(_)) => {
-        val x: IdT[INameT] = id
-        vassert(
-          TemplataCompiler.getSuperTemplate(x).initSteps
-              .startsWith(TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps))
-      }
-    })
+    // If there are any placeholders in the thing we're calling, make sure they're from the original calling template,
+    // otherwise we probably forgot to do a substitution or something.
+    if (sanityCheck) {
+      Collector.all(instantiationId, {
+        case id@IdT(_, initSteps, KindPlaceholderNameT(_)) => {
+          val x: IdT[INameT] = id
+          vassert(
+            TemplataCompiler.getSuperTemplate(x).initSteps
+                .startsWith(TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps))
+        }
+      })
+    }
 
     // We'll do this when we can cache instantiations from StructTemplar etc.
     // // We should only add instantiation bounds in exactly one place: the place that makes the
@@ -252,13 +226,11 @@ case class CompilerOutputs() {
     // vassert(!instantiationNameToInstantiationBounds.contains(instantiationFullName))
     instantiationNameToInstantiationBounds.get(instantiationId) match {
       case Some(existing) => {
-        // Make Sure Bound Args Match For Instantiation (MSBAMFI)
         // Theres some ambiguities or something here. sometimes when we evaluate
         // the same thing twice we get different results.
         // It's gonna be especially tricky because we get each function bounds from the overload
-        // resolver which only returns one. We might need to make it not arbitrarily choose a
-        // function to call. Perhaps it should tiebreak and choose the first bound that works.
-        // DO NOT SUBMIT X
+        // resolver which only returns one.
+        // We avoid this by merging all sorts of function bounds, see MFBFDP.
         vassert(existing == instantiationBoundArgs)
       }
       case None =>

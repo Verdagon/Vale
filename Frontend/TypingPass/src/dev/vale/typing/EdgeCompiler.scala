@@ -32,6 +32,7 @@ case class PartialEdgeT(
   methods: Vector[IMethod]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 class EdgeCompiler(
+    opts: TypingPassOptions,
     interner: Interner,
     keywords: Keywords,
     functionCompiler: FunctionCompiler,
@@ -307,6 +308,7 @@ class EdgeCompiler(
       expectKindTemplata(
         TemplataCompiler.substituteTemplatasInKind(
           coutputs,
+          opts.globalOptions.sanityCheck,
           interner,
           keywords,
           dispatcherTemplateId,
@@ -429,6 +431,7 @@ class EdgeCompiler(
             // We'll use this to interpret the things that are inside the citizen's env, to be in terms of our own placeholders and stuff.
             val substituter =
               TemplataCompiler.getPlaceholderSubstituter(
+                opts.globalOptions.sanityCheck,
                 interner, keywords, dispatcherTemplateId, citizenId, InheritBoundsFromTypeItself)
             val citizenInnerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
             citizenInnerEnv

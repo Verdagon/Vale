@@ -1669,7 +1669,7 @@ Previously, we would introduce those bounds into `myFunc`'s environment:
  * func A.bound:drop:my.vale:1:18($myFunc.T)void
  * func B.bound:drop:my.vale:2:18($myFunc.T)void
 
-However, this led to some ambiguity when the typing phase was registering instantiation bounds. Sometimes it would choose that first one, sometimes it would choose that second one.
+However, this led to some ambiguity when the typing phase was registering instantiation bounds. Sometimes it would choose that first one, sometimes it would choose that second one. We don't want that because that could lead to confusion in the instantiator, and also probably the overload index.
 
 We tried making it so there was a clear order when doing overload resolution, so that the overload resolver would choose deterministically, but the problem was when we did substitutions. For example, in the overload dispatcher function, when we tried to grab the subcitizen or superinterface out of the impl, we substituted the dispatcher function's placeholders in. In doing that, we also substituted those placeholders into the bounds that it had registered. Those didn't agree with the abstract param's interface's instantiation bounds.
 
@@ -1690,3 +1690,9 @@ We keep them in different fields of the InstantiationBoundArgumentsT.
 The reason we combined them all to have one name, FunctionBoundNameT, is because these bounds can come from a lot of different places. For example, in the override dispatcher function, we resolve the impl, and in doing so, we resolve its subcitizen and the superinterface. We did a substitution to phrase those in terms of the override dispatcher's placeholders (IOW, bring them into the override dispatcher's perspective) but in doing that substitution, we translated the instantiation bound arguments as ReachableFunctionNameT. That later conflicted with when the override dispatcher instantiated the interface directly, and the interface directly used on of the bounds from the virtual function, a FunctionBoundNameT. Uh oh, that means we've registered the same interface with different instantiation bound args. Assertion tripped in addInstantiationBounds.
 
 The moral of the story is that we can get bounds from anywhere, and making their names line up so that every instantiation is calling the right bound from the environment is pretty difficult.
+
+
+# Instantiation Bound Args Match Instantiation Bound Params (IBAMIBP)
+
+DO NOT SUBMIT doc
+

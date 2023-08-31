@@ -339,6 +339,7 @@ class ExpressionCompiler(
     val closureStructDef = coutputs.lookupStruct(closureStructRef.id);
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
+        opts.globalOptions.sanityCheck,
         interner, keywords,
         nenv.functionEnvironment.templateId,
         closureStructRef.id,
@@ -809,6 +810,7 @@ class ExpressionCompiler(
                 val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
                 val memberType =
                   TemplataCompiler.getPlaceholderSubstituter(
+                    opts.globalOptions.sanityCheck,
                     interner, keywords,
                     nenv.functionEnvironment.templateId,
                     structTT.id,
@@ -1392,6 +1394,7 @@ class ExpressionCompiler(
                 val structDef = coutputs.lookupStruct(structTT.id)
                 val substituter =
                   TemplataCompiler.getPlaceholderSubstituter(
+                    opts.globalOptions.sanityCheck,
                     interner, keywords,
                     nenv.functionEnvironment.templateId,
                     structTT.id,

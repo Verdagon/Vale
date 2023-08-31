@@ -481,6 +481,7 @@ class PatternCompiler(
 
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
+        opts.globalOptions.sanityCheck,
         interner,
         keywords,
         nenv.functionEnvironment.templateId,
@@ -588,6 +589,7 @@ class PatternCompiler(
       }
     val memberType =
       TemplataCompiler.getPlaceholderSubstituter(
+        opts.globalOptions.sanityCheck,
         interner,
         keywords,
         env.denizenTemplateId,

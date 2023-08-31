@@ -106,6 +106,7 @@ class FunctionCompilerSolvingLayer(
         }),
         instantiationBoundParams.runeToBoundImpl)
     coutputs.addInstantiationBounds(
+      opts.globalOptions.sanityCheck,
       interner, outerEnv.denizenTemplateId,
       header.id, instantiationBoundArgs)
     EvaluateFunctionSuccess(PrototypeTemplataT(header.toPrototype), inferredTemplatas, instantiationBoundArgs)
@@ -171,6 +172,7 @@ class FunctionCompilerSolvingLayer(
         }),
         instantiationBoundParams.runeToBoundImpl)
     coutputs.addInstantiationBounds(
+      opts.globalOptions.sanityCheck,
       interner, originalCallingEnv.denizenTemplateId,
       prototype.prototype.id, instantiationBoundArgs)
     EvaluateFunctionSuccess(prototype, inferredTemplatas, instantiationBoundArgs)
@@ -239,6 +241,7 @@ class FunctionCompilerSolvingLayer(
         }),
         instantiationBoundParams.runeToBoundImpl)
     coutputs.addInstantiationBounds(
+      opts.globalOptions.sanityCheck,
       interner, originalCallingEnv.denizenTemplateId,
       prototypeTemplata.prototype.id, instantiationBoundArgs)
     EvaluateFunctionSuccess(prototypeTemplata, inferences, instantiationBoundArgs)
@@ -408,6 +411,7 @@ class FunctionCompilerSolvingLayer(
         runedEnv, coutputs, callRange, function)
 
     coutputs.addInstantiationBounds(
+      opts.globalOptions.sanityCheck,
       interner, callingEnv.rootCompilingDenizenEnv.denizenTemplateId,
       prototype.id, runeToFunctionBound)
 
