@@ -16,11 +16,11 @@ case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
   citizenRuneToReachablePrototype: Map[IRuneS, PrototypeT[R]]
 )
 
-// DO NOT SUBMIT BF and RF are redundant now
-case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, RF <: IFunctionNameT, BI <: IImplNameT](
+case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, BI <: IImplNameT](
   // DO NOT SUBMIT doc
   runeToBoundPrototype: Map[IRuneS, PrototypeT[BF]],
-  runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[RF]],
+  // See TIBANFC, these are translated. DO NOT SUBMIT whats this talking about
+  runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[BF]],
   runeToBoundImpl: Map[IRuneS, IdT[BI]]) {
   vassert(!runeToCitizenRuneToReachablePrototype.exists(_._2.citizenRuneToReachablePrototype.isEmpty))
 }
@@ -37,7 +37,7 @@ case class HinputsT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[IdT[IInterfaceNameT], Map[IdT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]],
+  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT]],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -82,7 +82,7 @@ case class HinputsT(
     vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implId))
   }
 
-  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT] = {
+  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT] = {
     vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 

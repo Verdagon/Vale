@@ -335,10 +335,8 @@ case class StringTemplataT(value: String) extends ITemplataT[StringTemplataType]
   override def tyype: StringTemplataType = StringTemplataType()
 }
 case class PrototypeTemplataT[+T <: IFunctionNameT](
-    // Removed this because it foiled how we try to import reachable bounds into the calling env. DO NOT SUBMIT
-    // Actually, leaving it in because I think we can manually overwrite the reachable bound prototype range in the substitute logic.
-    // Actually, taking it out because that's not as super simple as I thought. Besides, both have the same problem of not knowing where they came from.
-    // declarationRange: RangeS,
+    // Removed this because we want to merge different bound functions from different places, see MFBFDP.
+    //   declarationRange: RangeS,
     prototype: PrototypeT[T]
 ) extends ITemplataT[PrototypeTemplataType] {
   vpass()

@@ -276,21 +276,20 @@ class ImplCompiler(
       calculateRunesIndependence(coutputs, callLocation, implTemplata, implOuterEnv, superInterface)
 
     val implT =
-      interner.intern(
-        ImplT(
-          implTemplata,
-          //implOuterEnv,
-          instantiatedId,
-          implTemplateId,
-          subCitizenTemplateId,
-          subCitizen,
-          superInterface,
-          superInterfaceTemplateId,
-          InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT](
-            runeToNeededFunctionBound,
-            reachableBoundsFromSubCitizen,
-            runeToNeededImplBound),
-          runeIndexToIndependence.toVector))
+      ImplT(
+        implTemplata,
+        //implOuterEnv,
+        instantiatedId,
+        implTemplateId,
+        subCitizenTemplateId,
+        subCitizen,
+        superInterface,
+        superInterfaceTemplateId,
+        InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](
+          runeToNeededFunctionBound,
+          reachableBoundsFromSubCitizen,
+          runeToNeededImplBound),
+        runeIndexToIndependence.toVector)
     coutputs.declareType(implTemplateId)
     coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)
     coutputs.declareTypeInnerEnv(implTemplateId, implInnerEnv)

@@ -419,7 +419,7 @@ class Instantiator(
   }
 
   def assembleInstantiationBoundParamToArg(
-      instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
+      instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
       instantiationBoundArgs: InstantiationBoundArgumentsI): DenizenBoundToDenizenCallerBoundArgS = {
     vassert(instantiationBoundArgs.runeToFunctionBoundArg.size == instantiationBoundParams.runeToBoundPrototype.size)
     vassert(
@@ -664,7 +664,7 @@ class Instantiator(
             .toMap
 
     val dispatcherInstantiationBoundParamsToArgs =
-      // DO NOT SUBMIT this only works because the runes of the dispatcher line up with the runes of the abstract function.
+      // DO NOT SUBMIT X this only works because the runes of the dispatcher line up with the runes of the abstract function.
       // which isnt really a coincidence, and kind of makes sense.
       assembleInstantiationBoundParamToArg(
         dispatcherInstantiationBoundParams,
@@ -679,7 +679,7 @@ class Instantiator(
 //              Map(),
               Map()))
 
-    // DO NOT SUBMIT simplify these
+    // DO NOT SUBMIT X simplify these
     val dispatcherPlaceholderIdToSuppliedTemplata =
       dispatcherIdT.localName.templateArgs
         .map(dispatcherPlaceholderTemplata => {
@@ -1418,7 +1418,7 @@ class Instantiator(
     // This contains a map from rune to a prototype, specifically the prototype that we
     // (the *template* caller) is supplying to the *template* callee. This prototype might
     // be a placeholder, phrased in terms of our (the *template* caller's) placeholders
-    instantiationBoundArgsForCallUnsubstituted: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]):
+    instantiationBoundArgsForCallUnsubstituted: InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT]):
   InstantiationBoundArgumentsI = {
     val runeToSuppliedBoundPrototypeForCallUnsubstituted =
       instantiationBoundArgsForCallUnsubstituted.runeToBoundPrototype

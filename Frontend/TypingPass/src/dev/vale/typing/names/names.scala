@@ -368,8 +368,9 @@ case class ForwarderFunctionNameT(
 
 case class FunctionBoundTemplateNameT(
   humanName: StrI,
-    // Removed this because everything is a function bound now. DO NOT SUBMIT
-//  codeLocation: CodeLocationS
+  // Removed this because we want various function bounds from various places to merge
+  // together, see MFBFDP.
+  // codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataT[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {
@@ -381,27 +382,7 @@ case class FunctionBoundTemplateNameT(
 // keep separate its direct instantiation bound params (e.g. where func drop(T)void on
 // the function itself) as opposed to its indirect instantiation bound params (ones
 // declared on the params' kind struct/interfaces' definitions).
-// It turns out, we can still do that, without having a
-// FunctionBoundNameT/ReachableFunctionNameT distinction.
-// We keep them in different fields of the InstantiationBoundArgumentsT.
-//
-// The reason we combined them all to have one name, FunctionBoundNameT, is because
-// these bounds can come from a lot of different places. For example, in the override
-// dispatcher function, we resolve the impl, and in doing so, we resolve its subcitizen
-// and the superinterface. We did a substitution to phrase those in terms of the override
-// dispatcher's placeholders (IOW, bring them into the override dispatcher's perspective)
-// but in doing that substitution, we translated the instantiation bound arguments as
-// ReachableFunctionNameT. That later conflicted with when the override dispatcher
-// instantiated the interface directly, and the interface directly used on of the bounds
-// from the virtual function, a FunctionBoundNameT. Uh oh, that means we've registered
-// the same interface with different instantiation bound args. Assertion tripped in
-// addInstantiationBounds.
-//
-// The moral of the story is that we can get bounds from anywhere, and making their names
-// line up so that every instantiation is calling the right bound from the environment
-// is pretty difficult.
-//
-// DO NOT SUBMIT consider putting this into doc
+// See RFNTIOB for why we reverted that.
 case class FunctionBoundNameT(
   template: FunctionBoundTemplateNameT,
   templateArgs: Vector[ITemplataT[ITemplataType]],

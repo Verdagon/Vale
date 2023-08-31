@@ -351,9 +351,8 @@ case class ForwarderFunctionNameI[+R <: IRegionsModeI](
 
 case class FunctionBoundTemplateNameI[+R <: IRegionsModeI](
   humanName: StrI,
-//  // We used to have a CodeLocation here, but took it out because we want to merge duplicate bounds.
-//  // I put it back in because i think only reachables need be merged DO NOT SUBMIT
-//  codeLocation: CodeLocationS
+  // We used to have a CodeLocation here, but took it out because we want to merge duplicate bounds, see MFBFDP.
+  //   codeLocation: CodeLocationS
 ) extends INameI[R] with IFunctionTemplateNameI[R] {
 //  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI[R]], params: Vector[CoordI]): FunctionBoundNameI = {
 //    interner.intern(FunctionBoundNameI(this, templateArgs, params))

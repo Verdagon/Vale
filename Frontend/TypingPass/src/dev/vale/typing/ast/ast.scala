@@ -42,16 +42,13 @@ case class ImplT(
   superInterface: InterfaceTT,
   superInterfaceTemplateId: IdT[IInterfaceTemplateNameT],
 
-  // This is similar to FunctionT.instantiationBoundParams DO NOT SUBMIT doc
-  // re: the reachable bounds inside:
-  // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
-  // citizen, and a case block from its receiving kind.
-  // We'll need to remember those, so the instantiator can do its thing.
-  // See TIBANFC for more.
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
+  // This is similar to FunctionT.instantiationBoundParams.
+  // We'll line up anything in here with the instantiation bound args to form a nice
+  // map the instantiator can use. See IBAMIBP.
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
 
   runeIndexToIndependence: Vector[Boolean],
-) extends IInterning { // DO NOT SUBMIT why interning
+) {
   vpass()
 }
 
@@ -102,13 +99,6 @@ case class InterfaceEdgeBlueprintT(
   superFamilyRootHeaders: Vector[(PrototypeT[IFunctionNameT], Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class OverrideT(
-  // it seems right here we'll need some sort of mapping of abstract func placeholder to the
-  // override impl case placeholders, and perhaps also the existence of the <T>s for the case?
-  // we need to instantiate the override, so its going to need some values for it... i guess
-  // its from the impl, so the impl has it i think. so maybe a map from the impl rune to it
-
-
-
   // This is the name of the conceptual function called by the abstract function.
   // It has enough information to do simple dispatches, but not all cases, it can't handle
   // the Milano case, see OMCNAGP.
@@ -143,7 +133,7 @@ case class OverrideT(
   // in the template args.
   overridePrototype: PrototypeT[IFunctionNameT],
 
-  // // DO NOT SUBMIT centralize docs
+  // // DO NOT SUBMIT X centralize docs
   // // The instantiator's next step for an override is to bring in some bound functions from the impl that already exists.
   // // Let's say we have this:
   // //   interface IObserver<W> { }
@@ -157,7 +147,7 @@ case class OverrideT(
   // //   func handleLaunch<launch$X>(self &IObserver<LaunchEvent<launch$X>>) { ... }
   // // and have it feed the interface self param into the impl to make it resolve the struct, like so:
   // //   impl<Z> (IObserver<LaunchEvent<launch$X>> = IObserver<LaunchEvent<Z>>) for Firefly<Engine<Z>>;
-  // // which solves for Firefly<Engine<launch$X>> and (because of a flag DO NOT SUBMIT) predicts that some bounds should exist:
+  // // which solves for Firefly<Engine<launch$X>> and (because of a flag DO NOT SUBMIT X) predicts that some bounds should exist:
   // // - ZD = func impl.predicted:drop(Firefly<Engine<$launchX>>);
   // //
   // // At this point, we're going to conjure some bounds from that, knowing that the instantiator can fill the actual ones
@@ -172,23 +162,17 @@ case class OverrideT(
   // implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   // implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   //
-  // // This could be useful for grabbing its bounds DO NOT SUBMIT
+  // // This could be useful for grabbing its bounds DO NOT SUBMIT X
   // caseSubCitizen: ICitizenTT,
   //
   // // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // // bounds. This is the one for our conceptual dispatcher function.
   // // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  // // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT
-  //   // re: the reachable stuff inside DO NOT SUBMIT
+  // // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT X
+  //   // re: the reachable stuff inside DO NOT SUBMIT X
   //   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
   //   // TIBANFC.
-  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
-  // caseInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ReachableFunctionNameT, ImplBoundNameT],
-
-  // // The override function we're calling.
-  // // Conceptually, this is being called from the case's environment. It might even have some complex stuff
-  // // in the template args.
-  // overridePrototype: PrototypeT[IFunctionNameT]
+  dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
 )
 
 case class EdgeT(
@@ -199,7 +183,7 @@ case class EdgeT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   superInterface: IdT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   abstractFuncToOverrideFunc: Map[IdT[IFunctionNameT], OverrideT]
 ) {
@@ -222,7 +206,7 @@ case class EdgeT(
 
 case class FunctionDefinitionT(
   header: FunctionHeaderT,
-  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT],
+  instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
   body: ReferenceExpressionTE)  {
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -276,14 +260,8 @@ case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandida
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class PrototypeTemplataCalleeCandidate(
-  // We don't want a range because we want to merge all sorts of different bound functions DO NOT SUBMIT doc better
-  // We could give them the range of their parent perhaps... but no, that can be retrieved from
-  // from prototypeT.id.initSteps.last.template
-  // No, thisll make it easier for the humanizer to show the correct thing.
-  // Let's just manually merge them, itll make life easier.
-  // ...maybe later. for now let's just use internal ranges or something.
-  // Nope, took it out because took the PrototypeTemplataT.
-  // range: RangeS,
+  // We don't want a range because we want to merge all sorts of different bound functions, see MFBFDP.
+  //   range: RangeS,
   prototypeT: PrototypeT[IFunctionNameT]) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }

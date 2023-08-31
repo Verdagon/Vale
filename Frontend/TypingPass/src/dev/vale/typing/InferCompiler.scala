@@ -24,12 +24,12 @@ import scala.collection.immutable._
 sealed trait IResolveSolveOutcome
 case class CompleteResolveSolve(
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-    runeToBound: InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT]
+    runeToBound: InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT]
 ) extends IResolveSolveOutcome
 
 case class CompleteDefineSolve(
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
-    runeToBound: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT])
+    runeToBound: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT])
 
 sealed trait IIncompleteOrFailedCompilerSolve extends IResolveSolveOutcome {
   def unsolvedRules: Vector[IRulexSR]
@@ -339,7 +339,7 @@ class InferCompiler(
           .toMap
           .mapValues(citizen => {
             InstantiationReachableBoundArgumentsT(
-              TemplataCompiler.getReachableBounds(interner, keywords, envs.originalCallingEnv.denizenTemplateId, true, state, citizen)
+              TemplataCompiler.getReachableBounds(interner, keywords, envs.originalCallingEnv.denizenTemplateId, state, citizen)
                   .citizenRuneToReachablePrototype.map({ case (citizenRune, callerPlaceholderedCitizenBound) =>
                 // If foo<T> is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop bound, then
                 // callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
@@ -355,7 +355,6 @@ class InferCompiler(
                 if (funcSuccess.prototype.returnType != returnCoord) {
                   return Err(ResolvingResolveConclusionError(ReturnTypeConflictInConclusionResolve(ranges, returnCoord, funcSuccess.prototype)))
                 }
-                // strt here
                 citizenRune -> funcSuccess.prototype
               }))
           })
@@ -408,7 +407,7 @@ class InferCompiler(
     }
 
     val instantiationBoundArgs =
-      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
+      InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         runeToPrototype,
         reachableBounds.filter(_._2.citizenRuneToReachablePrototype.nonEmpty),
         runeToImpl)
@@ -439,7 +438,7 @@ class InferCompiler(
       initialRules: Vector[IRulexSR],
       includeReachableBoundsForRunes: Vector[IRuneS],
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
-  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
+  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
     val reachableBounds =
       includeReachableBoundsForRunes
           .map(rune => rune -> vassertSome(conclusions.get(rune)))
@@ -472,7 +471,6 @@ class InferCompiler(
                     TemplataCompiler.getPlaceholderSubstituter(
                       interner, keywords,
                       envs.originalCallingEnv.denizenTemplateId,
-                      true,
                       id,
                       // This function is all about gathering bounds from the incoming parameter types.
                       InheritBoundsFromTypeItself)
@@ -553,7 +551,7 @@ class InferCompiler(
     rules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
     reachableBounds: Map[IRuneS, InstantiationReachableBoundArgumentsT[FunctionBoundNameT]]):
-  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
+  Result[InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
     // Check all template calls
     rules.foreach({
       case r@CallSR(_, _, _, _) => {

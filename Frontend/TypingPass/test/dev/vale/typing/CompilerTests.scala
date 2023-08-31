@@ -1935,10 +1935,7 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-
-  // DO NOT SUBMIT i think when we do "where func drop(int)void { }" it's literally getting declared holy crap
-
-  test("Structs can resolve right") { // DO NOT SUBMIT better name
+  test("Structs can resolve right") { // DO NOT SUBMIT doc better name
     // The definition of Marine<T> was trying to resolve the existence of func drop(int)void.
     // Unfortunately, we don't have an overload index at the time of struct definitions yet, that comes later when
     // we define the functions.

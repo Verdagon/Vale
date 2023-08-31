@@ -197,7 +197,6 @@ class StructDropMacro(
                         TemplataCompiler.getPlaceholderSubstituter(
                           interner, keywords,
                           env.denizenTemplateId,
-                          true,
                           structTT.id,
                           // We received an instance of this type, so we can use the bounds from it.
                           InheritBoundsFromTypeItself)

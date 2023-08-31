@@ -446,7 +446,6 @@ class FunctionCompilerClosureOrLightLayer(
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords,
         originalCallingDenizenId,
-        false,
         closureStructRef.id,
         // This is a parameter, so we can grab bounds from it.
         InheritBoundsFromTypeItself)

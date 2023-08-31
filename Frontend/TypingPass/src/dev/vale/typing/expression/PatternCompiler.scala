@@ -484,7 +484,6 @@ class PatternCompiler(
         interner,
         keywords,
         nenv.functionEnvironment.templateId,
-        false,
         structTT.id,
         // We're receiving something of this type, so it should supply its own bounds.
         InheritBoundsFromTypeItself)
@@ -592,7 +591,6 @@ class PatternCompiler(
         interner,
         keywords,
         env.denizenTemplateId,
-        false,
         structTT.id,
         // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(

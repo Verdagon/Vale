@@ -596,7 +596,7 @@ object CompilerErrorHumanizer {
         humanizeId(codeMap, header.id)
       }
       case PrototypeTemplataCalleeCandidate(prototypeT) => {
-        val begin = vimpl()//lineRangeContaining(range.begin).begin DO NOT SUBMIT
+        val begin = vimpl()//lineRangeContaining(range.begin).begin DO NOT SUBMIT X
         codeMap(begin) + ":\n" +
           lineRangeContaining(begin).begin + "\n"
       }
@@ -741,7 +741,7 @@ object CompilerErrorHumanizer {
           "(" + parameters.map(CoordTemplataT).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case AnonymousSubstructConstructorTemplateNameT(substruct) => {
-        "asc:" + humanizeName(codeMap, substruct) // DO NOT SUBMIT use squaries instead
+        "asc:" + humanizeName(codeMap, substruct)
       }
       case SelfNameT() => "self"
       case OverrideDispatcherTemplateNameT(implId) => "ovdt:" + humanizeId(codeMap, implId)

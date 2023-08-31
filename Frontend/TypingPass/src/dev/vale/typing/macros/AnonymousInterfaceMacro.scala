@@ -431,9 +431,9 @@ class AnonymousInterfaceMacro(
     // Now we're going to pull in the struct, which we'll use instead of the interface for the overriding param coord
     // rune.
     runeToType ++= struct.genericParameters.map(param => inheritedMethodRune(interface, method, param.rune.rune) -> param.tyype.tyype)
-    // We don't want to pull in all of their rules, we can already reach their bounds. DO NOT SUBMIT doc
-    // runeToType ++= struct.headerRuneToType
-    // runeToType ++= struct.membersRuneToType
+    // We don't want to pull in all of their rules, we can already reach their bounds, see NBIFP.
+    //   runeToType ++= struct.headerRuneToType
+    //   runeToType ++= struct.membersRuneToType
 
     // Now let's destructure the interface coord, and make a new coord with the struct to use as the overriding param
     // coord rune instead.

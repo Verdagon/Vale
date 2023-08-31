@@ -1653,3 +1653,40 @@ And the receiver only expects reachable functions for params that it *knows* are
 We can know that by looking at the CallSR rules of the function we're calling, and only include reachables for what comes out of those.
 
 
+
+# Merge Function Bounds From Different Places (MFBFDP)
+
+In this example, this `myFunc` is inheriting the drop bound from two different places:
+
+```
+struct A<T> where func drop(T)void { x T; }
+struct B<T> where func drop(T)void { x T; }
+func myFunc<T>(a &A<T>, b &B<T>) { ... }
+```
+
+Previously, we would introduce those bounds into `myFunc`'s environment:
+
+ * func A.bound:drop:my.vale:1:18($myFunc.T)void
+ * func B.bound:drop:my.vale:2:18($myFunc.T)void
+
+However, this led to some ambiguity when the typing phase was registering instantiation bounds. Sometimes it would choose that first one, sometimes it would choose that second one.
+
+We tried making it so there was a clear order when doing overload resolution, so that the overload resolver would choose deterministically, but the problem was when we did substitutions. For example, in the overload dispatcher function, when we tried to grab the subcitizen or superinterface out of the impl, we substituted the dispatcher function's placeholders in. In doing that, we also substituted those placeholders into the bounds that it had registered. Those didn't agree with the abstract param's interface's instantiation bounds.
+
+The solution was to take the location out of the bound's name, and to rename any incoming bound to be in the original denizen's (`myFunc` here) namespace. That way, all bounds have the same full ID no matter where they came from.
+
+
+Soon, this could all be moot because we'll be able to resolve instantiation bounds from the instantiator itself. Hopefully.
+
+
+# ReachableFunctionNameT instead of BoundFunctionNameT (RFNTIOB)
+
+We tried splitting this out into a ReachableFunctionNameT, so each function could keep separate its direct instantiation bound params (e.g. where func drop(T)void on the function itself) as opposed to its indirect instantiation bound params (ones declared on the params' kind struct/interfaces' definitions).
+
+It turns out, we can still do that, without having a FunctionBoundNameT/ReachableFunctionNameT distinction.
+
+We keep them in different fields of the InstantiationBoundArgumentsT.
+
+The reason we combined them all to have one name, FunctionBoundNameT, is because these bounds can come from a lot of different places. For example, in the override dispatcher function, we resolve the impl, and in doing so, we resolve its subcitizen and the superinterface. We did a substitution to phrase those in terms of the override dispatcher's placeholders (IOW, bring them into the override dispatcher's perspective) but in doing that substitution, we translated the instantiation bound arguments as ReachableFunctionNameT. That later conflicted with when the override dispatcher instantiated the interface directly, and the interface directly used on of the bounds from the virtual function, a FunctionBoundNameT. Uh oh, that means we've registered the same interface with different instantiation bound args. Assertion tripped in addInstantiationBounds.
+
+The moral of the story is that we can get bounds from anywhere, and making their names line up so that every instantiation is calling the right bound from the environment is pretty difficult.

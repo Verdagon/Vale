@@ -98,8 +98,8 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         outerEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    val instantiationBoundArgs = // DO NOT SUBMIT
-      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
+    val instantiationBoundArgs = // DO NOT SUBMIT doc
+      InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToBoundPrototype,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
@@ -163,8 +163,8 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         declaringEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    val instantiationBoundArgs = // DO NOT SUBMIT
-      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
+    val instantiationBoundArgs = // DO NOT SUBMIT doc
+      InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToBoundPrototype,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
@@ -231,8 +231,8 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         nearEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    val instantiationBoundArgs = // DO NOT SUBMIT
-      InstantiationBoundArgumentsT[IFunctionNameT, IFunctionNameT, IImplNameT](
+    val instantiationBoundArgs = // DO NOT SUBMIT doc
+      InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToBoundPrototype,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)

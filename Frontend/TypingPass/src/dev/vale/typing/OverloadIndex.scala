@@ -9,7 +9,7 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
-// DO NOT SUBMIT document what merged is all about
+// DO NOT SUBMIT X document what merged is all about
 // see "Test calling a generic function with a concept function"
 class OwnershipToFunctionsMap(merged: Boolean) {
   val owns = mutable.HashSet[ICalleeCandidate]()
@@ -20,12 +20,12 @@ class OwnershipToFunctionsMap(merged: Boolean) {
   def add(ownership: OwnershipT, function: ICalleeCandidate): Unit = {
     ownership match {
       case OwnT => {
-        // DO NOT SUBMIT
+        // DO NOT SUBMIT X
         owns += function
         shares += function
       }
       case BorrowT => {
-        // DO NOT SUBMIT
+        // DO NOT SUBMIT X
         borrows += function
         shares += function
       }
@@ -46,8 +46,8 @@ class OwnershipToFunctionsMap(merged: Boolean) {
 
 class KindToOwnershipToFunctionsMap {
   val structTemplates = mutable.HashMap[IdT[IStructTemplateNameT], OwnershipToFunctionsMap]()
-  val interfaceTemplates = mutable.HashMap[IdT[IInterfaceTemplateNameT], OwnershipToFunctionsMap]() // DO NOT SUBMIT document an example
-  val boundPlaceholderTemplates = mutable.HashMap[IdT[KindPlaceholderTemplateNameT], OwnershipToFunctionsMap]() // DO NOT SUBMIT document an example
+  val interfaceTemplates = mutable.HashMap[IdT[IInterfaceTemplateNameT], OwnershipToFunctionsMap]() // DO NOT SUBMIT X document an example
+  val boundPlaceholderTemplates = mutable.HashMap[IdT[KindPlaceholderTemplateNameT], OwnershipToFunctionsMap]() // DO NOT SUBMIT X document an example
   var rsas: Option[OwnershipToFunctionsMap] = None
   var ssas: Option[OwnershipToFunctionsMap] = None
   var i32Shortcut: Option[OwnershipToFunctionsMap] = None
@@ -58,14 +58,14 @@ class KindToOwnershipToFunctionsMap {
   var never: Option[OwnershipToFunctionsMap] = None
   var str: Option[OwnershipToFunctionsMap] = None
   var float: Option[OwnershipToFunctionsMap] = None
-  var frees: Option[OwnershipToFunctionsMap] = None // DO NOT SUBMIT document an example, maybe better name than frees
+  var frees: Option[OwnershipToFunctionsMap] = None // DO NOT SUBMIT X document an example, maybe better name than frees
 
-  // if None, its a free param DO NOT SUBMIT
+  // if None, its a free param DO NOT SUBMIT X
   def add(freeOrCoord: Option[CoordT], function: ICalleeCandidate): Unit = {
     freeOrCoord match {
       case None => {
         val ownershipToFunctionMap = getOrAdd(None)
-        // DO NOT SUBMIT doc why all this
+        // DO NOT SUBMIT X doc why all this
         ownershipToFunctionMap.add(OwnT, function)
         ownershipToFunctionMap.add(BorrowT, function)
         ownershipToFunctionMap.add(ShareT, function)
@@ -78,9 +78,9 @@ class KindToOwnershipToFunctionsMap {
   }
 
   // If we're adding a function's parameter that's a placeholder for that own function, then it's a free
-  // parameter. DO NOT SUBMIT doc better
+  // parameter. DO NOT SUBMIT X doc better
 
-  // If a function receives some other function's placeholder, then we're processing a bound function. DO NOT SUBMIT doc better
+  // If a function receives some other function's placeholder, then we're processing a bound function. DO NOT SUBMIT X doc better
   def getOrAdd(freeOrKind: Option[KindT]): OwnershipToFunctionsMap = {
     freeOrKind match {
       case None => {
@@ -193,7 +193,7 @@ class KindToOwnershipToFunctionsMap {
             interfaceTemplates.getOrElseUpdate(TemplataCompiler.getInterfaceTemplate(interfaceId), new OwnershipToFunctionsMap(false))
           }
           case KindPlaceholderT(placeholderId) => {
-            // These arent like frees DO NOT SUBMIT doc
+            // These arent like frees DO NOT SUBMIT X doc
             boundPlaceholderTemplates.getOrElseUpdate(TemplataCompiler.getPlaceholderTemplate(placeholderId), new OwnershipToFunctionsMap(false))
           }
         }
@@ -209,7 +209,7 @@ class KindToOwnershipToFunctionsMap {
       case BoolT() => bool.toVector ++ frees
       case VoidT() => void.toVector ++ frees
       case NeverT(_) => {
-        // DO NOT SUBMIT
+        // DO NOT SUBMIT X
         Vector() ++ i32Shortcut ++ i64Shortcut ++ intSizes.values ++ bool ++ void ++ never ++ str ++ float ++ rsas ++ ssas ++ structTemplates.values ++ interfaceTemplates.values ++ boundPlaceholderTemplates.values ++ frees
       }
       case StrT() => str.toVector ++ frees
@@ -237,7 +237,7 @@ class KindToOwnershipToFunctionsMap {
 }
 
 class OverloadIndex() {
-  // DO NOT SUBMIT maybe use an array instead of hash map for arity
+  // DO NOT SUBMIT X maybe use an array instead of hash map for arity
   val nameToZeroArgFunction = mutable.HashMap[IImpreciseNameS, mutable.HashSet[ICalleeCandidate]]()
   val nameToArityToParamIndexToKindToOwnershipToFunctions =
     mutable.HashMap[IImpreciseNameS, mutable.HashMap[Int, Array[KindToOwnershipToFunctionsMap]]]()
@@ -280,7 +280,7 @@ class OverloadIndex() {
         newArr(i) = new KindToOwnershipToFunctionsMap()
         i = i + 1
       }
-      // TODO(optimize) dont do this lookup twice. DO NOT SUBMIT
+      // TODO(optimize) dont do this lookup twice. DO NOT SUBMIT X
       vassertSome(nameToArityToParamIndexToKindToOwnershipToFunctions.get(candidateName))
           .put(candidateParamMaybes.length, newArr)
       paramIndexToKindToOwnershipToFunctions = newArr
@@ -313,7 +313,7 @@ class OverloadIndex() {
           case Some(paramIndexToKindToOwnershipToFunctions) => {
             val paramIndexToCandidateLists =
               U.map2Arr[CoordT, KindToOwnershipToFunctionsMap, Vector[mutable.HashSet[ICalleeCandidate]]](
-                params.toArray, // TODO(optimize) DO NOT SUBMIT
+                params.toArray, // TODO(optimize) DO NOT SUBMIT X
                 paramIndexToKindToOwnershipToFunctions,
                 (param, kindToOwnershipToFunctions) => {
                   val resultA =
@@ -327,11 +327,11 @@ class OverloadIndex() {
                 })
             // Now we sort by the number of functions that match each particular parameter, so we can start with the
             // most unusual parameter type first.
-            // DO NOT SUBMIT i think we can just use the min one first.
+            // DO NOT SUBMIT X i think we can just use the min one first.
             val sortedCandidateLists = paramIndexToCandidateLists.sortBy(_.size)
 
             // Let's union everything in the first parameter
-            // DO NOT SUBMIT what if we keep a hash set of "what we've checked so far"
+            // DO NOT SUBMIT X what if we keep a hash set of "what we've checked so far"
             val unusualestParamCandidateList = mutable.HashSet[ICalleeCandidate]()
             U.foreach[mutable.HashSet[ICalleeCandidate]](
               sortedCandidateLists(0),

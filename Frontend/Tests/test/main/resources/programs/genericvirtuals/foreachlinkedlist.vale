@@ -37,4 +37,3 @@ exported func main() int {
   return 0;
 }
 
-// DO NOT SUBMIT lets change where func drop(T)void to where exists drop(T)void

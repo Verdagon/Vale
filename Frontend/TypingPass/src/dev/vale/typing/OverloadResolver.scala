@@ -392,7 +392,6 @@ class OverloadResolver(
             interner,
             keywords,
             callingEnv.denizenTemplateId,
-            false,
             prototype.id,
             // These types are phrased in terms of the calling denizen already, so we can grab their
             // bounds.
@@ -608,14 +607,13 @@ class OverloadResolver(
             }
           })
 
-    // DO NOT SUBMIT r
     val finalBannerIndex =
       if (normalIndicesAndCandidates.size > 1) {
         val duplicateBanners = normalIndicesAndCandidates.map(_._2)
         throw CompileErrorExceptionT(
           CouldntNarrowDownCandidates(
             callRange,
-            vimpl()))
+            vimpl())) // DO NOT SUBMIT errs
         //            duplicateBanners.map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
       } else if (normalIndicesAndCandidates.size == 1) {
         normalIndicesAndCandidates.head._1

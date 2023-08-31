@@ -118,7 +118,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA,
-    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT]):
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT]):
   (PrototypeTemplataT[IFunctionNameT]) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
@@ -138,7 +138,7 @@ class FunctionCompilerMiddleLayer(
       case None => {
         coutputs.declareFunction(callRange, namedEnv.id)
         coutputs.declareFunctionOuterEnv(outerEnv.id, outerEnv)
-        coutputs.declareFunctionInnerEnv(namedEnv.id, runedEnv)
+        coutputs.declareFunctionInnerEnv(namedEnv.id, namedEnv) // DO NOT SUBMIT changed to namedEnv from runedEnv
 
         val header =
           core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)
@@ -165,7 +165,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA,
-    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, FunctionBoundNameT, ImplBoundNameT]):
+    instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT]):
   (FunctionHeaderT) = {
 
     // Check preconditions
@@ -189,14 +189,15 @@ class FunctionCompilerMiddleLayer(
       case None => {
         coutputs.declareFunction(callRange, functionId)
         coutputs.declareFunctionOuterEnv(outerEnv.id, outerEnv)
-        coutputs.declareFunctionInnerEnv(functionId, runedEnv) // DO NOT SUBMIT
 
         val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
 
         val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
         val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
 
-//        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
+        coutputs.declareFunctionInnerEnv(functionId, namedEnv)
+
+        //        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
 
         val header =
           core.evaluateFunctionForHeader(
