@@ -98,7 +98,11 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         outerEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    val instantiationBoundArgs = // DO NOT SUBMIT doc
+    // Lambdas cant have bounds, right?
+    vcurious(instantiationBoundParams.runeToBoundPrototype.isEmpty)
+    vcurious(instantiationBoundParams.runeToCitizenRuneToReachablePrototype.isEmpty)
+    vcurious(instantiationBoundParams.runeToBoundImpl.isEmpty)
+    val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToBoundPrototype,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
@@ -164,7 +168,11 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         declaringEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    val instantiationBoundArgs = // DO NOT SUBMIT doc
+    // Lambdas cant have bounds, right?
+    vcurious(instantiationBoundParams.runeToBoundPrototype.isEmpty)
+    vcurious(instantiationBoundParams.runeToCitizenRuneToReachablePrototype.isEmpty)
+    vcurious(instantiationBoundParams.runeToBoundImpl.isEmpty)
+    val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToBoundPrototype,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
@@ -233,7 +241,11 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         nearEnv, runedEnv, coutputs, callRange, callLocation, function, instantiationBoundParams)
 
-    val instantiationBoundArgs = // DO NOT SUBMIT doc
+    // Lambdas cant have bounds, right?
+    vcurious(instantiationBoundParams.runeToBoundPrototype.isEmpty)
+    vcurious(instantiationBoundParams.runeToCitizenRuneToReachablePrototype.isEmpty)
+    vcurious(instantiationBoundParams.runeToBoundImpl.isEmpty)
+    val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
         instantiationBoundParams.runeToBoundPrototype,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>

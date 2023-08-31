@@ -389,7 +389,10 @@ case class FunctionBoundNameT(
   parameters: Vector[CoordT]
 ) extends IFunctionNameT
 
-// DO NOT SUBMIT doc
+// PredictedFunctionNameT and PredictedFunctionTemplateNameT are special names similar to
+// FunctionBoundNameT, they're temporary ones created during solving, to put into the result
+// runes. At the end of solving, just afterward, they're turned into actual FunctionBoundNameT
+// or resolved from the calling environment.
 case class PredictedFunctionTemplateNameT(
     humanName: StrI
 ) extends INameT with IFunctionTemplateNameT {
@@ -398,7 +401,6 @@ case class PredictedFunctionTemplateNameT(
     interner.intern(PredictedFunctionNameT(this, templateArgs, params))
   }
 }
-
 case class PredictedFunctionNameT(
     template: PredictedFunctionTemplateNameT,
     templateArgs: Vector[ITemplataT[ITemplataType]],

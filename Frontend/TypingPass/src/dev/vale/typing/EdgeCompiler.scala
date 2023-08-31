@@ -419,7 +419,7 @@ class EdgeCompiler(
     val casePlaceholderedReachablePrototypesFromImpl =
       partialResolveConclusions
           // We might need to change this to include other things like not just the Ship in Ship<Engine<T>> but also the
-          // Engine. DO NOT SUBMIT X
+          // Engine. DO NOT SUBMIT doc
           // Take this out when we unify all incoming bound prototypes
           .filter({ case (runeInImpl, templata) => runeInImpl == impl.templata.impl.subCitizenRune.rune })
           .collect({
@@ -466,7 +466,7 @@ class EdgeCompiler(
         }).toVector)
     // Above we did a partial solve, but now we've conjured the bounds that should make the sub citizen work, so let's
     // do an actual solve.
-    // DO NOT SUBMIT X don't we also have to conjure bounds not only for the sub citizen we brought in, but also for anything
+    // DO NOT SUBMIT doc don't we also have to conjure bounds not only for the sub citizen we brought in, but also for anything
     // it might use? Like if the struct is Firefly<Engine<T>> do we need to make up some bounds for Engine?
 
     val (implConclusions, implInstantiationBoundArgsUNUSED) =
@@ -483,7 +483,7 @@ class EdgeCompiler(
         // so we should get a complete solve.
         // HOWEVER we're not actually resolving anything, we're just predicting.
         // This solve will produce types that don't exist, and don't have instantiation bounds.
-        // That's okay, because all we really want is the sub citizen, and then we'll conjure its bounds ourselves. DO NOT SUBMIT X doesnt seem to be true anymore
+        // That's okay, because all we really want is the sub citizen, and then we'll conjure its bounds ourselves. DO NOT SUBMIT doc doesnt seem to be true anymore
         Vector(
           InitialKnown(
             impl.templata.impl.interfaceKindRune,
@@ -498,7 +498,7 @@ class EdgeCompiler(
       }
     // We don't really care about giving the instantiator instructions for resolving the impl, because it actually
     // already has the impl at this point in its process. That's also why we were able to conjure bounds above, because
-    // we'll be grabbing them from the impl. DO NOT SUBMIT X is that all correct
+    // we'll be grabbing them from the impl. DO NOT SUBMIT doc is that all correct
     val _ = implInstantiationBoundArgsUNUSED
 
     // Step 4: Figure Out Struct For Case, see FOSFC.
@@ -526,7 +526,7 @@ class EdgeCompiler(
         dispatcherInnerEnvWithBoundsForSubCitizen,
         dispatcherCaseId,
         dispatcherCaseId,
-        // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here. DO NOT SUBMIT X still true? theyre in the dispatcherInnerEnvWithBoundsForSubCitizen
+        // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here. DO NOT SUBMIT doc still true? theyre in the dispatcherInnerEnvWithBoundsForSubCitizen
         // implInstantiationBoundArgs.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, num) =>
         //   interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(templata)
         // }).toVector

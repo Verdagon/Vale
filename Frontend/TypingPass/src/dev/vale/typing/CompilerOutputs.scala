@@ -205,7 +205,8 @@ case class CompilerOutputs() {
         case _ =>
       }
     })
-    // DO NOT SUBMIT X shouldnt we have asserts for the impls too
+    // TODO: have asserts for the impls too. Might become moot if we don't need to register
+    //   bounds with coutputs one day.
 
     // If there are any placeholders in the thing we're calling, make sure they're from the original calling template,
     // otherwise we probably forgot to do a substitution or something.

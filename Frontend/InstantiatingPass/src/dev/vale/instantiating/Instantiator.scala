@@ -664,8 +664,8 @@ class Instantiator(
             .toMap
 
     val dispatcherInstantiationBoundParamsToArgs =
-      // DO NOT SUBMIT X this only works because the runes of the dispatcher line up with the runes of the abstract function.
-      // which isnt really a coincidence, and kind of makes sense.
+      // Here we're matching up the runes of the callsite's instantiation bound args with the
+      // runes of the abstract function definition's instantiation bound params.
       assembleInstantiationBoundParamToArg(
         dispatcherInstantiationBoundParams,
         abstractFuncInstantiationBoundArgs)
@@ -674,12 +674,10 @@ class Instantiator(
       dispatcherInstantiationBoundParamsToArgs
           .plus(
             DenizenBoundToDenizenCallerBoundArgS(
-//              Map(),
               boundParamToBoundArgFromImpl,
-//              Map(),
               Map()))
 
-    // DO NOT SUBMIT X simplify these
+    // TODO: Feels like these can be simplified somehow...
     val dispatcherPlaceholderIdToSuppliedTemplata =
       dispatcherIdT.localName.templateArgs
         .map(dispatcherPlaceholderTemplata => {

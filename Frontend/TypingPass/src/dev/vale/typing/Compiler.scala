@@ -381,8 +381,8 @@ class Compiler(
             PrototypeT(
               envs.originalCallingEnv.id.addStep(
                 interner.intern(
-                  FunctionNameT(
-                    interner.intern(FunctionTemplateNameT(name, functionRange.begin)),
+                  PredictedFunctionNameT(
+                    interner.intern(PredictedFunctionTemplateNameT(name)),
                     Vector(),
                     paramCoords))),
               returnCoord))

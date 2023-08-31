@@ -138,7 +138,7 @@ class FunctionCompilerMiddleLayer(
       case None => {
         coutputs.declareFunction(callRange, namedEnv.id)
         coutputs.declareFunctionOuterEnv(outerEnv.id, outerEnv)
-        coutputs.declareFunctionInnerEnv(namedEnv.id, namedEnv) // DO NOT SUBMIT changed to namedEnv from runedEnv
+        coutputs.declareFunctionInnerEnv(namedEnv.id, namedEnv)
 
         val header =
           core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)

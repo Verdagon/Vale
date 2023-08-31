@@ -133,7 +133,7 @@ case class OverrideT(
   // in the template args.
   overridePrototype: PrototypeT[IFunctionNameT],
 
-  // // DO NOT SUBMIT X centralize docs
+  // // DO NOT SUBMIT doc centralize docs
   // // The instantiator's next step for an override is to bring in some bound functions from the impl that already exists.
   // // Let's say we have this:
   // //   interface IObserver<W> { }
@@ -147,7 +147,7 @@ case class OverrideT(
   // //   func handleLaunch<launch$X>(self &IObserver<LaunchEvent<launch$X>>) { ... }
   // // and have it feed the interface self param into the impl to make it resolve the struct, like so:
   // //   impl<Z> (IObserver<LaunchEvent<launch$X>> = IObserver<LaunchEvent<Z>>) for Firefly<Engine<Z>>;
-  // // which solves for Firefly<Engine<launch$X>> and (because of a flag DO NOT SUBMIT X) predicts that some bounds should exist:
+  // // which solves for Firefly<Engine<launch$X>> and (because of a flag DO NOT SUBMIT doc) predicts that some bounds should exist:
   // // - ZD = func impl.predicted:drop(Firefly<Engine<$launchX>>);
   // //
   // // At this point, we're going to conjure some bounds from that, knowing that the instantiator can fill the actual ones
@@ -162,14 +162,14 @@ case class OverrideT(
   // implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   // implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
   //
-  // // This could be useful for grabbing its bounds DO NOT SUBMIT X
+  // // This could be useful for grabbing its bounds DO NOT SUBMIT doc
   // caseSubCitizen: ICitizenTT,
   //
   // // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // // bounds. This is the one for our conceptual dispatcher function.
   // // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  // // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT X
-  //   // re: the reachable stuff inside DO NOT SUBMIT X
+  // // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT doc
+  //   // re: the reachable stuff inside DO NOT SUBMIT doc
   //   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
   //   // TIBANFC.
   dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
