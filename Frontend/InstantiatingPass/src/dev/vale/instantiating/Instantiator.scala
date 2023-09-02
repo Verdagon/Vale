@@ -634,49 +634,22 @@ class Instantiator(
         dispatcherIdT,
         implPlaceholderToDispatcherPlaceholder,
         implPlaceholderToCasePlaceholder,
-        dispatcherPlaceholderedReachablePrototypes,
+        dispatcherAndCasePlaceholderedImplReachablePrototypes,
         dispatcherCaseIdT,
         overridePrototypeT,
         dispatcherInstantiationBoundParams) =
       vassertSome(edgeAbstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))
     val dispatcherTemplateId = TemplataCompiler.getTemplate(dispatcherIdT)
 
-    // These are the bounds that the impl was made with.
-    val implRuneToImplInstantiationBoundArgs = vassertSome(monouts.impls.get(implIdC))._4
-    val boundParamToBoundArgFromImpl =
-      // This is how the typing phase referred to the impl's bound prototypes.
-      // We're making a map from those names to the actual prototypes the impl was instantiated with.
-      dispatcherPlaceholderedReachablePrototypes.toVector.flatMap({
-        case (runeInImpl, citizenRuneToBound) => {
-          citizenRuneToBound.toVector.map({
-            case (runeInCitizen, prototypeT@PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(_), _, _)), _)) => {
-              val prototypeI =
-                vassertSome(
-                  vassertSome(
-                    implRuneToImplInstantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc
-                        .get(runeInImpl))
-                      .get(runeInCitizen))
-              prototypeT.id -> prototypeI
-            }
-          })
-        }
-      })
-            .toMap
-
-    val dispatcherInstantiationBoundParamsToArgs =
-      // Here we're matching up the runes of the callsite's instantiation bound args with the
-      // runes of the abstract function definition's instantiation bound params.
-      assembleInstantiationBoundParamToArg(
-        dispatcherInstantiationBoundParams,
-        abstractFuncInstantiationBoundArgs)
-
-    val caseInstantiationBoundParamsToArgs =
-      dispatcherInstantiationBoundParamsToArgs
-          .plus(
-            DenizenBoundToDenizenCallerBoundArgS(
-              boundParamToBoundArgFromImpl,
-              Map()))
-
+    // We currently know the abstract function's caller's runes and how they map to the instantiated values,
+    // - abst$A = int
+    // - abst$B = str
+    // - abst$C = bool
+    // ...but this dispatcher function is different than the abstract function. The dispatcher function has its own
+    // runes, here:
+    // - dis$I
+    // - dis$J
+    // So we'll map the abstract function's caller's runes to the dispatcher's runes.
     // TODO: Feels like these can be simplified somehow...
     val dispatcherPlaceholderIdToSuppliedTemplata =
       dispatcherIdT.localName.templateArgs
@@ -698,6 +671,12 @@ class Instantiator(
           // TODO(regions): Figure out how to turn this into an sI.
           dispatcherPlaceholderId -> vregionmut(templataC.asInstanceOf[ITemplataI[sI]])
         })
+    // In this case we'll end up with:
+    //   dis/dis$I -> bool
+    //   dis/dis$J -> str
+    // However, such as in the Milano case, there might be some independent runes that we need to
+    // figure out how to supply. We'll conceptually grab these from the receiving struct.
+    // The impl knows the receiving struct.
     val dispatcherCasePlaceholderIdToSuppliedTemplata =
       dispatcherCaseIdT.localName.independentImplTemplateArgs.zipWithIndex.map({
         case (casePlaceholderTemplata, index) => {
@@ -723,6 +702,72 @@ class Instantiator(
       Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
         dispatcherTemplateId -> dispatcherPlaceholderIdToSuppliedTemplataMap,
         dispatcherIdT -> dispatcherCasePlaceholderIdToSuppliedTemplataMap)
+
+    // Now that we have the values for the dispatcher placeholders, let's get the values for the function/impl bounds.
+
+    // The instantiator's next step for an override is to bring in some bound functions from the impl that already
+    // exists.
+    //
+    // Let's say we had this:
+    //   interface IObserver<W> { }
+    //   abstract func handleLaunch<X>(self virtual &IObserver<LaunchEvent<X>>);
+    //   struct Firefly<Y> where exists drop(T)void { }
+    //   impl<Z> IObserver<LaunchEvent<Z>> for Firefly<Engine<Z>>; // inherits drop(Engine<Z>)
+    //   func handleLaunch<T>(self &Ship<LaunchEvent<T>>) { ... }
+    // What we need is the sub citizen for this interface, in terms of the abstract function.
+    //
+    // To do that, the first step was to pretend we're compiling the abstract function, like so:
+    //   func handleLaunch<launch$X>(self &IObserver<LaunchEvent<launch$X>>) { ... }
+    // and have it feed the interface self param into the impl to make it resolve the struct, like so:
+    //   impl<Z> (IObserver<LaunchEvent<launch$X>> = IObserver<LaunchEvent<Z>>) for Firefly<Engine<Z>>;
+    // which solved for Firefly<Engine<launch$X>> and predicts that some bounds should exist:
+    // - ZD = func impl.predicted:drop(Firefly<Engine<$launchX>>);
+    //
+    // At this point, we need to conjure some bounds from that, knowing that the instantiator can fill the actual ones
+    // from the impl.
+    // We *could* use the PredictedFunctionNameT that come out of the solver, buuut let's not. Let's turn it from:
+    // - ZD = func impl                   .predicted:drop(Firefly<Engine<$launchX>>);
+    // into:
+    // - ZD = func dispatcher:handleLaunch.bound:drop    (Firefly<Engine<$launchX>>);
+    // remembering the impl rune it came from.
+
+    // Grab the actual instantiated bounds that were used to make the impl.
+    val implRuneToImplInstantiationBoundArgs = vassertSome(monouts.impls.get(implIdC))._4
+    val boundParamPrototypeTToBoundArgPrototypeIFromImpl =
+      // This is how the typing phase referred to the impl's bound prototypes.
+      // We're making a map from those names to the actual prototypes the impl was instantiated with.
+      dispatcherAndCasePlaceholderedImplReachablePrototypes.toVector.flatMap({
+        case (runeInImpl, citizenRuneToBound) => {
+          citizenRuneToBound.toVector.map({
+            case (runeInCitizen, prototypeT@PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(_), _, _)), _)) => {
+              val prototypeI =
+                vassertSome(
+                  vassertSome(
+                    implRuneToImplInstantiationBoundArgs.callerRuneToCalleeRuneToReachableFunc
+                        .get(runeInImpl))
+                      .get(runeInCitizen))
+              prototypeT.id -> prototypeI
+            }
+          })
+        }
+      })
+          .toMap
+    // TODO: Catch impls up
+
+    val dispatcherInstantiationBoundParamsToArgs =
+    // Here we're matching up the runes of the callsite's instantiation bound args with the
+    // runes of the abstract function definition's instantiation bound params.
+      assembleInstantiationBoundParamToArg(
+        dispatcherInstantiationBoundParams,
+        abstractFuncInstantiationBoundArgs)
+
+    // Here we're adding in any bounds that the struct/impl know about that the call site might not know about.
+    val caseInstantiationBoundParamsToArgs =
+      dispatcherInstantiationBoundParamsToArgs
+          .plus(
+            DenizenBoundToDenizenCallerBoundArgS(
+              boundParamPrototypeTToBoundArgPrototypeIFromImpl,
+              Map())) // TODO: Catch impls up
 
     val (overridePrototypeS, overridePrototypeC) =
       translatePrototype(

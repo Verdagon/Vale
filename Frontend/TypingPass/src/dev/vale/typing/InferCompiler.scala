@@ -341,9 +341,9 @@ class InferCompiler(
             InstantiationReachableBoundArgumentsT(
               TemplataCompiler.getReachableBounds(opts.globalOptions.sanityCheck, interner, keywords, envs.originalCallingEnv.denizenTemplateId, state, citizen)
                   .citizenRuneToReachablePrototype.map({ case (citizenRune, callerPlaceholderedCitizenBound) =>
-                // If foo<T> is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop bound, then
-                // callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
-                // But what we actually want is DO NOT SUBMIT doc
+                // If foo(&HashMap<int>) is calling func moo<H>(self &HashMap<H>) and HashMap has an implicit drop
+                // bound, then callerPlaceholderedCitizenBound looks like HashMap.bound:drop(foo$T).
+                // But we want the real resolved drop function, func drop(int)void.
                 val returnCoord = callerPlaceholderedCitizenBound.returnType
                 val paramCoords = callerPlaceholderedCitizenBound.paramTypes
                 val funcSuccess =

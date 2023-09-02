@@ -1935,7 +1935,7 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Structs can resolve right") { // DO NOT SUBMIT doc better name
+  test("Structs can resolve other structs' instantiation bound arguments") {
     // The definition of Marine<T> was trying to resolve the existence of func drop(int)void.
     // Unfortunately, we don't have an overload index at the time of struct definitions yet, that comes later when
     // we define the functions.

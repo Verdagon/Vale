@@ -1694,5 +1694,24 @@ The moral of the story is that we can get bounds from anywhere, and making their
 
 # Instantiation Bound Args Match Instantiation Bound Params (IBAMIBP)
 
-DO NOT SUBMIT doc
+FunctionT has an InstantiationBoundArgumentsT instance named instantiationBoundParams. This is similar to the callsite InstantiationBoundArgumentsT's that are inside the coutputs.
 
+The runes for each callsite will match up with the runes in the function definition.
+
+
+# Ambiguous Generic Overlapping Bound Functions (AGOBF)
+
+what if we have 
+struct A { }
+func moo<X>(a A, x X) { ... }
+struct B { }
+func moo<X>(x X, b B) { ... }
+
+func bork<P, Q>(p P, q Q)
+where exists moo(P, Q)
+{ ... }
+
+then if we call bork(myA, myB)
+we'll not be sure which bound we should call.
+
+this is why we should probably still do some checking at the call site.

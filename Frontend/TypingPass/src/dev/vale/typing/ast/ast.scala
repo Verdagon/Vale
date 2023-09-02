@@ -31,8 +31,6 @@ case class ImplT(
 
   templata: ImplDefinitionTemplataT,
 
-  //implOuterEnv: IInDenizenEnvironmentT,
-
   instantiatedId: IdT[IImplNameT],
   templateId: IdT[IImplTemplateNameT],
 
@@ -107,11 +105,11 @@ case class OverrideT(
   // This is like:
   //   abstract func send<T>(self &IObserver<T>, event T) void
   // calling:
-  //   func add<int>(self &IObserver<int>, event int) void
+  //   func send<int>(self &IObserver<int>, event int) void
   // or a more complex case:
-  //   func add<Opt<int>>(self &IObserver<Opt<int>>, event Opt<int>) void
+  //   func send<Opt<int>>(self &IObserver<Opt<int>>, event Opt<int>) void
   // as you can see there may be some interesting templatas in there like that Opt<int>, they
-  // might not be simple placeholders
+  // might not be simple placeholders.
   dispatcherCallId: IdT[OverrideDispatcherNameT],
 
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
@@ -119,13 +117,12 @@ case class OverrideT(
 
   // These are the prototypes we'll pull from the impl's own bounds, and these CaseFunctionFromImplNameT names contain
   // the rune that the impl internally refers to them as.
-  casePlaceholderedReachablePrototypesFromImpl: Map[IRuneS, Map[IRuneS, PrototypeT[FunctionBoundNameT]]],
+  dispatcherAndCasePlaceholderedImplReachablePrototypes: Map[IRuneS, Map[IRuneS, PrototypeT[FunctionBoundNameT]]],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
-  // impl. After typing pass these will be placeholders, and after instantiator these will be
-  // actual real templatas.
-  // This will have some placeholders from the impl; this is the impl calling the case, kind of.
+  // translated from the impl into "case placeholders". After typing pass these will be placeholders, and after
+  // instantiator these will be actual real templatas.
   caseId: IdT[OverrideDispatcherCaseNameT],
 
   // The override function we're calling.
@@ -133,45 +130,8 @@ case class OverrideT(
   // in the template args.
   overridePrototype: PrototypeT[IFunctionNameT],
 
-  // // DO NOT SUBMIT doc centralize docs
-  // // The instantiator's next step for an override is to bring in some bound functions from the impl that already exists.
-  // // Let's say we have this:
-  // //   interface IObserver<W> { }
-  // //   abstract func handleLaunch<X>(self virtual &IObserver<LaunchEvent<X>>);
-  // //   struct Firefly<Y> { }
-  // //   impl<Z> IObserver<LaunchEvent<Z>> for Firefly<Engine<Z>>;
-  // //   func handleLaunch<T>(self &Ship<LaunchEvent<T>>) { ... }
-  // // What we need is the sub citizen for this interface, in terms of the abstract function.
-  // //
-  // // To do that, the first step is to pretend we're compiling the abstract function, like so:
-  // //   func handleLaunch<launch$X>(self &IObserver<LaunchEvent<launch$X>>) { ... }
-  // // and have it feed the interface self param into the impl to make it resolve the struct, like so:
-  // //   impl<Z> (IObserver<LaunchEvent<launch$X>> = IObserver<LaunchEvent<Z>>) for Firefly<Engine<Z>>;
-  // // which solves for Firefly<Engine<launch$X>> and (because of a flag DO NOT SUBMIT doc) predicts that some bounds should exist:
-  // // - ZD = func impl.predicted:drop(Firefly<Engine<$launchX>>);
-  // //
-  // // At this point, we're going to conjure some bounds from that, knowing that the instantiator can fill the actual ones
-  // // from the impl.
-  // // We *could* use the PredictedFunctionNameT that come out of the solver, buuut let's not. Let's turn it from:
-  // // - ZD = func impl                   .predicted:drop(Firefly<Engine<$launchX>>);
-  // // into:
-  // // - ZD = func dispatcher:handleLaunch.bound:drop    (Firefly<Engine<$launchX>>);
-  // // remembering the impl rune it came from.
-  // implRuneToDispatcherBoundPrototype: Map[IRuneS, PrototypeTemplataT[FunctionBoundNameT]],
-  //
-  // implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
-  // implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
-  //
-  // // This could be useful for grabbing its bounds DO NOT SUBMIT doc
-  // caseSubCitizen: ICitizenTT,
-  //
-  // // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
-  // // bounds. This is the one for our conceptual dispatcher function.
-  // // dispatcherRuneToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
-  // // dispatcherRuneToImplBound: Map[IRuneS, IdT[ImplBoundNameT]], DO NOT SUBMIT doc
-  //   // re: the reachable stuff inside DO NOT SUBMIT doc
-  //   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
-  //   // TIBANFC.
+  // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
+  // bounds. This is the one for our conceptual dispatcher function.
   dispatcherInstantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT],
 )
 

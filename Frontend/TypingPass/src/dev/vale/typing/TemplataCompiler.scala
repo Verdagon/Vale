@@ -666,14 +666,10 @@ object TemplataCompiler {
 
     val perhapsImportedId =
       tentativeId.localName match {
-        case n @ (FunctionBoundNameT(_, _, _) | FunctionBoundNameT(_, _, _) | FunctionBoundNameT(_, _, _)) => {
-          val importedId =
-             if (true) { // DO NOT SUBMIT
-               originalCallingDenizenId.addStep(n)
-             } else {
-              tentativeId
-             }
-        // It's a function bound, it has no function bounds of its own.
+        case n @ FunctionBoundNameT(_, _, _) => {
+          // Always import a seen function bound into our own environment, see MFBFDP.
+          val importedId = originalCallingDenizenId.addStep(n)
+          // It's a function bound, it has no function bounds of its own.
           coutputs.addInstantiationBounds(
             sanityCheck,
             interner,
@@ -795,7 +791,6 @@ object TemplataCompiler {
     sanityCheck: Boolean, interner: Interner,
     keywords: Keywords,
     originalCallingDenizenId: IdT[ITemplateNameT],
-     // DO NOT SUBMIT doc
     // This is the Ship.
     needleTemplateName: IdT[ITemplateNameT],
     // This is the <WarpFuel>.
