@@ -451,6 +451,19 @@ class EdgeCompiler(
                     val dispatcherPlaceholderedPrototype =
                       substituter.substituteForPrototype[FunctionBoundNameT](coutputs, subCitizenPlaceholderedPrototype)
                     val prototypeTemplata = PrototypeTemplataT[FunctionBoundNameT](dispatcherPlaceholderedPrototype)
+
+                    // DO NOT SUBMIT explain
+                    TemplatasStore.getImpreciseName(interner, dispatcherPlaceholderedPrototype.id.localName) match {
+                      case None => println("Skipping adding bound " + dispatcherPlaceholderedPrototype.id.localName) // DO NOT SUBMIT
+                      case Some(impreciseName) => {
+                        coutputs.addOverload(
+                          opts.globalOptions.useOverloadIndex,
+                          impreciseName,
+                          dispatcherPlaceholderedPrototype.id.localName.parameters.map(x => Some(x)),
+                          PrototypeTemplataCalleeCandidate(dispatcherPlaceholderedPrototype))
+                      }
+                    }
+
                     (runeInImpl, runeInCitizen, prototypeTemplata)
                   }
                 })

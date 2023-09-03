@@ -439,6 +439,20 @@ class InferCompiler(
       includeReachableBoundsForRunes: Vector[IRuneS],
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
   Result[InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT], IConclusionResolveError] = {
+    // DO NOT SUBMIT redundant
+    val declaredBounds =
+      initialRules.collect({
+        case r@DefinitionFuncSR(_, RuneUsage(_, resultRune), _, _, _) => {
+          vassertSome(conclusions.get(resultRune)) match {
+            case PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(template, templateArgs, params)), returnType)) => {
+              val prototype = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(template, templateArgs, params))), returnType)
+              prototype
+            }
+            case other => vwat(other)
+          }
+        }
+      })
+    // DO NOT SUBMIT it looks like we recalculate this later for the actual instantiation bounds
     val reachableBounds =
       includeReachableBoundsForRunes
           .map(rune => rune -> vassertSome(conclusions.get(rune)))
@@ -479,7 +493,7 @@ class InferCompiler(
                       .templatas
                       .entriesByNameT
                       .collect({
-                        // We're looking for FunctionBoundNameT, but producing ReachableFunctionNameT.
+                        // We're looking for FunctionBoundNameT, but producing ReachableFunctionNameT. DO NOT SUBMIT not accurate anymore
                         case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplataT(PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(FunctionBoundTemplateNameT(humanName), templateArgs, params)), returnType)))) => {
                           val prototype =
                             PrototypeT(
@@ -495,7 +509,7 @@ class InferCompiler(
               })
           })
     val environmentForFinalizing =
-      importConclusionsAndReachableBounds(envs.originalCallingEnv, conclusions, reachableBounds)
+      importConclusionsAndReachableBounds(state, envs.originalCallingEnv, conclusions, declaredBounds, reachableBounds)
     val instantiationBoundArgs =
       resolveConclusionsForDefine(
         environmentForFinalizing, state, invocationRange, callLocation, envs.contextRegion, initialRules, conclusions, reachableBounds) match {
@@ -522,12 +536,29 @@ class InferCompiler(
 
   // This includes putting newly defined bound functions in.
   def importConclusionsAndReachableBounds(
+      coutputs: CompilerOutputs,
       originalCallingEnv: IInDenizenEnvironmentT, // See CSSNCE
       conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
+      declaredBounds: Vector[PrototypeT[FunctionBoundNameT]],
       reachableBounds: Map[IRuneS, InstantiationReachableBoundArgumentsT[FunctionBoundNameT]]):
   GeneralEnvironmentT[INameT] = {
     // If this is the original calling env, in other words, if we're the original caller for
     // this particular solve, then lets add all of our templatas to the environment.
+
+    (declaredBounds ++ reachableBounds.values.flatMap(_.citizenRuneToReachablePrototype.values)).foreach(prototype => {
+      // DO NOT SUBMIT move from TemplatasStore
+      TemplatasStore.getImpreciseName(interner, prototype.id.localName) match {
+        case None => println("Skipping adding bound " + prototype.id.localName) // DO NOT SUBMIT
+        case Some(impreciseName) => {
+          coutputs.addOverload(
+            opts.globalOptions.useOverloadIndex,
+            impreciseName,
+            prototype.id.localName.parameters.map(x => Some(x)),
+            PrototypeTemplataCalleeCandidate(prototype))
+        }
+      }
+    })
+
     GeneralEnvironmentT.childOf(
       interner,
       originalCallingEnv,

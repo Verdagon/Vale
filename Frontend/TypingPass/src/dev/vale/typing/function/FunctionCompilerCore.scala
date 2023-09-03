@@ -73,13 +73,6 @@ class FunctionCompilerCore(
     params2: Vector[ParameterT],
     instantiationBoundParams: InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT]):
   (FunctionHeaderT) = {
-    fullEnv.id match {
-      case IdT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), Vector(CoordTemplataT(CoordT(_, RegionT(), KindPlaceholderT(IdT(_, Vector(FunctionTemplateNameT(StrI("drop"), _)), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CodeRuneS(StrI("T0")))))))), CoordTemplataT(CoordT(_, RegionT(), KindPlaceholderT(IdT(_, Vector(FunctionTemplateNameT(StrI("drop"), _)), KindPlaceholderNameT(KindPlaceholderTemplateNameT(1, CodeRuneS(StrI("T1"))))))))), Vector(CoordT(_, RegionT(), StructTT(IdT(_, Vector(), StructNameT(StructTemplateNameT(StrI("Tup2")), Vector(CoordTemplataT(CoordT(_, RegionT(), KindPlaceholderT(IdT(_, Vector(FunctionTemplateNameT(StrI("drop"), _)), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CodeRuneS(StrI("T0")))))))), CoordTemplataT(CoordT(_, RegionT(), KindPlaceholderT(IdT(_, Vector(FunctionTemplateNameT(StrI("drop"), _)), KindPlaceholderNameT(KindPlaceholderTemplateNameT(1, CodeRuneS(StrI("T1")))))))))))))))) => {
-        vpass()
-      }
-      case _ =>
-    }
-
 //    opts.debugOut("Evaluating function " + fullEnv.fullName)
 
 //    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
@@ -115,6 +108,26 @@ class FunctionCompilerCore(
         }
         case _ => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Must be a coord!"))
       }
+    // DO NOT SUBMIT
+    // // Add it to the overload index
+    // TemplatasStore.getImpreciseName(interner, fullEnv.id.localName) match {
+    //   case None => {
+    //     // DO NOT SUBMIT
+    //     println("Skipping adding function " + fullEnv.id.localName + " to overload index")
+    //   }
+    //   case Some(impreciseName) => {
+    //     coutputs.addOverload(
+    //       opts.globalOptions.useOverloadIndex,
+    //       impreciseName,
+    //       fullEnv.id.localName.parameters.map({
+    //         case CoordT(_, _, KindPlaceholderT(_)) => None // DO NOT SUBMIT document
+    //         case other => Some(other)
+    //       }),
+    //       FunctionCalleeCandidate(fullEnv.templat[a))
+    //   }
+    // }
+
+    // DO NOT SUBMIT note that we just added/enabled generated/abstract functions to be deferred.
 
     val header =
       fullEnv.function.body match {
@@ -142,6 +155,7 @@ class FunctionCompilerCore(
               (header)
             }
             case None => {
+              // This can happen for templates such as lambdas.
               val header =
                 finishFunctionMaybeDeferred(
                   coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, None, instantiationBoundParams)

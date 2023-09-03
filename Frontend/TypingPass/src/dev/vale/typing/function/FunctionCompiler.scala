@@ -141,7 +141,7 @@ class FunctionCompiler(
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
   // func main():Int{main()}
-  def evaluateGenericFunctionFromNonCall(
+  def compileGenericFunction(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
@@ -150,13 +150,24 @@ class FunctionCompiler(
     Profiler.frame(() => {
       val FunctionTemplataT(env, function) = functionTemplata
       if (function.isLight) {
-        closureOrLightLayer.evaluateGenericLightFunctionFromNonCall(
+        closureOrLightLayer.compileGenericFunction(
           env, coutputs, function.range :: parentRanges, callLocation, function)
       } else {
         vfail() // I think we need a call to evaluate a lambda?
       }
     })
 
+  }
+
+  def precompileGenericFunction(
+      coutputs: CompilerOutputs,
+      parentRanges: List[RangeS],
+      callLocation: LocationInDenizen,
+      functionTemplata: FunctionTemplataT
+  ): Unit = {
+    // DO NOT SUBMIT rename FunctionTemplataT to FunctionDefinitionTemplataT
+    val FunctionTemplataT(env, function) = functionTemplata
+    closureOrLightLayer.precompileGenericFunction(env, coutputs, function.range :: parentRanges, callLocation, function)
   }
 
   def evaluateTemplatedLightFunctionFromCallForPrototype(
@@ -304,6 +315,7 @@ class FunctionCompiler(
         .map(name => determineClosureVariableMember(containingNodeEnv, coutputs, name))
         .toVector;
 
+    // DO NOT SUBMIT its funny that we call into functioncompiler then immediately into structcompiler
     val (structTT, _, functionTemplata) =
       structCompiler.makeClosureUnderstruct(
         containingNodeEnv, coutputs, callRange, callLocation, name, functionA, closuredVarNamesAndTypes)

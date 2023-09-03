@@ -133,7 +133,7 @@ class StructCompilerCore(
           DeferredEvaluatingFunction(
             outerEnv.id.addStep(name),
             (coutputs) => {
-              delegate.evaluateGenericFunctionFromNonCallForHeader(
+              delegate.compileGenericFunction(
                 coutputs, parentRanges, callLocation, FunctionTemplataT(outerEnv, functionA))
             }))
       }
@@ -213,7 +213,7 @@ class StructCompilerCore(
       outerEnv.templatas.entriesByNameT.collect({
         case (name, FunctionEnvEntry(functionA)) => {
           val header =
-            delegate.evaluateGenericFunctionFromNonCallForHeader(
+            delegate.compileGenericFunction(
               coutputs, parentRanges, callLocation, FunctionTemplataT(outerEnv, functionA))
           header.toPrototype -> vassertSome(header.getVirtualIndex)
         }
@@ -332,8 +332,15 @@ class StructCompilerCore(
         Map()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
+    val callNameT =
+      interner.intern(FunctionTemplateNameT(keywords.underscoresCall, functionA.range.begin))
+    val callImpreciseName = interner.intern(CodeNameS(keywords.underscoresCall))
     val dropFuncNameT =
       interner.intern(FunctionTemplateNameT(keywords.drop, functionA.range.begin))
+    val dropNameS = interner.intern(FunctionNameS(keywords.drop, functionA.range.begin))
+    val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
+    val dropFunctionA =
+      containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(dropNameS, functionA.range)
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -349,14 +356,26 @@ class StructCompilerCore(
           .addEntries(
             interner,
             Vector(
-              interner.intern(FunctionTemplateNameT(keywords.underscoresCall, functionA.range.begin)) ->
-                env.FunctionEnvEntry(functionA),
-              dropFuncNameT ->
-                FunctionEnvEntry(
-                  containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
-                    interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
+              callNameT -> env.FunctionEnvEntry(functionA),
+              dropFuncNameT -> FunctionEnvEntry(dropFunctionA),
               understructInstantiatedNameT -> TemplataEnvEntry(KindTemplataT(understructStructTT)),
               interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplataT(understructStructTT)))))
+    // We need to add these because otherwise it wont be in the overload index when we try to call them.
+    // This is the closest thing we have to a precompile step is right now.
+    val callFunctionTemplata = FunctionTemplataT(structOuterEnv, functionA)
+    coutputs.addOverload(
+      opts.globalOptions.useOverloadIndex,
+      callImpreciseName,
+      // DO NOT SUBMIT doc
+      functionA.params.indices.map(_ => None).toVector,
+      FunctionCalleeCandidate(callFunctionTemplata))
+    val dropFunctionTemplata = FunctionTemplataT(structOuterEnv, dropFunctionA)
+    coutputs.addOverload(
+      opts.globalOptions.useOverloadIndex,
+      dropImpreciseName,
+      // DO NOT SUBMIT doc
+      functionA.params.indices.map(_ => None).toVector,
+      FunctionCalleeCandidate(dropFunctionTemplata))
 
     val structInnerEnv =
       CitizenEnvironmentT(
@@ -403,14 +422,22 @@ class StructCompilerCore(
 
     // Always evaluate a drop, drops only capture borrows so there should always be a drop defined
     // on all members.
-      delegate.evaluateGenericFunctionFromNonCallForHeader(
-        coutputs,
-        parentRanges,
-        callLocation,
-        structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
-          case Some(ft@FunctionTemplataT(_, _)) => ft
-          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))
-        })
+    delegate.precompileGenericFunction(
+      coutputs,
+      parentRanges,
+      callLocation,
+      structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
+        case Some(ft@FunctionTemplataT(_, _)) => ft
+        case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))
+      })
+    delegate.compileGenericFunction(
+      coutputs,
+      parentRanges,
+      callLocation,
+      structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
+        case Some(ft@FunctionTemplataT(_, _)) => ft
+        case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))
+      })
 //    }
 
     (closuredVarsStructRef, mutability, functionTemplata)

@@ -27,7 +27,14 @@ import scala.collection.mutable
 case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: Boolean) extends Throwable { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 trait IStructCompilerDelegate {
-  def evaluateGenericFunctionFromNonCallForHeader(
+  def precompileGenericFunction(
+    coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
+    functionTemplata: FunctionTemplataT):
+  Unit
+
+  def compileGenericFunction(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
@@ -90,7 +97,7 @@ class StructCompiler(
   def precompileStruct(
     coutputs: CompilerOutputs,
     structTemplata: StructDefinitionTemplataT):
-  Unit = {
+  IdT[IStructTemplateNameT] = {
     val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
 
     val structTemplateId = templataCompiler.resolveStructTemplate(structTemplata)
@@ -124,12 +131,14 @@ class StructCompiler(
               .toVector
               .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(structTemplateId, outerEnv)
+
+    structTemplateId
   }
 
   def precompileInterface(
     coutputs: CompilerOutputs,
     interfaceTemplata: InterfaceDefinitionTemplataT):
-  Unit = {
+  IdT[IInterfaceTemplateNameT] = {
     val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
 
     val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
@@ -175,6 +184,8 @@ class StructCompiler(
                 .toVector
                 .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(interfaceTemplateId, outerEnv)
+
+    interfaceTemplateId
   }
 
   def compileStruct(

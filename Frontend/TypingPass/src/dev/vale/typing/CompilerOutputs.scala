@@ -42,10 +42,13 @@ case class CompilerOutputs() {
   // Outer env is the env that contains the template.
   // This will be the instantiated name, not just the template name, see UINIT.
   private val functionNameToOuterEnv: mutable.HashMap[IdT[IFunctionTemplateNameT], IInDenizenEnvironmentT] = mutable.HashMap()
+  // DO NOT SUBMIT document or use an env
+  private val functionNameToInferences: mutable.HashMap[IdT[IFunctionTemplateNameT], Map[IRuneS, ITemplataT[ITemplataType]]] = mutable.HashMap()
   // Inner env is the env that contains the solved rules for the declaration, given placeholders.
   // This will be the instantiated name, not just the template name, see UINIT.
   private val functionNameToInnerEnv: mutable.HashMap[IdT[INameT], IInDenizenEnvironmentT] = mutable.HashMap()
 
+  private val overloadIndex = new OverloadIndex()
 
   // declaredNames is the structs that we're currently in the process of defining
   // Things will appear here before they appear in structTemplateNameToDefinition/interfaceTemplateNameToDefinition
@@ -266,6 +269,15 @@ case class CompilerOutputs() {
     returnTypesBySignature += (signature -> returnType2)
   }
 
+  // DO NOT SUBMIT move to environment somehow? maybe we cant because lambdas?
+  def findOverloads(
+      name: IImpreciseNameS,
+      params: Vector[CoordT],
+      kindToSuperKinds: ISubKindTT => Array[ISuperKindTT]): // DO NOT SUBMIT maybe hand them in, like we used to do with paramfilters
+  Array[ICalleeCandidate] = {
+    overloadIndex.findOverloads(name, params, kindToSuperKinds)
+  }
+
   def addFunction(function: FunctionDefinitionT): Unit = {
 //    vassert(declaredSignatures.contains(function.header.toSignature))
     vassert(
@@ -291,6 +303,17 @@ case class CompilerOutputs() {
 
     signatureToFunction.put(function.header.toSignature, function)
 //    functionsByPrototype.put(function.header.toPrototype, function)
+  }
+
+  def addOverload(
+      useOverloadIndexFlag: Boolean,
+      candidateName: IImpreciseNameS,
+      candidateParamMaybes: Vector[Option[CoordT]],
+      calleeCandidate: ICalleeCandidate):
+  Unit = {
+    if (useOverloadIndexFlag) {
+      overloadIndex.add(candidateName, candidateParamMaybes, calleeCandidate)
+    }
   }
 
   def declareFunction(callRanges: List[RangeS], name: IdT[IFunctionNameT]): Unit = {
@@ -346,6 +369,15 @@ case class CompilerOutputs() {
     vassert(!functionNameToOuterEnv.contains(nameT))
     //    vassert(nameT == env.fullName)
     functionNameToOuterEnv += (nameT -> env)
+  }
+
+  def declareFunctionInferences(
+      nameT: IdT[IFunctionTemplateNameT],
+      env: Map[IRuneS, ITemplataT[ITemplataType]],
+  ): Unit = {
+    vassert(!functionNameToInferences.contains(nameT))
+    //    vassert(nameT == env.fullName)
+    functionNameToInferences += (nameT -> env)
   }
 
   def declareTypeOuterEnv(
@@ -552,6 +584,10 @@ case class CompilerOutputs() {
   }
   def getInnerEnvForFunction(name: IdT[INameT]): IInDenizenEnvironmentT = {
     vassertSome(functionNameToInnerEnv.get(name))
+  }
+
+  def getInferencesForFunction(name: IdT[IFunctionTemplateNameT]): Map[IRuneS, ITemplataT[ITemplataType]] = {
+    vassertSome(functionNameToInferences.get(name))
   }
   def getOuterEnvForFunction(name: IdT[IFunctionTemplateNameT]): IInDenizenEnvironmentT = {
     vassertSome(functionNameToOuterEnv.get(name))

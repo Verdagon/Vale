@@ -18,6 +18,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
+import dev.vale.typing.citizen._
 import dev.vale.typing.names._
 
 import scala.collection.immutable.{Map, Set}
@@ -88,7 +89,8 @@ class OverloadResolver(
     keywords: Keywords,
     templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler,
-    functionCompiler: FunctionCompiler) {
+    functionCompiler: FunctionCompiler,
+    implCompiler: ImplCompiler) {
   val runeTypeSolver = new RuneTypeSolver(interner)
 
   def findFunction(
@@ -460,10 +462,42 @@ class OverloadResolver(
   Result[AttemptedCandidate, FindFunctionFailure] = {
     // This is here for debugging, so when we dont find something we can see what envs we searched
     val searchedEnvs = new Accumulator[SearchedEnvironment]()
-    val undedupedCandidates = new Accumulator[ICalleeCandidate]()
-    getCandidateBanners(
-      env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
-    val candidates = undedupedCandidates.buildArray().distinct
+    val newSystemCandidates =
+      {
+      // if (opts.globalOptions.useOverloadIndex) {
+        val result =
+          coutputs.findOverloads(
+            functionName,
+            args,
+            citizen => {
+              implCompiler.getParents(coutputs, callRange, callLocation, env, citizen).toArray
+            })
+        if (result.size > 1) {
+          vpass()
+        }
+        // if (opts.globalOptions.sanityCheck) {
+        //   val undedupedCandidates = new Accumulator[ICalleeCandidate]()
+        //   getCandidateBanners(
+        //     env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
+        //   val resultsFromOldSystem = undedupedCandidates.buildArray().distinct
+        //   vassert(result.length >= resultsFromOldSystem.length)
+        // }
+        result
+      // } else {
+      //   Array[ICalleeCandidate]()
+      }
+    // val oldSystemCandidates =
+    //   if (!opts.globalOptions.useOverloadIndex || opts.globalOptions.sanityCheck) {
+    //     val undedupedCandidates = new Accumulator[ICalleeCandidate]()
+    //     getCandidateBanners(
+    //       env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
+    //     undedupedCandidates.buildArray().distinct.toArray
+    //   } else {
+    //     Array[ICalleeCandidate]()
+    //   }
+    // val candidates = if (opts.globalOptions.useOverloadIndex) newSystemCandidates else oldSystemCandidates
+    val candidates = newSystemCandidates
+
     val attempted =
       candidates.map(candidate => {
         attemptCandidateBanner(
@@ -561,6 +595,7 @@ class OverloadResolver(
         }
       }).toVector
 
+    // Each boolean is whether that param needs conversion. False means equal, true means needs conversion.
     val bannerIndexToScore =
       banners.map(banner => {
         vassertSome(getBannerParamScores(coutputs, callingEnv, callRange, callLocation, banner.prototype, argTypes))
@@ -584,8 +619,10 @@ class OverloadResolver(
         } else if (bannerIndexToRequiresConversion.forall(_ == false)) {
           bannerIndexToScore.indices
         } else {
+          // DO NOT SUBMIT we had a bug where that ! wasnt there, lets add a better test case
+          // DO NOT SUBMIT re enable the option to use overload index or not
           val survivingBannerIndices =
-            bannerIndexToRequiresConversion.zipWithIndex.filter(_._1).map(_._2)
+            bannerIndexToRequiresConversion.zipWithIndex.filter(!_._1).map(_._2)
           survivingBannerIndices
         }
       })

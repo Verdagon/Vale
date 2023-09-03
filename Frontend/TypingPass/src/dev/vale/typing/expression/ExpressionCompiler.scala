@@ -1017,12 +1017,15 @@ class ExpressionCompiler(
                 region), Set())
             }
             case pt @ PrototypeTemplataT(_) => {
+              val impreciseName =
+                vassertSome(TemplatasStore.getImpreciseName(interner, pt.prototype.id.localName.template))
+
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)
-                  .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))
+                  .addEntries(interner, Vector(pt.prototype.id.localName.template -> TemplataEnvEntry(pt)))
               val expr =
                 newGlobalFunctionGroupExpression(
-                  tinyEnv, coutputs, RegionT(), interner.intern(ArbitraryNameS()))
+                  tinyEnv, coutputs, RegionT(), impreciseName)
               (expr, Set())
             }
           }

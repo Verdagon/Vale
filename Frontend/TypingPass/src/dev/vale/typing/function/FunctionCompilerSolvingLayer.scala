@@ -397,13 +397,6 @@ class FunctionCompilerSolvingLayer(
       case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    outerEnv.id match {
-      case IdT(_,Vector(),FunctionTemplateNameT(StrI("Bork"),_)) => {
-        vpass()
-      }
-      case _ =>
-    }
-
     val CompleteResolveSolve(inferredTemplatas, runeToFunctionBound) =
       inferCompiler.checkResolvingConclusionsAndResolve(
         envs, coutputs, invocationRange, callLocation, runeToType, rules, includeReachableBoundsForRunes, solver) match {
@@ -529,14 +522,12 @@ class FunctionCompilerSolvingLayer(
     DefineFunctionSuccess(PrototypeTemplataT(prototype), inferences, instantiationBoundParams)
   }
 
-  // Preconditions:
-  // - either no closured vars, or they were already added to the env.
-  def evaluateGenericFunctionFromNonCall(
-    coutputs: CompilerOutputs,
-    nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
-    parentRanges: List[RangeS],
-    callLocation: LocationInDenizen
-  ): FunctionHeaderT = {
+  def precompileGenericFunction(
+      coutputs: CompilerOutputs,
+      nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
+      parentRanges: List[RangeS],
+      callLocation: LocationInDenizen
+  ): Unit = {
     val function = nearEnv.function
     val range = function.range :: parentRanges
     // Check preconditions
@@ -575,31 +566,91 @@ class FunctionCompilerSolvingLayer(
           }
         }
       }) match {
-        case Err(f @ FailedCompilerSolve(_, _, err)) => {
-          throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
-        }
-        case Ok(true) =>
-        case Ok(false) => // Incomplete, will be detected in the below checkDefiningConclusionsAndResolve
+      case Err(f@FailedCompilerSolve(_, _, err)) => {
+        throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
       }
+      case Ok(true) =>
+      case Ok(false) => // Incomplete, will be detected in the below checkDefiningConclusionsAndResolve
+    }
     val inferences =
       inferCompiler.interpretResults(function.runeToType, solver) match {
         case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, e))
         case Ok(conclusions) => conclusions
       }
 
-    nearEnv.id match {
-      case IdT(_,Vector(),FunctionTemplateNameT(StrI("Bork"),_)) => {
-        vpass()
+    // We declare the function inferences so that we don't have to do the above solve twice, which would be:
+    // - Slow, and
+    // - Problematic because when we're incrementally adding placeholders, we register them with the coutputs, and the
+    //   coutputs doesn't like when we register the same thing twice.
+    coutputs.declareFunctionInferences(functionTemplateId, inferences) // DO NOT SUBMIT
+
+    // We don't add these here because we aren't instantiating anything here, we're compiling a
+    // function
+    // not calling it.
+    // coutputs.addInstantiationBounds(header.toPrototype.id, runeToFunctionBound)
+
+    // DO NOT SUBMIT unify with middleLayer.evaluateFunctionParamTypes
+    val paramTypes =
+      function.params.map(param1 => {
+        expectCoordTemplata(inferences(param1.pattern.coordRune.get.rune)).coord
+      })
+    // val templateArgs = function.genericParameters.map(_.rune.rune).map(inferences)
+    // // DO NOT SUBMIT unify with middleLayer.assemblename
+    // val functionId =
+    //   functionTemplateId.copy(
+    //     localName = functionTemplateId.localName.makeFunctionName(interner, keywords, templateArgs, paramTypes))
+
+    // Add it to the overload index
+    TemplatasStore.getImpreciseName(interner, nearEnv.id.localName) match {
+      case None => {
+        // DO NOT SUBMIT
+        println("Skipping adding function " + nearEnv.id.localName + " to overload index")
       }
-      case _ =>
+      case Some(impreciseName) => {
+        coutputs.addOverload(
+          opts.globalOptions.useOverloadIndex,
+          impreciseName,
+          paramTypes.map({
+            case CoordT(_, _, KindPlaceholderT(_)) => None // DO NOT SUBMIT document
+            case other => Some(other)
+          }),
+          FunctionCalleeCandidate(nearEnv.templata))
+      }
     }
 
+  }
+
+  def compileGenericFunction(
+    coutputs: CompilerOutputs,
+    nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
+    parentRanges: List[RangeS],
+    callLocation: LocationInDenizen
+  ): FunctionHeaderT = {
+    val function = nearEnv.function
+    val range = function.range :: parentRanges
+    // Check preconditions
+    checkClosureConcernsHandled(nearEnv)
+
+    val functionTemplateId =
+      nearEnv.parentEnv.id.addStep(
+        nameTranslator.translateGenericFunctionName(nearEnv.function.name))
+
+    val definitionRules = function.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
+
+    // This is so we can automatically grab the bounds from parameters and returns, see NBIFP.
+    val paramAndReturnRunes =
+      (function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)).distinct.toVector
+    val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT())
+    val inferences = coutputs.getInferencesForFunction(functionTemplateId)
     val instantiationBoundParams =
       inferCompiler.checkDefiningConclusionsAndResolve(
         envs, coutputs, range, callLocation, definitionRules, paramAndReturnRunes, inferences) match {
         case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(range, DefiningResolveConclusionError(f)))
         case Ok(c) => c
       }
+    // checkDefiningConclusionsAndResolve added bounds to the overload index. DO NOT SUBMIT rename that func maybe
+    // We add these so that when we try to call a bound from inside the function, they'll be in the
+    // overload index and can be found.
 
     val runedEnv =
       addRunedDataToNearEnv(

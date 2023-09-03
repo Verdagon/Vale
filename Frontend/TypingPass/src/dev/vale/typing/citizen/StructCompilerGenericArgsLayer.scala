@@ -310,7 +310,7 @@ class StructCompilerGenericArgsLayer(
       val structTemplateId = declaringEnv.id.addStep(structTemplateName)
 
       // We declare the struct's outer environment in the precompile stage instead of here because
-      // of MDATOEF.
+      // of MDATOEF. DO NOT SUBMIT update
       val outerEnv = coutputs.getOuterEnvForType(parentRanges, structTemplateId)
 
       val allRulesS = structA.headerRules ++ structA.memberRules

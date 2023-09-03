@@ -297,7 +297,7 @@ object RegionCollapserIndividual {
       case ImplNameI(template, templateArgs, subCitizen) => {
         val map = RegionCounter.countImplName(implName)
         ImplNameI[cI](
-          collapseImplTemplateName(template),
+          collapseImplTemplateName(template), // DO NOT SUBMIT this needs a map, also see regions branch
           templateArgs.map(collapseTemplata(map, _)),
           collapseCitizen(subCitizen))
       }

@@ -332,6 +332,34 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Lambda is compatible with manual interface anonymous substruct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.str.*;
+        |
+        |sealed interface AFunction2<R Ref, P1 Ref> {
+        |  func __call(virtual this &AFunction2<R, P1>, a P1) R;
+        |}
+        |struct AFunction2AnonSubstruct<R, P1, F1Lam>
+        |where func __call(&F1Lam,P1)R, func drop(F1Lam)void {
+        |  f1Lam F1Lam;
+        |}
+        |func __call<R, P1, F1Lam>(anonSubstruct &AFunction2AnonSubstruct<R, P1, F1Lam>, p1 P1) R {
+        |  (anonSubstruct.f1Lam)(p1)
+        |}
+        |func AFunction2<R, P1, F1Lam>(f1Lam F1Lam) AFunction2AnonSubstruct<R, P1, F1Lam>
+        |where func __call(&F1Lam,P1)R, func drop(F1Lam)void {
+        |  AFunction2AnonSubstruct<R, P1, F1Lam>(f1Lam)
+        |}
+        |
+        |exported func main() str {
+        |  func = AFunction2<str, int>((i) => { str(i) });
+        |  return func(42);
+        |}
+    """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
   test("Lambda is compatible with interface anonymous substruct") {
     val compile = CompilerTestCompilation.test(
       """
