@@ -10,9 +10,11 @@ import dev.vale.typing.ast.{NormalStructMemberT, ReferenceMemberTypeT}
 import dev.vale.typing.names.{IdT, KindPlaceholderNameT, KindPlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.types.IntT
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PatternTests extends FunSuite with Matchers {
+class PatternTests extends AnyFunSuite with Matchers {
   // To get something like this to work would be rather involved.
   //test("Test matching a single-member pack") {
   //  val compile = RunCompilation.test( "exported func main() int { [x] = (4); = x; }")

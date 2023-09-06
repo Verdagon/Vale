@@ -4,9 +4,11 @@ import dev.vale.typing.ast.TupleTE
 import dev.vale.typing.types.IntT
 import dev.vale.typing._
 import dev.vale.von.{VonBool, VonInt}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class TupleTests extends FunSuite with Matchers {
+class TupleTests extends AnyFunSuite with Matchers {
   test("Returning tuple from function and dotting it") {
     val compile = RunCompilation.test(
       """

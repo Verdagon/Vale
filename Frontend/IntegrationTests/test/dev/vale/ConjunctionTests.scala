@@ -1,9 +1,11 @@
 package dev.vale
 
 import dev.vale.von.VonBool
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class ConjunctionTests extends FunSuite with Matchers {
+class ConjunctionTests extends AnyFunSuite with Matchers {
   test("And") {
     val compile = RunCompilation.test("exported func main() bool { return true and true; }")
     compile.evalForKind(Vector()) match { case VonBool(true) => }

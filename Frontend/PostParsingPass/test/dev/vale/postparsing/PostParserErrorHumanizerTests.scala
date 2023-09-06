@@ -4,9 +4,11 @@ import dev.vale.{CodeLocationS, Err, FileCoordinateMap, Interner, Ok, RangeS, So
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing._
 import dev.vale.postparsing.rules._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PostParserErrorHumanizerTests extends FunSuite with Matchers {
+class PostParserErrorHumanizerTests extends AnyFunSuite with Matchers {
 
   private def compile(code: String): ProgramS = {
     val interner = new Interner()

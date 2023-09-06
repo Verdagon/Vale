@@ -156,18 +156,35 @@ object TemplataCompiler {
       getNameTemplate(last))
   }
 
-  // Removes lambda citizens / lambda calls from the end, so we get the root function.
+  // Removes lambdas and everything after them, so we get the root function.
+  // For example:
+  //   clone<$clone.E>(&Box<$clone.E>).lam.drop<>(clone<$clone.E>(&Box<$clone.E>).lam)
+  // becomes just:
+  //   clone
   def getRootSuperTemplate(interner: Interner, id: IdT[INameT]): IdT[INameT] = {
-    @tailrec
-    def removeTrailingLambdas(tentativeId: IdT[INameT]): IdT[INameT] = {
-      tentativeId.localName match {
-        case LambdaCitizenTemplateNameT(_) | LambdaCallFunctionTemplateNameT(_, _) => {
-          removeTrailingLambdas(tentativeId.initId(interner))
-        }
-        case _ => tentativeId
-      }
+//    @tailrec
+//    def removeTrailingLambdas(tentativeId: IdT[INameT]): IdT[INameT] = {
+//      tentativeId.localName match {
+//        case LambdaCitizenTemplateNameT(_) | LambdaCallFunctionTemplateNameT(_, _) => {
+//          removeTrailingLambdas(tentativeId.initId(interner))
+//        }
+//        case _ => tentativeId
+//      }
+//    }
+//    removeTrailingLambdas(getSuperTemplate(id))
+//
+    val superTemplateId = getSuperTemplate(id)
+    val indexOfFirstLambda =
+      superTemplateId.steps.indexWhere({
+        case LambdaCitizenTemplateNameT(_) => true
+        case LambdaCallFunctionTemplateNameT(_, _) => true
+        case _ => false
+      })
+    if (indexOfFirstLambda < 0) {
+      return superTemplateId
     }
-    removeTrailingLambdas(getSuperTemplate(id))
+    val remainingSteps = superTemplateId.steps.slice(0, indexOfFirstLambda)
+    IdT(superTemplateId.packageCoord, remainingSteps.init, remainingSteps.last)
   }
 
   def getTemplate(id: IdT[IInstantiationNameT]): IdT[ITemplateNameT] = {
@@ -1312,6 +1329,7 @@ class TemplataCompiler(
 
       val placeholderEnv = GeneralEnvironmentT.childOf(interner, env, kindPlaceholderTemplateId, kindPlaceholderTemplateId)
       coutputs.declareTypeOuterEnv(kindPlaceholderTemplateId, placeholderEnv)
+      // strt here coutputs.declareTypeAfterHeaderUnresolvedEnv(kindPlaceholderTemplateId, Map()) // Placeholders have no rules, no conclusions
       coutputs.declareTypeInnerEnv(kindPlaceholderTemplateId, placeholderEnv)
     }
 

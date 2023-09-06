@@ -5,9 +5,11 @@ import dev.vale.parsing.ast.{DestinationLocalP, DestructureP, IgnoredLocalNameDe
 import dev.vale.parsing.ast.Patterns._
 import dev.vale.parsing._
 import dev.vale.Collector
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class DestructureParserTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class DestructureParserTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
   private def compile[T](code: String): PatternPP = {
     compilePattern(code)
 //    compile(new PatternParser().parsePattern(_), code)

@@ -4,11 +4,13 @@ import dev.vale._
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing._
 import dev.vale.postparsing._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 
-class PostParsingRuleTests extends FunSuite with Matchers {
+class PostParsingRuleTests extends AnyFunSuite with Matchers {
   private def compile(code: String, interner: Interner = new Interner()): ProgramS = {
     val compile = PostParserTestCompilation.test(code, interner)
     compile.getScoutput() match {

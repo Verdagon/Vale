@@ -1,0 +1,28 @@
+<component name="libraryTable">
+  <library name="scalatest.scalatest_2.12" type="repository">
+    <properties maven-id="org.scalatest:scalatest_2.12:3.3.0-SNAP3" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scala-library-2.12.12.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-core_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-compatible-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalactic_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scala-xml_2.12-1.2.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-featurespec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-flatspec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-freespec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-funsuite_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-funspec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-propspec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-refspec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-wordspec_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-diagrams_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-matchers-core_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-shouldmatchers_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scalatest-mustmatchers_2.12-3.3.0-SNAP3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/ideaLib/scala-reflect-2.12.12.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -10,9 +10,11 @@ import dev.vale.typing.ast._
 import dev.vale.typing.templata.ITemplataT.{expectCoord, expectCoordTemplata}
 import dev.vale.typing.types._
 import dev.vale.von.{VonInt, VonStr}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class VirtualTests extends FunSuite with Matchers {
+class VirtualTests extends AnyFunSuite with Matchers {
 
     test("Simple program containing a virtual function") {
       val compile = RunCompilation.test(

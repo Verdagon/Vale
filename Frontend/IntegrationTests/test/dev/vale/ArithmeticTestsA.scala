@@ -8,9 +8,11 @@ import dev.vale.typing.types.StrT
 import dev.vale.testvm.StructInstanceV
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class ArithmeticTestsA extends FunSuite with Matchers {
+class ArithmeticTestsA extends AnyFunSuite with Matchers {
   test("Dividing") {
     val compile = RunCompilation.test("exported func main() int { return 5 / 2; }")
     compile.evalForKind(Vector()) match { case VonInt(2) => }

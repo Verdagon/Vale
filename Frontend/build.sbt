@@ -6,15 +6,17 @@ scalaVersion := "2.12.17"
 
 // resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-// libraryDependencies += "com.typesafe.akka" % "akka-actor" % "2.0.2"
+libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.3.0-SNAP3"
+libraryDependencies += "net.liftweb" % "lift-json_2.12" % "3.5.0"
+libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.13.0"
+
+dependencyOverrides += "org.scala-lang.modules" % "scala-xml_2.12" % "1.3.0"
 
 // for debugging sbt problems
 logLevel := Level.Debug
 
 // scalacOptions += "-deprecation"
 
-
-// scalaSource in Compile := List((baseDirectory.value / "src2"))
 (unmanagedSourceDirectories) in Compile := Seq(
     (baseDirectory.value / "Von" / "src"),
     (baseDirectory.value / "Utils" / "src"),
@@ -33,10 +35,34 @@ logLevel := Level.Debug
     (baseDirectory.value / "Solver" / "src"),
     (baseDirectory.value / "TypingPass" / "src"),
     (baseDirectory.value / "TestVM" / "src"))
-    // (baseDirectory.value / "src2"))
 
 (unmanagedResourceDirectories) in Compile := Seq(
     baseDirectory.value / "Builtins" / "src" / "dev" / "vale" / "resources")
+
+(unmanagedSourceDirectories) in Test := Seq(
+    (baseDirectory.value / "Tests" / "src"),
+    (baseDirectory.value / "Tests" / "test"),
+    (baseDirectory.value / "IntegrationTests" / "test"),
+    (baseDirectory.value / "Von" / "test"),
+    (baseDirectory.value / "Utils" / "test"),
+    (baseDirectory.value / "ParsingPass" / "test"),
+    (baseDirectory.value / "LexingPass" / "test"),
+    (baseDirectory.value / "HigherTypingPass" / "test"),
+    (baseDirectory.value / "PassManager" / "test"),
+    (baseDirectory.value / "SimplifyingPass" / "test"),
+    (baseDirectory.value / "InstantiatingPass" / "test"),
+    (baseDirectory.value / "Highlighter" / "test"),
+    (baseDirectory.value / "CompileOptions" / "test"),
+    (baseDirectory.value / "Builtins" / "test"),
+    (baseDirectory.value / "FinalAST" / "test"),
+    (baseDirectory.value / "Samples" / "test"),
+    (baseDirectory.value / "PostParsingPass" / "test"),
+    (baseDirectory.value / "Solver" / "test"),
+    (baseDirectory.value / "TypingPass" / "test"),
+    (baseDirectory.value / "TestVM" / "test"))
+
+(unmanagedResourceDirectories) in Test := Seq(
+    baseDirectory.value / "Tests" / "test" / "main" / "resources")
 
 assemblyJarName in assembly := "Frontend.jar"
 assemblyOutputPath in assembly := (baseDirectory.value / "Frontend.jar")

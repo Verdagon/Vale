@@ -6,11 +6,13 @@ import dev.vale.{Err, FileCoordinateMap, IPackageResolver, Interner, Keywords, O
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.Parser
 import dev.vale.parsing._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.Map
 
-class HighlighterTests extends FunSuite with Matchers {
+class HighlighterTests extends AnyFunSuite with Matchers {
   private def highlight(code: String): String = {
     val interner = new Interner()
     val keywords = new Keywords(interner)

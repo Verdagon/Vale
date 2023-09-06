@@ -2,9 +2,11 @@ package dev.vale
 
 import dev.vale.testvm.PanicException
 import dev.vale.von.{VonInt, VonStr}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class ResultTests extends FunSuite with Matchers {
+class ResultTests extends AnyFunSuite with Matchers {
   test("Test borrow is_ok and expect for Ok") {
     val compile = RunCompilation.test(
         """

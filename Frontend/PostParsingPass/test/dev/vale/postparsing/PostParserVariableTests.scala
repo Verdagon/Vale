@@ -3,11 +3,13 @@ package dev.vale.postparsing
 import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, SourceCodeUtils, StrI, vassert, vfail}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.Parser
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.runtime.Nothing$
 
-class PostParserVariableTests extends FunSuite with Matchers {
+class PostParserVariableTests extends AnyFunSuite with Matchers {
 
   private def compileForError(code: String): ICompileErrorS = {
     PostParserTestCompilation.test(code).getScoutput() match {

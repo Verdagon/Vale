@@ -11,9 +11,11 @@ import dev.vale.parsing.ast._
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules._
 import dev.vale.solver.IncompleteSolve
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PostParserTests extends FunSuite with Matchers with Collector {
+class PostParserTests extends AnyFunSuite with Matchers with Collector {
 
   private def compile(code: String, interner: Interner = new Interner()): ProgramS = {
     val compile = PostParserTestCompilation.test(code, interner)

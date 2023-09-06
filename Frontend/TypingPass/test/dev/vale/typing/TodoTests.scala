@@ -13,10 +13,12 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Collector, Err, FileCoordinateMap, Ok, PackageCoordinate, RangeS, Tests, vassert, vassertOne, vpass, vwat, _}
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 import scala.io.Source
 
-class TodoTests extends FunSuite with Matchers {
+class TodoTests extends AnyFunSuite with Matchers {
 }

@@ -5,9 +5,11 @@ import dev.vale.parsing.ast.{AugmentPE, BlockPE, BorrowP, ConsecutorPE, Constant
 import dev.vale.parsing.ast._
 import dev.vale.lexing._
 import dev.vale.options.GlobalOptions
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class StatementTests extends FunSuite with Collector with TestParseUtils {
+class StatementTests extends AnyFunSuite with Collector with TestParseUtils {
 
   test("Simple let") {
     compileBlockContentsExpect( "x = 4;") shouldHave {

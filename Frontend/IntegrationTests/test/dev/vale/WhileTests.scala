@@ -1,9 +1,11 @@
 package dev.vale
 
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class WhileTests extends FunSuite with Matchers {
+class WhileTests extends AnyFunSuite with Matchers {
   test("Simple while loop that doesnt execute") {
     val compile = RunCompilation.test(
       """

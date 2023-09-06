@@ -6,11 +6,13 @@ import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, Tests, vassert}
 import dev.vale.typing.types.InterfaceTT
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.Set
 
-class CompilerVirtualTests extends FunSuite with Matchers {
+class CompilerVirtualTests extends AnyFunSuite with Matchers {
 
   test("Regular interface and struct") {
     val compile = CompilerTestCompilation.test(

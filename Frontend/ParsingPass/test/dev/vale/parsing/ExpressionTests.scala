@@ -3,9 +3,11 @@ package dev.vale.parsing
 import dev.vale.{Collector, StrI}
 import dev.vale.lexing._
 import dev.vale.parsing.ast._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class ExpressionTests extends FunSuite with Collector with TestParseUtils {
+class ExpressionTests extends AnyFunSuite with Collector with TestParseUtils {
   test("Simple int") {
     val expr = compileExpressionExpect("4")
      expr shouldHave { case ConstantIntPE(_, 4, None) => }

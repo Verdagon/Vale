@@ -4,9 +4,11 @@ import dev.vale.{Interner, Keywords, PackageCoordinate, PackageCoordinateMap, St
 import dev.vale.finalast._
 import dev.vale.finalast._
 import dev.vale.von.{VonArray, VonInt, VonMember, VonObject, VonStr}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class VivemTests extends FunSuite with Matchers {
+class VivemTests extends AnyFunSuite with Matchers {
   test("Return 7") {
     val interner = new Interner()
     val keywords = new Keywords(interner)

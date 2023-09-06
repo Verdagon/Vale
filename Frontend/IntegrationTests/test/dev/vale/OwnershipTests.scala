@@ -12,10 +12,12 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.functionNameT
 import dev.vale.typing.types._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import dev.vale.von.VonInt
 
-class OwnershipTests extends FunSuite with Matchers {
+class OwnershipTests extends AnyFunSuite with Matchers {
   test("Borrowing a temporary mutable makes a local var") {
     val compile = RunCompilation.test(
       """

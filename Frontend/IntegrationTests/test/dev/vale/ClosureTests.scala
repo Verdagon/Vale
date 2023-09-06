@@ -11,11 +11,13 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.von.VonInt
 
-class ClosureTests extends FunSuite with Matchers {
+class ClosureTests extends AnyFunSuite with Matchers {
 
   test("Addressibility") {
     val interner = new Interner()

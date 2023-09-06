@@ -4,10 +4,12 @@ import dev.vale.{Collector, StrI, vimpl}
 import dev.vale.parsing.ast.{AugmentPE, BinaryCallPE, BlockPE, BorrowP, ConsecutorPE, ConstantBoolPE, ConstantIntPE, DestructureP, FunctionCallPE, IfPE, LetPE, LocalNameDeclarationP, LookupNameP, LookupPE, MethodCallPE, NameP, NotPE, PatternPP, VoidPE}
 import dev.vale.parsing.ast._
 import dev.vale.options.GlobalOptions
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class IfTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class IfTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
   test("ifs") {
     compileExpressionExpect("if true { doBlarks(&x) } else { }") shouldHave {
 

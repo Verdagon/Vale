@@ -914,7 +914,7 @@ class Compiler(
             entry match {
               case StructEnvEntry(structA) => {
                 val templata = StructDefinitionTemplataT(packageEnv, structA)
-                structCompiler.compileStruct(coutputs, List(), LocationInDenizen(Vector()), templata)
+                structCompiler.compileStruct(coutputs, List(), LocationInDenizen(Vector()), templata) // DO NOT SUBMIT remove range and call location
 
                 val maybeExport =
                   structA.attributes.collectFirst { case e@ExportS(_) => e }

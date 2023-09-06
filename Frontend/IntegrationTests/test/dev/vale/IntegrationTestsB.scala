@@ -6,10 +6,12 @@ import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, StructInstanceV
 import dev.vale.typing.ast._
 import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonFloat, VonInt}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class IntegrationTestsB extends FunSuite with Matchers {
+class IntegrationTestsB extends AnyFunSuite with Matchers {
 
   test("Tests single expression and single statement functions' returns") {
     val compile = RunCompilation.test(

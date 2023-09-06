@@ -1,8 +1,16 @@
 package dev.vale.von
 
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class VonTest extends FunSuite with Matchers {
+class VonTest extends AnyFunSuite with Matchers {
 
   test("Test 1") {
     val data = VonObject("MyObj", None, Vector(VonMember("mem", VonInt(42))))

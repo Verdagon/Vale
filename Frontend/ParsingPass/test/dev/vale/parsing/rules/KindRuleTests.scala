@@ -5,9 +5,11 @@ import dev.vale.parsing.ast.{AnonymousRunePT, CallPT, ComponentsPR, EqualsPR, Fi
 import dev.vale.parsing.templex.TemplexParser
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class KindRuleTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class KindRuleTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
   private def compile[T](code: String): IRulexPR = {
     compileRulex(code)
 //    compile(new TemplexParser().parseRule(_), code)

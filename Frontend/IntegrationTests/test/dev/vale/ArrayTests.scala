@@ -13,9 +13,11 @@ import dev.vale.typing.names.CodeVarNameT
 import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonInt, VonStr}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class ArrayTests extends FunSuite with Matchers {
+class ArrayTests extends AnyFunSuite with Matchers {
   test("Returning static array from function and dotting it") {
     val compile = RunCompilation.test(
       """

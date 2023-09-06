@@ -7,12 +7,14 @@ import dev.vale.{Collector, Interner, Keywords, vassert, vimpl}
 import net.liftweb.json._
 import dev.vale.parsing.ast.ConstantStrPE
 import dev.vale.von.{JsonSyntax, VonPrinter}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import java.nio.charset.Charset
 
 
-class LoadTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class LoadTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
 //  private def compileProgramWithComments(code: String): FileP = {
 //    Parser.runParserForProgramAndCommentRanges(code) match {
 //      case ParseFailure(err) => fail(err.toString)

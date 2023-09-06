@@ -11,10 +11,12 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types.{BoolT, BorrowT, CoordT, ImmutableT, IntT, InterfaceTT, OwnT, KindPlaceholderT, RuntimeSizedArrayTT, ShareT, StructTT, VoidT}
 import dev.vale.{Collector, Err, Ok, PackageCoordinate, StrI, Tests, vassert, vassertOne, vfail, vimpl, vwat}
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.io.Source
 
-class InProgressTests extends FunSuite with Matchers {
+class InProgressTests extends AnyFunSuite with Matchers {
 
 }

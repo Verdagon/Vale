@@ -4,9 +4,11 @@ import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing._
 import dev.vale.typing.types._
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class HashMapTest extends FunSuite with Matchers {
+class HashMapTest extends AnyFunSuite with Matchers {
   test("Monomorphize problem") {
     // See NBIFP, the instantiator has to grab bounds from its params too
 

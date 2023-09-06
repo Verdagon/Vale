@@ -6,7 +6,9 @@ import dev.vale.parsing.ast.FileP
 import dev.vale.highertyping.ICompileErrorA
 import dev.vale.Result
 import dev.vale.typing._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import dev.vale.finalast.VariableIdH
 import dev.vale.postparsing.ICompileErrorS
 
@@ -14,7 +16,7 @@ import scala.collection.immutable.List
 
 
 
-class HammerTest extends FunSuite with Matchers with Collector {
+class HammerTest extends AnyFunSuite with Matchers with Collector {
   test("Local IDs unique") {
     val compile = HammerTestCompilation.test(
         """

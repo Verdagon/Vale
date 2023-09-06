@@ -56,6 +56,15 @@ case class CompilerOutputs() {
   private val typeDeclaredNames: mutable.HashSet[IdT[ITemplateNameT]] = mutable.HashSet()
   // Outer env is the env that contains the template.
   private val typeNameToOuterEnv: mutable.HashMap[IdT[ITemplateNameT], IInDenizenEnvironmentT] = mutable.HashMap()
+
+  // strt here
+//  // A map from each type to its rules' conclusions.
+//  // Useful for getting what kinds of bounds something expects. DO NOT SUBMIT work into and mention PPPITP
+//  // This is ITemplateNameT instead of ICitizenTemplateNameT mainly just so we can uphold the assumption that
+//  // typeNameToInnerEnv, typeNameToOuterEnv, typeDeclaredNames, and this all have the same elements. It's a useful
+//  // assertion to have.
+//  private val typeNameToAfterHeaderUnresolvedEnv: mutable.HashMap[IdT[ITemplateNameT], IInDenizenEnvironmentT] = mutable.HashMap()
+
   // Inner env is the env that contains the solved rules for the declaration, given placeholders.
   // We can key by template name here because there's only one inner env per template. This is the env
   // that has placeholders and stuff.
@@ -217,9 +226,12 @@ case class CompilerOutputs() {
       Collector.all(instantiationId, {
         case id@IdT(_, initSteps, KindPlaceholderNameT(_)) => {
           val x: IdT[INameT] = id
-          vassert(
-            TemplataCompiler.getSuperTemplate(x).initSteps
-                .startsWith(TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps))
+          if (sanityCheck) {
+            val superTemplateId = TemplataCompiler.getSuperTemplate(x)
+            val rootSuperTemplateId = TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId)
+            // change getRootSuperTemplate to actually strip off lambdas and everything after
+            vassert(superTemplateId.initSteps.startsWith(rootSuperTemplateId.initSteps))
+          }
         }
       })
     }
@@ -390,6 +402,19 @@ case class CompilerOutputs() {
     typeNameToOuterEnv += (nameT -> env)
   }
 
+  // strt here
+//  def declareTypeAfterHeaderUnresolvedEnv(
+//      nameT: IdT[ITemplateNameT],
+//      afterHeaderUnresolvedEnv: IInDenizenEnvironmentT,
+//  ): Unit = {
+//    vassert(typeDeclaredNames.contains(nameT))
+//    vassert(!typeNameToAfterHeaderUnresolvedEnv.contains(nameT))
+//    typeNameToAfterHeaderUnresolvedEnv += (nameT -> afterHeaderUnresolvedEnv) // DO NOT SUBMIT rename inferences to conclusions everywhere
+//  }
+
+  // DO NOT SUBMIT rename:
+  // - innerEnv to definitionFinalEnv
+  // - outerEnv to declaringEnv
   def declareTypeInnerEnv(
     templateId: IdT[ITemplateNameT],
     env: IInDenizenEnvironmentT,
@@ -398,6 +423,7 @@ case class CompilerOutputs() {
     vassert(typeDeclaredNames.contains(templateId))
     // One should declare the outer env first
     vassert(typeNameToOuterEnv.contains(templateId))
+    // strt here vassert(typeNameToAfterHeaderUnresolvedEnv.contains(templateId))
     vassert(!typeNameToInnerEnv.contains(templateId))
     //    vassert(nameT == env.fullName)
     typeNameToInnerEnv += (templateId -> env)
@@ -579,6 +605,12 @@ case class CompilerOutputs() {
       case Some(x) => x
     }
   }
+
+  // strt here
+//  def getInferencesForType(name: IdT[ITemplateNameT]): Map[IRuneS, ITemplataT[ITemplataType]] = {
+//    vassertSome(typeNameToAfterHeaderUnresolvedEnv.get(name))
+//  }
+
   def getInnerEnvForType(name: IdT[ITemplateNameT]): IInDenizenEnvironmentT = {
     vassertSome(typeNameToInnerEnv.get(name))
   }

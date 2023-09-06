@@ -7,9 +7,11 @@ import dev.vale.typing.types.StrT
 import dev.vale.testvm.StructInstanceV
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PureFunctionTests extends FunSuite with Matchers {
+class PureFunctionTests extends AnyFunSuite with Matchers {
   test("Simple pure function") {
     val compile =
       RunCompilation.test(

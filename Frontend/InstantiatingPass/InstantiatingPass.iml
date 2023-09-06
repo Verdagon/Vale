@@ -15,9 +15,10 @@
     <orderEntry type="module" module-name="LexingPass" />
     <orderEntry type="module" module-name="HigherTypingPass" />
     <orderEntry type="module" module-name="CompileOptions" />
-    <orderEntry type="library" name="org.scalatest:scalatest_2.12:3.0.8" level="project" />
-    <orderEntry type="module" module-name="Builtins" />
     <orderEntry type="module" module-name="Tests" />
     <orderEntry type="library" name="scala-sdk-2.12.17" level="application" />
+    <orderEntry type="library" name="apache.commons.lang3" level="project" />
+    <orderEntry type="library" name="scalatest.scalatest_2.12" level="project" />
+    <orderEntry type="module" module-name="Builtins" />
   </component>
 </module>

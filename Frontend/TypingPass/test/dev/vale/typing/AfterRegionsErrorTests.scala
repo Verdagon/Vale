@@ -11,9 +11,11 @@ import dev.vale.typing.citizen._
 import dev.vale.typing.expression._
 import dev.vale.{Collector, Err, Ok, vwat, _}
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class AfterRegionsErrorTests extends FunSuite with Matchers {
+class AfterRegionsErrorTests extends AnyFunSuite with Matchers {
 
   test("Prints bread crumb trail") {
     val compile = CompilerTestCompilation.test(

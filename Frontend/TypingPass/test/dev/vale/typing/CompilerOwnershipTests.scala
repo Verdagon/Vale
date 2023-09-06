@@ -9,12 +9,14 @@ import dev.vale.typing.names.CodeVarNameT
 import dev.vale.vassert
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 import scala.io.Source
 
-class CompilerOwnershipTests extends FunSuite with Matchers {
+class CompilerOwnershipTests extends AnyFunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
   def readCodeFromResource(resourceFilename: String): String = {

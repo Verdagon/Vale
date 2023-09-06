@@ -7,9 +7,11 @@ import dev.vale.typing.types._
 import dev.vale.typing.templata.simpleNameT
 import dev.vale.typing.types.StructTT
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class InferTemplateTests extends FunSuite with Matchers {
+class InferTemplateTests extends AnyFunSuite with Matchers {
   test("Test inferring a borrowed argument") {
     val compile = RunCompilation.test(
       """

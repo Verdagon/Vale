@@ -5,10 +5,12 @@ import dev.vale.options.GlobalOptions
 import dev.vale.{Collector, FileCoordinate, FileCoordinateMap, IPackageResolver, Interner, PackageCoordinate, StrI, vassertOne, vassertSome}
 import dev.vale.parsing.ast.{BorrowP, CallPT, ExportAttributeP, FinalP, GenericParameterP, GenericParametersP, ImmutableP, IntTypePR, InterpretedPT, MutabilityPT, MutableP, NameOrRunePT, NameP, NormalStructMemberP, OwnP, RuntimeSizedArrayPT, ShareP, StaticSizedArrayPT, StructMembersP, StructP, TemplateRulesP, TopLevelStructP, TypedPR, VariabilityPT, VariadicStructMemberP, VaryingP, WeakP}
 import dev.vale.parsing.ast._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class StructTests extends FunSuite with Collector with TestParseUtils {
+class StructTests extends AnyFunSuite with Collector with TestParseUtils {
 //  private def compile[T](parser: CombinatorParsers.Parser[T], code: String): T = {
 //    // The strip is in here because things inside the parser don't expect whitespace before and after
 //    CombinatorParsers.parse(parser, code.strip().toCharArray()) match {

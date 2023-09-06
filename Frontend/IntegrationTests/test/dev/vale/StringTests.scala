@@ -3,9 +3,11 @@ package dev.vale
 import dev.vale.typing.ast.ConstantStrTE
 import dev.vale.typing._
 import dev.vale.von.{VonInt, VonStr}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class StringTests extends FunSuite with Matchers {
+class StringTests extends AnyFunSuite with Matchers {
   test("Simple string") {
     val compile = RunCompilation.test(
       """

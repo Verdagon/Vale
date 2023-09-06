@@ -4,10 +4,12 @@ import dev.vale.lexing.Lexer
 import dev.vale.{Collector, Interner, StrI, vassertOne, vimpl}
 import dev.vale.parsing.ast.{CallPT, IDenizenP, GenericParameterP, GenericParametersP, ImplP, MutabilityPT, MutableP, NameOrRunePT, NameP, TopLevelImplP}
 import dev.vale.options.GlobalOptions
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class ImplTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class ImplTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
   test("Normal impl") {
     vassertOne(
       compileFile(

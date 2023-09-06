@@ -5,9 +5,11 @@ import dev.vale.postparsing._
 import dev.vale.parsing.Parser
 import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class HigherTypingPassTests extends FunSuite with Matchers  {
+class HigherTypingPassTests extends AnyFunSuite with Matchers  {
   def compileProgramForError(compilation: HigherTypingCompilation): ICompileErrorA = {
     compilation.getAstrouts() match {
       case Ok(result) => vfail("Expected error, but actually parsed invalid program:\n" + result)

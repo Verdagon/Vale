@@ -1,8 +1,10 @@
 package dev.vale
 
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PrintTests extends FunSuite with Matchers {
+class PrintTests extends AnyFunSuite with Matchers {
   test("Println'ing an int") {
     val compile = RunCompilation.test(
       """

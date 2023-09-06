@@ -5,9 +5,11 @@ import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.types.BoolT
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class BlockTests extends FunSuite with Matchers {
+class BlockTests extends AnyFunSuite with Matchers {
   test("Empty block") {
     val compile = RunCompilation.test(
       """

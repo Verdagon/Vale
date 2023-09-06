@@ -16,10 +16,12 @@ import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types._
 import dev.vale.typing.{HinputsT, ICompileErrorT}
 import dev.vale.von.{IVonData, VonBool, VonFloat, VonInt}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class AfterRegionsIntegrationTests extends FunSuite with Matchers {
+class AfterRegionsIntegrationTests extends AnyFunSuite with Matchers {
 
   test("TODO") {
     // only look at function bounds from the caller's environment, dont get any actual functions

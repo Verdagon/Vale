@@ -6,10 +6,12 @@ import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, StructInstanceV
 import dev.vale.typing.ast._
 import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonFloat, VonInt}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class IntegrationTestsC extends FunSuite with Matchers {
+class IntegrationTestsC extends AnyFunSuite with Matchers {
 
   test("Tests floats") {
     val compile = RunCompilation.test(

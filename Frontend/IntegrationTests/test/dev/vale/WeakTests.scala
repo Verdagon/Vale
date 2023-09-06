@@ -13,9 +13,11 @@ import dev.vale.typing.ast._
 import dev.vale.typing.names.CodeVarNameT
 import dev.vale.typing.types._
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class WeakTests extends FunSuite with Matchers {
+class WeakTests extends AnyFunSuite with Matchers {
   test("Make and lock weak ref then destroy own, with struct") {
     val compile = RunCompilation.test(
         Tests.loadExpected("programs/weaks/lockWhileLiveStruct.vale"))

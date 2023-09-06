@@ -2,9 +2,11 @@ package dev.vale
 
 import dev.vale.testvm.PanicException
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class StructTests extends FunSuite with Matchers {
+class StructTests extends AnyFunSuite with Matchers {
   test("Make empty imm struct") {
     val compile = RunCompilation.test(
       """

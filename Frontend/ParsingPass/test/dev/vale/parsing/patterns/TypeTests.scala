@@ -6,9 +6,11 @@ import dev.vale.parsing.ast.{AnonymousRunePT, BorrowP, CallPT, FinalP, IgnoredLo
 import dev.vale.parsing.ast.Patterns.{fromEnv, withType}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class TypeTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class TypeTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
   private def compile[T](code: String): PatternPP = {
     compilePattern(code)
 //    compile(new PatternParser().parsePattern(_), code)

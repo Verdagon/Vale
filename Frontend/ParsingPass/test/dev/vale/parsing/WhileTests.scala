@@ -4,10 +4,12 @@ import dev.vale.{Collector, Interner, StrI}
 import dev.vale.parsing.ast._
 import dev.vale.lexing.{Lexer, LexingIterator}
 import dev.vale.options.GlobalOptions
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class WhileTests extends FunSuite with Collector with TestParseUtils {
+class WhileTests extends AnyFunSuite with Collector with TestParseUtils {
   test("Simple while loop") {
     compileBlockContentsExpect("while true {}") shouldHave {
       case WhilePE(_, ConstantBoolPE(_, true), BlockPE(_, None,None,VoidPE(_))) =>

@@ -4,11 +4,13 @@ import dev.vale.{Collector, Interner, StrI, vassertOne, vassertSome}
 import dev.vale.parsing.ast.{BlockPE, CallPT, ExportAsP, FileP, FunctionP, ImportP, NameOrRunePT, NameP, RegionRunePT, TopLevelExportAsP, TopLevelFunctionP, TopLevelImportP, TopLevelStructP, VoidPE}
 import dev.vale.lexing.{BadStartOfStatementError, IParseError, Lexer, UnrecognizedDenizenError}
 import dev.vale.options.GlobalOptions
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
 
-class TopLevelTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class TopLevelTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
   def compile(code: String): FileP = {
     compileFile(code).getOrDie()
   }

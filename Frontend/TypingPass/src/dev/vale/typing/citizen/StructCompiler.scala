@@ -126,11 +126,17 @@ class StructCompiler(
             // Merge in any things from the global environment that say they're part of this
             // structs's namespace (see IMRFDI and CODME).
             // StructFreeMacro will put a free function here.
+            // DO NOT SUBMIT is this really necessary?
             declaringEnv.globalEnv.nameToTopLevelEnvironment
               .get(structTemplateId.addStep(interner.intern(PackageTopLevelNameT())))
               .toVector
               .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(structTemplateId, outerEnv)
+
+    // strt here
+//    Profiler.frame(() => {
+//      templateArgsLayer.precompileStruct(coutputs, parentRanges, callLocation, structTemplata)
+//    })
 
     structTemplateId
   }

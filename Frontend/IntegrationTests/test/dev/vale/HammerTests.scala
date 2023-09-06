@@ -7,11 +7,13 @@ import dev.vale.testvm.PanicException
 import dev.vale.simplifying._
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 
-class HammerTests extends FunSuite with Matchers {
+class HammerTests extends AnyFunSuite with Matchers {
   // Hammer tests only test the general structure of things, not the generated nodes.
   // The generated nodes will be tested by end-to-end tests.
 

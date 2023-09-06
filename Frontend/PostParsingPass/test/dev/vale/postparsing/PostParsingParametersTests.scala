@@ -9,9 +9,11 @@ import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PostParsingParametersTests extends FunSuite with Matchers with Collector {
+class PostParsingParametersTests extends AnyFunSuite with Matchers with Collector {
 
   private def compile(code: String, interner: Interner = new Interner()): ProgramS = {
     val compilation = PostParserTestCompilation.test(code, interner)

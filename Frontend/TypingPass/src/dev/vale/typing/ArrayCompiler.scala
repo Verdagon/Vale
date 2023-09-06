@@ -518,6 +518,7 @@ class ArrayCompiler(
         TemplatasStore(templateId, Map(), Map()))
     coutputs.declareType(templateId)
     coutputs.declareTypeOuterEnv(templateId, arrayOuterEnv)
+    // strt here coutputs.declareTypeAfterHeaderUnresolvedEnv(templateId, Map()) // Arrays have no rules, no conclusions
 
     val TemplateTemplataType(types, _) = StaticSizedArrayTemplateTemplataT().tyype
     val Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType()) = types
@@ -583,6 +584,7 @@ class ArrayCompiler(
         TemplatasStore(templateId, Map(), Map()))
     coutputs.declareType(templateId)
     coutputs.declareTypeOuterEnv(templateId, arrayOuterEnv)
+    // strt here coutputs.declareTypeAfterHeaderUnresolvedEnv(templateId, Map()) // Arrays have no rules, no conclusions
 
 
 

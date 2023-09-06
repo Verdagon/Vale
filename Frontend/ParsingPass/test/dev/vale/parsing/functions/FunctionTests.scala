@@ -4,11 +4,15 @@ import dev.vale.{Collector, StrI, vassertOne, vimpl}
 import dev.vale.parsing.ast._
 import dev.vale.parsing._
 import dev.vale.lexing.{BadFunctionBodyError, LightFunctionMustHaveParamTypes}
-import org.scalatest._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
-class FunctionTests extends FunSuite with Collector with TestParseUtils {
+class FunctionTests extends AnyFunSuite with Collector with TestParseUtils {
   test("Simple function") {
     vassertOne(compileFileExpect("""func main() { }""").denizens) match {
       case TopLevelFunctionP(

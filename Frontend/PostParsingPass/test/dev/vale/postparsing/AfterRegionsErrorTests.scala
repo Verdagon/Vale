@@ -5,9 +5,11 @@ import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{LiteralSR, MaybeCoercingLookupSR, MutabilityLiteralSL, RuneUsage}
 import dev.vale.solver.IncompleteSolve
 import dev.vale._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class AfterRegionsErrorTests extends FunSuite with Matchers with Collector {
+class AfterRegionsErrorTests extends AnyFunSuite with Matchers with Collector {
 
   private def compile(code: String, interner: Interner = new Interner()): ProgramS = {
     val compile = PostParserTestCompilation.test(code, interner)

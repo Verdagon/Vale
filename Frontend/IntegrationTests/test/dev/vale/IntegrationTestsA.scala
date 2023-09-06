@@ -18,7 +18,9 @@ import java.io.FileNotFoundException
 import dev.vale.typing.ast
 import dev.vale.{finalast => m}
 import dev.vale.testvm.ReferenceV
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import dev.vale.passmanager.FullCompilation
 import dev.vale.finalast.IdH
 import dev.vale.instantiating.ast.HinputsI
@@ -31,7 +33,7 @@ import dev.vale.von.{IVonData, VonBool, VonFloat, VonInt}
 import scala.collection.immutable.List
 
 
-class IntegrationTestsA extends FunSuite with Matchers {
+class IntegrationTestsA extends AnyFunSuite with Matchers {
   //  test("Scratch scratch") {
   //    val compile =
   //      RunCompilation.test(

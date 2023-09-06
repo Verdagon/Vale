@@ -1,11 +1,13 @@
 package dev.vale.solver
 
 import dev.vale.{Collector, Err, Interner, Ok, RangeS, vassert, vfail}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.Map
 
-class SolverTests extends FunSuite with Matchers with Collector {
+class SolverTests extends AnyFunSuite with Matchers with Collector {
   val complexRuleSet =
     Vector(
       Literal(-3L, "1448"),

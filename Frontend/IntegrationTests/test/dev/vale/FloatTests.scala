@@ -5,9 +5,11 @@ import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing._
 import dev.vale.typing.types._
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class FloatTests extends FunSuite with Matchers {
+class FloatTests extends AnyFunSuite with Matchers {
   test("Print float") {
     val compile = RunCompilation.test(
       """

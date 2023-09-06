@@ -4,11 +4,13 @@ import dev.vale.passmanager.FullCompilationOptions
 import dev.vale.finalast._
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 
-class ImportTests extends FunSuite with Matchers {
+class ImportTests extends AnyFunSuite with Matchers {
   test("Tests import") {
     val moduleACode =
       """

@@ -21,12 +21,14 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 import scala.io.Source
 
-class CompilerTests extends FunSuite with Matchers {
+class CompilerTests extends AnyFunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
   def readCodeFromResource(resourceFilename: String): String = {
@@ -37,6 +39,8 @@ class CompilerTests extends FunSuite with Matchers {
 
   test("Simple program returning an int, explicit") {
     // We had a bug once looking up "int" in the environment, hence this test.
+
+    // DO NOT SUBMIT make it so CompilerTestCompilation.test defaults to not including all the builtins.
 
     val compile = CompilerTestCompilation.test(
       """

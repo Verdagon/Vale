@@ -2,7 +2,9 @@ package dev.vale.instantiating
 
 import dev.vale.options.GlobalOptions
 import dev.vale.{Builtins, FileCoordinateMap, Interner, Keywords, PackageCoordinate, Tests}
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 object InstantiatingCompilation {
   def test(code: String*): InstantiatedCompilation = {
@@ -21,7 +23,7 @@ object InstantiatingCompilation {
   }
 }
 
-class InstantiatedTests extends FunSuite with Matchers {
+class InstantiatedTests extends AnyFunSuite with Matchers {
 
   test("Test templates") {
     val compile = InstantiatingCompilation.test(

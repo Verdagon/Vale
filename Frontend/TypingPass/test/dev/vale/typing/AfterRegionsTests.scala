@@ -11,12 +11,14 @@ import dev.vale.postparsing._
 import dev.vale.typing.types._
 import dev.vale.{Collector, Err, Ok, vassert, vwat, _}
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.io.Source
 import OverloadResolver._
 
-class AfterRegionsTests extends FunSuite with Matchers {
+class AfterRegionsTests extends AnyFunSuite with Matchers {
 
   test("Method call on generic data") {
     val compile = CompilerTestCompilation.test(

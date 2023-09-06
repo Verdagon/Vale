@@ -4,12 +4,20 @@ import dev.vale.lexing.{Lexer, LexingIterator}
 import dev.vale.parsing.ast._
 import dev.vale.{Collector, Interner, Keywords, StrI, vimpl}
 import dev.vale.parsing.ast.{ConstantIntPE, ConstantStrPE, FunctionCallPE, LookupNameP, LookupPE, NameP, StrInterpolatePE}
-import org.scalatest.FunSuite
-import org.scalatest.Matchers.convertToAnyShouldWrapper
-import org.scalatest._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class StringParserTests extends FunSuite with Collector with TestParseUtils {
+class StringParserTests extends AnyFunSuite with Collector with TestParseUtils {
   test("Simple string") {
     compileExpressionExpect(""""moo"""") shouldHave
       { case ConstantStrPE(_, "moo") => }

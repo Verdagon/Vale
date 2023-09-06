@@ -7,11 +7,13 @@ import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.types._
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.collection.immutable.List
 
-class CompilerProjectTests extends FunSuite with Matchers {
+class CompilerProjectTests extends AnyFunSuite with Matchers {
 
   test("Function has correct name") {
     val compile =

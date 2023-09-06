@@ -2,11 +2,13 @@ package dev.vale.parsing
 
 import dev.vale.{Collector, Err, Interner, Keywords, Ok, Tests, vfail}
 import dev.vale.options.GlobalOptions
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 
 
-class ParseSamplesTests extends FunSuite with Collector with TestParseUtils {
+class ParseSamplesTests extends AnyFunSuite with Collector with TestParseUtils {
   def parse(path: String): Unit = {
     val interner = new Interner()
     val keywords = new Keywords(interner)

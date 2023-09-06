@@ -6,9 +6,11 @@ import dev.vale.parsing.ast.Patterns.{capturedWithType, capturedWithTypeRune}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.Collector
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class CaptureAndTypeTests extends FunSuite with Matchers with Collector with TestParseUtils {
+class CaptureAndTypeTests extends AnyFunSuite with Matchers with Collector with TestParseUtils {
 //  private def compile[T](parser: CombinatorParsers.Parser[T], code: String): T = {
 //    CombinatorParsers.parse(parser, code.toCharArray()) match {
 //      case CombinatorParsers.NoSuccess(msg, input) => {

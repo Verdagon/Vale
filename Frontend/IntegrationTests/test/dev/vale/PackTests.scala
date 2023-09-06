@@ -2,9 +2,11 @@ package dev.vale
 //import dev.vale.typingpass.types.{IntT, PackTT}
 import dev.vale.typing.ast.TupleTE
 import dev.vale.von.VonInt
-import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class PackTests extends FunSuite with Matchers {
+class PackTests extends AnyFunSuite with Matchers {
   test("Extract seq") {
     val compile = RunCompilation.test(
       """
