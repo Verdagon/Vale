@@ -96,8 +96,9 @@ class StructCompiler(
 
   def precompileStruct(
     coutputs: CompilerOutputs,
+    packageEnv: PackageEnvironmentT[INameT],
     structTemplata: StructDefinitionTemplataT):
-  IdT[IStructTemplateNameT] = {
+  (IdT[IStructTemplateNameT], () => Unit) = {
     val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
 
     val structTemplateId = templataCompiler.resolveStructTemplate(structTemplata)
@@ -133,18 +134,61 @@ class StructCompiler(
               .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(structTemplateId, outerEnv)
 
-    // strt here
-//    Profiler.frame(() => {
-//      templateArgsLayer.precompileStruct(coutputs, parentRanges, callLocation, structTemplata)
-//    })
+    val innerCompiler = templateArgsLayer.precompileStruct(coutputs, structTemplata)
 
-    structTemplateId
+    val compiler = () => {
+      innerCompiler()
+      val packageId = packageEnv.id
+      val globalEnv = packageEnv.globalEnv
+
+      val maybeExport =
+        structA.attributes.collectFirst { case e@ExportS(_) => e }
+      maybeExport match {
+        case None =>
+        case Some(ExportS(packageCoordinate)) => {
+          val templateName = interner.intern(ExportTemplateNameT(structA.range.begin))
+          val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+          val exportOuterEnv =
+            ExportEnvironmentT(
+              globalEnv, packageEnv, templateId, templateId, TemplatasStore(templateId, Map(), Map()))
+
+          val regionPlaceholder = RegionT()
+
+          val placeholderedExportName = interner.intern(ExportNameT(templateName, RegionT()))
+          val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
+          val exportEnv =
+            ExportEnvironmentT(
+              globalEnv, packageEnv, templateId, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
+
+          val exportPlaceholderedStruct =
+            resolveStruct(
+              coutputs, exportEnv, List(structA.range), LocationInDenizen(Vector()), structTemplata, Vector()) match {
+              case ResolveSuccess(kind) => kind
+              case ResolveFailure(range, reason) => {
+                throw CompileErrorExceptionT(TypingPassResolvingError(range, reason))
+              }
+            }
+
+          val exportName =
+            structA.name match {
+              case TopLevelCitizenDeclarationNameS(name, range) => name
+              case other => vwat(other)
+            }
+
+          coutputs.addKindExport(
+            structA.range, exportPlaceholderedStruct, placeholderedExportId, exportName)
+        }
+      }
+    }
+
+    (structTemplateId, compiler)
   }
 
   def precompileInterface(
     coutputs: CompilerOutputs,
+      packageEnv: PackageEnvironmentT[INameT],
     interfaceTemplata: InterfaceDefinitionTemplataT):
-  IdT[IInterfaceTemplateNameT] = {
+  (IdT[IInterfaceTemplateNameT], () => Unit) = {
     val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
 
     val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
@@ -191,18 +235,52 @@ class StructCompiler(
                 .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(interfaceTemplateId, outerEnv)
 
-    interfaceTemplateId
-  }
+    val innerCompiler = templateArgsLayer.precompileInterface(coutputs, interfaceTemplata)
 
-  def compileStruct(
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplataT):
-  Unit = {
-    Profiler.frame(() => {
-      templateArgsLayer.compileStruct(coutputs, parentRanges, callLocation, structTemplata)
-    })
+    val compiler = () => {
+      innerCompiler()
+      val packageId = packageEnv.id
+      val globalEnv = packageEnv.globalEnv
+
+      val maybeExport =
+        interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
+      maybeExport match {
+        case None =>
+        case Some(ExportS(packageCoordinate)) => {
+          val templateName = interner.intern(ExportTemplateNameT(interfaceA.range.begin))
+          val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+          val exportOuterEnv =
+            ExportEnvironmentT(
+              globalEnv, packageEnv, templateId, templateId, TemplatasStore(templateId, Map(), Map()))
+
+          val placeholderedExportName = interner.intern(ExportNameT(templateName, RegionT()))
+          val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
+          val exportEnv =
+            ExportEnvironmentT(
+              globalEnv, packageEnv, templateId, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
+
+          val exportPlaceholderedKind =
+            resolveInterface(
+              coutputs, exportEnv, List(interfaceA.range), LocationInDenizen(Vector()), interfaceTemplata, Vector()) match {
+              case ResolveSuccess(kind) => kind
+              case ResolveFailure(range, reason) => {
+                throw CompileErrorExceptionT(TypingPassResolvingError(range, reason))
+              }
+            }
+
+          val exportName =
+            interfaceA.name match {
+              case TopLevelCitizenDeclarationNameS(name, range) => name
+              case other => vwat(other)
+            }
+
+          coutputs.addKindExport(
+            interfaceA.range, exportPlaceholderedKind, placeholderedExportId, exportName)
+        }
+      }
+    }
+
+    (interfaceTemplateId, compiler)
   }
 
   // See SFWPRL for how this is different from resolveInterface.
@@ -250,18 +328,6 @@ class StructCompiler(
         coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs)
 
     success
-  }
-
-  def compileInterface(
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    callLocation: LocationInDenizen,
-    // We take the entire templata (which includes environment and parents) so we can incorporate
-    // their rules as needed
-    interfaceTemplata: InterfaceDefinitionTemplataT):
-  Unit = {
-    templateArgsLayer.compileInterface(
-      coutputs, parentRanges, callLocation, interfaceTemplata)
   }
 
   // Makes a struct to back a closure

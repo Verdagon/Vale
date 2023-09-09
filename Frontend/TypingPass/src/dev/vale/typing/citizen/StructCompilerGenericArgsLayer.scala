@@ -298,132 +298,34 @@ class StructCompilerGenericArgsLayer(
     })
   }
 
-  // strt here
-//  // We could combine this and compileStruct into one function once we have virtual threads.
-//  // We would wait until a central RwLock is unlocked and contains all the other precompiled things' information.
-//  // That could be particularly awesome because then we might not need to put as many things in the coutputs,
-//  // and we could reuse a lot of this other stuff.
-//  def precompileStruct(
-//      coutputs: CompilerOutputs,
-//      structTemplata: StructDefinitionTemplataT):
-//  Unit = {
-//    Profiler.frame(() => {
-//      val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
-//      val structTemplateName = nameTranslator.translateStructName(structA.name)
-//      val structTemplateId = declaringEnv.id.addStep(structTemplateName)
-//
-//      val ranges = List(structA.range)
-//      val callLocation = LocationInDenizen(Vector())
-//
-//      // We declare the struct's outer environment in the precompile stage instead of here because
-//      // of MDATOEF. DO NOT SUBMIT update
-//      val outerEnv = coutputs.getOuterEnvForType(ranges, structTemplateId)
-//
-//      val headerDefinitionRules = structA.headerRules.filter(InferCompiler.includeRuleInDefinitionSolve)
-//      val headerRuneToType = structA.headerRuneToType
-//
-//      val envs = InferEnv(outerEnv, List(structA.range), callLocation, outerEnv, RegionT())
-//      val solver =
-//        inferCompiler.makeSolver(
-//          envs, coutputs, headerDefinitionRules, headerRuneToType, List(structA.range), Vector(), Vector())
-//      // Incrementally solve and add placeholders, see IRAGP.
-//      inferCompiler.incrementallySolve(
-//        envs, coutputs, solver,
-//        // Each step happens after the solver has done all it possibly can. Sometimes this can lead
-//        // to races, see RRBFS.
-//        (solver) => {
-//          TemplataCompiler.getFirstUnsolvedIdentifyingRune(structA.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
-//            case None => false
-//            case Some((genericParam, index)) => {
-//              val placeholderPureHeight = vregionmut(None)
-//              // Make a placeholder for every argument even if it has a default, see DUDEWCD.
-//              val templata =
-//                templataCompiler.createPlaceholder(
-//                  coutputs, outerEnv, structTemplateId, genericParam, index, headerRuneToType, placeholderPureHeight, true)
-//              solver.manualStep(Map(genericParam.rune.rune -> templata))
-//              true
-//            }
-//          }
-//        }) match {
-//        case Err(f@FailedCompilerSolve(_, _, err)) => {
-//          throw CompileErrorExceptionT(typing.TypingPassSolverError(ranges, f))
-//        }
-//        case Ok(true) =>
-//        case Ok(false) => // Incomplete, will be detected in the below expectCompleteSolve
-//      }
-//      val inferences =
-//        inferCompiler.interpretResults(headerRuneToType, solver) match {
-//          case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(ranges, e))
-//          case Ok(conclusions) => conclusions
-//        }
-//      // DO NOT SUBMIT could be worth splitting this?
-//      // Here in the header we only define things, we don't really use things right?
-//      // Wait, might not be the case. We could be resolving structs in our bounds.
-//      //   struct A<T> where func splork(Bork<T>)void { ... }
-//      // might want to resolve Bork and figure out if we satisfy its stuff.
-//      // So really, we just don't want to resolve anything up here. But we do want to declare the bounds.
-//      val instantiationBoundArgsUNUSED =
-//        inferCompiler.checkDefiningConclusionsAndResolve(
-//          envs, coutputs, ranges, callLocation, headerDefinitionRules, Vector(), inferences) match {
-//          case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(ranges, DefiningResolveConclusionError(f)))
-//          case Ok(c) => c
-//        }
-//      // We don't care about these, we just wanted things to be added to the coutputs.
-//      val _ = instantiationBoundArgsUNUSED
-//
-//
-//      structA.maybePredictedMutability match {
-//        case None => {
-//          val mutability =
-//            ITemplataT.expectMutability(inferences(structA.mutabilityRune.rune))
-//          coutputs.declareTypeMutability(structTemplateId, mutability)
-//        }
-//        case Some(_) =>
-//      }
-//
-//      val templateArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
-//
-//      val id = assembleStructName(structTemplateId, templateArgs)
-//
-//      val afterHeaderUnresolvedEnv =
-//        CitizenEnvironmentT(
-//          outerEnv.globalEnv,
-//          outerEnv,
-//          structTemplateId,
-//          id,
-//          TemplatasStore(id, Map(), Map())
-//              .addEntries(
-//                interner,
-//                inferences.toVector
-//                    .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-//
-//      coutputs.declareTypeAfterHeaderUnresolvedEnv(structTemplateId, afterHeaderUnresolvedEnv)
-//    })
-//  }
-
-  def compileStruct(
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplataT):
-  Unit = {
+  def precompileStruct(
+      coutputs: CompilerOutputs,
+      structTemplata: StructDefinitionTemplataT):
+  () => Unit
+  = {
     Profiler.frame(() => {
       val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateId = declaringEnv.id.addStep(structTemplateName)
 
+      val ranges = List(structA.range)
+      val callLocation = LocationInDenizen(Vector())
+
       // We declare the struct's outer environment in the precompile stage instead of here because
       // of MDATOEF. DO NOT SUBMIT update
-      val outerEnv = coutputs.getOuterEnvForType(parentRanges, structTemplateId)
+      val outerEnv = coutputs.getOuterEnvForType(ranges, structTemplateId)
 
       val allRulesS = structA.headerRules ++ structA.memberRules
       val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
       val definitionRules = allRulesS.filter(InferCompiler.includeRuleInDefinitionSolve)
+      // Some day we might want to do only the header rules here, like:
+      //   val headerDefinitionRules = structA.headerRules.filter(InferCompiler.includeRuleInDefinitionSolve)
+      //   val headerRuneToType = structA.headerRuneToType
 
       val envs = InferEnv(outerEnv, List(structA.range), callLocation, outerEnv, RegionT())
       val solver =
         inferCompiler.makeSolver(
-          envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, Vector(), Vector())
+          envs, coutputs, definitionRules, allRuneToType, List(structA.range), Vector(), Vector())
       // Incrementally solve and add placeholders, see IRAGP.
       inferCompiler.incrementallySolve(
         envs, coutputs, solver,
@@ -443,26 +345,40 @@ class StructCompilerGenericArgsLayer(
             }
           }
         }) match {
-        case Err(f @ FailedCompilerSolve(_, _, err)) => {
-          throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f))
+        case Err(f@FailedCompilerSolve(_, _, err)) => {
+          throw CompileErrorExceptionT(typing.TypingPassSolverError(ranges, f))
         }
         case Ok(true) =>
         case Ok(false) => // Incomplete, will be detected in the below expectCompleteSolve
       }
       val inferences =
         inferCompiler.interpretResults(allRuneToType, solver) match {
-          case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, e))
+          case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(ranges, e))
           case Ok(conclusions) => conclusions
         }
+
+      val templateArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
+      val id = assembleStructName(structTemplateId, templateArgs)
+
+      // DO NOT SUBMIT could be worth splitting this?
+      // Here in the header we only define things, we don't really use things right?
+      // Wait, might not be the case. We could be resolving structs in our bounds.
+      //   struct A<T> where func splork(Bork<T>)void { ... }
+      // might want to resolve Bork and figure out if we satisfy its stuff.
+      // So really, we just don't want to resolve anything up here. But we do want to declare the bounds.
       val instantiationBoundArgsUNUSED =
-        inferCompiler.checkDefiningConclusionsAndResolve(
-          envs, coutputs, structA.range :: parentRanges, callLocation, definitionRules, Vector(), inferences) match {
-          case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(structA.range :: parentRanges, DefiningResolveConclusionError(f)))
-          case Ok(c) => c
-        }
+        inferCompiler.makeInstantiationBoundParams(
+          envs, coutputs, definitionRules, Vector(), inferences)
       // We don't care about these, we just wanted things to be added to the coutputs.
       val _ = instantiationBoundArgsUNUSED
 
+      val definingEnvAfterHeaderUnresolved =
+        CitizenEnvironmentT(
+          outerEnv.globalEnv, outerEnv, structTemplateId, id,
+          TemplatasStore(id, Map(), Map())
+              .addEntries(
+                interner,
+                inferences.toVector.map({ case (key, value) => (interner.intern(RuneNameT(key)), TemplataEnvEntry(value)) })))
 
       structA.maybePredictedMutability match {
         case None => {
@@ -473,55 +389,58 @@ class StructCompilerGenericArgsLayer(
         case Some(_) =>
       }
 
-      val templateArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
+      coutputs.declareTypeAfterHeaderUnresolvedEnv(structTemplateId, definingEnvAfterHeaderUnresolved)
 
-      val id = assembleStructName(structTemplateId, templateArgs)
+      // This will be run in the next phase, when we start compiling things.
+      // This is a bit easier than coutputs remembering the (very specifically typed) definingEnvAfterHeaderUnresolved
+      // and recalculating a bunch of stuff.
+      //
+      // Once we have virtual threads we can just make it suspend here.
+      // We would wait until a central RwLock is unlocked and contains all the other precompiled things' information.
+      // That could be particularly awesome because then we might not need to put as many things in the coutputs,
+      // and we could reuse a lot of this other stuff.
+      return () => {
+        Profiler.frame(() => {
+          inferCompiler.checkDefiningConclusionsAndResolveInner(
+            definingEnvAfterHeaderUnresolved, coutputs, definitionRules) match {
+            case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(ranges, DefiningResolveConclusionError(f)))
+            case Ok(()) => {
+              // Now that we've checked the environment, we can ordain this as the inner env. DO NOT SUBMIT r perhaps to definingInnerEnv?
+              val innerEnv = definingEnvAfterHeaderUnresolved
 
-      val innerEnv =
-        CitizenEnvironmentT(
-          outerEnv.globalEnv,
-          outerEnv,
-          structTemplateId,
-          id,
-          TemplatasStore(id, Map(), Map())
-            .addEntries(
-              interner,
-              inferences.toVector
-                .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+              coutputs.declareTypeInnerEnv(structTemplateId, innerEnv)
 
-      coutputs.declareTypeInnerEnv(structTemplateId, innerEnv)
-//      strt here DO NOT SUBMIT
-//      // we need to declare the inner env earlier, in the precompiles, because when we compile we reach for
-//      // other ones to figure out reachable bounds.
-//      // this might be tricky, we might need to do an unchecked pre-solve in the precompile.
-
-      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, callLocation, structA)
+              core.compileStruct(outerEnv, innerEnv, coutputs, ranges, callLocation, structA)
+            }
+          }
+        })
+      }
     })
   }
 
-  def compileInterface(
+  def precompileInterface(
     coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    callLocation: LocationInDenizen,
     interfaceTemplata: InterfaceDefinitionTemplataT):
-  Unit = {
+  () => Unit
+  = {
     Profiler.frame(() => {
       val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateId = declaringEnv.id.addStep(interfaceTemplateName)
 
+      val ranges = List(interfaceA.range)
+      val callLocation = LocationInDenizen(Vector())
+
       // We declare the interface's outer environment in the precompile stage instead of here because
       // of MDATOEF.
-      val outerEnv = coutputs.getOuterEnvForType(parentRanges, interfaceTemplateId)
-
-      //      val fullName = env.fullName.addStep(interfaceLastName)
+      val outerEnv = coutputs.getOuterEnvForType(ranges, interfaceTemplateId)
 
       val definitionRules = interfaceA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
       val envs = InferEnv(outerEnv, List(interfaceA.range), callLocation, outerEnv, RegionT())
       val solver =
         inferCompiler.makeSolver(
-          envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector())
+          envs, coutputs, definitionRules, interfaceA.runeToType, ranges, Vector(), Vector())
       // Incrementally solve and add placeholders, see IRAGP.
       inferCompiler.incrementallySolve(
         envs, coutputs, solver,
@@ -542,22 +461,38 @@ class StructCompilerGenericArgsLayer(
           }
         }) match {
         case Err(f @ FailedCompilerSolve(_, _, err)) => {
-          throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f))
+          throw CompileErrorExceptionT(typing.TypingPassSolverError(ranges, f))
         }
         case Ok(true) =>
         case Ok(false) => // Incomplete, will be detected in the below expectCompleteSolve
       }
       val inferences =
         inferCompiler.interpretResults(interfaceA.runeToType, solver) match {
-          case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, e))
+          case Err(e) => throw CompileErrorExceptionT(typing.TypingPassSolverError(ranges, e))
           case Ok(conclusions) => conclusions
         }
+
+      val templateArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
+      val id = assembleInterfaceName(interfaceTemplateId, templateArgs)
+
+      // DO NOT SUBMIT could be worth splitting this?
+      // Here in the header we only define things, we don't really use things right?
+      // Wait, might not be the case. We could be resolving structs in our bounds.
+      //   struct A<T> where func splork(Bork<T>)void { ... }
+      // might want to resolve Bork and figure out if we satisfy its stuff.
+      // So really, we just don't want to resolve anything up here. But we do want to declare the bounds.
       val instantiationBoundArgsUNUSED =
-        inferCompiler.checkDefiningConclusionsAndResolve(
-          envs, coutputs, interfaceA.range :: parentRanges, callLocation, definitionRules, Vector(), inferences) match {
-          case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(interfaceA.range :: parentRanges, DefiningResolveConclusionError(f)))
-          case Ok(c) => c
-        }
+        inferCompiler.makeInstantiationBoundParams(
+          envs, coutputs, definitionRules, Vector(), inferences)
+
+      val definingEnvAfterHeaderUnresolved =
+        CitizenEnvironmentT(
+          outerEnv.globalEnv, outerEnv, interfaceTemplateId, id,
+          TemplatasStore(id, Map(), Map())
+              .addEntries(
+                interner,
+                inferences.toVector.map({ case (key, value) => (interner.intern(RuneNameT(key)), TemplataEnvEntry(value)) })))
+
       // We don't care about these, we just wanted things to be added to the coutputs.
       val _ = instantiationBoundArgsUNUSED
 
@@ -569,25 +504,32 @@ class StructCompilerGenericArgsLayer(
         case Some(_) =>
       }
 
-      val templateArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
+      coutputs.declareTypeAfterHeaderUnresolvedEnv(interfaceTemplateId, definingEnvAfterHeaderUnresolved)
 
-      val id = assembleInterfaceName(interfaceTemplateId, templateArgs)
+      // This will be run in the next phase, when we start compiling things.
+      // This is a bit easier than coutputs remembering the (very specifically typed) definingEnvAfterHeaderUnresolved
+      // and recalculating a bunch of stuff.
+      //
+      // Once we have virtual threads we can just make it suspend here.
+      // We would wait until a central RwLock is unlocked and contains all the other precompiled things' information.
+      // That could be particularly awesome because then we might not need to put as many things in the coutputs,
+      // and we could reuse a lot of this other stuff.
+      return () => {
+        Profiler.frame(() => {
+          inferCompiler.checkDefiningConclusionsAndResolveInner(
+            definingEnvAfterHeaderUnresolved, coutputs, definitionRules) match {
+            case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(ranges, DefiningResolveConclusionError(f)))
+            case Ok(()) => {
+              // Now that we've checked the environment, we can ordain this as the inner env. DO NOT SUBMIT r perhaps to definingInnerEnv?
+              val innerEnv = definingEnvAfterHeaderUnresolved
 
-      val innerEnv =
-        CitizenEnvironmentT(
-          outerEnv.globalEnv,
-          outerEnv,
-          interfaceTemplateId,
-          id,
-          TemplatasStore(id, Map(), Map())
-            .addEntries(
-              interner,
-              inferences.toVector
-                .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+              coutputs.declareTypeInnerEnv(interfaceTemplateId, innerEnv)
 
-      coutputs.declareTypeInnerEnv(interfaceTemplateId, innerEnv)
-
-      core.compileInterface(outerEnv, innerEnv, coutputs, parentRanges, callLocation, interfaceA)
+              core.compileInterface(outerEnv, innerEnv, coutputs, ranges, callLocation, interfaceA)
+            }
+          }
+        })
+      }
     })
   }
 

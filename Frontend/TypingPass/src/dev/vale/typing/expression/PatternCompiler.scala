@@ -151,10 +151,10 @@ class PatternCompiler(
             }
             val rulesA = ruleBuilder.toVector
 
-            val CompleteDefineSolve(templatasByRune, _) =
+            val (templatasByRune, instantiationBoundParams) =
               // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
               // declaring a bunch of things.
-              inferCompiler.solveForDefining(
+              inferCompiler.solveForDefiningStart(
                 InferEnv(nenv.snapshot, parentRanges, callLocation, nenv.snapshot, nenv.defaultRegion),
                 coutputs,
                 rulesA,
@@ -174,8 +174,24 @@ class PatternCompiler(
 
             nenv.addEntries(
               interner,
+              // Would use:
+              //   inferCompiler.declareBoundsAndMakeEnvironmentTemplatas(coutputs, templataByRune, instantiationBoundParams)
+              // but patterns don't have bounds.
+              // I wonder if we'll need them someday, like if we pull in a new type that has a bound?
               templatasByRune.toVector
                 .map({ case (key, value) => (interner.intern(RuneNameT(key)), TemplataEnvEntry(value)) }))
+
+            // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
+            // declaring a bunch of things.
+            inferCompiler.solveForDefiningEnd(
+              coutputs,
+              rulesA,
+              instantiationBoundParams,
+              nenv.snapshot) match {
+              case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(pattern.range :: parentRanges, f))
+              case Ok(c) => c
+            }
+
             val CoordTemplataT(expectedCoord) = vassertSome(templatasByRune.get(receiverRune.rune))
 
             // Now we convert m to a Marine. This also checks that it *can* be

@@ -1329,7 +1329,7 @@ class TemplataCompiler(
 
       val placeholderEnv = GeneralEnvironmentT.childOf(interner, env, kindPlaceholderTemplateId, kindPlaceholderTemplateId)
       coutputs.declareTypeOuterEnv(kindPlaceholderTemplateId, placeholderEnv)
-      // strt here coutputs.declareTypeAfterHeaderUnresolvedEnv(kindPlaceholderTemplateId, Map()) // Placeholders have no rules, no conclusions
+      coutputs.declareTypeAfterHeaderUnresolvedEnv(kindPlaceholderTemplateId, placeholderEnv)
       coutputs.declareTypeInnerEnv(kindPlaceholderTemplateId, placeholderEnv)
     }
 

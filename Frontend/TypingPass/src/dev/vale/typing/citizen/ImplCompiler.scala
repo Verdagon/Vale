@@ -218,8 +218,8 @@ class ImplCompiler(
         callLocation,
         outerEnv,
         RegionT())
-    val CompleteDefineSolve(inferences, InstantiationBoundArgumentsT(_, reachableBoundsFromSubCitizen, _)) =
-      inferCompiler.solveForDefining(
+    val (inferences, instantiationBoundParams @ InstantiationBoundArgumentsT(_, reachableBoundsFromSubCitizen, _)) =
+      inferCompiler.solveForDefiningStart(
         envs,
         coutputs,
         definitionRules,
@@ -262,15 +262,26 @@ class ImplCompiler(
         implOuterEnv,
         implTemplateId,
         instantiatedId,
-        reachableBoundsFromSubCitizen.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, index) =>
-          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(templata))
-        }).toVector ++
-        inferences.map({ case (nameS, templata) =>
-          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-        }).toVector)
+        inferCompiler.declareBoundsAndMakeEnvironmentTemplatas(coutputs, inferences, instantiationBoundParams))
+//        reachableBoundsFromSubCitizen.values.flatMap(_.citizenRuneToReachablePrototype.values).zipWithIndex.map({ case (templata, index) =>
+//          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(PrototypeTemplataT(templata))
+//        }).toVector ++
+//        inferences.map({ case (nameS, templata) =>
+//          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+//        }).toVector)
     val runeToNeededFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(implInnerEnv.templatas)
     val runeToNeededImplBound = TemplataCompiler.assembleRuneToImplBound(implInnerEnv.templatas)
 //    vcurious(runeToFunctionBound1 == runeToNeededFunctionBound) // which do we want?
+
+    inferCompiler.solveForDefiningEnd(
+      coutputs,
+      definitionRules,
+      instantiationBoundParams,
+      implInnerEnv) match {
+      case Ok(i) => i
+      case Err(e) => throw CompileErrorExceptionT(TypingPassDefiningError(List(implA.range), e))
+    }
+
 
     val runeIndexToIndependence =
       calculateRunesIndependence(coutputs, callLocation, implTemplata, implOuterEnv, superInterface)
@@ -292,6 +303,7 @@ class ImplCompiler(
         runeIndexToIndependence.toVector)
     coutputs.declareType(implTemplateId)
     coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)
+    coutputs.declareTypeAfterHeaderUnresolvedEnv(implTemplateId, implInnerEnv);
     coutputs.declareTypeInnerEnv(implTemplateId, implInnerEnv)
     coutputs.addImpl(implT)
   }

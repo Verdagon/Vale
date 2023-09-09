@@ -1715,3 +1715,26 @@ then if we call bork(myA, myB)
 we'll not be sure which bound we should call.
 
 this is why we should probably still do some checking at the call site.
+
+
+# Share Ownership In Typing Phase (SOITP)
+
+Let's say we have something like:
+
+```
+struct DropBox<T> where func drop(T)void { x T; }
+struct A<T> where func drop(B<T>)void { y DropBox<B<T>>; }
+struct B<T> where func drop(A<T>)void { y DropBox<A<T>>; }
+```
+
+These structs are cyclical and can't actually be made, but that's besides the point, they're intentionally crafted so that while (pre)compiling we need information from another struct that hasn't yet been (pre)compiled.
+
+What happens is that in the `where func drop(DropBox<B<T>>)void` we try to do a CoerceToCoord rule to make that `B<T>` from a kind into a coord. However, we haven't yet precompiled B, so we don't know how to coerce it; we don't know whether to coerce it into a share coord or an own coord.
+
+Solutions:
+
+ * Pre-pre-compile the mutabilities
+ * Calculate the mutabilities by doing a call right then. Not sure if that would lead to a rather unbounded calculation.
+ * Get rid of share ownership in coords. A struct being immutable means we implicitly copy() it. Generics won't change since they require copy() bounds anyway.
+
+could use this as an opportunity to think about owned and rc strings.

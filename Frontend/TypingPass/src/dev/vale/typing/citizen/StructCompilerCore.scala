@@ -394,6 +394,7 @@ class StructCompilerCore(
 
     coutputs.declareType(understructTemplatedId)
     coutputs.declareTypeOuterEnv(understructTemplatedId, structOuterEnv)
+    coutputs.declareTypeAfterHeaderUnresolvedEnv(understructTemplatedId, structInnerEnv)
     coutputs.declareTypeInnerEnv(understructTemplatedId, structInnerEnv)
     coutputs.declareTypeMutability(understructTemplatedId, MutabilityTemplataT(mutability))
 

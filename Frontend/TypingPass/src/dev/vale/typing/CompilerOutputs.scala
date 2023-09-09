@@ -57,13 +57,12 @@ case class CompilerOutputs() {
   // Outer env is the env that contains the template.
   private val typeNameToOuterEnv: mutable.HashMap[IdT[ITemplateNameT], IInDenizenEnvironmentT] = mutable.HashMap()
 
-  // strt here
-//  // A map from each type to its rules' conclusions.
-//  // Useful for getting what kinds of bounds something expects. DO NOT SUBMIT work into and mention PPPITP
-//  // This is ITemplateNameT instead of ICitizenTemplateNameT mainly just so we can uphold the assumption that
-//  // typeNameToInnerEnv, typeNameToOuterEnv, typeDeclaredNames, and this all have the same elements. It's a useful
-//  // assertion to have.
-//  private val typeNameToAfterHeaderUnresolvedEnv: mutable.HashMap[IdT[ITemplateNameT], IInDenizenEnvironmentT] = mutable.HashMap()
+  // A map from each type to its rules' conclusions.
+  // Useful for getting what kinds of bounds something expects. DO NOT SUBMIT work into and mention PPPITP
+  // This is ITemplateNameT instead of ICitizenTemplateNameT mainly just so we can uphold the assumption that
+  // typeNameToInnerEnv, typeNameToOuterEnv, typeDeclaredNames, and this all have the same elements. It's a useful
+  // assertion to have.
+  private val typeNameToAfterHeaderUnresolvedEnv: mutable.HashMap[IdT[ITemplateNameT], IInDenizenEnvironmentT] = mutable.HashMap()
 
   // Inner env is the env that contains the solved rules for the declaration, given placeholders.
   // We can key by template name here because there's only one inner env per template. This is the env
@@ -402,15 +401,14 @@ case class CompilerOutputs() {
     typeNameToOuterEnv += (nameT -> env)
   }
 
-  // strt here
-//  def declareTypeAfterHeaderUnresolvedEnv(
-//      nameT: IdT[ITemplateNameT],
-//      afterHeaderUnresolvedEnv: IInDenizenEnvironmentT,
-//  ): Unit = {
-//    vassert(typeDeclaredNames.contains(nameT))
-//    vassert(!typeNameToAfterHeaderUnresolvedEnv.contains(nameT))
-//    typeNameToAfterHeaderUnresolvedEnv += (nameT -> afterHeaderUnresolvedEnv) // DO NOT SUBMIT rename inferences to conclusions everywhere
-//  }
+  def declareTypeAfterHeaderUnresolvedEnv(
+      nameT: IdT[ITemplateNameT],
+      afterHeaderUnresolvedEnv: IInDenizenEnvironmentT,
+  ): Unit = {
+    vassert(typeDeclaredNames.contains(nameT))
+    vassert(!typeNameToAfterHeaderUnresolvedEnv.contains(nameT))
+    typeNameToAfterHeaderUnresolvedEnv += (nameT -> afterHeaderUnresolvedEnv) // DO NOT SUBMIT rename inferences to conclusions everywhere
+  }
 
   // DO NOT SUBMIT rename:
   // - innerEnv to definitionFinalEnv
@@ -423,7 +421,7 @@ case class CompilerOutputs() {
     vassert(typeDeclaredNames.contains(templateId))
     // One should declare the outer env first
     vassert(typeNameToOuterEnv.contains(templateId))
-    // strt here vassert(typeNameToAfterHeaderUnresolvedEnv.contains(templateId))
+    vassert(typeNameToAfterHeaderUnresolvedEnv.contains(templateId))
     vassert(!typeNameToInnerEnv.contains(templateId))
     //    vassert(nameT == env.fullName)
     typeNameToInnerEnv += (templateId -> env)
@@ -606,10 +604,9 @@ case class CompilerOutputs() {
     }
   }
 
-  // strt here
-//  def getInferencesForType(name: IdT[ITemplateNameT]): Map[IRuneS, ITemplataT[ITemplataType]] = {
-//    vassertSome(typeNameToAfterHeaderUnresolvedEnv.get(name))
-//  }
+  def getTypeAfterHeaderUnresolvedEnv(name: IdT[ITemplateNameT]): IInDenizenEnvironmentT = {
+    vassertSome(typeNameToAfterHeaderUnresolvedEnv.get(name))
+  }
 
   def getInnerEnvForType(name: IdT[ITemplateNameT]): IInDenizenEnvironmentT = {
     vassertSome(typeNameToInnerEnv.get(name))
