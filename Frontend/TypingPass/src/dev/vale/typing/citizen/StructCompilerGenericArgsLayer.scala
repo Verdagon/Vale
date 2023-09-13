@@ -72,7 +72,7 @@ class StructCompilerGenericArgsLayer(
         case Ok(()) =>
         case Err(x) => return ResolveFailure(callRange, ResolvingSolveFailedOrIncomplete(x))
       }
-      val CompleteResolveSolve(inferences, runeToFunctionBound) =
+      val CompleteResolveSolve(inferences, instantiationBoundArgs) =
         inferCompiler.checkResolvingConclusionsAndResolve(
           envs,
           coutputs,
@@ -96,7 +96,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.addInstantiationBounds(
         opts.globalOptions.sanityCheck,
-        interner, originalCallingEnv.denizenTemplateId, id, runeToFunctionBound)
+        interner, originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
       val structTT = interner.intern(StructTT(id))
 
       ResolveSuccess(structTT)
@@ -267,7 +267,7 @@ class StructCompilerGenericArgsLayer(
       val contextRegion = RegionT()
 
       // This checks to make sure it's a valid use of this template.
-      val CompleteResolveSolve(inferences, runeToFunctionBound) =
+      val CompleteResolveSolve(inferences, instantiationBoundArgs) =
         inferCompiler.solveForResolving(
         InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
         coutputs,
@@ -291,7 +291,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.addInstantiationBounds(
         opts.globalOptions.sanityCheck,
-        interner, originalCallingEnv.denizenTemplateId, id, runeToFunctionBound)
+        interner, originalCallingEnv.denizenTemplateId, id, instantiationBoundArgs)
       val interfaceTT = interner.intern(InterfaceTT(id))
 
       ResolveSuccess(interfaceTT)
@@ -370,7 +370,7 @@ class StructCompilerGenericArgsLayer(
         inferCompiler.makeInstantiationBoundParams(
           envs, coutputs, definitionRules, Vector(), inferences)
       // We don't care about these, we just wanted things to be added to the coutputs.
-      val _ = instantiationBoundArgsUNUSED
+      val _ = instantiationBoundArgsUNUSED // DO NOT SUBMIT unsed
 
       val definingEnvAfterHeaderUnresolved =
         CitizenEnvironmentT(
@@ -378,7 +378,7 @@ class StructCompilerGenericArgsLayer(
           TemplatasStore(id, Map(), Map())
               .addEntries(
                 interner,
-                inferences.toVector.map({ case (key, value) => (interner.intern(RuneNameT(key)), TemplataEnvEntry(value)) })))
+                inferCompiler.declareBoundsAndMakeEnvironmentTemplatas(coutputs, inferences, instantiationBoundArgsUNUSED)))
 
       structA.maybePredictedMutability match {
         case None => {

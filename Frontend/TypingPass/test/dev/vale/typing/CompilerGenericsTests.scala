@@ -79,7 +79,19 @@ class CompilerGenericsTests extends AnyFunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  test("Struct depending on other struct, with bounds") {
+  // DO NOT SUBMIT infinite loop
+//  test("Mutual structs") {
+//    val compile = CompilerTestCompilation.test(
+//      """
+//        |struct DropBox<T> where func drop(T)void { x T; }
+//        |struct A<T> where func drop(T)void, func drop(B<T>)void { y DropBox<B<T>>; }
+//        |struct B<T> where func drop(T)void, func drop(A<T>)void { y DropBox<A<T>>; }
+//        |""".stripMargin)
+//
+//    val coutputs = compile.expectCompilerOutputs()
+//  }
+
+  test("2x nested structs with bounds") {
     // Here, a struct is guaranteed to ask another struct for some information before it's done compiling.
     // It's guaranteed because they depend on each other (which might be invalid someday, but until then it's good for
     // testing).
@@ -95,10 +107,22 @@ class CompilerGenericsTests extends AnyFunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |struct DropBox<T> where func drop(T)void { x T; }
-        |struct A<T> where func drop(T)void { y DropBox<B<T>>; }
+        |struct A<T> where func drop(T)void { y DropBox<T>; }
         |struct B<T> where func drop(T)void { y DropBox<A<T>>; }
-        |
-      """.stripMargin)
+        |""".stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Struct depending on another struct with bounds DO NOT SUBMIT") {
+    // We had a bug where we weren't creating a struct's after-header env correctly (we weren't adding the bounds to it)
+    // so when we tried to resolve this DropBox<T> it was saying we didn't have the functions to satisfy DropBox<T>'s
+    // bounds.
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct DropBox<T> where func drop(T)void { x T; }
+        |struct A<T> where func drop(T)void { y DropBox<T>; }
+        |""".stripMargin)
 
     val coutputs = compile.expectCompilerOutputs()
   }

@@ -651,7 +651,7 @@ class FunctionCompilerSolvingLayer(
         throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
       }
       case Ok(true) =>
-      case Ok(false) => // Incomplete, will be detected in the below checkDefiningConclusionsAndResolve
+      case Ok(false) => // DO NOT SUBMIT i think we can handle it uphere instead, could simplify interpretResults // Incomplete, will be detected in the below checkDefiningConclusionsAndResolve
     }
     val inferences =
       inferCompiler.interpretResults(function.runeToType, solver) match {

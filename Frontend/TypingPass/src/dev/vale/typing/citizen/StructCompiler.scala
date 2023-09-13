@@ -103,16 +103,7 @@ class StructCompiler(
 
     val structTemplateId = templataCompiler.resolveStructTemplate(structTemplata)
 
-    coutputs.declareType(structTemplateId)
-
-    structA.maybePredictedMutability match {
-      case None =>
-      case Some(predictedMutability) => {
-        coutputs.declareTypeMutability(
-          structTemplateId,
-          MutabilityTemplataT(Conversions.evaluateMutability(predictedMutability)))
-      }
-    }
+    // We declare the type and its predicted mutability before this, see SDOSWB.
 
     // We declare the struct's outer environment this early because of MDATOEF.
     val outerEnv =
@@ -193,16 +184,7 @@ class StructCompiler(
 
     val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
 
-    coutputs.declareType(interfaceTemplateId)
-
-    interfaceA.maybePredictedMutability match {
-      case None =>
-      case Some(predictedMutability) => {
-        coutputs.declareTypeMutability(
-          interfaceTemplateId,
-          MutabilityTemplataT(Conversions.evaluateMutability(predictedMutability)))
-      }
-    }
+    // We declare the type and its predicted mutability before this, see SDOSWB.
 
     // We do this here because we might compile a virtual function somewhere before we compile the interface.
     // The virtual function will need to know if the type is sealed to know whether it's allowed to be

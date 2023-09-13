@@ -161,6 +161,11 @@ object TemplataCompiler {
   //   clone<$clone.E>(&Box<$clone.E>).lam.drop<>(clone<$clone.E>(&Box<$clone.E>).lam)
   // becomes just:
   //   clone
+  // Note that it won't always be just the first thing.
+  // Structs often put their drop function in the struct's namespace:
+  //   MyStruct.drop(MyStruct)void
+  // becomes:
+  //   MyStruct.drop DO NOT SUBMIT verify that
   def getRootSuperTemplate(interner: Interner, id: IdT[INameT]): IdT[INameT] = {
 //    @tailrec
 //    def removeTrailingLambdas(tentativeId: IdT[INameT]): IdT[INameT] = {
@@ -368,6 +373,7 @@ object TemplataCompiler {
         if (id.initId(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
+//          vcurious() DO NOT SUBMIT consider putting this in
           KindTemplataT(kind)
         }
       }
@@ -696,9 +702,34 @@ object TemplataCompiler {
           importedId
       }
       case _ => {
-        // Not really sure if we're supposed to add bounds or something here.
-          vassert(coutputs.getInstantiationBounds(tentativeId).nonEmpty)
-          tentativeId
+        // We could get here for example:
+        //   struct DropBox<T> where func drop(T)void { x T; }
+        //   struct A<T> where func drop(T)void { y DropBox<T>; }
+        //   struct B<T> where func drop(T)void { y DropBox<A<T>>; }
+        // B's member y is trying to see if A<T> satisfies DropBox's bounds, to make that DropBox<A<T>>.
+        // To satisfy them, B doesn't use any of these drop(T)void bounds, it actually uses A<T>'s auto-generated drop
+        // function.
+        // That's what will eventually get us into this case here: it's using a real function somewhere, not a bound.
+        //
+        // Later (right now), we're in the definition of B's own auto-generated drop function:
+        //   func B.drop<T>(self B<T>) { ... }
+        // trying to figure out what the member y's type is, in our terms.
+        // We're trying to translate that DropBox<A<$B.T>> into a DropBox<A<$B.drop.T>>.
+        // To do that, we need to translate that A<$B.T> into a A<$B.drop.T>, which involves translating its
+        // instantiation bounds.
+        // Remember, its instantiation bound is a *real function*, in this case func A.drop.
+        // That's what gets us to this case.
+        //
+        // We're in func B.drop, and tentativeId is func A.drop<$B.drop.T>.
+        // A.drop<T> is a real function, and actually has bounds of its own, specifically a reachable bound of
+        // func drop(T)void.
+        //
+        // Which means that coutputs.getInstantiationBounds(tentativeId) might have some stuff in it, so we don't
+        // want this assert:
+        //   vcurious(coutputs.getInstantiationBounds(tentativeId).isEmpty)
+
+        // We don't want to import it, because it's not a bound function.
+        tentativeId
       }
     }
     val prototype = PrototypeT(perhapsImportedId, substitutedReturnType)
@@ -873,7 +904,7 @@ object TemplataCompiler {
         // This function is all about gathering bounds from the incoming parameter types.
         InheritBoundsFromTypeItself)
     val citizenTemplateId = TemplataCompiler.getCitizenTemplate(citizen.id)
-    val innerEnv = coutputs.getInnerEnvForType(citizenTemplateId)
+    val innerEnv = coutputs.getTypeAfterHeaderUnresolvedEnv(citizenTemplateId)
     InstantiationReachableBoundArgumentsT(
       innerEnv
           .templatas

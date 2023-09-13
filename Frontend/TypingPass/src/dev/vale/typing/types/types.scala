@@ -201,6 +201,14 @@ sealed trait ICitizenTT extends ISubKindTT with IInterning {
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
 case class StructTT(id: IdT[IStructNameT]) extends ICitizenTT {
   override def isPrimitive: Boolean = false
+
+  this match {
+    case StructTT(IdT(_, Vector(), StructNameT(StructTemplateNameT(StrI("A")), Vector(CoordTemplataT(CoordT(_, RegionT(), KindPlaceholderT(IdT(_, Vector(FunctionTemplateNameT(StrI("B"), _)), KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, CodeRuneS(StrI("T")))))))))))) => {
+      vpass()
+    }
+    case _ =>
+  }
+
   (id.initSteps.lastOption, id.localName) match {
     case (Some(StructTemplateNameT(_)), StructNameT(_, _)) => vfail()
     case _ =>

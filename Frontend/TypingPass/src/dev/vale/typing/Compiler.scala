@@ -856,6 +856,47 @@ class Compiler(
 
         // Indexing phase
 
+
+        // It might be unnecessary to do this here, long-term. We could fold it back into the precompile calls.
+        // It's here right now to predeclare mutabilities, because we need that earlier than expected. See SDOSWB.
+        globalEnv.nameToTopLevelEnvironment.toVector
+          .foreach({ case (packageId, templatas) =>
+            val env = PackageEnvironmentT.makeTopLevelEnvironment(globalEnv, packageId)
+            templatas.entriesByNameT.foreach({ case (name, entry) =>
+              entry match {
+                case StructEnvEntry(structA) => {
+                  val templata = StructDefinitionTemplataT(env, structA)
+                  val structTemplateId = templataCompiler.resolveStructTemplate(templata)
+                  coutputs.declareType(structTemplateId)
+
+                  structA.maybePredictedMutability match {
+                    case None =>
+                    case Some(predictedMutability) => {
+                      coutputs.declareTypeMutability(
+                        structTemplateId,
+                        MutabilityTemplataT(Conversions.evaluateMutability(predictedMutability)))
+                    }
+                  }
+                }
+                case InterfaceEnvEntry(interfaceA) => {
+                  val templata = InterfaceDefinitionTemplataT(env, interfaceA)
+                  val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(templata)
+                  coutputs.declareType(interfaceTemplateId)
+
+                  interfaceA.maybePredictedMutability match {
+                    case None =>
+                    case Some(predictedMutability) => {
+                      coutputs.declareTypeMutability(
+                        interfaceTemplateId,
+                        MutabilityTemplataT(Conversions.evaluateMutability(predictedMutability)))
+                    }
+                  }
+                }
+                case _ =>
+              }
+            })
+        })
+
         val citizenTemplateIdToCompiler =
           globalEnv.nameToTopLevelEnvironment.toVector
               .flatMap({ case (packageId, templatas) =>
@@ -864,7 +905,8 @@ class Compiler(
                   entry match {
                     case StructEnvEntry(structA) => {
                       val templata = StructDefinitionTemplataT(env, structA)
-                        val (id, compiler) = structCompiler.precompileStruct(coutputs, env, templata)
+
+                      val (id, compiler) = structCompiler.precompileStruct(coutputs, env, templata)
                         List((id, compiler))
                     }
                     case InterfaceEnvEntry(interfaceA) => {

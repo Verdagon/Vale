@@ -394,19 +394,25 @@ class OverloadResolver(
       }
       case PrototypeTemplataCalleeCandidate(prototype) => {
         // We get here if we're considering a function that's being passed in as a bound.
-        val substituter =
-          TemplataCompiler.getPlaceholderSubstituter(
-            opts.globalOptions.sanityCheck,
-            interner,
-            keywords,
-            callingEnv.denizenTemplateId,
-            prototype.id,
-            // These types are phrased in terms of the calling denizen already, so we can grab their
-            // bounds.
-            InheritBoundsFromTypeItself)
-        val params = prototype.id.localName.parameters.map(paramType => {
-          substituter.substituteForCoord(coutputs, paramType)
-        })
+        // We don't need to do any substitutions, because this incoming prototype will be phrased in terms of our own
+        // placeholders.
+        //   val substituter =
+        //     TemplataCompiler.getPlaceholderSubstituter(
+        //       opts.globalOptions.sanityCheck,
+        //       interner,
+        //       keywords,
+        //       callingEnv.denizenTemplateId,
+        //       prototype.id,
+        //       // These types are phrased in terms of the calling denizen already, so we can grab their
+        //       // bounds.
+        //       InheritBoundsFromTypeItself)
+        //   val params = prototype.id.localName.parameters.map(paramType => {
+        //     substituter.substituteForCoord(coutputs, paramType)
+        //   })
+        // And in fact it causes problems, because it seems like there are some instantiation bounds that don't exist
+        // yet and can't be translated.
+        val params = prototype.paramTypes
+
         paramsMatch(coutputs, callingEnv, callRange, callLocation, args, params, exact) match {
           case Ok(_) => {
             // This can be for example:
@@ -463,8 +469,7 @@ class OverloadResolver(
     // This is here for debugging, so when we dont find something we can see what envs we searched
     val searchedEnvs = new Accumulator[SearchedEnvironment]()
     val newSystemCandidates =
-      {
-      // if (opts.globalOptions.useOverloadIndex) {
+      if (opts.globalOptions.useOverloadIndex) {
         val result =
           coutputs.findOverloads(
             functionName,
@@ -475,28 +480,28 @@ class OverloadResolver(
         if (result.size > 1) {
           vpass()
         }
-        // if (opts.globalOptions.sanityCheck) {
-        //   val undedupedCandidates = new Accumulator[ICalleeCandidate]()
-        //   getCandidateBanners(
-        //     env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
-        //   val resultsFromOldSystem = undedupedCandidates.buildArray().distinct
-        //   vassert(result.length >= resultsFromOldSystem.length)
-        // }
+         if (opts.globalOptions.sanityCheck) {
+           val undedupedCandidates = new Accumulator[ICalleeCandidate]()
+           getCandidateBanners(
+             env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
+           val resultsFromOldSystem = undedupedCandidates.buildArray().distinct
+//           vassert(result.length >= resultsFromOldSystem.length) DO NOT SUBMIT put back in?
+         }
         result
-      // } else {
-      //   Array[ICalleeCandidate]()
+       } else {
+         Array[ICalleeCandidate]()
       }
-    // val oldSystemCandidates =
-    //   if (!opts.globalOptions.useOverloadIndex || opts.globalOptions.sanityCheck) {
-    //     val undedupedCandidates = new Accumulator[ICalleeCandidate]()
-    //     getCandidateBanners(
-    //       env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
-    //     undedupedCandidates.buildArray().distinct.toArray
-    //   } else {
-    //     Array[ICalleeCandidate]()
-    //   }
-    // val candidates = if (opts.globalOptions.useOverloadIndex) newSystemCandidates else oldSystemCandidates
-    val candidates = newSystemCandidates
+     val oldSystemCandidates =
+       if (!opts.globalOptions.useOverloadIndex || opts.globalOptions.sanityCheck) {
+         val undedupedCandidates = new Accumulator[ICalleeCandidate]()
+         getCandidateBanners(
+           env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
+         undedupedCandidates.buildArray().distinct.toArray
+       } else {
+         Array[ICalleeCandidate]()
+       }
+     val candidates = if (opts.globalOptions.useOverloadIndex) newSystemCandidates else oldSystemCandidates
+//    val candidates = newSystemCandidates
 
     val attempted =
       candidates.map(candidate => {
@@ -640,7 +645,7 @@ class OverloadResolver(
             case ((normalCandidates, boundCandidates), (index, thisCandidate)) => {
               thisCandidate.prototype match {
                 case PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType) => {
-                  val thisBoundCandidate = PrototypeT(IdT(packageCoord, initSteps, FunctionBoundNameT(tn, firstTemplateArgs, firstParameters)), firstReturnType)
+                  val thisBoundCandidate = PrototypeT(IdT(packageCoord, initSteps, interner.intern(FunctionBoundNameT(tn, firstTemplateArgs, firstParameters))), firstReturnType)
                   (normalCandidates, (index -> thisBoundCandidate) :: boundCandidates)
                 }
                 case other => {

@@ -1738,3 +1738,33 @@ Solutions:
  * Get rid of share ownership in coords. A struct being immutable means we implicitly copy() it. Generics won't change since they require copy() bounds anyway.
 
 could use this as an opportunity to think about owned and rc strings.
+
+
+# Cyclic Dependencies in Resolving Bounds
+
+There's a problem in here:
+
+```
+struct DropBox<T> where func drop(T)void { x T; }
+
+struct A<T> where func drop(T)void { y DropBox<T>; }
+func A<T>(y DropBox<T>) A<T> { ... } // implicit
+
+struct B<T> where func drop(T)void { y DropBox<A<T>>; }
+func B<T>(y DropBox<A<T>>) B<T> { ... } // implicit
+```
+
+When we compile B's constructor, we're resolving `A<func:B.$T>` so we can make instantiation bounds for it and generally make it a real struct. In doing that, we're seeing if we can satisfy `A<T>`'s expectation that the `T` has a drop function.
+
+We're considering supplying `func:B.bound:drop(A<$func:B.T>)void` (which we won't use, but we still consider it), which was implicitly declared/inherited as a reachable bound.
+
+That involves translating that `A<func:B.$T>` into an `A<func:B.$T>` which involves translating its instantiation bounds, but those don't exist yet, and would require `func:B.bound:drop(A<$func:B.T>)void` to make, which we're already making.
+
+So making `A<func:B.$T>` requires `func:B.bound:drop(A<$func:B.T>)void`...
+...but making `func:B.bound:drop(A<$func:B.T>)void` requires `A<func:B.$T>`.
+
+The only way to resolve this is probably to declare all these things
+
+
+
+

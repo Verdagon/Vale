@@ -269,9 +269,9 @@ class Instantiator(
 
     val interfaces =
       monouts.interfacesWithoutMethods.values.map(interface => {
-        val InterfaceDefinitionI(ref, attributes, weakable, mutability, _, _, _) = interface
+        val InterfaceDefinitionI(ref, attributes, weakable, mutability, _) = interface
         InterfaceDefinitionI(
-          ref, attributes, weakable, mutability, Map(), Map(),
+          ref, attributes, weakable, mutability,
           vassertSome(
             monouts.interfaceToAbstractFuncToVirtualIndex.get(ref.id)).toVector)
       })
@@ -1590,9 +1590,7 @@ class Instantiator(
         members.map(memberT => {
           translateStructMember(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, memberT)._2
         }),
-        isClosure,
-        Map(),
-        Map())
+        isClosure)
 
     vassert(result.instantiatedCitizen.id == newId)
 
@@ -1659,8 +1657,6 @@ class Instantiator(
         }),
         weakable,
         mutability,
-        Map(),
-        Map(),
         Vector())
 
     monouts.interfacesWithoutMethods.put(newIdC, result)

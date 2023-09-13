@@ -19,9 +19,7 @@ case class StructDefinitionI(
   weakable: Boolean,
   mutability: MutabilityI,
   members: Vector[StructMemberI],
-  isClosure: Boolean,
-  runeToFunctionBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
-  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
+  isClosure: Boolean
 ) extends CitizenDefinitionI {
 //  override def genericParamTypes: Vector[ITemplataType] = {
 //    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
@@ -93,8 +91,6 @@ case class InterfaceDefinitionI(
   attributes: Vector[ICitizenAttributeI],
   weakable: Boolean,
   mutability: MutabilityI,
-  runeToFunctionBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
-  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
   // This does not include abstract functions declared outside the interface.
   // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.

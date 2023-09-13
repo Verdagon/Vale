@@ -798,8 +798,6 @@ class InferCompiler(
     }
   }
 
-  // Returns None for any call that we don't even have params for,
-  // like in the case of an incomplete solve.
   // TODO(regions): Forked from resolveTemplateCallConclusion
   def resolveTemplateCallConclusionForDefining(
       afterHeaderUnresolvedEnv: IInDenizenEnvironmentT,
