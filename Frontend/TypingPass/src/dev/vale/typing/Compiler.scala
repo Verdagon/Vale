@@ -36,7 +36,7 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
 
-import scala.collection.immutable.{List, ListMap, Map, Set}
+import scala.collection.immutable.{HashMap, List, ListMap, Map, Set}
 import scala.collection.mutable
 import scala.util.control.Breaks._
 
@@ -405,7 +405,8 @@ class Compiler(
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
           state.addInstantiationBounds(
-            opts.globalOptions.sanityCheck, interner, envs.originalCallingEnv.denizenTemplateId, result.id, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+            opts.globalOptions.sanityCheck, interner, envs.originalCallingEnv.denizenTemplateId, result.id,
+            InstantiationBoundArgumentsT(HashMap(), HashMap(), HashMap()))
 
           result
         }

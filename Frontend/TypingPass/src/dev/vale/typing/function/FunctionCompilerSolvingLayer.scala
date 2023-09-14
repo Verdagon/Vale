@@ -22,6 +22,8 @@ import dev.vale.typing.names._
 import dev.vale.typing.templata.ITemplataT._
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
+
+import scala.collection.immutable.HashMap
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
 import dev.vale.vwat
 
@@ -116,11 +118,12 @@ class FunctionCompilerSolvingLayer(
     vcurious(instantiationBoundParams.runeToBoundImpl.isEmpty)
     val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
-        instantiationBoundParams.runeToBoundPrototype,
+        HashMap[IRuneS, PrototypeT[IFunctionNameT]](instantiationBoundParams.runeToBoundPrototype.toSeq: _*),
+        HashMap[IRuneS, InstantiationReachableBoundArgumentsT[IFunctionNameT]](
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
-        }),
-        instantiationBoundParams.runeToBoundImpl)
+        }).toSeq: _*),
+        HashMap[IRuneS, IdT[IImplNameT]](instantiationBoundParams.runeToBoundImpl.toSeq: _*))
     coutputs.addInstantiationBounds(
       opts.globalOptions.sanityCheck,
       interner, outerEnv.denizenTemplateId,
@@ -199,11 +202,12 @@ class FunctionCompilerSolvingLayer(
     vcurious(instantiationBoundParams.runeToBoundImpl.isEmpty)
     val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
-        instantiationBoundParams.runeToBoundPrototype,
+        HashMap[IRuneS, PrototypeT[IFunctionNameT]](instantiationBoundParams.runeToBoundPrototype.toSeq: _*),
+        HashMap[IRuneS, InstantiationReachableBoundArgumentsT[IFunctionNameT]](
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
-        }),
-        instantiationBoundParams.runeToBoundImpl)
+        }).toSeq: _*),
+        HashMap[IRuneS, IdT[IImplNameT]](instantiationBoundParams.runeToBoundImpl.toSeq: _*))
     coutputs.addInstantiationBounds(
       opts.globalOptions.sanityCheck,
       interner, originalCallingEnv.denizenTemplateId,
@@ -284,11 +288,12 @@ class FunctionCompilerSolvingLayer(
     vcurious(instantiationBoundParams.runeToBoundImpl.isEmpty)
     val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
-        instantiationBoundParams.runeToBoundPrototype,
+        HashMap[IRuneS, PrototypeT[IFunctionNameT]](instantiationBoundParams.runeToBoundPrototype.toSeq: _*),
+        HashMap[IRuneS, InstantiationReachableBoundArgumentsT[IFunctionNameT]](
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.map({ case (x, InstantiationReachableBoundArgumentsT(y)) =>
           x -> InstantiationReachableBoundArgumentsT[IFunctionNameT](y)
-        }),
-        instantiationBoundParams.runeToBoundImpl)
+        }).toSeq: _*),
+        HashMap[IRuneS, IdT[IImplNameT]](instantiationBoundParams.runeToBoundImpl.toSeq: _*))
     coutputs.addInstantiationBounds(
       opts.globalOptions.sanityCheck,
       interner, originalCallingEnv.denizenTemplateId,

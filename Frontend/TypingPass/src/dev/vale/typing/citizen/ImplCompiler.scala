@@ -19,7 +19,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function._
 import dev.vale.typing.infer.ITypingPassSolverError
 
-import scala.collection.immutable.Set
+import scala.collection.immutable.{HashMap, Set}
 
 sealed trait IsParentResult
 case class IsParent(
@@ -296,7 +296,7 @@ class ImplCompiler(
         subCitizen,
         superInterface,
         superInterfaceTemplateId,
-        InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](
+        InstantiationBoundArgumentsT.fromMaps[FunctionBoundNameT, ImplBoundNameT](
           runeToNeededFunctionBound,
           reachableBoundsFromSubCitizen,
           runeToNeededImplBound),
@@ -686,7 +686,7 @@ class ImplCompiler(
           opts.globalOptions.sanityCheck,
           interner,
           callingEnv.denizenTemplateId,
-          impl.implName, InstantiationBoundArgumentsT(Map(), Map(), Map()))
+          impl.implName, InstantiationBoundArgumentsT(HashMap(), HashMap(), HashMap()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>

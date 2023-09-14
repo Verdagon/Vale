@@ -18,6 +18,7 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
 import scala.collection.immutable._
+import scala.collection.immutable
 
 //ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]
 
@@ -420,9 +421,9 @@ class InferCompiler(
 
     val instantiationBoundArgs =
       InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](
-        runeToPrototype,
-        reachableBounds.filter(_._2.citizenRuneToReachablePrototype.nonEmpty),
-        runeToImpl)
+        HashMap[IRuneS, PrototypeT[IFunctionNameT]](runeToPrototype.toSeq: _*),
+        HashMap[IRuneS, InstantiationReachableBoundArgumentsT[IFunctionNameT]](reachableBounds.filter(_._2.citizenRuneToReachablePrototype.nonEmpty).toSeq: _*),
+        HashMap[IRuneS, IdT[IImplNameT]](runeToImpl.toSeq: _*))
 
     Ok(CompleteResolveSolve(conclusions, instantiationBoundArgs))
   }
@@ -539,7 +540,7 @@ class InferCompiler(
           })
 
     // TODO(regions): Inlined from resolveConclusionsForDefine(environmentForFinalizing, state, invocationRange, callLocation, envs.contextRegion, initialRules, conclusions, reachableBounds)
-    InstantiationBoundArgumentsT(
+    InstantiationBoundArgumentsT.fromMaps(
       declaredBoundFunctions.toMap,
       reachableBoundFunctions.filter(_._2.citizenRuneToReachablePrototype.nonEmpty),
       declaredBoundImpls.toMap)

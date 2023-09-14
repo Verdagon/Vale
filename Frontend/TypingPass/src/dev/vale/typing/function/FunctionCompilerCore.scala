@@ -19,7 +19,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env._
 
-import scala.collection.immutable.{List, Set}
+import scala.collection.immutable.{HashMap, List, Set}
 
 case class ResultTypeMismatchError(expectedType: CoordT, actualType: CoordT) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
@@ -389,14 +389,14 @@ class FunctionCompilerCore(
           interner,
           env.templateId,
           externPrototype.id,
-          InstantiationBoundArgumentsT(Map(), Map(), Map()))
+          InstantiationBoundArgumentsT(HashMap(), HashMap(), HashMap()))
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })
         val function2 =
           FunctionDefinitionT(
             header,
-            InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](Map(), Map(), Map()),
+            InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](HashMap(), HashMap(), HashMap()),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
         coutputs.declareFunctionReturnType(header.toSignature, header.returnType)

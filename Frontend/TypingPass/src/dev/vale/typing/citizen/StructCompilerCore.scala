@@ -23,7 +23,7 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 
-import scala.collection.immutable.List
+import scala.collection.immutable.{HashMap, List}
 
 class StructCompilerCore(
   opts: TypingPassOptions,
@@ -152,7 +152,7 @@ class StructCompilerCore(
         mutability,
         members,
         false,
-        InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](
+        InstantiationBoundArgumentsT.fromMaps[FunctionBoundNameT, ImplBoundNameT](
           runeToFunctionBound,
           Map(), // Structs don't have reachable bounds
           runeToImplBound))
@@ -230,7 +230,7 @@ class StructCompilerCore(
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
-        InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](
+        InstantiationBoundArgumentsT.fromMaps[FunctionBoundNameT, ImplBoundNameT](
           runeToFunctionBound,
           Map(), // Interfaces don't have reachable bounds
           runeToImplBound),
@@ -327,9 +327,9 @@ class StructCompilerCore(
       understructTemplatedId,
       understructInstantiatedId,
       InstantiationBoundArgumentsT(
-        Map(),
-        Map(), // Structs don't have reachable bounds
-        Map()))
+        HashMap(),
+        HashMap(), // Structs don't have reachable bounds
+        HashMap()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
     val callNameT =
@@ -409,9 +409,9 @@ class StructCompilerCore(
         true,
         // Closures have no function bounds or impl bounds
         InstantiationBoundArgumentsT[FunctionBoundNameT, ImplBoundNameT](
-          Map(),
-          Map(), // Structs don't have reachable bounds
-          Map()));
+          HashMap(),
+          HashMap(), // Structs don't have reachable bounds
+          HashMap()));
     coutputs.addStruct(closureStructDefinition)
 
     val closuredVarsStructRef = understructStructTT;

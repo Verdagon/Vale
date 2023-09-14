@@ -184,9 +184,9 @@ case class CompilerOutputs() {
             case FunctionBoundNameT(_, _, _) => {
               val reachableFuncSuperTemplateIdInitSteps =
                 TemplataCompiler.getSuperTemplate(reachablePrototype.id).initSteps
-              val originalCallingSuperTemplateIdInitSteps =
-                TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
-              vassert(reachableFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
+              val originalCallingRootSuperTemplateIdInitSteps =
+                TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps
+              vassert(reachableFuncSuperTemplateIdInitSteps.startsWith(originalCallingRootSuperTemplateIdInitSteps))
             }
             case _ =>
           }
@@ -202,9 +202,9 @@ case class CompilerOutputs() {
           if (sanityCheck) {
             val callerBoundArgFuncSuperTemplateIdInitSteps =
               TemplataCompiler.getSuperTemplate(callerBoundArgFunction.id).initSteps
-            val originalCallingSuperTemplateIdInitSteps =
-              TemplataCompiler.getSuperTemplate(originalCallingTemplateId).initSteps
-            vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingSuperTemplateIdInitSteps))
+            val originalCallingRootSuperTemplateIdInitSteps =
+              TemplataCompiler.getRootSuperTemplate(interner, originalCallingTemplateId).initSteps
+            vassert(callerBoundArgFuncSuperTemplateIdInitSteps.startsWith(originalCallingRootSuperTemplateIdInitSteps))
           }
         }
         case _ =>

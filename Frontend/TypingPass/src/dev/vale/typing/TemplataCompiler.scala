@@ -18,7 +18,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{List, Map, Set}
+import scala.collection.immutable.{HashMap, List, Map, Set}
 
 // See SBITAFD, we need to register bounds for these new instantiations. This instructs us where
 // to get those new bounds from.
@@ -480,7 +480,7 @@ object TemplataCompiler {
           containerInstantiationBoundArgs.runeToBoundImpl.map({ case (rune, containerImplBoundArg) =>
             vassertSome(containerInstantiationBoundParams.runeToBoundImpl.get(rune)) -> containerImplBoundArg
           })
-        InstantiationBoundArgumentsT(
+        InstantiationBoundArgumentsT.fromMaps(
           instantiationBoundArgs.runeToBoundPrototype.mapValues(funcBoundArg => {
             funcBoundArg match {
               case PrototypeT(IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)), returnType) => {
@@ -579,7 +579,7 @@ object TemplataCompiler {
     boundArgs: InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT]):
   InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT] = {
     val InstantiationBoundArgumentsT(runeToFunctionBoundArg, callerKindRuneToReachableBoundArguments, runeToImplBoundArg) = boundArgs
-    InstantiationBoundArgumentsT(
+    InstantiationBoundArgumentsT.fromMaps(
       runeToFunctionBoundArg.mapValues({ case funcBoundArg =>
         substituteTemplatasInPrototype(
           coutputs, sanityCheck, interner, keywords, originalCallingDenizenId, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
@@ -698,7 +698,7 @@ object TemplataCompiler {
             interner,
             originalCallingDenizenId,
             importedId,
-            InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](Map(), Map(), Map()))
+            InstantiationBoundArgumentsT[IFunctionNameT, IImplNameT](HashMap(), HashMap(), HashMap()))
           importedId
       }
       case _ => {
@@ -766,7 +766,7 @@ object TemplataCompiler {
       interner,
       originalCallingDenizenId,
       newId,
-      InstantiationBoundArgumentsT(Map(), Map(), Map()))
+      InstantiationBoundArgumentsT(HashMap(), HashMap(), HashMap()))
 
     newId
   }

@@ -10,22 +10,39 @@ import dev.vale.typing.ast._
 import dev.vale.typing.names._
 import dev.vale.typing.types._
 
+import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
 case class InstantiationReachableBoundArgumentsT[R <: IFunctionNameT](
   citizenRuneToReachablePrototype: Map[IRuneS, PrototypeT[R]]
 )
 
+object InstantiationBoundArgumentsT {
+  def fromMaps[BF <: IFunctionNameT, BI <: IImplNameT](
+      runeToBoundPrototype: Map[IRuneS, PrototypeT[BF]],
+      runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[BF]],
+      runeToBoundImpl: Map[IRuneS, IdT[BI]]):
+  InstantiationBoundArgumentsT[BF, BI] = {
+    InstantiationBoundArgumentsT(
+      HashMap[IRuneS, PrototypeT[BF]](runeToBoundPrototype.toSeq: _*),
+      HashMap[IRuneS, InstantiationReachableBoundArgumentsT[BF]](runeToCitizenRuneToReachablePrototype.toSeq: _*),
+      HashMap[IRuneS, IdT[BI]](runeToBoundImpl.toSeq: _*))
+  }
+}
 case class InstantiationBoundArgumentsT[BF <: IFunctionNameT, BI <: IImplNameT](
   // This is the callee's rune to the prototype that satisfies it.
   // If this is at the call site, then this might be a real function like func drop(int)void.
   // If this is the instantiation bound params in the definition, then this will be a bound like func drop(T)void.
-  runeToBoundPrototype: Map[IRuneS, PrototypeT[BF]],
+  runeToBoundPrototype: HashMap[IRuneS, PrototypeT[BF]],
   // This is empty for structs and interfaces.
   // For functions, this includes all the bounds that are inherited from structs and interfaces.
-  runeToCitizenRuneToReachablePrototype: Map[IRuneS, InstantiationReachableBoundArgumentsT[BF]],
+  runeToCitizenRuneToReachablePrototype: HashMap[IRuneS, InstantiationReachableBoundArgumentsT[BF]],
   // Same as runeToBoundPrototype but for impls.
-  runeToBoundImpl: Map[IRuneS, IdT[BI]]) {
+  runeToBoundImpl: HashMap[IRuneS, IdT[BI]]
+  // The above are all hash maps because for some reason, when we iterate over a zero-length MapLike anonymous subclass,
+  // it goes into an infinite loop stack-overflow.
+
+) {
 
   vassert(!runeToCitizenRuneToReachablePrototype.exists(_._2.citizenRuneToReachablePrototype.isEmpty))
 }
