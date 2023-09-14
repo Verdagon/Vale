@@ -126,7 +126,7 @@ object CompilerErrorHumanizer {
         }
         case CouldntNarrowDownCandidates(range, candidateRanges) => {
           "Multiple candidates for call:" +
-            candidateRanges.map(range => "\n" + codeMap(range.begin) + ":\n  " + lineContaining(range.begin)).mkString("")
+            candidateRanges.map(range => "\n" + codeMap(range.range().begin) + ":\n  " + lineContaining(range.range().begin)).mkString("")
         }
         case ImmStructCantHaveVaryingMember(range, structName, memberName) => {
           "Immutable struct (\"" + printableName(codeMap, structName) + "\") cannot have varying member (\"" + memberName + "\")."

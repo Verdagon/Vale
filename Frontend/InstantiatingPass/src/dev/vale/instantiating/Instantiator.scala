@@ -1353,15 +1353,6 @@ class Instantiator(
 
         (prototypeS, prototypeC)
       }
-
-      case IdT(packageCoord, initSteps, name@FunctionBoundNameT(_, _, _)) => {
-        val actualPrototypeS =
-          vassertSome(denizenBoundToDenizenCallerSuppliedThing.funcIdToBoundArgPrototype.get(IdT(packageCoord, initSteps, name)))
-
-        val actualDesiredPrototypeC =
-          RegionCollapserIndividual.collapsePrototype(actualPrototypeS)
-        (actualPrototypeS, actualDesiredPrototypeC)
-      }
       case IdT(_, _, ExternFunctionNameT(_, _)) => {
         if (opts.sanityCheck) {
           vassert(Collector.all(desiredPrototypeS, { case KindPlaceholderTemplateNameT(_, _) => }).isEmpty)
@@ -1373,29 +1364,37 @@ class Instantiator(
       case IdT(_, _, last) => {
         last match {
           case LambdaCallFunctionNameT(_, _, _) => {
-            (denizenName.steps.last, desiredPrototypeS.id.steps.init.init.last) match {
-              case (
-                  FunctionNameT(FunctionTemplateNameT(nameA,codeLocA),templateArgsA,parametersA),
-                  FunctionNameIX(FunctionTemplateNameI(nameB,codeLocB),templateArgsB,parametersB)) => {
-                // Make sure we're talking about roughly the same function
-                vassert(nameA == nameB)
-                vassert(codeLocA == codeLocB)
-                vassert(templateArgsA.length == templateArgsB.length)
-                vassert(parametersA.length == parametersB.length)
-                // Could we have a false positive here if we're doing things on different templates?
-                // I don't think so.
-              }
-              case (
-                  LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(codeLocA,paramsTTA),templateArgsA,parametersA),
-                  LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocB,paramsTTB),templateArgsB,parametersB)) => {
-                // Make sure we're talking about roughly the same function
-                vassert(codeLocA == codeLocB)
-                vassert(paramsTTA == paramsTTB)
-                vassert(templateArgsA.length == templateArgsB.length)
-                vassert(parametersA.length == parametersB.length)
-              }
-              case other => vwat(other)
-            }
+            // This is completely bogus DO NOT SUBMIT
+//            (denizenName.steps.last, desiredPrototypeS.id.steps.init.init.last) match {
+//              case (
+//                  FunctionNameT(FunctionTemplateNameT(nameA,codeLocA),templateArgsA,parametersA),
+//                  FunctionNameIX(FunctionTemplateNameI(nameB,codeLocB),templateArgsB,parametersB)) => {
+//                // Make sure we're talking about roughly the same function
+//                vassert(nameA == nameB)
+//                vassert(codeLocA == codeLocB)
+//                vassert(templateArgsA.length == templateArgsB.length)
+//                vassert(parametersA.length == parametersB.length)
+//                // Could we have a false positive here if we're doing things on different templates?
+//                // I don't think so.
+//              }
+//              case (
+//                  LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(codeLocA,paramsTTA),templateArgsA,parametersA),
+//                  LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocB,paramsTTB),templateArgsB,parametersB)) => {
+//                // Make sure we're talking about roughly the same function
+//                vassert(codeLocA == codeLocB)
+//                vassert(paramsTTA == paramsTTB)
+//                vassert(templateArgsA.length == templateArgsB.length)
+//                vassert(parametersA.length == parametersB.length)
+//              }
+//              case (
+//                  LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)), // 10436
+//                  FunctionNameIX(FunctionTemplateNameI(StrI("parseSlice"),_),Vector(),Vector(CoordI(_,StructIT(IdI(_,Vector(),StructNameI(StructTemplateNameI(StrI("Path")),Vector())))), CoordI(_,StructIT(IdI(_,Vector(),StructNameI(StructTemplateNameI(StrI("NotesCollector")),Vector())))), CoordI(_,StructIT(IdI(PackageCoordinate(StrI("parseiter"),Vector()),Vector(),StructNameI(StructTemplateNameI(StrI("ParseIter")),Vector()))))))) => {
+////                vwat() DO NOT SUBMIT put back in
+//                // This seems pretty reasonable to get here actually... one lambda is calling another lambda.
+//                // What is weird is that we aren't calling the forwarder function.
+//              }
+//              case other => // vwat(other) DO NOT SUBMIT put back in
+//            }
           }
           case _ =>
         }

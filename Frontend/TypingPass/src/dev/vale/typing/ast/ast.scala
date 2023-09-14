@@ -465,6 +465,16 @@ case class PrototypeT[+T <: IFunctionNameT](
     id: IdT[T],
     returnType: CoordT) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+
+  def range(): RangeS = {
+    id.steps.reverse.collectFirst({
+      case FunctionNameT(FunctionTemplateNameT(_, codeLoc), _, _) => RangeS(codeLoc, codeLoc) // DO NOT SUBMIT
+    }) match {
+      case Some(range) => range
+      case None => vfail() // DO NOT SUBMIT
+    }
+  }
+
   def paramTypes: Vector[CoordT] = id.localName.parameters
   def toSignature: SignatureT = SignatureT(id)
 }

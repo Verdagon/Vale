@@ -21,7 +21,7 @@ case class CompileErrorExceptionT(err: ICompileErrorT) extends RuntimeException 
 }
 
 sealed trait ICompileErrorT { def range: List[RangeS] }
-case class CouldntNarrowDownCandidates(range: List[RangeS], candidates: Vector[RangeS]) extends ICompileErrorT {
+case class CouldntNarrowDownCandidates(range: List[RangeS], candidates: Vector[PrototypeT[IFunctionNameT]]) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }
