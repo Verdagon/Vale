@@ -220,7 +220,7 @@ class EdgeCompiler(
           val originalPlaceholderTemplateId = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderId)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateId)
           coutputs.declareTypeMutability(placeholderTemplateId, mutability)
-          CoordTemplataT(CoordT(ownership, RegionT(), KindPlaceholderT(placeholderId)))
+          CoordTemplataT(CoordT(ownership, RegionT(DefaultRegionT), KindPlaceholderT(placeholderId)))
         }
         case other => vwat(other)
       }
@@ -551,7 +551,7 @@ class EdgeCompiler(
         overrideImpreciseName,
         Vector.empty,
         Vector.empty,
-        RegionT(),
+        RegionT(DefaultRegionT),
         overrideFunctionParamTypes,
         Vector(
           coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), interfaceTemplateId),

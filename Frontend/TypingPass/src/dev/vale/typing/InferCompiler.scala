@@ -712,7 +712,7 @@ class InferCompiler(
       case RuntimeSizedArrayTemplateTemplataT() => {
         val Vector(m, CoordTemplataT(coord)) = args
         val mutability = ITemplataT.expectMutability(m)
-        val contextRegion = RegionT()
+        val contextRegion = RegionT(DefaultRegionT)
         delegate.resolveRuntimeSizedArrayKind(state, coord, mutability, contextRegion)
         Ok(())
       }
@@ -721,7 +721,7 @@ class InferCompiler(
         val size = ITemplataT.expectInteger(s)
         val mutability = ITemplataT.expectMutability(m)
         val variability = ITemplataT.expectVariability(v)
-        val contextRegion = RegionT()
+        val contextRegion = RegionT(DefaultRegionT)
         delegate.resolveStaticSizedArrayKind(state, mutability, variability, size, coord, contextRegion)
         Ok(())
       }

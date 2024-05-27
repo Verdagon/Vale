@@ -420,12 +420,12 @@ class CompilerRuleSolver(
                   if resultRune.rune == receiver => {
                   CoordT(
                     Conversions.evaluateOwnership(vassertSome(ownership)),
-                    RegionT(),
+                    RegionT(DefaultRegionT),
                     receiverInstantiationKind)
                 }
               }) ++
                 senderConclusions.map(_._2).map({ case CoordT(ownership, _, _) =>
-                  CoordT(ownership, RegionT(), receiverInstantiationKind)
+                  CoordT(ownership, RegionT(DefaultRegionT), receiverInstantiationKind)
                 })
             if (possibleCoords.nonEmpty) {
               val ownership =
@@ -434,7 +434,7 @@ class CompilerRuleSolver(
                   case Vector(ownership) => ownership
                   case _ => return Err(RuleError(ReceivingDifferentOwnerships(senderConclusions)))
                 }
-              val region = RegionT()
+              val region = RegionT(DefaultRegionT)
               Some(receiver -> CoordTemplataT(CoordT(ownership, region, receiverInstantiationKind)))
             } else {
               // Just conclude a kind, which will coerce to an owning coord, and hope it's right.
@@ -575,12 +575,12 @@ class CompilerRuleSolver(
           case None => {
             val OwnershipTemplataT(ownership) = vassertSome(stepState.getConclusion(ownershipRune.rune))
             val KindTemplataT(kind) = vassertSome(stepState.getConclusion(kindRune.rune))
-            val region = RegionT()
+            val region = RegionT(DefaultRegionT)
             val newCoord =
               delegate.getMutability(state, kind) match {
                 case MutabilityTemplataT(ImmutableT) => CoordT(ShareT, region, kind)
                 case MutabilityTemplataT(MutableT) | PlaceholderTemplataT(_, MutabilityTemplataType()) => {
-                  CoordT(ownership, RegionT(), kind)
+                  CoordT(ownership, RegionT(DefaultRegionT), kind)
                 }
               }
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, CoordTemplataT(newCoord))
@@ -818,7 +818,7 @@ class CompilerRuleSolver(
             }
           }
           case Some(kind) => {
-            val coerced = delegate.coerceToCoord(env, state, range :: env.parentRanges, kind, RegionT())
+            val coerced = delegate.coerceToCoord(env, state, range :: env.parentRanges, kind, RegionT(DefaultRegionT))
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, coordRune.rune, coerced)
             Ok(())
           }
@@ -879,7 +879,7 @@ class CompilerRuleSolver(
           case None => {
             val CoordTemplataT(innerCoord) =
               expectCoordTemplata(vassertSome(stepState.getConclusion(innerRune.rune)))
-            val newRegion = RegionT()
+            val newRegion = RegionT(DefaultRegionT)
             val newOwnership =
               maybeAugmentOwnership match {
                 case None => innerCoord.ownership
@@ -1359,7 +1359,7 @@ class CompilerRuleSolver(
           case RuntimeSizedArrayTemplateTemplataT() => {
             val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
             val Vector(m, CoordTemplataT(coord)) = args
-            val contextRegion = RegionT()
+            val contextRegion = RegionT(DefaultRegionT)
             val mutability = ITemplataT.expectMutability(m)
             val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability, contextRegion)
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplataT(rsaKind))
@@ -1368,7 +1368,7 @@ class CompilerRuleSolver(
           case StaticSizedArrayTemplateTemplataT() => {
             val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
             val Vector(s, m, v, CoordTemplataT(coord)) = args
-            val contextRegion = RegionT()
+            val contextRegion = RegionT(DefaultRegionT)
             val size = ITemplataT.expectInteger(s)
             val mutability = ITemplataT.expectMutability(m)
             val variability = ITemplataT.expectVariability(v)

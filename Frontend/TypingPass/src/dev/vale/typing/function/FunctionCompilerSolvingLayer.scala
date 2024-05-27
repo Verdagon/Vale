@@ -305,7 +305,7 @@ class FunctionCompilerSolvingLayer(
         templatasByRune.toVector
           .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) }))
 
-    val defaultRegion = RegionT()
+    val defaultRegion = RegionT(DefaultRegionT)
 
     BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT(
       globalEnv,
@@ -453,7 +453,7 @@ class FunctionCompilerSolvingLayer(
     //   func map<T, F>(self Opt<T>, f F, t T) { ... }
     // into a:
     //   func map<F>(self Opt<$0>, f F, t $0) { ... }
-    val preliminaryEnvs = InferEnv(callingEnv, callRange, callLocation, nearEnv, RegionT())
+    val preliminaryEnvs = InferEnv(callingEnv, callRange, callLocation, nearEnv, RegionT(DefaultRegionT))
     val preliminarySolver =
       inferCompiler.makeSolver(
         preliminaryEnvs,
@@ -501,7 +501,7 @@ class FunctionCompilerSolvingLayer(
 
     val CompleteDefineSolve(inferences, instantiationBoundParams) =
       inferCompiler.solveForDefining(
-        InferEnv(callingEnv, callRange, callLocation, nearEnv, RegionT()),
+        InferEnv(callingEnv, callRange, callLocation, nearEnv, RegionT(DefaultRegionT)),
         coutputs,
         functionDefinitionRules,
         function.runeToType,
@@ -552,7 +552,7 @@ class FunctionCompilerSolvingLayer(
     val paramAndReturnRunes =
       (function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)).distinct.toVector
 
-    val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT())
+    val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT(DefaultRegionT))
     val solver =
       inferCompiler.makeSolver(
         envs, coutputs, definitionRules, function.runeToType, range, Vector(), Vector())

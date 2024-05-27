@@ -83,7 +83,7 @@ class ImplCompiler(
     // This is callingEnv because we might be coming from an abstract function that's trying
     // to evaluate an override.
     val originalCallingEnv = callingEnv
-    val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT())
+    val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT(DefaultRegionT))
     val solver =
       inferCompiler.makeSolver(
         envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
@@ -148,7 +148,7 @@ class ImplCompiler(
     // This is callingEnv because we might be coming from an abstract function that's trying
     // to evaluate an override.
     val originalCallingEnv = callingEnv
-    val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT())
+    val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT(DefaultRegionT))
     val solver =
       inferCompiler.makeSolver(
         envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
@@ -217,7 +217,7 @@ class ImplCompiler(
         List(range),
         callLocation,
         outerEnv,
-        RegionT())
+        RegionT(DefaultRegionT))
     val CompleteDefineSolve(inferences, InstantiationBoundArgumentsT(_, reachableBoundsFromSubCitizen, _)) =
       inferCompiler.solveForDefining(
         envs,

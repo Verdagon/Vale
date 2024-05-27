@@ -55,7 +55,7 @@ class StructCompilerGenericArgsLayer(
         TemplataCompiler.assembleCallSiteRules(
           structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
 
-      val contextRegion = RegionT()
+      val contextRegion = RegionT(DefaultRegionT)
 
       // Check if its a valid use of this template
       val envs = InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion)
@@ -134,7 +134,7 @@ class StructCompilerGenericArgsLayer(
       val runeToTypeForPrediction =
         runesForPrediction.toVector.map(r => r -> interfaceA.runeToType(r)).toMap
 
-      val contextRegion = RegionT()
+      val contextRegion = RegionT(DefaultRegionT)
 
       // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
       // just to populate any generic parameter default values.
@@ -206,7 +206,7 @@ class StructCompilerGenericArgsLayer(
 
       // Maybe we should make this incremental too, like when solving definitions?
 
-      val contextRegion = RegionT()
+      val contextRegion = RegionT(DefaultRegionT)
 
       val inferences =
       // We're just predicting, see STCMBDP.
@@ -264,7 +264,7 @@ class StructCompilerGenericArgsLayer(
         TemplataCompiler.assembleCallSiteRules(
           interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
 
-      val contextRegion = RegionT()
+      val contextRegion = RegionT(DefaultRegionT)
 
       // This checks to make sure it's a valid use of this template.
       val CompleteResolveSolve(inferences, runeToFunctionBound) =
@@ -317,7 +317,7 @@ class StructCompilerGenericArgsLayer(
       val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
       val definitionRules = allRulesS.filter(InferCompiler.includeRuleInDefinitionSolve)
 
-      val envs = InferEnv(outerEnv, List(structA.range), callLocation, outerEnv, RegionT())
+      val envs = InferEnv(outerEnv, List(structA.range), callLocation, outerEnv, RegionT(DefaultRegionT))
       val solver =
         inferCompiler.makeSolver(
           envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, Vector(), Vector())
@@ -412,7 +412,7 @@ class StructCompilerGenericArgsLayer(
 
       val definitionRules = interfaceA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
-      val envs = InferEnv(outerEnv, List(interfaceA.range), callLocation, outerEnv, RegionT())
+      val envs = InferEnv(outerEnv, List(interfaceA.range), callLocation, outerEnv, RegionT(DefaultRegionT))
       val solver =
         inferCompiler.makeSolver(
           envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector())

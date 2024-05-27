@@ -122,22 +122,26 @@ class TemplexScout(
               val rangeS = evalRange(range)
               val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
 
-              val maybeRegionRune =
-                maybeRegion.map(runeName => {
-                  val rune = CodeRuneS(vassertSome(runeName.name).str) // impl isolates
-                  if (!env.allDeclaredRunes().contains(rune)) {
-                    throw CompileErrorExceptionS(UnknownRegionError(rangeS, rune.name.str))
+              val newRegion =
+                maybeRegion match {
+                  case None => contextRegion
+                  case Some(runeName) => {
+                    runeName.name match {
+                      case Some(name) => {
+                        val rune = CodeRuneS(name.str)
+                        if (!env.allDeclaredRunes().contains(rune)) {
+                          throw CompileErrorExceptionS(UnknownRegionError(rangeS, rune.name.str))
+                        }
+                        rules.RuneUsage(evalRange(range), rune).rune
+                      }
+                      case None => { // Then it's an isolate
+                        vimpl()
+                      }
+                    }
                   }
-                  rules.RuneUsage(evalRange(range), rune)
-                })
-
+                }
               // We need to use region as the new context region for everything under us, since
               // region annotations apply deeply.
-              val newRegion =
-                maybeRegionRune match {
-                  case None => contextRegion
-                  case Some(rune) => rune.rune
-                }
 
               val innerRuneS =
                 translateTemplex(env, lidb.child(), ruleBuilder, newRegion, innerP)
