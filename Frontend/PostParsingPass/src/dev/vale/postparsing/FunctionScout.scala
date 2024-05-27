@@ -163,14 +163,21 @@ class FunctionScout(
           val implicitRegionGenericParam =
             GenericParameterS(
               regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
-          (regionRange, rune, Some(implicitRegionGenericParam))
+          (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
         }
-        case Some(RegionRunePT(regionRange, regionName)) => {
-          val rune = CodeRuneS(vassertSome(regionName).str) // impl isolates
-          if (!functionEnv.allDeclaredRunes().contains(rune)) {
-            throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
-          }
-          (evalRange(file, regionRange), rune, None)
+        case Some(RegionRunePT(regionRange, maybeRegionName)) => {
+          val newContextRegion =
+            maybeRegionName match {
+              case None => IsoContextRegion()
+              case Some(regionName) => {
+                val rune = CodeRuneS(regionName.str)
+                if (!functionEnv.allDeclaredRunes().contains(rune)) {
+                  throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
+                }
+                ContextRegionRune(rune)
+              }
+            }
+          (evalRange(file, regionRange), newContextRegion, None)
         }
       }
 
@@ -652,7 +659,7 @@ class FunctionScout(
     // This might be the block containing the lambda that we're evaluating now.
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
-    contextRegion: IRuneS,
+    contextRegion: IContextRegion,
     body0: BlockPE,
     initialDeclarations: VariableDeclarations):
   (BodySE, VariableUses, Vector[MagicParamNameS]) = {

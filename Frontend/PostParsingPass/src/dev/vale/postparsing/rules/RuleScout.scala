@@ -21,10 +21,12 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
-    contextRegion: IRuneS,
+    contextRegion: IContextRegion,
     rulesP: Vector[IRulexPR]):
   Vector[RuneUsage] = {
-    rulesP.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, _))
+    rulesP.map(
+      translateRulex(
+        env, lidb.child(), builder, runeToExplicitType, contextRegion, _))
   }
 
   def translateRulex(
@@ -32,7 +34,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
-    contextRegion: IRuneS,
+    contextRegion: IContextRegion,
     rulex: IRulexPR):
   RuneUsage = {
     val evalRange = (range: RangeL) => PostParser.evalRange(env.file, range)

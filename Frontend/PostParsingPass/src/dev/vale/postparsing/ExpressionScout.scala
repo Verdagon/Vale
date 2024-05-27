@@ -1,7 +1,7 @@
 package dev.vale.postparsing
 
 import dev.vale.postparsing.patterns.PatternScout
-import dev.vale.postparsing.rules.{IRulexSR, IntLiteralSL, LiteralSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
+import dev.vale.postparsing.rules.{ContextRegionRune, IContextRegion, IRulexSR, IntLiteralSL, IsoContextRegion, LiteralSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
 import dev.vale.parsing.ast._
 import dev.vale.parsing.{ast, _}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vassertSome, vcurious, vfail, vwat}
@@ -86,12 +86,18 @@ class ExpressionScout(
         rangeS,
         maybeNewDefaultRegion match {
           case None => parentStackFrame.contextRegion
-          case Some(RegionRunePT(range, name)) => {
-            val regionRuneS = CodeRuneS(vassertSome(name).str) // impl isolates
-            if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
-              throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, vassertSome(name).str.str)) // impl isolates
+          case Some(RegionRunePT(range, maybeName)) => {
+            maybeName match {
+              case None => IsoContextRegion()
+              case Some(name) => {
+                val regionRuneS = CodeRuneS(name.str)
+                if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
+                  throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, name.str.str))
+                }
+                ContextRegionRune(regionRuneS)
+              }
             }
-            regionRuneS
+
           }
         },
         initialLocals,
@@ -131,7 +137,7 @@ class ExpressionScout(
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     rangeS: RangeS,
-    contextRegion: IRuneS,
+    contextRegion: IContextRegion,
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
     initialLocals: VariableDeclarations,

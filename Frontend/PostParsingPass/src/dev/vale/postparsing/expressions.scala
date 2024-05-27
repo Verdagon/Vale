@@ -266,6 +266,12 @@ case class IndexSE(range: RangeS, left: IExpressionSE, indexExpr: IExpressionSE)
 
 case class FunctionCallSE(range: RangeS, location: LocationInDenizen, callableExpr: IExpressionSE, argsExprs1: Vector[IExpressionSE]) extends IExpressionSE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  callableExpr match {
+    case OutsideLoadSE(_, _, CodeNameS(StrI(name)), _, _) => {
+      vassert(name != "return")
+    }
+    case _ =>
+  }
 }
 
 

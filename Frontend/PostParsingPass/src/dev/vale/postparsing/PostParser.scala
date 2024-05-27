@@ -112,7 +112,7 @@ case class StackFrame(
     name: IFunctionDeclarationNameS,
     parentEnv: FunctionEnvironmentS,
     maybeParent: Option[StackFrame],
-    contextRegion: IRuneS,
+    contextRegion: IContextRegion,
     pureHeight: Int,
     locals: VariableDeclarations) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -251,7 +251,7 @@ object PostParser {
       // This might seem a bit weird, because the region rune usually comes last and is usually
       // mentioned at the end of the header too. But indeed we need it for knowing the region to use
       // for generic params' default values.
-      contextRegion: IRuneS,
+      contextRegion: IContextRegion,
       genericParamP: GenericParameterP,
       paramRuneS: RuneUsage):
   // Returns a possible implicit region generic param (see MNRFGC), and the translated original
@@ -451,7 +451,7 @@ class PostParser(
       // runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
-      (regionRange, rune, Some(implicitRegionGenericParam))
+      (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
     }
 
     val genericParametersP =
@@ -546,7 +546,7 @@ class PostParser(
       runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
-      (regionRange, rune, implicitRegionGenericParam)
+      (regionRange, ContextRegionRune(rune), implicitRegionGenericParam)
     }
 
     val runeS = templexScout.translateTemplex(exportEnv, lidb, ruleBuilder, defaultRegionRuneS, templexP)
@@ -617,7 +617,7 @@ class PostParser(
           // headerRuneToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
-          (regionRange, rune, Some(implicitRegionGenericParam))
+          (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRangeP, regionName)) => {
           val regionRangeS = evalRange(file, regionRangeP)
@@ -625,7 +625,7 @@ class PostParser(
           if (!structEnv.allDeclaredRunes().contains(rune)) {
             throw CompileErrorExceptionS(CouldntFindRuneS(regionRangeS, rune.name.str))
           }
-          (regionRangeS, rune, None)
+          (regionRangeS, ContextRegionRune(rune), None)
         }
       }
 
@@ -848,20 +848,20 @@ class PostParser(
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
+            templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, ContextRegionRune(defaultRegionRuneS), g, r)
         })
 
     val genericParametersS =
       interfaceUserSpecifiedGenericParametersS
       //++ userSpecifiedRunesImplicitRegionRunesS
 
-    ruleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, defaultRegionRuneS, rulesP)
+    ruleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, ContextRegionRune(defaultRegionRuneS), rulesP)
 
     val mutability =
       mutabilityPT.getOrElse(MutabilityPT(RangeL(bodyRangeP.begin, bodyRangeP.begin), MutableP))
     val mutabilityRuneS =
       templexScout.translateTemplex(
-        interfaceEnv, lidb.child(), ruleBuilder, defaultRegionRuneS, mutability)
+        interfaceEnv, lidb.child(), ruleBuilder, ContextRegionRune(defaultRegionRuneS), mutability)
 
 
     val rulesS = ruleBuilder.toVector

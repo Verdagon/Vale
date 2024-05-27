@@ -619,6 +619,7 @@ If we have a generic call with a region like `x'List<Ship>`, then that `x'` appl
 
 Whenever we're doing post-parsing to figure out the region for everything, we keep track of the nearest containing region, like the `x'` above. This is known as the "context region" there.
 
+Q from later: What are the downsides of not doing it deeply?
 
 
 # Making New Regions For Generic Coords (MNRFGC)

@@ -690,10 +690,6 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         case Ok(x) => x
       }
 
-    if (!iter.trySkipSymbol(';')) {
-      return Err(BadExpressionEnd(iter.getPos()))
-    }
-
     Ok(Some(DestructPE(RangeL(begin, iter.getPrevEndPos()), innerExpr)))
   }
 
@@ -1427,13 +1423,13 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       return Ok(ConstantIntPE(RangeL(begin, iter.getPrevEndPos()), 0, None))
     }
 
-    iter.peek2() match {
-      case (Some(SymbolLE(_, '\'')), Some(WordLE(range, str))) => {
-        iter.advance()
-        iter.advance()
-        return parseExpressionDataElement(iter, stopOnCurlied)
-      }
-      case _ =>
+    if (iter.trySkipSymbol('\'')) {
+      val innerPE =
+        parseExpressionDataElement(iter, stopOnCurlied) match {
+          case Err(e) => return Err(e)
+          case Ok(x) => x
+        }
+      return Ok(AugmentPE(fsadfds RangeL(begin, innerPE.range.end), innerPE))
     }
 
     // First, get the prefixes out of the way, such as & not etc.

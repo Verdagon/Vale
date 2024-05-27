@@ -619,6 +619,13 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
     }
   }
 
+  test("Create iso object") {
+    compileExpressionExpect("""'Marine()""") shouldHave {
+      case null =>
+    }
+  }
+
+
 //  // See https://github.com/ValeLang/Vale/issues/108
 //  test("Calling with space") {
 //    compile(CombinatorParsers.expression(true),
