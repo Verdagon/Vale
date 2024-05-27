@@ -236,7 +236,7 @@ case class AugmentPE(
 
 case class TransmigratePE(
     range: RangeL,
-    targetRegion: NameP,
+    targetRegion: Option[NameP],
     inner: IExpressionPE
 ) extends IExpressionPE {
 

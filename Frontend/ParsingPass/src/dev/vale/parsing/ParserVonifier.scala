@@ -979,7 +979,7 @@ object ParserVonifier {
           None,
           Vector(
             VonMember("range", vonifyRange(range)),
-            VonMember("targetRegion", vonifyName(targetRegion)),
+            VonMember("targetRegion", vonifyOptional(targetRegion, vonifyName)),
             VonMember("inner", vonifyExpression(inner))))
       }
       case LetPE(range, pattern, source) => {

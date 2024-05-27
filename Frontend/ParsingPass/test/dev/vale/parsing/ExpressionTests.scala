@@ -556,7 +556,35 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
 
   test("Transmigrate") {
     compileExpressionExpect("a'x") shouldHave {
-      case TransmigratePE(_,NameP(_,StrI("a")),LookupPE(LookupNameP(NameP(_,StrI("x"))),None)) =>
+      case TransmigratePE(_,Some(NameP(_,StrI("a"))),LookupPE(LookupNameP(NameP(_,StrI("x"))),None)) =>
+    }
+  }
+
+  test("Regioned call") {
+    compileExpressionExpect("""a'Marine()""") shouldHave {
+      case TransmigratePE(_,
+        Some(NameP(_,StrI("a"))),
+        FunctionCallPE(_,
+          _,
+          LookupPE(LookupNameP(NameP(_,StrI("Marine"))),None),
+          Vector())) =>
+    }
+  }
+
+  test("Iso-regioned call") {
+    compileExpressionExpect("""'Marine()""") shouldHave {
+      case TransmigratePE(_,
+        None,
+        FunctionCallPE(_,
+          _,
+          LookupPE(LookupNameP(NameP(_,StrI("Marine"))),None),
+          Vector())) =>
+    }
+  }
+
+  test("Secede") {
+    compileExpressionExpect("'x") shouldHave {
+      case TransmigratePE(_, None, LookupPE(LookupNameP(NameP(_, StrI("x"))), None)) =>
     }
   }
 
@@ -616,12 +644,6 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
     }
     program shouldHave {
       case BinaryCallPE(_, NameP(_, StrI("+")), LookupPE(LookupNameP(NameP(_, StrI("a"))), None), LookupPE(LookupNameP(NameP(_, StrI("a"))), None)) =>
-    }
-  }
-
-  test("Create iso object") {
-    compileExpressionExpect("""'Marine()""") shouldHave {
-      case null =>
     }
   }
 

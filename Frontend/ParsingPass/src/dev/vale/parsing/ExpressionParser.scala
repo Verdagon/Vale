@@ -1423,15 +1423,6 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       return Ok(ConstantIntPE(RangeL(begin, iter.getPrevEndPos()), 0, None))
     }
 
-    if (iter.trySkipSymbol('\'')) {
-      val innerPE =
-        parseExpressionDataElement(iter, stopOnCurlied) match {
-          case Err(e) => return Err(e)
-          case Ok(x) => x
-        }
-      return Ok(AugmentPE(fsadfds RangeL(begin, innerPE.range.end), innerPE))
-    }
-
     // First, get the prefixes out of the way, such as & not etc.
     // Then we'll parse the atom and suffixes (.moo, ..5, etc.) and
     // *then* wrap those in the prefixes, so we get e.g. not(x.moo)
@@ -1476,6 +1467,17 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       case Ok(None) =>
     }
 
+
+    if (iter.trySkipSymbol('\'')) {
+      val innerPE =
+        parseAtomAndTightSuffixes(iter, stopOnCurlied) match {
+          case Err(err) => return Err(err)
+          case Ok(e) => e
+        }
+      val transmigratePE = TransmigratePE(RangeL(begin, iter.getPrevEndPos()), None, innerPE)
+      return Ok(transmigratePE)
+    }
+
     iter.peek2() match {
       case (Some(WordLE(regionRange, region)), Some(SymbolLE(_, '\''))) => {
         iter.advance()
@@ -1486,7 +1488,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
             case Err(err) => return Err(err)
             case Ok(e) => e
           }
-        val transmigratePE = TransmigratePE(RangeL(begin, iter.getPrevEndPos()), regionName, innerPE)
+        val transmigratePE = TransmigratePE(RangeL(begin, iter.getPrevEndPos()), Some(regionName), innerPE)
         return Ok(transmigratePE)
       }
       case _ =>

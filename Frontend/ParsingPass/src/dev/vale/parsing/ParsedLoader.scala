@@ -418,7 +418,7 @@ class ParsedLoader(interner: Interner) {
       case "Transmigrate" => {
         TransmigratePE(
           loadRange(getObjectField(jobj, "range")),
-          loadName(getObjectField(jobj, "targetRegion")),
+          loadOptionalObject(getObjectField(jobj, "targetRegion"), loadName),
           loadExpression(getObjectField(jobj, "inner")))
       }
       case "Mutate" => {
