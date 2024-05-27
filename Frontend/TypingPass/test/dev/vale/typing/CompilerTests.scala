@@ -1994,4 +1994,13 @@ class CompilerTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
   }
+
+  test("Extern struct") {
+    // See MMEDT why this is an error
+    val compile = CompilerTestCompilation.test(
+      """
+        |extern struct Vec<T>;
+        |""".stripMargin)
+    compile.expectCompilerOutputs()
+  }
 }

@@ -409,7 +409,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
     iter.consumeCommentsAndWhitespace()
 
     val maybeMutability =
-      if (!iter.peekCompleteWord("where") && iter.peek() != '{') {
+      if (!iter.peekCompleteWord("where") && iter.peek() != '{' && iter.peek() != ';') {
         lexScramble(iter, true, true, true) match {
           case Err(e) => return Err(e)
           case Ok(x) => Some(x)
@@ -448,28 +448,34 @@ class Lexer(interner: Interner, keywords: Keywords) {
 
     iter.consumeCommentsAndWhitespace()
 
-    if (!iter.trySkip('{')) {
-      return Err(BadStructContentsBegin(iter.getPos()))
-    }
     val membersBegin = iter.getPos()
 
-    iter.consumeCommentsAndWhitespace()
-
-    val membersAcc = new Accumulator[ScrambleLE]()
-
     val contents =
-      lexScramble(iter, false, false, false) match {
-        case Err(e) => return Err(e)
-        case Ok(x) => x
+      if (iter.trySkip(';')) {
+        ScrambleLE(RangeL(membersBegin, membersBegin), Vector())
+      } else if (iter.trySkip('{')) {
+        iter.consumeCommentsAndWhitespace()
+
+        val membersAcc = new Accumulator[ScrambleLE]()
+
+        val contents =
+          lexScramble(iter, false, false, false) match {
+            case Err(e) => return Err(e)
+            case Ok(x) => x
+          }
+
+        if (!iter.trySkip('}')) {
+          return Err(BadStructContentsEnd(iter.getPos()))
+        }
+
+        iter.consumeCommentsAndWhitespace()
+
+        val end = iter.getPos()
+
+        contents
+      } else {
+        return Err(BadStructContentsBegin(iter.getPos()))
       }
-
-    if (!iter.trySkip('}')) {
-      return Err(BadStructContentsEnd(iter.getPos()))
-    }
-
-    iter.consumeCommentsAndWhitespace()
-
-    val end = iter.getPos()
 
     val struct =
       StructL(

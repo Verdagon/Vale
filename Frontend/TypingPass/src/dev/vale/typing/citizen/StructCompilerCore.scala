@@ -163,6 +163,7 @@ class StructCompilerCore(
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttributeT] = {
     attrs.map({
       case SealedS => SealedT
+      case ExternS(p) => ExternT(p)
       case MacroCallS(_, _, _) => vwat() // Should have been processed
       case x => vimpl(x.toString)
     })
