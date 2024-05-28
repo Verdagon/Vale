@@ -15,6 +15,8 @@ Location readLocation(MetalCache* cache, const json& location);
 Mutability readMutability(const json& mutability);
 Variability readVariability(const json& variability);
 Name* readName(MetalCache* cache, const json& name);
+SimpleIdStep* readSimpleIdStep(MetalCache* cache, const json& prototype);
+SimpleId* readSimpleId(MetalCache* cache, const json& prototype);
 
 //template<typename T>
 //concept ReturnsVec = requires(T a) {
@@ -258,6 +260,47 @@ Prototype* readPrototype(MetalCache* cache, const json& prototype) {
   auto retuurn = readReference(cache, prototype["return"]);
 
   return cache->getPrototype(name, retuurn, params);
+}
+
+SimpleIdStep* readSimpleIdStep(MetalCache* cache, const json& prototype) {
+  assert(prototype.is_object());
+  assert(prototype["__type"] == "IdStep");
+
+  std::string name = prototype["name"];
+  auto templateArgs = readArray(cache, prototype["templateArgs"], readSimpleId);
+
+  return new SimpleIdStep{name, templateArgs};
+}
+
+SimpleId* readSimpleId(MetalCache* cache, const json& prototype) {
+  assert(prototype.is_object());
+  assert(prototype["__type"] == "Id");
+
+  auto steps = readArray(cache, prototype["steps"], readSimpleIdStep);
+
+  return new SimpleId{steps};
+}
+
+ExternFunction* readExternFunction(MetalCache* cache, const json& obj) {
+  assert(obj.is_object());
+  assert(obj["__type"] == "ExternFunction");
+
+  std::string mangledName = obj["mangledName"];
+  auto simpleId = readSimpleId(cache, obj["id"]);
+  auto prototype = readPrototype(cache, obj["prototype"]);
+
+  return new ExternFunction{std::move(mangledName), simpleId, prototype};
+}
+
+ExternKind* readExternKind(MetalCache* cache, const json& obj) {
+  assert(obj.is_object());
+  assert(obj["__type"] == "ExternKind");
+
+  std::string mangledName = obj["mangledName"];
+  auto simpleId = readSimpleId(cache, obj["id"]);
+  auto kind = readKind(cache, obj["kind"]);
+
+  return new ExternKind{std::move(mangledName), simpleId, kind};
 }
 
 VariableId* readVariableId(MetalCache* cache, const json& variable) {
@@ -777,25 +820,23 @@ Package* readPackage(MetalCache* cache, const json& program) {
             auto kind = readKind(cache, entryJ["kind"]);
             return std::make_pair(exportName, kind);
           }),
-      readArrayIntoMap<std::string, Prototype*>(
+      readArrayIntoMap<std::string, ExternFunction*>(
           cache,
           std::hash<std::string>(),
           std::equal_to<std::string>(),
           program["externNameToFunction"],
           [](MetalCache* cache, json entryJ){
-            auto externName = readString(cache, entryJ["externName"]);
-            auto prototype = readPrototype(cache, entryJ["prototype"]);
-            return std::make_pair(externName, prototype);
+            auto externFunc = readExternFunction(cache, entryJ);
+            return std::make_pair(externFunc->mangledName, externFunc);
           }),
-      readArrayIntoMap<std::string, Kind*>(
+      readArrayIntoMap<std::string, ExternKind*>(
           cache,
           std::hash<std::string>(),
           std::equal_to<std::string>(),
           program["externNameToKind"],
           [](MetalCache* cache, json entryJ){
-            auto externName = readString(cache, entryJ["externName"]);
-            auto kind = readKind(cache, entryJ["kind"]);
-            return std::make_pair(externName, kind);
+              auto externKind = readExternKind(cache, entryJ);
+              return std::make_pair(externKind->mangledName, externKind);
           }));
 }
 

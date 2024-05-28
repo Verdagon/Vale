@@ -37,6 +37,55 @@ class Edge;
 class Function;
 class Prototype;
 class Name;
+class SimpleId;
+class SimpleIdStep;
+class ExternFunction;
+class ExternKind;
+
+// Not interned
+class SimpleIdStep {
+public:
+  std::string name;
+  std::vector<SimpleId*> templateArgs;
+};
+
+// Not interned
+class SimpleId {
+public:
+  std::vector<SimpleIdStep*> steps;
+};
+
+// Not interned
+class ExternFunction {
+public:
+  std::string mangledName;
+  SimpleId* simpleId;
+  Prototype* prototype;
+
+  ExternFunction(
+      std::string mangledName_,
+      SimpleId* simpleId_,
+      Prototype* prototype_) :
+      mangledName(std::move(mangledName_)),
+      simpleId(simpleId_),
+      prototype(prototype_) {}
+};
+
+// Not interned
+class ExternKind {
+public:
+  std::string mangledName;
+  SimpleId* simpleId;
+  Kind* kind;
+
+  ExternKind(
+      std::string mangledName_,
+      SimpleId* simpleId_,
+      Kind* kind_) :
+      mangledName(std::move(mangledName_)),
+      simpleId(simpleId_),
+      kind(kind_) {}
+};
 
 class Package {
 public:
@@ -52,13 +101,13 @@ public:
   // be defined somewhere else.
   std::unordered_map<std::string, Prototype*> exportNameToFunction;
   std::unordered_map<std::string, Kind*> exportNameToKind;
-  std::unordered_map<std::string, Prototype*> externNameToFunction;
-  std::unordered_map<std::string, Kind*> externNameToKind;
+  std::unordered_map<std::string, ExternFunction*> externNameToFunction;
+  std::unordered_map<std::string, ExternKind*> externNameToKind;
   // These are inverses of the above maps
   std::unordered_map<Prototype*, std::string, AddressHasher<Prototype*>> functionToExportName;
   std::unordered_map<Kind*, std::string, AddressHasher<Kind*>> kindToExportName;
-  std::unordered_map<Prototype*, std::string, AddressHasher<Prototype*>> functionToExternName;
-  std::unordered_map<Kind*, std::string, AddressHasher<Kind*>> kindToExternName;
+  std::unordered_map<Prototype*, ExternFunction*, AddressHasher<Prototype*>> functionToExtern;
+  std::unordered_map<Kind*, ExternKind*, AddressHasher<Kind*>> kindToExtern;
 
   Package(
     AddressNumberer* addressNumberer,
@@ -71,8 +120,8 @@ public:
 //    std::unordered_map<Kind*, Prototype*, AddressHasher<Kind*>> immDestructorsByKind_,
     std::unordered_map<std::string, Prototype*> exportNameToFunction_,
     std::unordered_map<std::string, Kind*> exportNameToKind_,
-    std::unordered_map<std::string, Prototype*> externNameToFunction_,
-    std::unordered_map<std::string, Kind*> externNameToKind_) :
+    std::unordered_map<std::string, ExternFunction*> externNameToFunction_,
+    std::unordered_map<std::string, ExternKind*> externNameToKind_) :
       packageCoordinate(packageCoordinate_),
       interfaces(std::move(interfaces_)),
       structs(std::move(structs_)),
@@ -86,8 +135,8 @@ public:
       externNameToKind(std::move(externNameToKind_)),
       functionToExportName(0, addressNumberer->makeHasher<Prototype*>()),
       kindToExportName(0, addressNumberer->makeHasher<Kind*>()),
-      functionToExternName(0, addressNumberer->makeHasher<Prototype*>()),
-      kindToExternName(0, addressNumberer->makeHasher<Kind*>()) {
+      functionToExtern(0, addressNumberer->makeHasher<Prototype*>()),
+      kindToExtern(0, addressNumberer->makeHasher<Kind*>()) {
     for (auto [exportName, prototype] : exportNameToFunction) {
       assert(functionToExportName.count(prototype) == 0);
       functionToExportName[prototype] = exportName;
@@ -96,13 +145,13 @@ public:
       assert(kindToExportName.count(kind) == 0);
       kindToExportName[kind] = exportName;
     }
-    for (auto [externName, prototype] : externNameToFunction) {
-      assert(functionToExternName.count(prototype) == 0);
-      functionToExternName[prototype] = externName;
+    for (auto [externName, exterrn] : externNameToFunction) {
+      assert(functionToExtern.count(exterrn->prototype) == 0);
+      functionToExtern[exterrn->prototype] = exterrn;
     }
-    for (auto [externName, kind] : externNameToKind) {
-      assert(kindToExternName.count(kind) == 0);
-      kindToExternName[kind] = externName;
+    for (auto [externName, exterrn] : externNameToKind) {
+      assert(kindToExtern.count(exterrn->kind) == 0);
+      kindToExtern[exterrn->kind] = exterrn;
     }
   }
 
@@ -190,13 +239,13 @@ public:
     } else {
       // DO NOT SUBMIT this is awkward
       std::string thing;
-      auto iter = kindToExportName.find(kind);
-      if (iter != kindToExportName.end()) {
-        thing = iter->second;
+      auto iter1 = kindToExportName.find(kind);
+      if (iter1 != kindToExportName.end()) {
+        thing = iter1->second;
       } else {
-        iter = kindToExternName.find(kind);
-        if (iter != kindToExternName.end()) {
-          thing = iter->second;
+        auto iter2 = kindToExtern.find(kind);
+        if (iter2 != kindToExtern.end()) {
+          thing = iter2->second->mangledName;
         } else {
           std::cerr << "Couldn't find export name for: " << getKindHumanName(kind) << std::endl;
           exit(1);
@@ -231,15 +280,23 @@ public:
     assert(iter != functionToExportName.end());
     return (!packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + iter->second;
   }
+  ExternKind* getKindExtern(Kind* kind) const {
+    auto iter = kindToExtern.find(kind);
+    assert(iter != kindToExtern.end());
+    return iter->second;
+  }
+  ExternFunction* getFunctionExtern(Prototype* kind) const {
+    auto iter = functionToExtern.find(kind);
+    assert(iter != functionToExtern.end());
+    return iter->second;
+  }
   std::string getKindExternName(Kind* kind) const {
-    auto iter = kindToExternName.find(kind);
-    assert(iter != kindToExternName.end());
-    return (!packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + iter->second;
+    auto kindExtern = getKindExtern(kind);
+    return (!packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + kindExtern->mangledName;
   }
   std::string getFunctionExternName(Prototype* kind) const {
-    auto iter = functionToExternName.find(kind);
-    assert(iter != functionToExternName.end());
-    return (!packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + iter->second;
+    auto functionExtern = getFunctionExtern(kind);
+    return (!packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + functionExtern->mangledName;
   }
 //  bool isExported(Name* name) {
 //    auto exportedNameI = fullNameToExportName.find(name);

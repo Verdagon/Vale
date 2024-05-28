@@ -12,6 +12,9 @@
 #include <region/common/migration.h>
 #include <utils/counters.h>
 
+std::string rustifySimpleIdStep(SimpleIdStep* simpleIdStep);
+std::string rustifySimpleId(SimpleId* simpleId);
+
 ValeFuncPtrLE declareFunction(
     GlobalState* globalState,
     Function* functionM) {
@@ -243,17 +246,52 @@ RawFuncPtrLE declareExternFunction(
     }
   }
 
-  auto userFuncNameL = package->getFunctionExternName(prototypeM);
-  auto abiFuncNameL = std::string("vale_abi_") + userFuncNameL;
+  auto userFuncExtern = package->getFunctionExtern(prototypeM);
+  auto abiFuncNameL = std::string("vale_abi_") + userFuncExtern->mangledName;
 
   RawFuncPtrLE functionL =
       addRawFunction(globalState->mod, abiFuncNameL.c_str(), externReturnLT, externParamTypesL);
 
   assert(globalState->externFunctions.count(prototypeM) == 0);
   globalState->externFunctions.emplace(prototypeM, functionL);
-  std::cout << "Adding extern prototype name: " << prototypeM->name->name << std::endl;
+  std::cout << "Adding extern prototype name: " << prototypeM->name->name
+    << " mangled name: " << userFuncExtern->mangledName
+    << " steps: " << rustifySimpleId(userFuncExtern->simpleId)
+    << std::endl;
 
   return functionL;
+}
+
+// TODO: optimize: use a string builder
+std::string rustifySimpleId(SimpleId* simpleId) {
+  std::string stepsStr;
+  for (auto step : simpleId->steps) {
+    if (!stepsStr.empty()) {
+      stepsStr += "::";
+    }
+    stepsStr += rustifySimpleIdStep(step);
+  }
+  return stepsStr;
+}
+std::string rustifySimpleIdStep(SimpleIdStep* simpleIdStep) {
+  if (simpleIdStep->name == "&" || simpleIdStep->name == "&mut") {
+    assert(simpleIdStep->templateArgs.size() == 1);
+    return simpleIdStep->name + rustifySimpleId(simpleIdStep->templateArgs[0]);
+  }
+  std::string result = simpleIdStep->name;
+  if (!simpleIdStep->templateArgs.empty()) {
+    std::string templateArgsInnerStr;
+    for (auto templateArg : simpleIdStep->templateArgs) {
+      if (!templateArgsInnerStr.empty()) {
+        templateArgsInnerStr += ", ";
+      }
+      templateArgsInnerStr += rustifySimpleId(templateArg);
+    }
+    result += "<";
+    result += templateArgsInnerStr;
+    result += ">";
+  }
+  return result;
 }
 
 void translateFunction(

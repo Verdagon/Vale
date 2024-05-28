@@ -173,8 +173,9 @@ class IntegrationTestsC extends FunSuite with Matchers {
 
     // The extern we make should have the name we expect
     vassertSome(packageH.externNameToFunction.get("sqrt")) match {
-      case PrototypeH(IdH("sqrt",PackageCoordinate(StrI("math"),Vector()),_,_),_,_) =>
+      case HamutsFunctionExtern(PrototypeH(IdH("sqrt",PackageCoordinate(StrI("math"),Vector()),_,_),_,_), _) =>
     }
+    vimpl() // add the simple id to the above expectation
 
     // We also made an internal function that contains an extern call
     val externSqrt = packageH.lookupFunction("sqrt(float)")

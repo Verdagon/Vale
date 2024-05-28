@@ -274,3 +274,19 @@ case object Mutable extends Mutability
 sealed trait Variability
 case object Final extends Variability
 case object Varying extends Variability
+
+
+case class SimpleId(steps: Vector[SimpleIdStep]) {
+  vassert(steps.length > 0)
+}
+case class SimpleIdStep(
+    name: String, // Could also be & or &mut
+    templateArgs: Vector[SimpleId])
+
+case class HamutsFunctionExtern(
+    prototype: PrototypeH,
+    simpleId: SimpleId)
+
+case class HamutsKindExtern(
+    kind: KindHT,
+    simpleId: SimpleId)

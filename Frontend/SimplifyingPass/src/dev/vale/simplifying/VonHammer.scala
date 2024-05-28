@@ -31,6 +31,28 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
             }).toVector))))
   }
 
+  def vonifySimpleId(simpleId: SimpleId): IVonData = {
+    VonObject(
+      "Id",
+      None,
+      Vector(
+        VonMember(
+          "steps",
+          VonArray(
+            None,
+            simpleId.steps.map(vonifySimpleIdStep)))))
+  }
+
+  def vonifySimpleIdStep(step: SimpleIdStep): IVonData = {
+    val SimpleIdStep(name, templateArgs) = step
+    VonObject(
+      "IdStep",
+      None,
+      Vector(
+        VonMember("name", VonStr(name)),
+        VonMember("templateArgs", VonArray(None, templateArgs.map(vonifySimpleId)))))
+  }
+
   def vonifyPackage(packageCoord: PackageCoordinate, paackage: PackageH): IVonData = {
     val PackageH(
       interfaces,
@@ -95,24 +117,26 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           "externNameToFunction",
           VonArray(
             None,
-            externNameToFunction.toVector.map({ case (externName, prototype) =>
+            externNameToFunction.toVector.map({ case (externName, HamutsFunctionExtern(prototype, simpleId)) =>
               VonObject(
-                "Entry",
+                "ExternFunction",
                 None,
                 Vector(
-                  VonMember("externName", VonStr(externName)),
+                  VonMember("mangledName", VonStr(externName)),
+                  VonMember("id", vonifySimpleId(simpleId)),
                   VonMember("prototype", vonifyPrototype(prototype))))
             }))),
         VonMember(
           "externNameToKind",
           VonArray(
             None,
-            externNameToKind.toVector.map({ case (externName, kind) =>
+            externNameToKind.toVector.map({ case (externName, HamutsKindExtern(kind, simpleId)) =>
               VonObject(
-                "Entry",
+                "ExternKind",
                 None,
                 Vector(
-                  VonMember("externName", VonStr(externName)),
+                  VonMember("mangledName", VonStr(externName)),
+                  VonMember("id", vonifySimpleId(simpleId)),
                   VonMember("kind", vonifyKind(kind))))
             })))))
   }

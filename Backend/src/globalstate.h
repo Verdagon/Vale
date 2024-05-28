@@ -181,7 +181,10 @@ public:
       return iter->second;
     }
     auto funcIter = functions.find(prototype->name->name);
-    assert(funcIter != functions.end());
+    if (funcIter == functions.end()) {
+      std::cerr << "Couldn't find function: " << prototype->name->name << std::endl;
+      exit(1);
+    }
     return funcIter->second;
   }
 

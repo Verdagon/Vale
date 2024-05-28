@@ -486,14 +486,14 @@ void generateExports(GlobalState* globalState, Prototype* mainM) {
     }
   }
   for (auto[packageCoord, package] : program->packages) {
-    for (auto[externName, prototype] : package->externNameToFunction) {
-      if (prototype->name->name.rfind("__vbi_", 0) == 0) {
+    for (auto[externName, externFunc] : package->externNameToFunction) {
+      if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
         // Dont generate C code for built in externs
         continue;
       }
       auto* headerC = &packageCoordToHeaderNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
       auto* sourceC = &packageCoordToSourceNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
-      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, externName, prototype, false);
+      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, externName, externFunc->prototype, false);
     }
   }
   if (globalState->opt->outputDir.empty()) {
@@ -1013,12 +1013,10 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
   }
 
   for (auto[packageCoord, package] : program.packages) {
-    for (auto p : package->structs) {
-      auto name = p.first;
-      auto structM = p.second;
+    for (auto [name, structM] : package->structs) {
       assert(name == structM->name->name);
       if (structM->exterrn) {
-        std::cerr << "TODO: extern struct" << std::endl;
+        std::cout << "TODO: extern struct " << structM->name->name << " extern name " << package->getKindExternName(structM->kind) << std::endl;
 //        assert(false); // impl
       } else {
         globalState->getRegion(structM->regionId)->defineStruct(structM);
@@ -1125,14 +1123,17 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     region.second->defineExtraFunctions();
   }
 
+  std::cout << "Packages: " << program.packages.size() << std::endl;
   for (auto[packageCoord, package] : program.packages) {
-    for (auto[externName, prototype] : package->externNameToFunction) {
-      if (prototype->name->name.rfind("__vbi_", 0) == 0) {
+    std::cout << "externNameToFunction: " << package->externNameToFunction.size() << std::endl;
+    for (auto[externName, externFunc] : package->externNameToFunction) {
+      std::cout << "Found extern " << externName << std::endl;
+      if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
         // Dont generate C code for built in externs
         continue;
       }
-      declareExternFunction(globalState, package, prototype);
-      determinism.registerFunction(prototype);
+      declareExternFunction(globalState, package, externFunc->prototype);
+      determinism.registerFunction(externFunc->prototype);
     }
   }
 
