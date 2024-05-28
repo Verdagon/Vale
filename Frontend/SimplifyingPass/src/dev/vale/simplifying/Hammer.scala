@@ -211,8 +211,28 @@ class Hammer(interner: Interner, keywords: Keywords) {
     }
   }
 
+  def mangleKind(kind: KindIT[cI]): String = {
+    kind match {
+      case IntIT(bits) => "i" + bits
+      case other => vimpl(other)
+    }
+  }
+
+  def mangleCoord(coord: CoordI[cI]): String = {
+    val CoordI(ownership, kind) = coord
+    (ownership match {
+      case ImmutableShareI => "1_IRef_"
+      case MutableShareI => "1_Ref_"
+      case OwnI => ""
+      case WeakI => "1_Weak_"
+      case ImmutableBorrowI => "1_IRef_"
+      case MutableBorrowI => "1_Ref_"
+    }) + mangleKind(kind)
+  }
+
   def mangleTemplata(templata: ITemplataI[cI]): String = {
     templata match {
+      case CoordTemplataI(region, coord) => mangleCoord(coord)
       case other => vimpl(other)
     }
   }
