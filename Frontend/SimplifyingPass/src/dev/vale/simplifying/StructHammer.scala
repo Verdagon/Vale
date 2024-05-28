@@ -107,6 +107,7 @@ class StructHammer(
           StructDefinitionH(
             fullNameH,
             structDefI.weakable,
+            structDefI.attributes.exists({ case ExternI(_) => true case _ => false }),
             Conversions.evaluateMutabilityTemplata(structDefI.mutability),
             edgesH,
             membersH);
@@ -194,6 +195,7 @@ class StructHammer(
         val structDefH =
           StructDefinitionH(
             boxFullNameH,
+            false,
             false,
             Mutable,
             Vector.empty,

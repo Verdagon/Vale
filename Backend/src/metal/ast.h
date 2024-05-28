@@ -188,12 +188,21 @@ public:
     } else if (dynamic_cast<Str *>(kind)) {
       return "ValeStr*";
     } else {
+      // DO NOT SUBMIT this is awkward
+      std::string thing;
       auto iter = kindToExportName.find(kind);
-      if (iter == kindToExportName.end()) {
-        std::cerr << "Couldn't find export name for: " << getKindHumanName(kind) << std::endl;
-        exit(1);
+      if (iter != kindToExportName.end()) {
+        thing = iter->second;
+      } else {
+        iter = kindToExternName.find(kind);
+        if (iter != kindToExternName.end()) {
+          thing = iter->second;
+        } else {
+          std::cerr << "Couldn't find export name for: " << getKindHumanName(kind) << std::endl;
+          exit(1);
+        }
       }
-      return (includeProjectName && !packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + iter->second;
+      return (includeProjectName && !packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + thing;
     }
   }
   std::string getKindHumanName(Kind* kind) const {
@@ -355,6 +364,7 @@ public:
     std::vector<Edge*> edges;
     std::vector<StructMember*> members;
     Weakability weakability;
+    bool exterrn;
 
     StructDefinition(
         Name* name_,
@@ -363,14 +373,16 @@ public:
         Mutability mutability_,
         std::vector<Edge*> edges_,
         std::vector<StructMember*> members_,
-        Weakability weakable_) :
+        Weakability weakable_,
+        bool extern_) :
         name(name_),
         kind(kind_),
         regionId(regionId_),
         mutability(mutability_),
         edges(edges_),
         members(members_),
-        weakability(weakable_) {}
+        weakability(weakable_),
+        exterrn(extern_) {}
 
     Edge* getEdgeForInterface(InterfaceKind* interfaceMT) {
       for (auto e : edges) {

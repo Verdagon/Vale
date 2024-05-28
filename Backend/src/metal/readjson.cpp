@@ -655,7 +655,8 @@ StructDefinition* readStruct(MetalCache* cache, const json& struuct) {
           mutability,
           readArray(cache, struuct["edges"], readEdge),
           readArray(cache, struuct["members"], readStructMember),
-          struuct["weakable"] ? Weakability::WEAKABLE : Weakability::NON_WEAKABLE);
+          struuct["weakable"] ? Weakability::WEAKABLE : Weakability::NON_WEAKABLE,
+          struuct["extern"]);
 
   return result;
 }

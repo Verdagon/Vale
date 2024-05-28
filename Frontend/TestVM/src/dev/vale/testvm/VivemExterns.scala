@@ -1,18 +1,17 @@
 package dev.vale.testvm
 
 import dev.vale.finalast._
-import dev.vale.{vassert, vfail}
+import dev.vale.{PackageCoordinate, StrI, vassert, vassertOne, vassertSome, vfail, vimpl}
 
 import java.lang.ArithmeticException
-import dev.vale.vfail
 
 object VivemExterns {
-  def panic(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def panic(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 0)
     throw new PanicException()
   }
 
-  def addFloatFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def addFloatFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -23,7 +22,7 @@ object VivemExterns {
     }
   }
 
-  def multiplyFloatFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def multiplyFloatFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -34,7 +33,7 @@ object VivemExterns {
     }
   }
 
-  def divideFloatFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def divideFloatFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -45,7 +44,7 @@ object VivemExterns {
     }
   }
 
-  def subtractFloatFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def subtractFloatFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -56,7 +55,7 @@ object VivemExterns {
     }
   }
 
-  def addStrStr(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def addStrStr(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 6)
     val StrV(aStr) = memory.dereference(args(0))
     val IntV(aBegin, 32) = memory.dereference(args(1))
@@ -67,14 +66,14 @@ object VivemExterns {
     memory.addAllocationForReturn(MutableShareH, YonderH, StrV(aStr.substring(aBegin.toInt, aBegin.toInt + aLength.toInt) + bStr.substring(bBegin.toInt, bBegin.toInt + bLength.toInt)))
   }
 
-  def getch(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def getch(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.isEmpty)
     val next = memory.stdin()
     val code = if (next.isEmpty) { 0 } else { next.charAt(0).charValue().toInt }
     memory.addAllocationForReturn(MutableShareH, InlineH, IntV(code, 32))
   }
 
-  def lessThanFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def lessThanFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -85,7 +84,7 @@ object VivemExterns {
     }
   }
 
-  def greaterThanFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def greaterThanFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -96,7 +95,7 @@ object VivemExterns {
     }
   }
 
-  def eqFloatFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def eqFloatFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -107,7 +106,7 @@ object VivemExterns {
     }
   }
 
-  def eqStrStr(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def eqStrStr(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 6)
     val StrV(leftStr) = memory.dereference(args(0))
     val IntV(leftStrStart, 32) = memory.dereference(args(1))
@@ -119,7 +118,7 @@ object VivemExterns {
     memory.addAllocationForReturn(MutableShareH, InlineH, result)
   }
 
-  def eqBoolBool(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def eqBoolBool(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -130,7 +129,7 @@ object VivemExterns {
     }
   }
 
-  def and(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def and(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -141,7 +140,7 @@ object VivemExterns {
     }
   }
 
-  def or(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def or(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -152,37 +151,37 @@ object VivemExterns {
     }
   }
 
-  def not(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def not(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val BoolV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, BoolV(!value))
   }
 
-  def sqrt(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def sqrt(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val FloatV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, FloatV(Math.sqrt(value).toFloat))
   }
 
-  def strLength(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def strLength(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val StrV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, IntV(value.length, 32))
   }
 
-  def castFloatStr(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castFloatStr(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val FloatV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, YonderH, StrV(value.toString))
   }
 
-  def negateFloat(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def negateFloat(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val FloatV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, FloatV(-value))
   }
 
-  def print(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def print(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 3)
     val StrV(aStr) = memory.dereference(args(0))
     val IntV(aBegin, 32) = memory.dereference(args(1))
@@ -191,7 +190,7 @@ object VivemExterns {
     memory.makeVoid()
   }
 
-  def addI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def addI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -202,7 +201,7 @@ object VivemExterns {
     }
   }
 
-  def multiplyI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def multiplyI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -213,7 +212,7 @@ object VivemExterns {
     }
   }
 
-  def divideI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def divideI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -224,7 +223,7 @@ object VivemExterns {
     }
   }
 
-  def modI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def modI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -239,7 +238,7 @@ object VivemExterns {
     }
   }
 
-  def subtractI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def subtractI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -250,7 +249,7 @@ object VivemExterns {
     }
   }
 
-  def lessThanI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def lessThanI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -261,7 +260,7 @@ object VivemExterns {
     }
   }
 
-  def lessThanOrEqI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def lessThanOrEqI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -272,7 +271,7 @@ object VivemExterns {
     }
   }
 
-  def greaterThanI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def greaterThanI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -283,7 +282,7 @@ object VivemExterns {
     }
   }
 
-  def greaterThanOrEqI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def greaterThanOrEqI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -294,7 +293,7 @@ object VivemExterns {
     }
   }
 
-  def eqI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def eqI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -305,25 +304,25 @@ object VivemExterns {
     }
   }
 
-  def castI32Str(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castI32Str(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val IntV(value, 32) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, YonderH, StrV(value.toString))
   }
 
-  def castFloatI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castFloatI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val FloatV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, IntV(value.toInt, 32))
   }
 
-  def castI32Float(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castI32Float(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val IntV(value, 32) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, FloatV(value.toFloat))
   }
 
-  def addI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def addI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -334,7 +333,7 @@ object VivemExterns {
     }
   }
 
-  def multiplyI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def multiplyI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -345,7 +344,7 @@ object VivemExterns {
     }
   }
 
-  def divideI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def divideI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -356,14 +355,14 @@ object VivemExterns {
     }
   }
 
-  def truncateI64ToI32(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def truncateI64ToI32(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val IntV(value, 64) = memory.dereference(args(0))
     val result = value & 0xFFFFFFFFL
     memory.addAllocationForReturn(MutableShareH, InlineH, IntV(result, 32))
   }
 
-  def modI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def modI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -378,7 +377,7 @@ object VivemExterns {
     }
   }
 
-  def subtractI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def subtractI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -389,7 +388,7 @@ object VivemExterns {
     }
   }
 
-  def lessThanI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def lessThanI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -400,7 +399,7 @@ object VivemExterns {
     }
   }
 
-  def lessThanOrEqI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def lessThanOrEqI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -411,7 +410,7 @@ object VivemExterns {
     }
   }
 
-  def greaterThanI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def greaterThanI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -422,7 +421,7 @@ object VivemExterns {
     }
   }
 
-  def greaterThanOrEqI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def greaterThanOrEqI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -433,7 +432,7 @@ object VivemExterns {
     }
   }
 
-  def eqI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def eqI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 2)
     val aKind = memory.dereference(args(0))
     val bKind = memory.dereference(args(1))
@@ -444,21 +443,32 @@ object VivemExterns {
     }
   }
 
-  def castI64Str(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castI64Str(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val IntV(value, 64) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, YonderH, StrV(value.toString))
   }
 
-  def castFloatI64(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castFloatI64(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val FloatV(value) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, IntV(value.toInt, 64))
   }
 
-  def castI64Float(memory: AdapterForExterns, args: Vector[ReferenceV]): ReferenceV = {
+  def castI64Float(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
     vassert(args.size == 1)
     val IntV(value, 64) = memory.dereference(args(0))
     memory.addAllocationForReturn(MutableShareH, InlineH, FloatV(value.toFloat))
   }
+
+  def newVec(memory: AdapterForExterns, prototype: PrototypeH, args: Vector[ReferenceV]): ReferenceV = {
+    vassert(args.size == 0)
+    val structCoord =
+      prototype.returnType match {
+        case CoordH(own, loc, s @ StructHT(_)) => CoordH(own, loc, s)
+      }
+    val structDef = memory.programH.lookupStruct(structCoord.kind)
+    memory.newStruct(structDef, structCoord, Vector())
+  }
+
 }

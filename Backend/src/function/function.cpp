@@ -249,8 +249,9 @@ RawFuncPtrLE declareExternFunction(
   RawFuncPtrLE functionL =
       addRawFunction(globalState->mod, abiFuncNameL.c_str(), externReturnLT, externParamTypesL);
 
-  assert(globalState->externFunctions.count(prototypeM->name->name) == 0);
-  globalState->externFunctions.emplace(prototypeM->name->name, functionL);
+  assert(globalState->externFunctions.count(prototypeM) == 0);
+  globalState->externFunctions.emplace(prototypeM, functionL);
+  std::cout << "Adding extern prototype name: " << prototypeM->name->name << std::endl;
 
   return functionL;
 }

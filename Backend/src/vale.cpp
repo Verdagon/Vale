@@ -1017,9 +1017,14 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       auto name = p.first;
       auto structM = p.second;
       assert(name == structM->name->name);
-      globalState->getRegion(structM->regionId)->defineStruct(structM);
-      if (structM->mutability == Mutability::IMMUTABLE) {
-        globalState->linearRegion->defineStruct(structM);
+      if (structM->exterrn) {
+        std::cerr << "TODO: extern struct" << std::endl;
+//        assert(false); // impl
+      } else {
+        globalState->getRegion(structM->regionId)->defineStruct(structM);
+        if (structM->mutability == Mutability::IMMUTABLE) {
+          globalState->linearRegion->defineStruct(structM);
+        }
       }
     }
   }

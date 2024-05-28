@@ -62,8 +62,8 @@ case class HinputsT(
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
-  kindExterns: Vector[KindExternT],
-  functionExterns: Vector[FunctionExternT],
+//  kindExterns: Vector[KindExternT],
+//  functionExterns: Vector[FunctionExternT],
 ) {
 
   private val subCitizenToInterfaceToEdgeMutable = mutable.HashMap[IdT[ICitizenNameT], mutable.HashMap[IdT[IInterfaceNameT], EdgeT]]()

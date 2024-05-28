@@ -20,6 +20,14 @@ class AdapterForExterns(
     heap.dereference(reference)
   }
 
+  def newStruct(
+      structDefH: StructDefinitionH,
+      structRefH: CoordH[StructHT],
+      memberReferences: Vector[ReferenceV]):
+  ReferenceV = {
+    heap.newStruct(structDefH, structRefH, memberReferences)
+  }
+
   def addAllocationForReturn(ownership: OwnershipH, location: LocationH, kind: KindV): ReferenceV = {
     val ref = heap.add(ownership, location, kind)
 //    heap.incrementReferenceRefCount(ResultToObjectReferrer(callId), ref) // incrementing because putting it in a return

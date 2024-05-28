@@ -41,9 +41,9 @@ case class PackageH(
     // Translations for backends to use if they need to export a name.
     exportNameToKind: Map[StrI, KindHT],
     // Translations for backends to use if they need to export a name.
-    externNameToFunction: Map[StrI, PrototypeH],
+    externNameToFunction: Map[String, PrototypeH],
     // Translations for backends to use if they need to export a name.
-    externNameToKind: Map[StrI, KindHT]
+    externNameToKind: Map[String, KindHT]
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
@@ -129,6 +129,8 @@ case class StructDefinitionH(
     // back at itself.
     // On iOS, this can be ignored, all objects are weakable already.
     weakable: Boolean,
+    // Whether it's defined by the outside world.
+    extern: Boolean,
     // Whether this struct is deeply immutable or not.
     // This affects how the struct is deallocated.
     // On native, this means that we potentially call the destructor any time we let go

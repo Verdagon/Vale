@@ -33,7 +33,7 @@ case class HinputsI(
 
   kindExports: Vector[KindExportI],
   functionExports: Vector[FunctionExportI],
-//  kindExterns: Vector[KindExternI],
+  kindExterns: Vector[KindExternI],
   functionExterns: Vector[FunctionExternI],
 ) {
 

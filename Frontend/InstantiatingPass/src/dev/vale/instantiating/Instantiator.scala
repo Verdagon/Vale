@@ -80,6 +80,9 @@ class InstantiatedOutputs() {
   val newAbstractFuncs: mutable.Queue[(PrototypeT[IFunctionNameT], PrototypeI[nI], Int, IdI[cI, IInterfaceNameI[cI]], InstantiationBoundArgumentsI)] = mutable.Queue()
   val newFunctions: mutable.Queue[(PrototypeT[IFunctionNameT], PrototypeI[nI], InstantiationBoundArgumentsI, Option[DenizenBoundToDenizenCallerBoundArgS])] = mutable.Queue()
 
+  val kindExterns = new mutable.ArrayBuffer[KindExternI]()
+  val functionExterns = new mutable.ArrayBuffer[FunctionExternI]()
+
   def addMethodToVTable(
     implId: IdI[cI, IImplNameI[cI]],
     superInterfaceId: IdI[cI, IInterfaceNameI[cI]],
@@ -127,9 +130,9 @@ class Instantiator(
     interfaceToSubCitizenToEdgeT,
     instantiationNameToFunctionBoundToRuneT,
     kindExportsT,
-    functionExportsT,
-    kindExterns,
-    functionExternsT) = hinputs
+    functionExportsT) = hinputs
+//    kindExterns,
+//    functionExternsT) = hinputs
 
     // TODO: We do nothing with kindExterns here.
 
@@ -191,35 +194,35 @@ class Instantiator(
         FunctionExportI(range, prototypeC, exportIdC, exportedName)
       })
 
-    val funcExternsC =
-      functionExternsT.map({ case FunctionExternT(range, externPlaceholderedIdT, prototypeT, externedName) =>
-        val perspectiveRegionT = RegionT(DefaultRegionT)
-
-        val externIdS =
-          translateId[ExternNameT, ExternNameI[sI]](
-            externPlaceholderedIdT,
-            { case ExternNameT(ExternTemplateNameT(codeLoc), _) =>
-              ExternNameI(ExternTemplateNameI(codeLoc), RegionTemplataI(0))
-            })
-        val externIdC =
-          RegionCollapserIndividual.collapseExternId(RegionCounter.countExternId(externIdS), externIdS)
-
-        val externTemplateIdT = TemplataCompiler.getExternTemplate(externPlaceholderedIdT)
-
-        val substitutions =
-          Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
-            externTemplateIdT -> assemblePlaceholderMap(externPlaceholderedIdT, externIdS))
-
-        val (_, prototypeC) =
-          translatePrototype(
-            externPlaceholderedIdT,
-            DenizenBoundToDenizenCallerBoundArgS(Map(), Map()),
-            substitutions,
-            perspectiveRegionT,
-            prototypeT)
-        Collector.all(prototypeC, { case PlaceholderTemplataT(_, _) => vwat() })
-        FunctionExternI(prototypeC, externedName)
-      })
+//    val funcExternsC =
+//      functionExternsT.map({ case FunctionExternT(range, externPlaceholderedIdT, prototypeT, externedName) =>
+//        val perspectiveRegionT = RegionT(DefaultRegionT)
+//
+//        val externIdS =
+//          translateId[ExternNameT, ExternNameI[sI]](
+//            externPlaceholderedIdT,
+//            { case ExternNameT(ExternTemplateNameT(codeLoc)) =>
+//              ExternNameI(ExternTemplateNameI(codeLoc), RegionTemplataI(0))
+//            })
+//        val externIdC =
+//          RegionCollapserIndividual.collapseExternId(RegionCounter.countExternId(externIdS), externIdS)
+//
+//        val externTemplateIdT = TemplataCompiler.getExternTemplate(externPlaceholderedIdT)
+//
+//        val substitutions =
+//          Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
+//            externTemplateIdT -> assemblePlaceholderMap(externPlaceholderedIdT, externIdS))
+//
+//        val (_, prototypeC) =
+//          translatePrototype(
+//            externPlaceholderedIdT,
+//            DenizenBoundToDenizenCallerBoundArgS(Map(), Map()),
+//            substitutions,
+//            perspectiveRegionT,
+//            prototypeT)
+//        Collector.all(prototypeC, { case PlaceholderTemplataT(_, _) => vwat() })
+//        FunctionExternI(prototypeC, externedName)
+//      })
 
     while ({
       // We make structs and interfaces eagerly as we come across them
@@ -323,7 +326,18 @@ class Instantiator(
 //        Map(),
         kindExportsC,
         functionExportsC,
-        funcExternsC)
+        monouts.kindExterns.toVector,
+        monouts.functionExterns.toVector)
+//        monouts.structs.values
+//            .filter(_.attributes.exists({ case ExternI(_) => true case _ => false }))
+//            .map(_.instantiatedCitizen)
+//            .map(KindExternI)
+//            .toVector,
+//        monouts.functions.values
+//            .filter(_.header.attributes.exists({ case ExternI(_) => true case _ => false }))
+//            .map(_.header.toPrototype)
+//            .map(FunctionExternI)
+//            .toVector)
 
     resultHinputs
   }
@@ -1367,7 +1381,7 @@ class Instantiator(
           RegionCollapserIndividual.collapsePrototype(actualPrototypeS)
         (actualPrototypeS, actualDesiredPrototypeC)
       }
-      case IdT(_, _, ExternFunctionNameT(_, _)) => {
+      case IdT(_, _, ExternFunctionNameT(_, _, _)) => {
         if (opts.sanityCheck) {
           vassert(Collector.all(desiredPrototypeS, { case KindPlaceholderTemplateNameT(_, _) => }).isEmpty)
         }
@@ -1599,7 +1613,7 @@ class Instantiator(
       StructDefinitionI(
 //        templateName,
         StructIT(newId),
-        attributes.map(vimpl(_)),
+        attributes.map(translateCitizenAttribute),
         weakable,
         mutability,
         members.map(memberT => {
@@ -1612,6 +1626,10 @@ class Instantiator(
     vassert(result.instantiatedCitizen.id == newId)
 
     monouts.structs.put(result.instantiatedCitizen.id, result)
+
+    if (result.attributes.exists({ case ExternI(_) => true case _ => false})) {
+      monouts.kindExterns += KindExternI(StructIT(newId))
+    }
 
     if (opts.sanityCheck) {
       vassert(Collector.all(result.instantiatedCitizen, { case KindPlaceholderNameT(_) => }).isEmpty)
@@ -1668,10 +1686,7 @@ class Instantiator(
     val result =
       InterfaceDefinitionI(
         newInterfaceIT,
-        attributes.map({
-          case SealedT => SealedI
-          case other => vimpl(other)
-        }),
+        attributes.map(translateCitizenAttribute),
         weakable,
         mutability,
         Map(),
@@ -1725,6 +1740,14 @@ class Instantiator(
     x match {
       case UserFunctionT => UserFunctionI
       case PureT => PureI
+      case ExternT(packageCoord) => ExternI(packageCoord)
+      case other => vimpl(other)
+    }
+  }
+
+  def translateCitizenAttribute(x: ICitizenAttributeT): ICitizenAttributeI = {
+    x match {
+      case SealedT => SealedI
       case ExternT(packageCoord) => ExternI(packageCoord)
       case other => vimpl(other)
     }
@@ -2239,6 +2262,8 @@ class Instantiator(
             })
           val resultIT = prototypeI.returnType
           val resultCE = ExternFunctionCallIE(prototypeC, argsCE, prototypeC.returnType)
+          monouts.functionExterns += FunctionExternI(prototypeC)
+
           (resultIT, resultCE)
         }
         case ConstructTE(structTT, resultReference, args) => {
@@ -3570,9 +3595,11 @@ class Instantiator(
             index),
           translateFunctionName(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, inner))
       }
-      case ExternFunctionNameT(humanName, parameters) => {
+      case ExternFunctionNameT(humanName, templateArgs, parameters) => {
         ExternFunctionNameI(
-          humanName, parameters.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
+          humanName,
+          templateArgs.map(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _)),
+          parameters.map(translateCoord(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, _).coord))
       }
       case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName), templateArgs, params) => {
         FunctionBoundNameI(

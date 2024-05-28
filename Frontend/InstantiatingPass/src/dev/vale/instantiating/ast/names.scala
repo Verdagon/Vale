@@ -321,6 +321,7 @@ case class BuildingFunctionNameWithClosuredsI[+R <: IRegionsModeI](
 
 case class ExternFunctionNameI[+R <: IRegionsModeI](
   humanName: StrI,
+  templateArgs: Vector[ITemplataI[R]],
   parameters: Vector[CoordI[R]]
 ) extends IFunctionNameI[R] with IFunctionTemplateNameI[R] {
   override def template: IFunctionTemplateNameI[R] = this
@@ -331,8 +332,6 @@ case class ExternFunctionNameI[+R <: IRegionsModeI](
 //    templateArgs: Vector[ITemplataI[R]],
 //    params: Vector[CoordI]):
 //  IFunctionNameI = this
-
-  override def templateArgs: Vector[ITemplataI[R]] = Vector.empty
 }
 
 case class FunctionNameIX[+R <: IRegionsModeI](

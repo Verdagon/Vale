@@ -100,7 +100,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                 "Entry",
                 None,
                 Vector(
-                  VonMember("externName", VonStr(externName.str)),
+                  VonMember("externName", VonStr(externName)),
                   VonMember("prototype", vonifyPrototype(prototype))))
             }))),
         VonMember(
@@ -112,7 +112,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                 "Entry",
                 None,
                 Vector(
-                  VonMember("externName", VonStr(externName.str)),
+                  VonMember("externName", VonStr(externName)),
                   VonMember("kind", vonifyKind(kind))))
             })))))
   }
@@ -179,7 +179,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
   }
 
   def vonfiyStruct(struct: StructDefinitionH): IVonData = {
-    val StructDefinitionH(fullName, weakable, mutability, edges, members) = struct
+    val StructDefinitionH(fullName, weakable, extern, mutability, edges, members) = struct
 
     VonObject(
       "Struct",
@@ -188,6 +188,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
         VonMember("name", vonifyName(fullName)),
         VonMember("kind", vonifyStructH(struct.getRef)),
         VonMember("weakable", VonBool(weakable)),
+        VonMember("extern", VonBool(extern)),
         VonMember("mutability", vonifyMutability(mutability)),
         VonMember("edges", VonArray(None, edges.map(edge => vonifyEdge(edge)).toVector)),
         VonMember("members", VonArray(None, members.map(vonifyStructMember).toVector))))

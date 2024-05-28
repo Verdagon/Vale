@@ -782,7 +782,7 @@ object CompilerErrorHumanizer {
       case CodeVarNameT(name) => name.str
       case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
       case FunctionTemplateNameT(humanName, codeLoc) => humanName.str
-      case ExternFunctionNameT(humanName, parameters) => humanName.str
+      case ExternFunctionNameT(humanName, _, parameters) => humanName.str
       case FunctionNameT(templateName, templateArgs, parameters) => {
         humanizeName(codeMap, templateName) +
           humanizeGenericArgs(codeMap, templateArgs, containingRegion) +

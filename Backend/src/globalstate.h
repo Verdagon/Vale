@@ -103,7 +103,7 @@ public:
   std::unordered_map<Edge*, LLVMValueRef, AddressHasher<Edge*>> interfaceTablePtrs;
 
   std::unordered_map<std::string, ValeFuncPtrLE> functions;
-  std::unordered_map<std::string, RawFuncPtrLE> externFunctions;
+  std::unordered_map<Prototype*, RawFuncPtrLE> externFunctions;
 
   // This is temporary, Valestrom should soon embed mutability and region into the kind for us
   // so we won't have to do this.

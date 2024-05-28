@@ -1,10 +1,10 @@
 package dev.vale.simplifying
 
-import dev.vale.{Builtins, FileCoordinateMap, IPackageResolver, Interner, Keywords, PackageCoordinate, PackageCoordinateMap, Profiler, Result, finalast, vassert, vcurious, vfail, vwat}
+import dev.vale.{Builtins, FileCoordinateMap, IPackageResolver, Interner, Keywords, PackageCoordinate, PackageCoordinateMap, Profiler, Result, finalast, vassert, vcurious, vfail, vimpl, vwat}
 import dev.vale.finalast.{ConsecutorH, ConstantVoidH, CoordH, ExpressionH, Final, IdH, KindHT, Local, NeverHT, PackageH, ProgramH, PrototypeH, StackifyH, Variability, VariableIdH, VoidHT}
 import dev.vale.highertyping.ICompileErrorA
 import dev.vale.finalast._
-import dev.vale.instantiating.ast._
+import dev.vale.instantiating.ast.{IdI, _}
 import dev.vale.postparsing.ICompileErrorS
 
 import scala.collection.immutable.List
@@ -172,6 +172,51 @@ class Hammer(interner: Interner, keywords: Keywords) {
   val functionHammer = new FunctionHammer(keywords, typeHammer, nameHammer, structHammer)
   val vonHammer = new VonHammer(nameHammer, typeHammer)
 
+  def mangleFunc(id: IdI[cI, IFunctionNameI[cI]]): String = {
+    val IdI(packageCoord, initSteps, localName) = id
+    localName match {
+      case FunctionNameIX(FunctionTemplateNameI(humanName, _), templateArgs, _) => {
+        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+        humanName.str +
+        templateArgs.map("__" + mangleTemplata(_)).mkString("")
+      }
+      case ExternFunctionNameI(humanName, templateArgs, _) => {
+        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+        humanName.str +
+        templateArgs.map("__" + mangleTemplata(_)).mkString("")
+      }
+      case other => vimpl(other)
+    }
+  }
+
+  def mangleStruct(id: IdI[cI, IStructNameI[cI]]): String = {
+    val IdI(packageCoord, initSteps, localName) = id
+    localName match {
+      case StructNameI(StructTemplateNameI(humanName), templateArgs) => {
+        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+        humanName.str +
+        templateArgs.map("__" + mangleTemplata(_)).mkString("")
+      }
+//      case FunctionNameIX(FunctionTemplateNameI(humanName, _), templateArgs, _) => {
+//        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+//        humanName.str +
+//        templateArgs.map("__" + mangleTemplata(_)).mkString("")
+//      }
+//      case ExternFunctionNameI(humanName, templateArgs, _) => {
+//        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+//        humanName.str +
+//        templateArgs.map("__" + mangleTemplata(_)).mkString("")
+//      }
+      case other => vimpl(other)
+    }
+  }
+
+  def mangleTemplata(templata: ITemplataI[cI]): String = {
+    templata match {
+      case other => vimpl(other)
+    }
+  }
+
   def translate(hinputs: HinputsI): ProgramH = {
     val HinputsI(
     interfaces,
@@ -182,6 +227,7 @@ class Hammer(interner: Interner, keywords: Keywords) {
     edges,
     kindExports,
     functionExports,
+    kindExterns,
     functionExterns) = hinputs
 
 
@@ -204,7 +250,14 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //      hamuts.addKindExtern(kindH, packageCoordinate, exportName)
 //    })
 
-    functionExterns.foreach({ case FunctionExternI(prototype, exportName) =>
+    kindExterns.foreach({ case KindExternI(struct) =>
+      val exportName = mangleStruct(struct.id)
+      val structH = structHammer.translateStructI(hinputs, hamuts, struct)
+      hamuts.addKindExtern(structH, exportName)
+    })
+
+    functionExterns.foreach({ case FunctionExternI(prototype) =>
+      val exportName = mangleFunc(prototype.id)
       val prototypeH = typeHammer.translatePrototype(hinputs, hamuts, prototype)
       hamuts.addFunctionExtern(prototypeH, exportName)
     })

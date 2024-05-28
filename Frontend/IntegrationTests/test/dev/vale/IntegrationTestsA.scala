@@ -309,6 +309,45 @@ class IntegrationTestsA extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
+  test("Simple extern function") {
+    val compile = RunCompilation.test(
+      """
+        |extern func __vbi_addI32(left int, right int) int;
+        |exported func main() int { return __vbi_addI32(27, 15); }
+        |""".stripMargin,
+      false)
+    compile.evalForKind(Vector()) match {
+      case VonInt(42) =>
+    }
+  }
+
+  test("Extern struct") {
+    val compile = RunCompilation.test(
+      """
+        |extern struct Vec<T>;
+        |""".stripMargin,
+      false)
+    compile.evalForKind(Vector()) match {
+      case VonInt(42) =>
+    }
+  }
+
+  test("Extern function returning extern struct") {
+    val compile = RunCompilation.test(
+      """
+        |extern struct Vec<T>;
+        |extern func VecNew<T>() Vec<T>;
+        |exported func main() int {
+        |  v = VecNew<int>();
+        |  return 42;
+        |}
+        |""".stripMargin,
+      false)
+    compile.evalForKind(Vector()) match {
+      case VonInt(42) =>
+    }
+  }
+
   // Known failure 2020-08-20
   // The reason this isnt working:
   // The InterfaceCall2 instruction is only ever created as part of an abstract function's body.

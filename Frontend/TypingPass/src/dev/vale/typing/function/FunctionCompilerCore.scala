@@ -357,7 +357,7 @@ class FunctionCompilerCore(
       maybeOrigin: Option[FunctionTemplataT]):
   (FunctionHeaderT) = {
     env.id.localName match {
-      case FunctionNameT(FunctionTemplateNameT(humanName, _), Vector(), params) => {
+      case FunctionNameT(FunctionTemplateNameT(humanName, _), templateParams, params) => {
         val header =
           ast.FunctionHeaderT(
             env.id,
@@ -367,15 +367,34 @@ class FunctionCompilerCore(
             returnType2,
             maybeOrigin)
 
-        val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
+        val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, templateParams, params)))
         val externPrototype = PrototypeT[ExternFunctionNameT](externFunctionId, header.returnType)
-
+        ////                      coutputs.addInstantiationBounds(
+        ////                        opts.globalOptions.sanityCheck,
+        ////                        interner,
+        ////                        templateId,
+        ////                        externPrototype.id,
+        ////                        vassertSome(coutputs.getInstantiationBounds(externPlaceholderedWrapperPrototype.id)))
+        ////
         coutputs.addInstantiationBounds(
           opts.globalOptions.sanityCheck,
           interner,
           env.templateId,
           externPrototype.id,
           InstantiationBoundArgumentsT.make(Map(), Map(), Map()))
+
+
+        val placeholderedExternId =
+          header.id match {
+            case IdT(packageCoord, initSteps, _) => {
+              IdT(packageCoord, initSteps, ExternNameT(ExternTemplateNameT(range.begin)))
+            }
+          }
+//        coutputs.addFunctionExtern(
+//          range,
+//          placeholderedExternId,
+//          externPrototype,
+//          externPrototype.id.localName.humanName)
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })

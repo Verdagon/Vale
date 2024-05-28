@@ -1047,102 +1047,94 @@ class Compiler(
                   functionCompiler.evaluateGenericFunctionFromNonCall(
                       coutputs, List(), LocationInDenizen(Vector()), templata)
 
-                  functionA.attributes.collectFirst({ case e @ ExternS(_) => e }) match {
-                    case None =>
-                    case Some(ExternS(packageCoord)) => {
-                      val externName =
-                        functionA.name match {
-                          case FunctionNameS(name, range) => name
-                          case other => vwat(other)
-                        }
-
-                      val templateName = interner.intern(ExternTemplateNameT(functionA.range.begin))
-                      val templateId = IdT(packageId.packageCoord, Vector(), templateName)
-
-                      val regionPlaceholder = RegionT(DefaultRegionT)
-                      val placeholderedExternName = interner.intern(ExternNameT(templateName, RegionT(DefaultRegionT)))
-                      val placeholderedExternId = templateId.copy(localName = placeholderedExternName)
-                      val externEnv =
-                        ExternEnvironmentT(
-                          globalEnv, packageEnv, templateId, placeholderedExternId, TemplatasStore(placeholderedExternId, Map(), Map()))
-                      // We evaluate this and then don't do anything for it on purpose, we just do
-                      // this to cause the compiler to make instantiation bounds for all the types
-                      // in terms of this extern. That way, further below, when we do the
-                      // substituting templatas, the bounds are already made for these types.
-                      val externPlaceholderedWrapperPrototype =
-                        functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                          coutputs,
-                          List(functionA.range),
-                          LocationInDenizen(Vector()),
-                          externEnv,
-                          templata,
-                          Vector(),
-                          regionPlaceholder,
-                          Vector()) match {
-                          case ResolveFunctionSuccess(prototype, inferences) => prototype.prototype
-                          case ResolveFunctionFailure(reason) => {
-                            throw CompileErrorExceptionT(TypingPassResolvingError(List(functionA.range), reason))
-                          }
-                        }
-
-//                      val externPerspectivedParams =
-//                        header.params.map(_.tyype).map(typeT => {
-//                          TemplataCompiler.substituteTemplatasInCoord(
-//                            coutputs,
-//                            interner,
-//                            keywords,
-//                            TemplataCompiler.getTemplate(header.id),
-//                            Vector(regionPlaceholder),
-//                            InheritBoundsFromTypeItself,
-//                            typeT)
-//                        })
-//                      val externPerspectivedReturn =
-//                        TemplataCompiler.substituteTemplatasInCoord(
-//                          coutputs,
-//                          interner,
-//                          keywords,
-//                          TemplataCompiler.getTemplate(header.id),
-//                          Vector(regionPlaceholder),
-//                          InheritBoundsFromTypeItself,
-//                          header.returnType)
-//                      val externFunctionId =
-//                        IdT(
-//                          packageCoord,
-//                          Vector.empty,
-//                          interner.intern(ExternFunctionNameT(
-//                            externName, externPerspectivedParams)))
-//                      val externPrototype = PrototypeT(externFunctionId, externPerspectivedReturn)
-
-                      // We don't actually want to call the wrapper function, we want to call the extern.
-                      // The extern's prototype is always similar to the wrapper function, so we do
-                      // a straightforward replace of the names.
-                      // We don't have to worry about placeholders, they're already phrased in terms
-                      // of the calling FunctionExternT.
-                      val externPrototype =
-                        externPlaceholderedWrapperPrototype match {
-                          case PrototypeT(IdT(packageCoord, steps, FunctionNameT(FunctionTemplateNameT(humanName, codeLocation), templateArgs, params)), returnType) => {
-                            PrototypeT(
-                              IdT(
-                                packageCoord,
-                                steps,
-                                interner.intern(ExternFunctionNameT(humanName, params))),
-                              returnType)
-                          }
-                          case other => vwat(other)
-                        }
-                      // Though, we do need to add some instantiation bounds for this new IdT we
-                      // just made.
-                      coutputs.addInstantiationBounds(
-                        opts.globalOptions.sanityCheck,
-                        interner,
-                        templateId,
-                        externPrototype.id,
-                        vassertSome(coutputs.getInstantiationBounds(externPlaceholderedWrapperPrototype.id)))
-
-                      coutputs.addFunctionExtern(
-                        functionA.range, placeholderedExternId, externPrototype, externName)
-                    }
-                  }
+//                  functionA.attributes.collectFirst({ case e @ ExternS(_) => e }) match {
+//                    case None =>
+//                    case Some(ExternS(packageCoord)) => {
+//                      val funcDef = coutputs.lookupFunction(header.toSignature)
+//                      vpass()
+//                    }
+//                  }
+//
+//                  functionA.attributes.collectFirst({ case e @ ExternS(_) => e }) match {
+//                    case None =>
+//                    case Some(ExternS(packageCoord)) => {
+//                      val (externName, externCodeLoc) =
+//                        functionA.name match {
+//                          case FunctionNameS(name, codeLoc) => (name, codeLoc)
+//                          case other => vwat(other)
+//                        }
+//
+//                      val signature = header.toSignature
+//                      val externPrototype = header.toPrototype
+//                      val placeholderedExternId =
+//                        header.id match {
+//                          case IdT(packageCoord, initSteps, _) => {
+//                            IdT(packageCoord, initSteps, ExternNameT(ExternTemplateNameT(externCodeLoc)))
+//                          }
+//                        }
+//
+////                      val templateName = interner.intern(ExternTemplateNameT(functionA.range.begin))
+////                      val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+////
+////                      val regionPlaceholder = RegionT(DefaultRegionT)
+////                      val placeholderedExternName = interner.intern(ExternNameT(templateName, RegionT(DefaultRegionT)))
+////                      val placeholderedExternId = templateId.copy(localName = placeholderedExternName)
+////                      val externEnv =
+////                        ExternEnvironmentT(
+////                          globalEnv, packageEnv, templateId, placeholderedExternId, TemplatasStore(placeholderedExternId, Map(), Map()))
+////                      // We evaluate this and then don't do anything for it on purpose, we just do
+////                      // this to cause the compiler to make instantiation bounds for all the types
+////                      // in terms of this extern. That way, further below, when we do the
+////                      // substituting templatas, the bounds are already made for these types.
+////                      val externPlaceholderedWrapperPrototype =
+////                        functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
+////                          coutputs,
+////                          List(functionA.range),
+////                          LocationInDenizen(Vector()),
+////                          externEnv,
+////                          templata,
+////                          Vector(),
+////                          regionPlaceholder,
+////                          Vector()) match {
+////                          case ResolveFunctionSuccess(prototype, inferences) => prototype.prototype
+////                          case ResolveFunctionFailure(reason) => {
+////                            throw CompileErrorExceptionT(TypingPassResolvingError(List(functionA.range), reason))
+////                          }
+////                        }
+////
+////                      // We don't actually want to call the wrapper function, we want to call the extern.
+////                      // The extern's prototype is always similar to the wrapper function, so we do
+////                      // a straightforward replace of the names.
+////                      // We don't have to worry about placeholders, they're already phrased in terms
+////                      // of the calling FunctionExternT.
+////                      val externPrototype =
+////                        externPlaceholderedWrapperPrototype match {
+////                          case PrototypeT(IdT(packageCoord, steps, FunctionNameT(FunctionTemplateNameT(humanName, codeLocation), templateArgs, params)), returnType) => {
+////                            PrototypeT(
+////                              IdT(
+////                                packageCoord,
+////                                steps,
+////                                interner.intern(ExternFunctionNameT(humanName, params))),
+////                              returnType)
+////                          }
+////                          case other => vwat(other)
+////                        }
+////                      // Though, we do need to add some instantiation bounds for this new IdT we
+////                      // just made.
+////                      coutputs.addInstantiationBounds(
+////                        opts.globalOptions.sanityCheck,
+////                        interner,
+////                        templateId,
+////                        externPrototype.id,
+////                        vassertSome(coutputs.getInstantiationBounds(externPlaceholderedWrapperPrototype.id)))
+////
+////                      coutputs.addFunctionExtern(
+////                        functionA.range, placeholderedExternId, externPrototype, externName)
+//
+//                      coutputs.addFunctionExtern(
+//                        functionA.range, placeholderedExternId, externPrototype, externName)
+//                    }
+//                  }
 
                   val maybeExport =
                     functionA.attributes.collectFirst { case e@ExportS(_) => e }
@@ -1322,7 +1314,8 @@ class Compiler(
 //          vassert(edgeBlueprint.interface == interfaceTT)
 //        })
 
-        ensureDeepExports(coutputs)
+        // DO NOT SUBMIT put back in
+        // ensureDeepExports(coutputs)
 
         val (
           reachableInterfaces,
@@ -1408,9 +1401,9 @@ class Compiler(
             interfaceToSubCitizenToEdge,
             coutputs.getInstantiationNameToFunctionBoundToRune(),
             coutputs.getKindExports,
-            coutputs.getFunctionExports,
-            coutputs.getKindExterns,
-            coutputs.getFunctionExterns)
+            coutputs.getFunctionExports)
+//            coutputs.getKindExterns,
+//            coutputs.getFunctionExterns)
 
         vassert(reachableFunctions.toVector.map(_.header.id).distinct.size == reachableFunctions.toVector.map(_.header.id).size)
 
@@ -1511,17 +1504,17 @@ class Compiler(
           }
         })
     })
-    coutputs.getFunctionExterns.foreach(functionExtern => {
-      val exportedKindToExport = packageToKindToExport.getOrElse(functionExtern.externPlaceholderedId.packageCoord, Map())
-      (Vector(functionExtern.prototype.returnType) ++ functionExtern.prototype.paramTypes)
-        .foreach(paramType => {
-          if (!Compiler.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
-            throw CompileErrorExceptionT(
-              ExternFunctionDependedOnNonExportedKind(
-                List(functionExtern.range), functionExtern.externPlaceholderedId.packageCoord, functionExtern.prototype.toSignature, paramType.kind))
-          }
-        })
-    })
+//    coutputs.getFunctionExterns.foreach(functionExtern => {
+//      val exportedKindToExport = packageToKindToExport.getOrElse(functionExtern.externPlaceholderedId.packageCoord, Map())
+//      (Vector(functionExtern.prototype.returnType) ++ functionExtern.prototype.paramTypes)
+//        .foreach(paramType => {
+//          if (!Compiler.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
+//            throw CompileErrorExceptionT(
+//              ExternFunctionDependedOnNonExportedKind(
+//                List(functionExtern.range), functionExtern.externPlaceholderedId.packageCoord, functionExtern.prototype.toSignature, paramType.kind))
+//          }
+//        })
+//    })
     packageToKindToExport.foreach({ case (packageCoord, exportedKindToExport) =>
       exportedKindToExport.foreach({ case (exportedKind, (kind, export)) =>
         exportedKind match {

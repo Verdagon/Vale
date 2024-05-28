@@ -146,7 +146,7 @@ object InstantiatedHumanizer {
       case CodeVarNameI(name) => name.str
       case LambdaCitizenNameI(template) => humanizeName(codeMap, template) + "<>"
       case FunctionTemplateNameI(humanName, codeLoc) => humanName.str
-      case ExternFunctionNameI(humanName, parameters) => humanName.str
+      case ExternFunctionNameI(humanName, templateArgs, parameters) => humanName.str
       case FunctionNameIX(templateName, templateArgs, parameters) => {
         humanizeName(codeMap, templateName) +
           humanizeGenericArgs(codeMap, templateArgs, containingRegion) +
