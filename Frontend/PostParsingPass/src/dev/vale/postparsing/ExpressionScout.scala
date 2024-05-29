@@ -37,6 +37,7 @@ case class LocalLookupResult(range: RangeS, name: IVarNameS) extends IScoutResul
 // to declare a variable, and we interpreted it as an outside lookup.
 case class OutsideLookupResult(
   range: RangeS,
+  context: Option[ITemplexPT],
   name: StrI,
   templateArgs: Option[Vector[ITemplexPT]]
 ) extends IScoutResult[IExpressionSE] {
@@ -265,7 +266,7 @@ class ExpressionScout(
               case (prevExpr, partSE) => {
                 val addCallRange = RangeS(prevExpr.range.end, partSE.range.begin)
                 val callableExpr =
-                  vale.postparsing.OutsideLoadSE(addCallRange, Vector(), interner.intern(CodeNameS(keywords.plus)), None, LoadAsBorrowP)
+                  vale.postparsing.OutsideLoadSE(addCallRange, None, Vector(), interner.intern(CodeNameS(keywords.plus)), None, LoadAsBorrowP)
                 FunctionCallSE(addCallRange, lidb.child().consume(), callableExpr, Vector(prevExpr, partSE))
               }
             })
@@ -282,7 +283,7 @@ class ExpressionScout(
           inner1 match {
             case OwnershippedSE(_, _, innerLoadAs) => vassert(loadAs == innerLoadAs)
             case LocalLoadSE(_, _, innerLoadAs) => vassert(loadAs == innerLoadAs)
-            case OutsideLoadSE(_, _, _, _, innerLoadAs) => vassert(loadAs == innerLoadAs)
+            case OutsideLoadSE(_, _, _, _, _, innerLoadAs) => vassert(loadAs == innerLoadAs)
             case _ => vwat()
           }
           (stackFrame1, NormalResult(inner1), innerSelfUses, innerChildUses)
@@ -296,7 +297,7 @@ class ExpressionScout(
           (stackFrame0, NormalResult(BreakSE(evalRange(range))), noVariableUses, noVariableUses)
         }
         case NotPE(range, innerPE) => {
-          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), Vector(), interner.intern(CodeNameS(keywords.not)), None, LoadAsBorrowP)
+          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), None, Vector(), interner.intern(CodeNameS(keywords.not)), None, LoadAsBorrowP)
 
           val (stackFrame1, innerSE, innerSelfUses, innerChildUses) =
             scoutExpressionAndCoerce(stackFrame0, lidb.child(), innerPE, UseP)
@@ -308,7 +309,7 @@ class ExpressionScout(
           (stackFrame1, result, innerSelfUses, innerChildUses)
         }
         case RangePE(range, beginPE, endPE) => {
-          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), Vector(), interner.intern(CodeNameS(keywords.range)), None, LoadAsBorrowP)
+          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), None, Vector(), interner.intern(CodeNameS(keywords.range)), None, LoadAsBorrowP)
 
           val loadBeginAs =
             beginPE match {
@@ -359,39 +360,8 @@ class ExpressionScout(
           // Leave it to scoutLambda to declare it.
           (stackFrame0, lookup, noVariableUses.markMoved(name), noVariableUses)
         }
-        case LookupPE(lookupName, None) => {
-          val rangeS = evalRange(lookupName.range)
-          val impreciseNameS = PostParser.translateImpreciseName(interner, stackFrame0.file, lookupName)
-          val lookup =
-            findLocal(stackFrame0, rangeS, impreciseNameS) match {
-              case Some(result) => result
-              case None => {
-                impreciseNameS match {
-                  case CodeNameS(name) => {
-                    if (stackFrame0.parentEnv.allDeclaredRunes().contains(CodeRuneS(name))) {
-                      NormalResult(RuneLookupSE(rangeS, CodeRuneS(name)))
-                    } else {
-                      (vale.postparsing.OutsideLookupResult(rangeS, name, None))
-                    }
-                  }
-                  case _ => vwat(impreciseNameS)
-                }
-              }
-            }
-          (stackFrame0, lookup, noVariableUses, noVariableUses)
-        }
-        case LookupPE(impreciseName, Some(TemplateArgsP(_, templateArgs))) => {
-          val (range, templateName) =
-            impreciseName match {
-              case LookupNameP(NameP(range, templateName)) => (range, templateName)
-              case _ => vwat()
-            }
-          val result =
-            vale.postparsing.OutsideLookupResult(
-              evalRange(range),
-              templateName,
-              Some(templateArgs.toVector))
-          (stackFrame0, result, noVariableUses, noVariableUses)
+        case l @ LookupPE(lookupName, maybeTemplateArgs) => {
+          scoutLookup(stackFrame0, None, l)
         }
         case DestructPE(range, innerPE) => {
           val (stackFrame1, inner1, innerSelfUses, innerChildUses) =
@@ -430,7 +400,14 @@ class ExpressionScout(
           (stackFrame2, result, callableSelfUses.thenMerge(argsSelfUses), callableChildUses.thenMerge(argsChildUses))
         }
         case BinaryCallPE(range, namePE, leftPE, rightPE) => {
-          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), Vector(), interner.intern(CodeNameS(namePE.str)), None, LoadAsBorrowP)
+          val callableSE =
+            vale.postparsing.OutsideLoadSE(
+              evalRange(range),
+              None,
+              Vector(),
+              interner.intern(CodeNameS(namePE.str)),
+              None,
+              LoadAsBorrowP)
 
           val (stackFrame1, leftSE, leftSelfUses, leftChildUses) =
             scoutExpressionAndCoerce(stackFrame0, lidb.child(), leftPE, LoadAsBorrowP)
@@ -465,26 +442,63 @@ class ExpressionScout(
           (stackFrame2, NormalResult(resultSE), callableSelfUses.thenMerge(argSelfUses), callableChildUses.thenMerge(argChildUses))
         }
         case MethodCallPE(range, subjectExpr, operatorRange, memberLookup, methodArgs) => {
-          val loadSubjectAs =
-            subjectExpr match {
-              // For locals, just borrow.
-              case LookupPE(_, _) => LoadAsBorrowP
-              // For anything else, default to moving.
-              case _ => UseP
+          subjectExpr match {
+            case zl @ LookupPE(zn @ LookupNameP(zname), zmaybeTemplateArgs) if stackFrame0.findVariable(CodeNameS(zname.str)).isEmpty => {
+
+              val templex = CallPT(zname.range, NameOrRunePT(zname), zmaybeTemplateArgs.toVector.flatMap(_.args))
+
+              // If we get here, then the subject is a type.
+//              val (stackFrame1, subjectResult, subjectSelfUses, subjectChildUses) =
+//                scoutLookup(stackFrame0, None, l)
+              // DO NOT SUBMIT i think we can combine this match and the outer match
+//              val targetNamespace =
+//                subjectResult match {
+//                  case o @ OutsideLookupResult(_, _, _, _) => {
+//                    o
+//                  }
+//                  case _ => vwat()
+//                }
+              val (stackFrame2, uncoercedCallableResult, callableSelfUses, callableChildUses) =
+                scoutLookup(stackFrame0, Some(templex), memberLookup)
+              val callable =
+                uncoercedCallableResult match {
+                  case o@OutsideLookupResult(_, _, _, _) => {
+                    coerceOutsideLookupResult(stackFrame2, lidb, o, LoadAsBorrowP)
+                  }
+                  case _ => vwat()
+                }
+
+              val (stackFrame3, args, tailArgsSelfUses, tailArgsChildUses) =
+                scoutElementsAsExpressions(stackFrame2, lidb.child(), methodArgs)
+
+              val selfUses = callableSelfUses.thenMerge(tailArgsSelfUses)
+              val childUses = callableChildUses.thenMerge(tailArgsChildUses)
+              val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callable, args))
+              (stackFrame3, result, selfUses, childUses)
             }
-          val (stackFrame1, callable1, callableSelfUses, callableChildUses) =
-            scoutExpressionAndCoerce(stackFrame0, lidb.child(), memberLookup, LoadAsBorrowP)
-          val (stackFrame2, subject1, subjectSelfUses, subjectChildUses) =
-            scoutExpressionAndCoerce(stackFrame1, lidb.child(), subjectExpr, loadSubjectAs)
-          val (stackFrame3, tailArgs1, tailArgsSelfUses, tailArgsChildUses) =
-            scoutElementsAsExpressions(stackFrame2, lidb.child(), methodArgs)
+            case _ => { // Then the subject is an expression.
+              val loadSubjectAs =
+                subjectExpr match {
+                  // For locals, just borrow.
+                  case LookupPE(_, _) => LoadAsBorrowP
+                  // For anything else, default to moving.
+                  case _ => UseP
+                }
+              val (stackFrame1, callable1, callableSelfUses, callableChildUses) =
+                scoutExpressionAndCoerce(stackFrame0, lidb.child(), memberLookup, LoadAsBorrowP)
+              val (stackFrame2, subject1, subjectSelfUses, subjectChildUses) =
+                scoutExpressionAndCoerce(stackFrame1, lidb.child(), subjectExpr, loadSubjectAs)
+              val (stackFrame3, tailArgs1, tailArgsSelfUses, tailArgsChildUses) =
+                scoutElementsAsExpressions(stackFrame2, lidb.child(), methodArgs)
 
-          val selfUses = callableSelfUses.thenMerge(subjectSelfUses).thenMerge(tailArgsSelfUses)
-          val childUses = callableChildUses.thenMerge(subjectChildUses).thenMerge(tailArgsChildUses)
-          val args = Vector(subject1) ++ tailArgs1
+              val selfUses = callableSelfUses.thenMerge(subjectSelfUses).thenMerge(tailArgsSelfUses)
+              val childUses = callableChildUses.thenMerge(subjectChildUses).thenMerge(tailArgsChildUses)
+              val args = Vector(subject1) ++ tailArgs1
 
-          val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callable1, args))
-          (stackFrame3, result, selfUses, childUses)
+              val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callable1, args))
+              (stackFrame3, result, selfUses, childUses)
+            }
+          }
         }
         case TuplePE(range, elementsPE) => {
           val (stackFrame1, elements1, selfUses, childUses) =
@@ -764,7 +778,7 @@ class ExpressionScout(
               case LocalLookupResult(range, name) => {
                 (LocalMutateSE(range, name, sourceExpr1), sourceInnerSelfUses.markMutated(name))
               }
-              case OutsideLookupResult(range, name, maybeTemplateArgs) => {
+              case OutsideLookupResult(range, _, name, maybeTemplateArgs) => {
                 throw CompileErrorExceptionS(CouldntFindVarToMutateS(range, name.str))
               }
               case NormalResult(destinationExpr1) => {
@@ -805,6 +819,57 @@ class ExpressionScout(
     })
   }
 
+  // Returns the same stuff as scoutExpression
+  private def scoutLookup(
+      stackFrame0: StackFrame,
+      // What namespace we're looking in, for example if we say Vec<int>.new() then
+      // this would be `Vec<int>` and lookupName would be `new`.
+      targetNamespace: Option[ITemplexPT],
+      lookup: LookupPE
+  ): (StackFrame, IScoutResult[IExpressionSE], VariableUses, VariableUses) = {
+    val evalRange = (range: RangeL) => PostParser.evalRange(stackFrame0.file, range)
+
+    val LookupPE(lookupName, maybeTemplateArgs) = lookup
+
+    maybeTemplateArgs match {
+      case None => {
+        val rangeS = evalRange(lookupName.range)
+        val impreciseNameS = PostParser.translateImpreciseName(interner, stackFrame0.file, lookupName)
+        val lookup =
+          findLocal(stackFrame0, rangeS, impreciseNameS) match {
+            case Some(result) => result
+            case None => {
+              impreciseNameS match {
+                case CodeNameS(name) => {
+                  if (stackFrame0.parentEnv.allDeclaredRunes().contains(CodeRuneS(name))) {
+                    NormalResult(RuneLookupSE(rangeS, CodeRuneS(name)))
+                  } else {
+                    (vale.postparsing.OutsideLookupResult(rangeS, targetNamespace, name, None))
+                  }
+                }
+                case _ => vwat(impreciseNameS)
+              }
+            }
+          }
+        (stackFrame0, lookup, noVariableUses, noVariableUses)
+      }
+      case Some(TemplateArgsP(_, templateArgs)) => {
+        val (range, templateName) =
+          lookupName match {
+            case LookupNameP(NameP(range, templateName)) => (range, templateName)
+            case _ => vwat()
+          }
+        val result =
+          vale.postparsing.OutsideLookupResult(
+            evalRange(range),
+            None,
+            templateName,
+            Some(templateArgs.toVector))
+        (stackFrame0, result, noVariableUses, noVariableUses)
+      }
+    }
+  }
+
   def newIf(
     stackFrame0: StackFrame,
     lidb: LocationInDenizenBuilder,
@@ -833,7 +898,7 @@ class ExpressionScout(
 
   // If we load an immutable with targetOwnershipIfLookupResult = Own or Borrow, it will just be Share.
   def scoutExpressionAndCoerce(
-      stackFramePE: StackFrame,
+    stackFramePE: StackFrame,
     lidb: LocationInDenizenBuilder,
     exprPE: IExpressionPE,
     loadAsP: LoadAsP):
@@ -851,17 +916,8 @@ class ExpressionScout(
             }
           (vale.postparsing.LocalLoadSE(range, name, loadAsP), uses)
         }
-        case OutsideLookupResult(range, name, maybeTemplateArgs) => {
-          val ruleBuilder = ArrayBuffer[IRulexSR]()
-          val maybeTemplateArgRunes =
-            maybeTemplateArgs.map(templateArgs => {
-              templateArgs.map(templateArgPT => {
-                templexScout.translateTemplex(
-                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
-              })
-            })
-          val load = vale.postparsing.OutsideLoadSE(range, ruleBuilder.toVector, interner.intern(CodeNameS(name)), maybeTemplateArgRunes, loadAsP)
-          (load, firstInnerSelfUses)
+        case o @ OutsideLookupResult(_, _, _, _) => {
+          (coerceOutsideLookupResult(stackFramePE, lidb, o, loadAsP), firstInnerSelfUses)
         }
         case NormalResult(innerExpr1) => {
           loadAsP match {
@@ -872,6 +928,109 @@ class ExpressionScout(
       }
     (namesFromInsideFirst, firstExpr1, firstSelfUses, firstChildUses)
   }
+
+  private def coerceOutsideLookupResult(
+      stackFramePE: StackFrame,
+      lidb: LocationInDenizenBuilder,
+      o: OutsideLookupResult,
+      loadAsP: LoadAsP):
+  OutsideLoadSE = {
+    val OutsideLookupResult(rangeS, maybeContext, templateName, maybeTemplateArgs) = o
+
+    val maybeContainerTemplateRulesAndResultRune =
+      maybeContext match {
+        case None => None
+        case Some(contextPT) => {
+          val ruleBuilder = ArrayBuffer[IRulexSR]()
+          val resultRune =
+            templexScout.translateTemplex(
+              stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, contextPT)
+          Some((ruleBuilder.toVector, resultRune))
+  //        val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+  //        ruleBuilder += rules.MaybeCoercingLookupSR(rangeS, templateRuneS, templateNameS)
+  //        val maybeTemplateArgRunes =
+  //          maybeTemplateArgs.map(templateArgs => {
+  //            templateArgs.map(templateArgPT => {
+  //              templexScout.translateTemplex(
+  //                stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
+  //            })
+  //          })
+  //        ruleBuilder +=
+  //            rules.MaybeCoercingCallSR(
+  //              rangeS,
+  //              resultRuneS,
+  //              templateRuneS,
+  //              maybeTemplateArgRunes.toVector.flatten)
+
+        }
+      }
+
+    val templateNameS = interner.intern(CodeNameS(templateName))
+
+//    val outerSteps =
+//      maybeContext match {
+//        case Some(context) => coerceOutsideLookupResultStep(stackFramePE, lidb, context)
+//        case None => Vector()
+//      }
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+
+    val maybeTemplateArgRunes =
+      maybeTemplateArgs.map(templateArgs => {
+        templateArgs.map(templateArgPT => {
+          templexScout.translateTemplex(
+            stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
+        })
+      })
+
+
+//    val stepsS =
+//      coerceOutsideLookupResultStep(stackFramePE, lidb, o)
+    vale.postparsing.OutsideLoadSE(
+        rangeS,
+        maybeContainerTemplateRulesAndResultRune,
+        ruleBuilder.toVector,
+        templateNameS,
+        maybeTemplateArgRunes,
+        loadAsP)
+  }
+
+//  private def coerceOutsideLookupResultStep(
+//      stackFramePE: StackFrame,
+//      lidb: LocationInDenizenBuilder,
+//      lookup: ITemplexPT):
+//  Vector[OutsideLoadStepS] = {
+//    val OutsideLookupResult(rangeS, maybeContext, templateName, maybeTemplateArgs) = lookup
+//    val templateNameS = interner.intern(CodeNameS(templateName))
+//
+//    val outerSteps =
+//      maybeContext match {
+//        case Some(context) => coerceOutsideLookupResultStep(stackFramePE, lidb, context)
+//        case None => Vector()
+//      }
+//    val ruleBuilder = ArrayBuffer[IRulexSR]()
+//
+//    val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+//    val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+//    ruleBuilder += rules.MaybeCoercingLookupSR(rangeS, templateRuneS, templateNameS)
+//    val maybeTemplateArgRunes =
+//      maybeTemplateArgs.map(templateArgs => {
+//        templateArgs.map(templateArgPT => {
+//          templexScout.translateTemplex(
+//            stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
+//        })
+//      })
+//    ruleBuilder +=
+//        rules.MaybeCoercingCallSR(
+//          rangeS,
+//          resultRuneS,
+//          templateRuneS,
+//          maybeTemplateArgRunes.toVector.flatten)
+//
+//    // DO NOT SUBMIT i feel like we're sending forward unnecessarily redundant data
+//    val stepS = OutsideLoadStepS(templateNameS, ruleBuilder.toVector, maybeTemplateArgRunes)
+//    val stepsS = outerSteps :+ stepS
+//    stepsS
+//  }
 
   // Need a better name for this...
   // It's more like, scout elements as non-lookups, in other words,

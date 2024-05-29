@@ -89,7 +89,7 @@ object SolverErrorHumanizer {
             "" +
               (if (!complex && rules.isEmpty) "Supplied:" else "") +
               (if (complex) "(complex)  " else "") +
-              rules.map(_._2).map(ruleToString).mkString("  ") + "\n" +
+              rules.map(_._2).map(ruleToString).map("Rule: " + _).mkString("") + "\n" +
               (newConclusions -- previouslyPrintedConclusions).map({ case (newRune, newConclusion) =>
                 "  " + humanizeRune(newRune) + ": " + humanizeConclusion(newConclusion) + "\n"
               }).mkString("") +

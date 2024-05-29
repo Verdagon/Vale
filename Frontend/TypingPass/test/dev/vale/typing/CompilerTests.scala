@@ -1994,4 +1994,58 @@ class CompilerTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
   }
+
+  test("Call rust builtin") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import rust.rstr;
+        |
+        |exported func main() {
+        |  rstr("hello");
+        |}
+  """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Call rust free function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import frust.std.fs.create_dir;
+        |
+        |exported func main() {
+        |  create_dir();
+        |}
+    """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Import rust object") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import frust.std.vec.Vec;
+        |
+        |exported func main() {
+        |  v = Vec<int>.new();
+        |}
+  """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Call member function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Vec<T> {
+        |  extern func new() Vec<T> { }
+        |}
+        |
+        |exported func main() {
+        |  v = Vec<int>.new();
+        |}
+  """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+  }
 }

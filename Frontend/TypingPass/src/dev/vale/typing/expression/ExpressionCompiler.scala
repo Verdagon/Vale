@@ -10,7 +10,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CannotSubscriptT, CantMoveFromGlobal, CantMutateFinalElement, CantMutateFinalMember, CantReconcileBranchesResults, CantUnstackifyOutsideLocalFromInsideWhile, CantUseUnstackifiedLocal, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForMutateT, CouldntConvertForReturnT, CouldntFindIdentifierToLoadT, CouldntFindMemberT, HigherTypingInferError, IfConditionIsntBoolean, InferCompiler, OverloadResolver, RangedInternalErrorT, SequenceCompiler, TemplataCompiler, TypingPassOptions, ast, templata}
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, BorrowToWeakTE, BreakTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironmentT, MutateTE, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, VoidLiteralTE, WhileTE}
-import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent, StructCompiler}
+import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent, ResolveSuccess, StructCompiler}
 import dev.vale.typing.env._
 import dev.vale.typing.function._
 import dev.vale.highertyping._
@@ -484,14 +484,118 @@ class ExpressionCompiler(
           vassert(nenv.functionEnvironment.id.localName.parameters(index) == paramCoord)
           (ArgLookupTE(index, paramCoord), Set())
         }
-        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, rules, name, maybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
-//          vassert(callableTargetOwnership == PointConstraintP(Some(ReadonlyP)))
+        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, maybeContainerTemplateRulesAndArgRunes, funcRules, funcName, funcMaybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
+          //          vassert(callableTargetOwnership == PointConstraintP(Some(ReadonlyP)))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(
               coutputs, nenv, life + 0, parentRanges, callLocation,
               // See SRIE
               nenv.defaultRegion,
               argsExprs1)
+
+          val funcGroup =
+            maybeContainerTemplateRulesAndArgRunes match {
+              case None => {
+                vimpl()
+              }
+              case Some((firstRulesWithImplicitlyCoercingLookupsS, containerResultRune)) => {
+
+                // DO NOT SUBMIT dedup from patterncompiler
+
+                val runeTypeSolveEnv = TemplataCompiler.createRuneTypeSolverEnv(nenv.snapshot)
+
+                val runeAToTypeWithImplicitlyCoercingLookupsS =
+                  new RuneTypeSolver(interner).solve(
+                    opts.globalOptions.sanityCheck,
+                    opts.globalOptions.useOptimizedSolver,
+                    runeTypeSolveEnv,
+                    range :: parentRanges,
+                    false,
+                    firstRulesWithImplicitlyCoercingLookupsS,
+                    List(),
+                    true,
+                    Map(containerResultRune.rune -> KindTemplataType())) match {
+                    case Ok(r) => r
+                    case Err(e) => {
+                      throw CompileErrorExceptionT(HigherTypingInferError(
+                        range ::
+                            parentRanges, e))
+                    }
+                  }
+
+
+                val runeAToType =
+                  mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
+                // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
+                // loose. We intentionally ignored the types of the things they're looking up, so we could know
+                // what types we *expect* them to be, so we could coerce.
+                // That coercion is good, but lets make it more explicit.
+                val ruleBuilder = ArrayBuffer[IRulexSR]()
+                explicifyLookups(
+                  runeTypeSolveEnv,
+                  runeAToType, ruleBuilder, firstRulesWithImplicitlyCoercingLookupsS) match {
+                  case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))
+                  case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: parentRanges, name))
+                  case Ok(()) =>
+                }
+                val rulesA = ruleBuilder.toVector
+
+                val CompleteDefineSolve(templatasByRune, _) =
+                // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
+                // declaring a bunch of things.
+                  inferCompiler.solveForDefining(
+                    InferEnv(nenv.snapshot, parentRanges, callLocation, nenv.snapshot, nenv.defaultRegion),
+                    coutputs,
+                    rulesA,
+                    runeAToType.toMap,
+                    range :: parentRanges,
+                    callLocation,
+                    Vector(),
+                    Vector(),
+                    Vector()) match {
+                    case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(range :: parentRanges, f))
+                    case Ok(c) => c
+                  }
+
+
+                //              val blark =
+                //                nenv.lookupNearestWithImpreciseName(firstName, Set(TemplataLookupContext)) match {
+                //                  case None => vimpl() // DO NOT SUBMIT
+                //                  case Some(sdt @ StructDefinitionTemplataT(_, _)) => sdt
+                //                  case Some(other) => vimpl()
+                //                }
+                //              val splork =
+                //                structCompiler.resolveStruct(
+                //                  coutputs,
+                //                  nenv.snapshot,
+                //                  range :: parentRanges,
+                //                  callLocation,
+                //                  blark,
+                //                  firstMaybeTemplateArgs.toVector.flatten.map(x => {
+                //                    nenv.snapshot.lookupNearestWithImpreciseName(interner.intern(RuneNameS(x.rune)), Set(TemplataLookupContext)) match {
+                //                      case Some(y) => y // DO NOT SUBMIT
+                //                      case _ => vimpl() // DO NOT SUBMIT
+                //                    }
+                //                  })) match {
+                //                  case ResolveSuccess(struct) => struct
+                //                  case _ => vimpl() // DO NOT SUBMIT
+                //                }
+                //
+                val structId =
+                  vassertSome(templatasByRune.get(containerResultRune.rune)) match {
+                    case KindTemplataT(StructTT(id)) => id
+                    case _ => vfail() // DO NOT SUBMIT
+                  }
+                val structEnv =
+                  coutputs.getInnerEnvForType(TemplataCompiler.getStructTemplate(structId))
+                newGlobalFunctionGroupExpression(
+                  structEnv,
+                  // i suppose this can instead take on the region of whatever's expected?
+                  nenv.defaultRegion,
+                  funcName)
+              }
+            }
+
           val callExpr2 =
             callCompiler.evaluatePrefixCall(
               coutputs,
@@ -500,18 +604,14 @@ class ExpressionCompiler(
               range :: parentRanges,
               callLocation,
               region,
-              newGlobalFunctionGroupExpression(
-                nenv.snapshot,
-                coutputs,
-                // i suppose this can instead take on the region of whatever's expected?
-                nenv.defaultRegion,
-                name),
-              rules.toVector,
-              maybeTemplateArgs.toVector.flatMap(_.map(_.rune)),
+              funcGroup,
+              funcRules.toVector,
+              funcMaybeTemplateArgs.toVector.flatMap(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
-        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, rules, name, templateArgTemplexesS, callableTargetOwnership), argsExprs1) => {
+        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, maybeContainerTemplateRulesAndResultRune, rules, name, maybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
+//          val OutsideLoadStepS(name, rules, templateArgTemplexesS) = vassertOne(lookupSteps)
 //          vassert(callableTargetOwnership == PointConstraintP(None))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life + 0, parentRanges, callLocation, region, argsExprs1)
@@ -523,9 +623,9 @@ class ExpressionCompiler(
               range :: parentRanges,
               callLocation,
               region,
-              newGlobalFunctionGroupExpression(nenv.snapshot, coutputs, RegionT(DefaultRegionT), name),
+              newGlobalFunctionGroupExpression(nenv.snapshot, RegionT(DefaultRegionT), name),
               rules.toVector,
-              templateArgTemplexesS.toVector.flatMap(_.map(_.rune)),
+              maybeTemplateArgs.toVector.flatMap(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
@@ -623,7 +723,8 @@ class ExpressionCompiler(
             }
           (lookupExpr1, Set())
         }
-        case OutsideLoadSE(range, rules, name, templateArgs, targetOwnership) => {
+        case OutsideLoadSE(range, maybeContainerTemplateRulesAndResultRune, rules, name, maybeTemplateArgs, targetOwnership) => {
+//          val OutsideLoadStepS(name, rules, None) = vassertOne(lookupSteps)
           // Note, we don't get here if we're about to call something with this, that's handled
           // by a different case.
 
@@ -646,7 +747,7 @@ class ExpressionCompiler(
                 if (targetOwnership == MoveP) {
                   throw CompileErrorExceptionT(CantMoveFromGlobal(range :: parentRanges, "Can't move from globals. Name: " + name))
                 }
-                newGlobalFunctionGroupExpression(nenv.snapshot, coutputs, region, name)
+                newGlobalFunctionGroupExpression(nenv.snapshot, region, name)
               }
               case things if things.size > 1 => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Found too many different things named \"" + name + "\" in env:\n" + things.map("\n" + _)))
@@ -740,7 +841,7 @@ class ExpressionCompiler(
           val mutate2 = MutateTE(destinationExpr2, convertedSourceExpr2);
           (mutate2, returnsFromSource ++ returnsFromDestination)
         }
-        case OutsideLoadSE(range, rules, name, templateArgs1, targetOwnership) => {
+        case OutsideLoadSE(range, _, _, _, _, _) => {
           // So far, we only allow these when they're immediately called like functions
           throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Raw template specified lookups unimplemented!"))
         }
@@ -1022,7 +1123,7 @@ class ExpressionCompiler(
                   .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))
               val expr =
                 newGlobalFunctionGroupExpression(
-                  tinyEnv, coutputs, RegionT(DefaultRegionT), interner.intern(ArbitraryNameS()))
+                  tinyEnv, RegionT(DefaultRegionT), interner.intern(ArbitraryNameS()))
               (expr, Set())
             }
           }
@@ -1245,7 +1346,7 @@ class ExpressionCompiler(
               outerCallLocation,
               region,
               newGlobalFunctionGroupExpression(
-                callEnv, coutputs, vregionmut(RegionT(DefaultRegionT)), interner.intern(CodeNameS(keywords.List))),
+                callEnv, vregionmut(RegionT(DefaultRegionT)), interner.intern(CodeNameS(keywords.List))),
               Vector(RuneParentEnvLookupSR(range, RuneUsage(range, SelfRuneS()))),
               Vector(SelfRuneS()),
               Vector())
@@ -1289,7 +1390,7 @@ class ExpressionCompiler(
                   range :: parentRanges,
                   outerCallLocation,
                   region,
-                  newGlobalFunctionGroupExpression(callEnv, coutputs, RegionT(DefaultRegionT), interner.intern(CodeNameS(keywords.add))),
+                  newGlobalFunctionGroupExpression(callEnv, RegionT(DefaultRegionT), interner.intern(CodeNameS(keywords.add))),
                   Vector(),
                   Vector(),
                   Vector(
@@ -1807,7 +1908,6 @@ class ExpressionCompiler(
 
   private def newGlobalFunctionGroupExpression(
     env: IInDenizenEnvironmentT,
-    coutputs: CompilerOutputs,
     region: RegionT,
     name: IImpreciseNameS
   ):

@@ -164,6 +164,27 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
     }
   }
 
+  test("Struct with member function") {
+    vassertOne(
+      compileFile(
+        """
+          |struct Vec<T> {
+          |  extern func new() Vec<T> { }
+          |}
+          |
+    """.stripMargin).getOrDie().denizens) shouldHave {
+      case TopLevelStructP(
+      StructP(_,
+      NameP(_,StrI("Vec")),
+      Vector(),None,
+      Some(GenericParametersP(_,Vector(GenericParameterP(_,NameP(_,StrI("T")),None,None,Vector(),None)))),
+      None,None,_,
+      StructMembersP(_,
+      Vector(
+      StructMethodP(FunctionP(_,FunctionHeaderP(_,Some(NameP(_,StrI("new"))),Vector(ExternAttributeP(_)),None,None,_,_),Some(BlockPE(_,None,None,VoidPE(_))))))))) =>
+    }
+  }
+
   test("Struct with int rune, array sequence specifies mutability") {
     vassertOne(
       compileFile(

@@ -448,44 +448,87 @@ class Lexer(interner: Interner, keywords: Keywords) {
 
     iter.consumeCommentsAndWhitespace()
 
-    val membersBegin = iter.getPos()
+    // We eagerly lex the members so we can eagerly lex the function, to be consistent
+    // with us lexing functions outside too.
+    val membersAcc = new Accumulator[ScrambleLE]()
+    val methodsAcc = new Accumulator[FunctionL]()
 
-    val contents =
-      if (iter.trySkip(';')) {
-        ScrambleLE(RangeL(membersBegin, membersBegin), Vector())
+    val contentsRange =
+      if (iter.peek() == ';') {
+        val contentsRange = RangeL(iter.getPos(), iter.getPos())
+        if (!iter.trySkip(';')) {
+          vwat()
+        }
+        iter.consumeCommentsAndWhitespace()
+        contentsRange
       } else if (iter.trySkip('{')) {
         iter.consumeCommentsAndWhitespace()
+        val contentsBegin = iter.getPos()
+        while ( {
+          if (iter.peek() == '}') {
+            iter.consumeCommentsAndWhitespace()
+            false // break
+          } else {
+            val memberBegin = iter.getPos()
 
-        val membersAcc = new Accumulator[ScrambleLE]()
+            val funcTrialIter = iter.clone()
 
-        val contents =
-          lexScramble(iter, false, false, false) match {
-            case Err(e) => return Err(e)
-            case Ok(x) => x
+            val attributes =
+              lexAttributes(funcTrialIter) match {
+                case Err(e) => return Err(e)
+                case Ok(a) => a
+              }
+            lexFunction(funcTrialIter, memberBegin, attributes) match {
+              case Err(e) => return Err(e)
+              case Ok(Some(func)) => {
+                // Then this is a function, commit to it.
+                iter.position = funcTrialIter.position
+                iter.consumeCommentsAndWhitespace()
+                methodsAcc.add(func)
+                true // continue
+              }
+              case Ok(None) => {
+                // Continue, we'll parse a normal struct member.
+                membersAcc.add(
+                  lexScramble(iter, false, false, true) match {
+                    case Err(e) => return Err(e)
+                    case Ok(x) => x
+                  })
+                iter.consumeCommentsAndWhitespace()
+                if (!iter.trySkip(';')) {
+                  return Err(BadStructContentsEnd(iter.getPos()))
+                }
+                true // continue
+              }
+            }
           }
+        }) {}
+
+        val contentsEnd = iter.getPos()
 
         if (!iter.trySkip('}')) {
-          return Err(BadStructContentsEnd(iter.getPos()))
+          vwat()
         }
-
         iter.consumeCommentsAndWhitespace()
 
-        val end = iter.getPos()
-
-        contents
+        RangeL(contentsBegin, contentsEnd)
       } else {
         return Err(BadStructContentsBegin(iter.getPos()))
       }
 
+    val end = iter.getPos()
+
     val struct =
       StructL(
-        RangeL(begin, headerEnd),
+        RangeL(begin, end),
         name,
         attributes,
         maybeMutability,
         maybeGenericArgs,
         maybeRules,
-        contents)
+        contentsRange,
+        membersAcc.buildArray(),
+        methodsAcc.buildArray())
     Ok(Some(struct))
   }
 

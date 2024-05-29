@@ -14,7 +14,8 @@ case class ProgramA(
     interfaces: Vector[InterfaceA],
     impls: Vector[ImplA],
     functions: Vector[FunctionA],
-    exports: Vector[ExportAsA]) {
+    exports: Vector[ExportAsA],
+    imports: Vector[ImportS]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   def lookupFunction(name: INameS) = {

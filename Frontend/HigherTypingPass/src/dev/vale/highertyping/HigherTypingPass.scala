@@ -713,7 +713,15 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
 
     val exportsA = env.exportsS.map(translateExport(astrouts, env, _))
 
-    ProgramA(structsA, suppliedInterfaces ++ interfacesA, implsA, suppliedFunctions ++ functionsA, exportsA)
+    val importsS = env.imports
+
+    ProgramA(
+      structsA,
+      suppliedInterfaces ++ interfacesA,
+      implsA,
+      suppliedFunctions ++ functionsA,
+      exportsA,
+      importsS)
   }
 
   def runPass(separateProgramsS: FileCoordinateMap[ProgramS]):
@@ -753,7 +761,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       try {
         val suppliedFunctions = Vector()
         val suppliedInterfaces = Vector()
-        val ProgramA(structsA, interfacesA, implsA, functionsA, exportsA) =
+        val ProgramA(structsA, interfacesA, implsA, functionsA, exportsA, importsA) =
           translateProgram(
             mergedProgramS, primitives, suppliedFunctions, suppliedInterfaces)
 
@@ -762,6 +770,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         val packageToFunctionsA = functionsA.groupBy(_.name.packageCoordinate)
         val packageToImplsA = implsA.groupBy(_.name.packageCoordinate)
         val packageToExportsA = exportsA.groupBy(_.range.file.packageCoordinate)
+        val packageToImportsA = importsA.groupBy(_.range.file.packageCoordinate)
 
         val allPackages =
           packageToStructsA.keySet ++
@@ -777,7 +786,8 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
               packageToInterfacesA.getOrElse(paackage, Vector.empty),
               packageToImplsA.getOrElse(paackage, Vector.empty),
               packageToFunctionsA.getOrElse(paackage, Vector.empty),
-              packageToExportsA.getOrElse(paackage, Vector.empty))
+              packageToExportsA.getOrElse(paackage, Vector.empty),
+              packageToImportsA.getOrElse(paackage, Vector.empty))
           packageToContents.put(paackage, contents)
         })
         Left(vale.PackageCoordinateMap(packageToContents))

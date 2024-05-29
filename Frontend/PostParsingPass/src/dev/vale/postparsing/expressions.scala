@@ -266,22 +266,24 @@ case class IndexSE(range: RangeS, left: IExpressionSE, indexExpr: IExpressionSE)
 
 case class FunctionCallSE(range: RangeS, location: LocationInDenizen, callableExpr: IExpressionSE, argsExprs1: Vector[IExpressionSE]) extends IExpressionSE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  callableExpr match {
-    case OutsideLoadSE(_, _, CodeNameS(StrI(name)), _, _) => {
-      vassert(name != "return")
-    }
-    case _ =>
-  }
+  vpass()
 }
 
 
 case class LocalLoadSE(range: RangeS, name: IVarNameS, targetOwnership: LoadAsP) extends IExpressionSE {
   vpass()
 }
+//// DO NOT SUBMIT doc
+//case class OutsideLoadStepS(
+//    name: IImpreciseNameS,
+//    rules: Vector[IRulexSR],
+//    maybeTemplateArgs: Option[Vector[RuneUsage]])
+
 // Loads a non-local. In well formed code, this will be a function, but the user also likely
 // tried to access a variable they forgot to declare.
 case class OutsideLoadSE(
   range: RangeS,
+  maybeContainerTemplateRulesAndResultRune: Option[(Vector[IRulexSR], RuneUsage)],
   rules: Vector[IRulexSR],
   name: IImpreciseNameS,
   maybeTemplateArgs: Option[Vector[RuneUsage]],
