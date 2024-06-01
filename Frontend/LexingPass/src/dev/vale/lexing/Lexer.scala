@@ -498,6 +498,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
                 if (!iter.trySkip(';')) {
                   return Err(BadStructContentsEnd(iter.getPos()))
                 }
+                iter.consumeCommentsAndWhitespace()
                 true // continue
               }
             }

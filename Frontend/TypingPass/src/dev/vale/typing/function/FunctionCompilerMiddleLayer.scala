@@ -141,7 +141,7 @@ class FunctionCompilerMiddleLayer(
         coutputs.declareFunctionInnerEnv(namedEnv.id, namedEnv)
 
         val header =
-          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)
+          core.compileFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)
         if (!header.toBanner.same(banner)) {
           val bannerFromHeader = header.toBanner
           vfail("wut\n" + bannerFromHeader + "\n" + banner)
@@ -180,7 +180,7 @@ class FunctionCompilerMiddleLayer(
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
 
-    val functionId = assembleName(runedEnv.id, runedEnv.templateArgs, paramTypes2)
+    val functionId = assembleName(runedEnv, paramTypes2)
     val needleSignature = SignatureT(functionId)
     coutputs.lookupFunction(needleSignature) match {
       case Some(FunctionDefinitionT(header, _, _)) => {
@@ -200,7 +200,7 @@ class FunctionCompilerMiddleLayer(
         //        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
 
         val header =
-          core.evaluateFunctionForHeader(
+          core.compileFunctionForHeader(
             namedEnv, coutputs, callRange, callLocation, params2, instantiationBoundParams)
         vassert(header.toSignature == needleSignature)
         (header)
@@ -447,12 +447,25 @@ class FunctionCompilerMiddleLayer(
 //  }
 
   def assembleName(
-      templateName: IdT[IFunctionTemplateNameT],
-      templateArgs: Vector[ITemplataT[ITemplataType]],
+      runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
       paramTypes: Vector[CoordT]):
   IdT[IFunctionNameT] = {
-    templateName.copy(
-      localName = templateName.localName.makeFunctionName(interner, keywords, templateArgs, paramTypes))
+    val parentId = runedEnv.parentEnv.id
+    // DO NOT SUBMIT
+    if (runedEnv.function.lift) {
+      val parentNonInstantiationId = // DO NOT SUBMIT explain for the love of god
+        parentId match {
+          case IdT(packageCoord, initSteps, x: IInstantiationNameT) => {
+            TemplataCompiler.getTemplate(IdT(packageCoord, initSteps, x))
+          }
+          case other => other
+        }
+      parentNonInstantiationId.addStep(
+        runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
+    } else {
+      parentId.addStep(
+        runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
+    }
   }
 
   def makeNamedEnv(
@@ -470,7 +483,7 @@ class FunctionCompilerMiddleLayer(
       variables,
       isRootCompilingDenizen,
       defaultRegion) = runedEnv
-    val id = assembleName(templateId, templateArgs, paramTypes)
+    val id = assembleName(runedEnv, paramTypes)
     FunctionEnvironmentT(
       globalEnv,
       parentEnv,

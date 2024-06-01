@@ -60,7 +60,10 @@ trait IStructCompilerDelegate {
 sealed trait IResolveOutcome[+T <: KindT] {
   def expect(): ResolveSuccess[T]
 }
-case class ResolveSuccess[+T <: KindT](kind: T) extends IResolveOutcome[T] {
+case class ResolveSuccess[+T <: KindT](
+  kind: T,
+  inferences: Map[IRuneS, ITemplataT[ITemplataType]]
+) extends IResolveOutcome[T] {
   override def expect(): ResolveSuccess[T] = this
 }
 case class ResolveFailure[+T <: KindT](range: List[RangeS], x: IResolvingError) extends IResolveOutcome[T] {
@@ -124,6 +127,11 @@ class StructCompiler(
         TemplatasStore(structTemplateId, Map(), Map())
           .addEntries(
             interner,
+            structA.internalMethods
+                .map(internalMethod => {
+                  val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
+                  (functionName -> FunctionEnvEntry(internalMethod))
+                }) ++
             // Merge in any things from the global environment that say they're part of this
             // structs's namespace (see IMRFDI and CODME).
             // StructFreeMacro will put a free function here.

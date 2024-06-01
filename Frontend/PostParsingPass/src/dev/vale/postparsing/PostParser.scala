@@ -656,6 +656,8 @@ class PostParser(
         structEnv, lidb.child(), headerRuleBuilder, defaultRegionRuneS, mutability)
     headerRuneToExplicitType += ((mutabilityRuneS.rune, MutabilityTemplataType()))
 
+    val internalMethodsP = new ArrayBuffer[FunctionP]()
+
     val membersS =
       members.flatMap({
         case NormalStructMemberP(range, name, variability, memberType) => {
@@ -672,9 +674,9 @@ class PostParser(
           membersRuneToExplicitType.put(memberRune.rune, PackTemplataType(CoordTemplataType()))
           Vector(VariadicStructMemberS(PostParser.evalRange(structEnv.file, range), variability, memberRune))
         }
-        case StructMethodP(_) => {
-          // Implement struct methods one day
-          Vector.empty
+        case StructMethodP(func) => {
+          internalMethodsP += func
+          Vector()
         }
       })
 
@@ -693,6 +695,18 @@ class PostParser(
     val membersRuneToPredictedType = runeToPredictedType.filter(x => !runesFromHeader.contains(x._1))
 
     val tyype = TemplateTemplataType(genericParametersS.map(_.tyype.tyype), KindTemplataType())
+
+    val internalMethodsS =
+      internalMethodsP.map(method => {
+        functionScout.scoutInterfaceMember(
+          ParentCitizen(
+            false,
+            structEnv,
+            genericParametersS.toVector,
+            headerRulesS,
+            headerRuneToExplicitType.toMap),
+          method)
+      })
 
     val weakable = attributesP.exists({ case w @ WeakableAttributeP(_) => true case _ => false })
     val attrsWithoutLinearS = translateCitizenAttributes(file, structName, attributesP.filter({ case WeakableAttributeP(_) => false case LinearAttributeP(_) => false case _ => true}))
@@ -722,7 +736,8 @@ class PostParser(
       membersRuneToExplicitType.toMap,
       membersRuneToPredictedType,
       memberRulesS,
-      membersS)
+      membersS,
+      internalMethodsS.toVector)
   }
 
   def translateCitizenAttributes(file: FileCoordinate, denizenName: INameS, attrsP: Vector[IAttributeP]): Vector[ICitizenAttributeS] = {
@@ -876,7 +891,8 @@ class PostParser(
     val internalMethodsS =
       internalMethodsP.map(method => {
         functionScout.scoutInterfaceMember(
-          ParentInterface(
+          ParentCitizen(
+            true,
             interfaceEnv,
             genericParametersS.toVector,
             rulesS,

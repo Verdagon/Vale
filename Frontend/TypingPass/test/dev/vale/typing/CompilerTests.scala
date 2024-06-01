@@ -2038,13 +2038,14 @@ class CompilerTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |struct Vec<T> {
-        |  extern func new() Vec<T> { }
+        |  hp int;
+        |  func new() Vec<T> { Vec<T>(42) }
         |}
-        |
-        |exported func main() {
+        |exported func main() int {
         |  v = Vec<int>.new();
+        |  return v.hp;
         |}
-  """.stripMargin)
+        |""".stripMargin)
 
     val coutputs = compile.expectCompilerOutputs()
   }

@@ -38,6 +38,7 @@ class StructCompilerGenericArgsLayer(
     structTemplata: StructDefinitionTemplataT,
     templateArgs: Vector[ITemplataT[ITemplataType]]):
   IResolveOutcome[StructTT] = {
+    // TODO: optimize: we can probably cache these resolved structs
     Profiler.frame(() => {
       val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
@@ -92,14 +93,38 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
-      val id = declaringEnv.id.addStep(structName)
+      val structId = declaringEnv.id.addStep(structName)
 
       coutputs.addInstantiationBounds(
         opts.globalOptions.sanityCheck,
-        interner, originalCallingEnv.denizenTemplateId, id, runeToFunctionBound)
-      val structTT = interner.intern(StructTT(id))
+        interner, originalCallingEnv.denizenTemplateId, structId, runeToFunctionBound)
+      val structTT = interner.intern(StructTT(structId))
 
-      ResolveSuccess(structTT)
+      val structTemplateId = TemplataCompiler.getStructTemplate(structId)
+      val structOuterEnv = coutputs.getOuterEnvForType(callRange, structTemplateId)
+
+      val structResolvedEnv =
+        CitizenEnvironmentT(
+          structOuterEnv.globalEnv,
+          structOuterEnv,
+          structTemplateId,
+          structId,
+          TemplatasStore(structId, Map(), Map())
+              .addEntries(
+                interner,
+                // DO NOT SUBMIT explain that we need these functions in the same environment so that when we look for
+                // the function we find it in *this* environment.
+                // we should probably take them out of the outer env...
+                structA.internalMethods
+                    .map(internalMethod => {
+                      val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
+                      (functionName -> FunctionEnvEntry(internalMethod))
+                    }) ++
+                inferences.toVector
+                    .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+      coutputs.addTypeResolvedEnv(structId, structResolvedEnv)
+
+      ResolveSuccess(structTT, inferences)
     })
   }
 
@@ -294,7 +319,7 @@ class StructCompilerGenericArgsLayer(
         interner, originalCallingEnv.denizenTemplateId, id, runeToFunctionBound)
       val interfaceTT = interner.intern(InterfaceTT(id))
 
-      ResolveSuccess(interfaceTT)
+      ResolveSuccess(interfaceTT, inferences)
     })
   }
 

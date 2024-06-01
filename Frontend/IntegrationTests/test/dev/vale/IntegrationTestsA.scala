@@ -348,6 +348,23 @@ class IntegrationTestsA extends FunSuite with Matchers {
     }
   }
 
+  test("Extern rust Vec") {
+    val compile = RunCompilation.test(
+      """
+        |extern struct Vec<T> {
+        |  extern func new() Vec<T>;
+        |}
+        |exported func main() int {
+        |  v = Vec<int>.new();
+        |  return 42;
+        |}
+        |""".stripMargin,
+      false)
+    compile.evalForKind(Vector()) match {
+      case VonInt(42) =>
+    }
+  }
+
   // Known failure 2020-08-20
   // The reason this isnt working:
   // The InterfaceCall2 instruction is only ever created as part of an abstract function's body.

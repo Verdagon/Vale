@@ -125,16 +125,24 @@ class StructCompilerCore(
 
     outerEnv.templatas.entriesByNameT.foreach({
       case (name, FunctionEnvEntry(functionA)) => {
-        // These have to be delegated, otherwise some compiling functions won't have what we expect.
+        // These have to be deferred, otherwise some compiling functions won't have what we expect.
         // For example, MyShip.drop will expect to see the members of MyEngine, but we haven't compiled
         // MyEngine yet.
         // We need to defer all these functions until after the structs and interfaces are done.
-        coutputs.deferEvaluatingFunction(
+        coutputs.deferCompilingFunction(
           DeferredEvaluatingFunction(
             outerEnv.id.addStep(name),
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
-                coutputs, parentRanges, callLocation, FunctionTemplataT(outerEnv, functionA))
+                coutputs, parentRanges, callLocation,
+                FunctionTemplataT(
+////                  // This is outerEnv because innerEnv has struct-placeholdered things, and
+////                  // we don't want to compile a function with someone else's placeholders.
+////                  outerEnv,
+//                  structRunesEnv, // DO NOT SUBMIT its weird that runesenv has stuff and innerenv has nothing
+                  // If we're lifting, its in its own environment. If not, it gets the struct's runes and stuff.
+                  if (functionA.lift) outerEnv else structRunesEnv,
+                  functionA))
             }))
       }
       case _ => vcurious()

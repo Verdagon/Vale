@@ -302,7 +302,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     env: EnvironmentA,
     structS: StructS):
   StructA = {
-    val StructS(rangeS, nameS, attributesS, weakable, genericParametersS, mutabilityRuneS, maybePredictedMutability, tyype, headerRuneToExplicitType, headerPredictedRuneToType, headerRulesWithImplicitlyCoercingLookupsS, membersRuneToExplicitType, membersPredictedRuneToType, memberRulesWithImplicitlyCoercingLookupsS, members) = structS
+    val StructS(rangeS, nameS, attributesS, weakable, genericParametersS, mutabilityRuneS, maybePredictedMutability, tyype, headerRuneToExplicitType, headerPredictedRuneToType, headerRulesWithImplicitlyCoercingLookupsS, membersRuneToExplicitType, membersPredictedRuneToType, memberRulesWithImplicitlyCoercingLookupsS, members, internalMethodsS) = structS
 
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
@@ -344,6 +344,14 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         Vector(),
         allRulesWithImplicitlyCoercingLookupsS,
         env)
+
+    val methodsEnv =
+      env
+          .addRunes(runeAToTypeWithImplicitlyCoercingLookupsS)
+    val internalMethodsA =
+      internalMethodsS.map(method => {
+        translateFunction(astrouts, methodsEnv, method)
+      })
 
     val runeAToType =
       mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
@@ -401,7 +409,8 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         headerRulesExplicitS,
         membersRuneAToType,
         memberRulesExplicitS,
-        members)
+        members,
+        internalMethodsA)
     astrouts.codeLocationToStruct.put(rangeS.begin, structA)
     structA
   }
@@ -602,7 +611,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
   }
 
   def translateFunction(astrouts: Astrouts, env: EnvironmentA, functionS: FunctionS): FunctionA = {
-    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, bodyS) = functionS
+    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, lift, bodyS) = functionS
 
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
@@ -644,6 +653,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       paramsS,
       maybeRetCoordRune,
       ruleBuilder.toVector,
+      lift,
       bodyS)
   }
 

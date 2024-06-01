@@ -213,7 +213,24 @@ class FunctionCompilerClosureOrLightLayer(
     function: FunctionA):
   (FunctionHeaderT) = {
     val outerEnvId = parentEnv.id.addStep(nameTranslator.translateGenericFunctionName(function.name))
-    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvId, true)
+    val isRootCompilingDenizen =
+      parentEnv.id match {
+        // DO NOT SUBMIT: simplify once all tests pass
+        case IdT(_, _, PackageTopLevelNameT()) => true
+        case IdT(_,Vector(),StructNameT(_,_)) => false
+        case IdT(_,Vector(FunctionNameT(_,_,_)),LambdaCitizenTemplateNameT(_)) => true // DO NOT SUBMIT weird
+        case IdT(_, Vector(), StructTemplateNameT(_)) => true
+        case IdT(_, Vector(), InterfaceTemplateNameT(_)) => true
+        case IdT(_, _, AnonymousSubstructTemplateNameT(_)) => true
+        case IdT(_,Vector(FunctionNameT(_,Vector(),Vector()), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(_,_,_)),LambdaCitizenTemplateNameT(_)) => {
+          true // DO NOT SUBMIT weird
+        }
+        case IdT(_,Vector(FunctionNameT(_,_,_), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(_,_,_)),LambdaCitizenTemplateNameT(_)) => {
+          true // DO NOT SUBMIT weird
+        }
+        case other => vimpl(other)
+      }
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvId, isRootCompilingDenizen)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
       coutputs, outerEnv, parentRanges, callLocation)
   }

@@ -107,6 +107,7 @@ class StructDropMacro(
               Some(use(-64002, selfCoordRune)), None))),
         Some(use(-64002, voidCoordRune)),
         rules.buildArray().toVector,
+        true,
         GeneratedBodyS(dropGeneratorId))
 
     val dropNameT = structName.addStep(nameTranslator.translateGenericFunctionName(dropFunctionA.name))
@@ -149,6 +150,7 @@ class StructDropMacro(
         LookupSR(RangeS.internal(interner, -1672162), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropVK)), interner.intern(CodeNameS(keywords.void))),
         CoerceToCoordSR(RangeS.internal(interner, -1672162), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropVK))),
         CoerceToCoordSR(RangeS.internal(interner, -1672162), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1K)))),
+      true,
       GeneratedBodyS(dropGeneratorId))
   }
 

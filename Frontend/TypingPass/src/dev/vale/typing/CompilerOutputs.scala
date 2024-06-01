@@ -64,7 +64,8 @@ case class CompilerOutputs() {
   private val typeNameToMutability: mutable.HashMap[IdT[ITemplateNameT], ITemplataT[MutabilityTemplataType]] = mutable.HashMap()
   // One must fill this in when putting things into declaredNames.
   private val interfaceNameToSealed: mutable.HashMap[IdT[IInterfaceTemplateNameT], Boolean] = mutable.HashMap()
-
+  // DO NOT SUBMIT doc
+  private val typeNameToResolvedEnv: mutable.HashMap[IdT[INameT], IInDenizenEnvironmentT] = mutable.HashMap()
 
   private val structTemplateNameToDefinition: mutable.HashMap[IdT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
   private val interfaceTemplateNameToDefinition: mutable.HashMap[IdT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
@@ -242,7 +243,7 @@ case class CompilerOutputs() {
 //        println(instantiationBoundArgs.runeToBoundPrototype.size)
 //        println(instantiationBoundArgs.runeToBoundImpl.size)
 //        println(instantiationBoundArgs.runeToCitizenRuneToReachablePrototype.size)
-//        start here // just run it. it seems to die after 83rd, and we set the pass count to 83.
+//        start here // just run it. it seems to die after 83rd, and we set the pass count to 83. DO NOT SUBMIT?
 //        // it should break when we're adding the broken thing.
 
         vpass() // InstantiationBoundArgumentsT@5134
@@ -383,6 +384,17 @@ case class CompilerOutputs() {
     typeNameToInnerEnv += (templateId -> env)
   }
 
+  def addTypeResolvedEnv(
+      id: IdT[ICitizenNameT],
+      env: IInDenizenEnvironmentT,
+  ): Unit = {
+    val templateId = TemplataCompiler.getCitizenTemplate(id)
+    vassert(typeDeclaredNames.contains(templateId))
+    // One should declare the outer env first
+    vassert(typeNameToOuterEnv.contains(templateId))
+    typeNameToResolvedEnv += (id -> env)
+  }
+
   def addStruct(structDef: StructDefinitionT): Unit = {
     if (structDef.mutability == MutabilityTemplataT(ImmutableT)) {
       structDef.members.foreach({
@@ -456,11 +468,11 @@ case class CompilerOutputs() {
 //    functionExterns += FunctionExternT(range, externPlaceholderedId, function, exportedName)
 //  }
 
-  def deferEvaluatingFunctionBody(devf: DeferredEvaluatingFunctionBody): Unit = {
+  def deferCompilingFunctionBody(devf: DeferredEvaluatingFunctionBody): Unit = {
     deferredFunctionBodyCompiles.put(devf.prototypeT, devf)
   }
 
-  def deferEvaluatingFunction(devf: DeferredEvaluatingFunction): Unit = {
+  def deferCompilingFunction(devf: DeferredEvaluatingFunction): Unit = {
     deferredFunctionCompiles.put(devf.name, devf)
   }
 
@@ -561,6 +573,9 @@ case class CompilerOutputs() {
   }
   def getInnerEnvForType(name: IdT[ITemplateNameT]): IInDenizenEnvironmentT = {
     vassertSome(typeNameToInnerEnv.get(name))
+  }
+  def getResolvedEnvForType(name: IdT[INameT]): IInDenizenEnvironmentT = {
+    vassertSome(typeNameToResolvedEnv.get(name))
   }
   def getInnerEnvForFunction(name: IdT[INameT]): IInDenizenEnvironmentT = {
     vassertSome(functionNameToInnerEnv.get(name))

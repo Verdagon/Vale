@@ -925,7 +925,7 @@ class Compiler(
                       val exportPlaceholderedStruct =
                         structCompiler.resolveStruct(
                           coutputs, exportEnv, List(structA.range), LocationInDenizen(Vector()), templata, Vector()) match {
-                          case ResolveSuccess(kind) => kind
+                          case ResolveSuccess(kind, _) => kind
                           case ResolveFailure(range, reason) => {
                             throw CompileErrorExceptionT(TypingPassResolvingError(range, reason))
                           }
@@ -972,7 +972,7 @@ class Compiler(
                       val exportPlaceholderedKind =
                         structCompiler.resolveInterface(
                           coutputs, exportEnv, List(interfaceA.range), LocationInDenizen(Vector()), templata, Vector()) match {
-                          case ResolveSuccess(kind) => kind
+                          case ResolveSuccess(kind, _) => kind
                           case ResolveFailure(range, reason) => {
                             throw CompileErrorExceptionT(TypingPassResolvingError(range, reason))
                           }
@@ -1155,6 +1155,7 @@ class Compiler(
                         ExportEnvironmentT(
                           globalEnv, packageEnv, templateId, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
 
+                      // DO NOT SUBMIT put back in
                       val exportPlaceholderedPrototype =
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
                           coutputs, List(functionA.range), LocationInDenizen(Vector()), exportEnv, templata, Vector(), regionPlaceholder, Vector()) match {
@@ -1315,7 +1316,7 @@ class Compiler(
 //        })
 
         // DO NOT SUBMIT put back in
-        // ensureDeepExports(coutputs)
+         ensureDeepExports(coutputs)
 
         val (
           reachableInterfaces,

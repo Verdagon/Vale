@@ -79,7 +79,7 @@ class FunctionCompilerSolvingLayer(
         function.runeToType,
         callRange,
         callLocation,
-        assembleKnownTemplatas(function, explicitTemplateArgs),
+        assembleKnownTemplatas(coutputs, vimpl(), function, explicitTemplateArgs),
         initialSends,
         Vector()
       ) match {
@@ -148,7 +148,7 @@ class FunctionCompilerSolvingLayer(
         function.runeToType,
         callRange,
         callLocation,
-        assembleKnownTemplatas(function, alreadySpecifiedTemplateArgs),
+        assembleKnownTemplatas(coutputs, declaringEnv, function, alreadySpecifiedTemplateArgs),
         initialSends,
         Vector()
       ) match {
@@ -212,7 +212,7 @@ class FunctionCompilerSolvingLayer(
         function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
-    val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
+    val initialKnowns = assembleKnownTemplatas(coutputs, nearEnv, function, explicitTemplateArgs)
     val CompleteDefineSolve(inferences, instantiationBoundParams) =
     // We could probably just solveForResolving (see DBDAR) but seems more future-proof to solveForDefining.
       inferCompiler.solveForDefining(
@@ -260,9 +260,51 @@ class FunctionCompilerSolvingLayer(
   }
 
   private def assembleKnownTemplatas(
+    coutputs: CompilerOutputs,
+    rangeS: RangeS,
+    id: IdT[INameT]):
+  Vector[InitialKnown] = {
+    (id.initNonPackageId() match {
+      case None => Vector()
+      case Some(initId) => {
+        assembleKnownTemplatas(coutputs, rangeS, initId)
+      }
+    }) ++
+    (id match {
+      case IdT(packageCoord, initSteps, PackageTopLevelNameT()) => Vector()
+      case IdT(packageCoord, initSteps, t: ITemplateNameT) => Vector()
+      case IdT(packageCoord, initSteps, n @ StructNameT(_, templateArgs)) => {
+        val structDef = coutputs.lookupStruct(IdT(packageCoord, initSteps, n))
+        structDef.instantiatedCitizen.id.localName.templateArgs.zip(templateArgs).map({
+          case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,rune)))))), arg) => {
+            InitialKnown(RuneUsage(rangeS, rune), arg)
+          }
+          case (genericParam, explicitArg) => {
+            vimpl()
+//            InitialKnown(genericParam.rune, explicitArg)
+          }
+        })
+      }
+      case IdT(packageCoord, initSteps, n@FunctionNameT(_, templateArgs, _)) => {
+        Vector() // DO NOT SUBMIT wouldnt this help for lambdas?
+      }
+      case IdT(_, _, LambdaCallFunctionNameT(_, _, _)) => {
+        Vector() // DO NOT SUBMIT wouldnt this help for lambdas?
+      }
+      case other => vimpl(other)
+    })
+  }
+
+  private def assembleKnownTemplatas(
+    coutputs: CompilerOutputs,
+    outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]]):
   Vector[InitialKnown] = {
+    // DO NOT SUBMIT doc and show example
+
+    assembleKnownTemplatas(coutputs, function.range, outerEnv.id.initId(interner)) ++
+    // I think these can be different lengths, and I'd imagine that'd be fine. DO NOT SUBMIT
     function.genericParameters.zip(explicitTemplateArgs).map({
       case (genericParam, explicitArg) => {
         InitialKnown(genericParam.rune, explicitArg)
@@ -351,7 +393,7 @@ class FunctionCompilerSolvingLayer(
     val rules = callSiteRules
     val runeToType = function.runeToType
     val invocationRange = callRange
-    val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
+    val initialKnowns = assembleKnownTemplatas(coutputs, outerEnv, function, explicitTemplateArgs)
     val includeReachableBoundsForRunes =
       function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)
 
@@ -552,10 +594,14 @@ class FunctionCompilerSolvingLayer(
     val paramAndReturnRunes =
       (function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)).distinct.toVector
 
+    // This is to add stuff from a parent struct DO NOT SUBMIT explain better
+    // Note how its not feeding in any local things yet, those are incrementally added below.
+    val initialKnowns = assembleKnownTemplatas(coutputs, nearEnv, function, Vector())
+
     val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT(DefaultRegionT))
     val solver =
       inferCompiler.makeSolver(
-        envs, coutputs, definitionRules, function.runeToType, range, Vector(), Vector())
+        envs, coutputs, definitionRules, function.runeToType, range, initialKnowns, Vector())
     // Incrementally solve and add placeholders, see IRAGP.
     inferCompiler.incrementallySolve(
       envs, coutputs, solver,

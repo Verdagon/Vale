@@ -103,6 +103,7 @@ class StructConstructorMacro(
         params,
         Some(retRune),
         rules.toVector,
+        true,
         GeneratedBodyS(generatorId))
 
     Vector(

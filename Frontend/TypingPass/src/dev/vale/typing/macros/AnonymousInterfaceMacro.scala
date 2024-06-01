@@ -385,7 +385,8 @@ class AnonymousInterfaceMacro(
       rulesBuilder.buildArray(),
       Map(),
       Vector(),
-      members)
+      members,
+      Vector())
   }
 
   private def makeForwarderFunction(
@@ -396,7 +397,7 @@ class AnonymousInterfaceMacro(
     methodIndex: Int):
   FunctionA = {
     val structType = struct.tyype
-    val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, body) = method
+    val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, lift, body) = method
 
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
     val genericParams =
@@ -541,6 +542,7 @@ class AnonymousInterfaceMacro(
       newParams,
       Some(inheritedReturnRune),
       rules.buildArray().toVector,
+      lift,
       CodeBodyS(
         BodySE(
           methodRange,

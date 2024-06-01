@@ -727,14 +727,14 @@ class InferCompiler(
       }
       case it @ StructDefinitionTemplataT(_, _) => {
         delegate.resolveStruct(callingEnv, state, range :: ranges, callLocation, it, args.toVector) match {
-          case ResolveSuccess(kind) => kind
+          case ResolveSuccess(kind, _) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
         }
         Ok(())
       }
       case it @ InterfaceDefinitionTemplataT(_, _) => {
         delegate.resolveInterface(callingEnv, state, range :: ranges, callLocation, it, args.toVector) match {
-          case ResolveSuccess(kind) => kind
+          case ResolveSuccess(kind, _) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
         }
         Ok(())

@@ -152,6 +152,9 @@ object RegionCollapserIndividual {
       case n : IFunctionNameI[_] => collapseFunctionName(n.asInstanceOf[IFunctionNameI[sI]])
       case x : IFunctionTemplateNameI[_] => collapseFunctionTemplateName(x.asInstanceOf[IFunctionTemplateNameI[sI]])
       case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
+      case s @ StructNameI(_,_) => {
+        collapseStructName(s)
+      }
       case x @ LambdaCitizenNameI(_) => collapseStructName(x)
       case LambdaCitizenTemplateNameI(codeLocation) => LambdaCitizenTemplateNameI(codeLocation)
       case n @ LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocation, paramTypes), templateArgs, parameters) => collapseFunctionName(n)

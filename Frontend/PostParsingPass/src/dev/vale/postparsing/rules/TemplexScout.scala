@@ -163,7 +163,9 @@ class TemplexScout(
                   rangeS,
                   resultRuneS,
                   translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, template),
-                  args.map(translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, _)))
+                  args.map(arg => {
+                    translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, arg)
+                  }))
               resultRuneS
             }
             case FunctionPT(rangeP, mutability, paramsPack, returnType) => {

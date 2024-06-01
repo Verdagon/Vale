@@ -350,6 +350,8 @@ class Instantiator(
   def translateExportName(
     denizenName: IdT[IInstantiationNameT],
     denizenBoundToDenizenCallerSuppliedThing: DenizenBoundToDenizenCallerBoundArgS,
+      // DO NOT SUBMIT mention everywhere a link to a doc that explains the purpose of the
+      // outer map with a few examples
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     exportNameT: ExportNameT):

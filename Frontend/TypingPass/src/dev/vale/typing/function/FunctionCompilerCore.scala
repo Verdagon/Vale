@@ -65,7 +65,7 @@ class FunctionCompilerCore(
   // - already spawned local env
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
-  def evaluateFunctionForHeader(
+  def compileFunctionForHeader(
     fullEnv: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
@@ -131,11 +131,11 @@ class FunctionCompilerCore(
               val header =
                 finalizeHeader(fullEnv, coutputs, attributesT, params2, returnCoord)
 
-              coutputs.deferEvaluatingFunctionBody(
+              coutputs.deferCompilingFunctionBody(
                 DeferredEvaluatingFunctionBody(
                   header.toPrototype,
                   (coutputs) => {
-                    finishFunctionMaybeDeferred(
+                    finishCompilingFunctionMaybeDeferred(
                       coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, Some(returnCoord), instantiationBoundParams)
                   }))
 
@@ -143,7 +143,7 @@ class FunctionCompilerCore(
             }
             case None => {
               val header =
-                finishFunctionMaybeDeferred(
+                finishCompilingFunctionMaybeDeferred(
                   coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, None, instantiationBoundParams)
               (header)
             }
@@ -286,7 +286,7 @@ class FunctionCompilerCore(
   }
 
   // By MaybeDeferred we mean that this function might be called later, to reduce reentrancy.
-  private def finishFunctionMaybeDeferred(
+  private def finishCompilingFunctionMaybeDeferred(
       coutputs: CompilerOutputs,
       fullEnvSnapshot: FunctionEnvironmentT,
       callRange: List[RangeS],
@@ -367,7 +367,7 @@ class FunctionCompilerCore(
             returnType2,
             maybeOrigin)
 
-        val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, templateParams, params)))
+        val externFunctionId = IdT(env.id.packageCoord, env.id.initSteps, interner.intern(ExternFunctionNameT(humanName, templateParams, params)))
         val externPrototype = PrototypeT[ExternFunctionNameT](externFunctionId, header.returnType)
         ////                      coutputs.addInstantiationBounds(
         ////                        opts.globalOptions.sanityCheck,

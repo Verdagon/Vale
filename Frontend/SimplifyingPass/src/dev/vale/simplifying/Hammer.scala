@@ -176,37 +176,42 @@ class Hammer(interner: Interner, keywords: Keywords) {
     val IdI(packageCoord, initSteps, localName) = id
     (localName match {
       case FunctionNameIX(FunctionTemplateNameI(humanName, _), templateArgs, _) => {
-        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
         packageCoord.packages.map(_.str + "_").mkString("") +
-        initSteps.map(mangleName).map(_ + "_").mkString("") +
+        initSteps.map(mangleName(_, true)).mkString("") +
         humanName.str +
+        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
         templateArgs.map("__" + mangleTemplata(_)).mkString("")
       }
       case ExternFunctionNameI(humanName, templateArgs, _) => {
-        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
         packageCoord.packages.map(_.str + "_").mkString("") +
-        initSteps.map(mangleName).map(_ + "_").mkString("") +
+        initSteps.map(mangleName(_, true)).mkString("") +
         humanName.str +
+        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
         templateArgs.map("__" + mangleTemplata(_)).mkString("")
       }
       case other => vimpl(other)
     })
   }
 
-  def mangleName(name: INameI[cI]): String = {
+  def mangleName(name: INameI[cI], stuffAfter: Boolean): String = {
     name match {
+      case StructNameI(StructTemplateNameI(humanName),templateArgs) => {
+        humanName.str +
+        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
+        templateArgs.map("__" + mangleTemplata(_)).mkString("") +
+        (if (stuffAfter) "__" else "")
+      }
       case other => vimpl(other)
     }
   }
 
   def mangleStruct(id: IdI[cI, IStructNameI[cI]]): String = {
     val IdI(packageCoord, initSteps, localName) = id
-    localName match {
-      case StructNameI(StructTemplateNameI(humanName), templateArgs) => {
-        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
-        humanName.str +
-        templateArgs.map("__" + mangleTemplata(_)).mkString("")
-      }
+    mangleName(localName, false)
+//    localName match {
+//      case s @ StructNameI(StructTemplateNameI(humanName), templateArgs) => {
+//
+//      }
 //      case FunctionNameIX(FunctionTemplateNameI(humanName, _), templateArgs, _) => {
 //        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
 //        humanName.str +
@@ -217,8 +222,8 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //        humanName.str +
 //        templateArgs.map("__" + mangleTemplata(_)).mkString("")
 //      }
-      case other => vimpl(other)
-    }
+//      case other => vimpl(other)
+//    }
   }
 
   def mangleKind(kind: KindIT[cI]): String = {

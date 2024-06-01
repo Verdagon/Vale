@@ -839,7 +839,17 @@ class CompilerRuleSolver(
         Ok(())
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        // This rule does nothing, it was actually preprocessed.
+//        // This rule does nothing, it was actually preprocessed.
+//        // DO NOT SUBMIT reference this example
+//        // Note from later: I don't think it was?
+//        // But maybe we should preprocess it?
+//        val result =
+//          vassertSome(
+//            env.originalCallingEnv.lookupNearestWithImpreciseName(
+//              interner.intern(RuneNameS(rune.rune)),
+//              Set(TemplataLookupContext)))
+//        stepState.concludeRune[ITypingPassSolverError](
+//          range :: env.parentRanges, rune.rune, result)
         Ok(())
       }
       case AugmentSR(range, outerCoordRune, maybeAugmentOwnership, innerRune) => {

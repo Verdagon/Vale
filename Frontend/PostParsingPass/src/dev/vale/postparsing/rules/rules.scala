@@ -216,6 +216,12 @@ case class MaybeCoercingCallSR(
   templateRune: RuneUsage,
   args: Vector[RuneUsage]
 ) extends IRulexSR {
+  this match {
+    case MaybeCoercingCallSR(_,RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 1)))),RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 2, 1, 1)))),Vector(RuneUsage(_,CodeRuneS(StrI("T"))))) => {
+      vpass()
+    }
+    case _ =>
+  }
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Vector[RuneUsage] = Vector(resultRune, templateRune) ++ args
 }
@@ -226,6 +232,13 @@ case class CallSR(
   templateRune: RuneUsage,
   args: Vector[RuneUsage]
 ) extends IRulexSR {
+  this match {
+    case CallSR(_,RuneUsage(_,ImplicitCoercionKindRuneS(_,ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 1))))),RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(2, 1, 1, 2, 1, 1)))),Vector(RuneUsage(_,CodeRuneS(StrI("T"))))) => {
+      vpass()
+    }
+    case _ =>
+  }
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Vector[RuneUsage] = Vector(resultRune, templateRune) ++ args
 }

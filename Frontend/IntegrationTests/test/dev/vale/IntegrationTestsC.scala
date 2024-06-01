@@ -386,4 +386,21 @@ class IntegrationTestsC extends FunSuite with Matchers {
       case VonInt(8) =>
     }
   }
+
+  test("Call member function") {
+    val compile = RunCompilation.test(
+      """
+        |struct Vec<T> {
+        |  hp int;
+        |  func new() Vec<T> { Vec<T>(42) }
+        |}
+        |exported func main() int {
+        |  v = Vec<int>.new();
+        |  return v.hp;
+        |}
+        |""".stripMargin)
+    compile.evalForKind(Vector()) match {
+      case VonInt(42) =>
+    }
+  }
 }

@@ -84,7 +84,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val CodeBodyS(BodySE(_, _, block)) = main.body
     val ret = Collector.only(block.expr, { case x @ ReturnSE(_, _) => x })
     val call = Collector.only(ret.inner, { case x @ FunctionCallSE(_, _, _, _) => x })
-    Collector.only(call.callableExpr, { case x @ OutsideLoadSE(_, _, CodeNameS(StrI("+")), _) => x })
+    Collector.only(call.callableExpr, { case x @ OutsideLoadSE(_, _, _, CodeNameS(StrI("+")), _, _) => x })
   }
 
   test("Struct") {
@@ -117,7 +117,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val CodeBodyS(BodySE(_, _, BlockSE(_, _, expr))) = program1.lookupFunction("main").body
     val lambda =
       Collector.only(expr, {
-        case ReturnSE(_, FunctionCallSE(_, _, OwnershippedSE(_, FunctionSE(lambda@FunctionS(_, _, _, _, _, _, _, _, _, _)), LoadAsBorrowP), _)) => lambda
+        case ReturnSE(_, FunctionCallSE(_, _, OwnershippedSE(_, FunctionSE(lambda@FunctionS(_, _, _, _, _, _, _, _, _, _, _)), LoadAsBorrowP), _)) => lambda
       })
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.genericParams match {
@@ -180,7 +180,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     val ret = Collector.only(block, { case r @ ReturnSE(_, _) => r })
-    Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, CodeNameS(StrI("shout")), _), Vector(ConstantBoolSE(_,true))) => })
+    Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, _, CodeNameS(StrI("shout")), _, _), Vector(ConstantBoolSE(_,true))) => })
 //    { case ReturnSE(_,FunctionCallSE(_,_,Vector()) => }
   }
 
@@ -190,7 +190,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     val ret = Collector.only(block, { case r @ ReturnSE(_, _) => r })
-    Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, CodeNameS(StrI("shout")), _), Vector(LocalLoadSE(_,CodeVarNameS(StrI("x")), UseP))) => })
+    Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, _, CodeNameS(StrI("shout")),_,  _), Vector(LocalLoadSE(_,CodeVarNameS(StrI("x")), UseP))) => })
   }
 
   vregionmut() // Put this back in with regions
@@ -277,7 +277,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     })
     Collector.only(exprs, {
       case FunctionCallSE(_, _,
-        OutsideLoadSE(_, _, CodeNameS(StrI("MyStruct")), _),
+        OutsideLoadSE(_, _, _, CodeNameS(StrI("MyStruct")), _, _),
         Vector(
           LocalLoadSE(_, ConstructingMemberNameS(StrI("x")), UseP),
           LocalLoadSE(_, ConstructingMemberNameS(StrI("y")), UseP))) =>
@@ -338,7 +338,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     Collector.only(block,
-      { case ReturnSE(_, DotSE(_,OutsideLoadSE(_,_,CodeNameS(StrI("moo")),LoadAsBorrowP),StrI("x"),true)) => })
+      { case ReturnSE(_, DotSE(_,OutsideLoadSE(_,_,_, CodeNameS(StrI("moo")),_, LoadAsBorrowP),StrI("x"),true)) => })
 
   }
 
@@ -352,7 +352,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     Collector.only(block, {
-      case ReturnSE(_, OwnershippedSE(_, DotSE(_,OutsideLoadSE(_,_,CodeNameS(StrI("moo")),LoadAsBorrowP),x,true),LoadAsBorrowP)) =>
+      case ReturnSE(_, OwnershippedSE(_, DotSE(_,OutsideLoadSE(_,_,_, CodeNameS(StrI("moo")),_, LoadAsBorrowP),x,true),LoadAsBorrowP)) =>
     })
   }
 
@@ -383,7 +383,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     })
     Collector.only(block, {
       case FunctionCallSE(_, _,
-        OutsideLoadSE(_, _, CodeNameS(StrI("MyStruct")), _),
+        OutsideLoadSE(_, _, _, CodeNameS(StrI("MyStruct")), _, _),
         Vector(
         LocalLoadSE(_, ConstructingMemberNameS(StrI("x")), UseP),
         LocalLoadSE(_, ConstructingMemberNameS(StrI("y")), UseP))) =>
@@ -414,13 +414,13 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     body.block shouldHave {
       case LetSE(_,_,
         AtomSP(_,Some(CaptureS(IterableNameS(_), false)),None,None),
-        OutsideLoadSE(_,_,CodeNameS(StrI("myList")),UseP)) =>
+        OutsideLoadSE(_,_,_, CodeNameS(StrI("myList")),_, UseP)) =>
     }
     body.block shouldHave {
       case LetSE(_,_,
         AtomSP(_,Some(CaptureS(IteratorNameS(_), false)),None,None),
         FunctionCallSE(_,_,
-          OutsideLoadSE(_,_,CodeNameS(StrI("begin")),LoadAsBorrowP),
+          OutsideLoadSE(_,_,_, CodeNameS(StrI("begin")),_, LoadAsBorrowP),
           Vector(LocalLoadSE(_,IterableNameS(_),LoadAsBorrowP)))) =>
     }
     body.block shouldHave {
@@ -430,13 +430,13 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case LetSE(_,_,
         AtomSP(_,Some(CaptureS(IterationOptionNameS(_), false)),None,None),
         FunctionCallSE(_,_,
-          OutsideLoadSE(_,_,CodeNameS(StrI("next")),LoadAsBorrowP),
+          OutsideLoadSE(_,_,_, CodeNameS(StrI("next")),_, LoadAsBorrowP),
           Vector(
             LocalLoadSE(_,IteratorNameS(_),LoadAsBorrowP)))) =>
     }
     body.block shouldHave {
       case FunctionCallSE(_,_,
-        OutsideLoadSE(_,_,CodeNameS(StrI("isEmpty")),_),
+        OutsideLoadSE(_,_,_, CodeNameS(StrI("isEmpty")),_, _),
         Vector(
           LocalLoadSE(_,IterationOptionNameS(_),LoadAsBorrowP))) =>
     }
@@ -447,7 +447,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case LetSE(_,_,
         AtomSP(_,Some(CaptureS(CodeVarNameS(StrI("i")), false)),None,None),
         FunctionCallSE(_,_,
-          OutsideLoadSE(_,_,CodeNameS(StrI("get")),LoadAsBorrowP),
+          OutsideLoadSE(_,_,_, CodeNameS(StrI("get")),_, LoadAsBorrowP),
           Vector(LocalLoadSE(_,IterationOptionNameS(_),UseP)))) =>
     }
     body.block shouldHave {
@@ -464,7 +464,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val main = program1.lookupFunction("moo")
     Collector.only(main.body, {
       case FunctionCallSE(_,_,
-        OutsideLoadSE(_, _, CodeNameS(StrI("println")), _),
+        OutsideLoadSE(_, _, _, CodeNameS(StrI("println")), _, _),
         Vector(DotSE(_, LocalLoadSE(_, CodeVarNameS(StrI("self")), LoadAsBorrowP), StrI("x"), true))) =>
     })
     Collector.all(main.body, { case FunctionCallSE(_, _, _, _) => }).size shouldEqual 1

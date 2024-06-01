@@ -496,7 +496,11 @@ class ExpressionCompiler(
           val funcGroup =
             maybeContainerTemplateRulesAndArgRunes match {
               case None => {
-                vimpl()
+                newGlobalFunctionGroupExpression(
+                  nenv.snapshot,
+                  // i suppose this can instead take on the region of whatever's expected?
+                  nenv.defaultRegion,
+                  funcName)
               }
               case Some((firstRulesWithImplicitlyCoercingLookupsS, containerResultRune)) => {
 
@@ -540,10 +544,10 @@ class ExpressionCompiler(
                 }
                 val rulesA = ruleBuilder.toVector
 
-                val CompleteDefineSolve(templatasByRune, _) =
+                val CompleteResolveSolve(templatasByRune, _) =
                 // We could probably just solveForResolving (see DBDAR) but seems right to solveForDefining since we're
                 // declaring a bunch of things.
-                  inferCompiler.solveForDefining(
+                  inferCompiler.solveForResolving(
                     InferEnv(nenv.snapshot, parentRanges, callLocation, nenv.snapshot, nenv.defaultRegion),
                     coutputs,
                     rulesA,
@@ -551,9 +555,8 @@ class ExpressionCompiler(
                     range :: parentRanges,
                     callLocation,
                     Vector(),
-                    Vector(),
                     Vector()) match {
-                    case Err(f) => throw CompileErrorExceptionT(TypingPassDefiningError(range :: parentRanges, f))
+                    case Err(f) => throw CompileErrorExceptionT(TypingPassResolvingError(range :: parentRanges, f))
                     case Ok(c) => c
                   }
 
@@ -586,10 +589,41 @@ class ExpressionCompiler(
                     case KindTemplataT(StructTT(id)) => id
                     case _ => vfail() // DO NOT SUBMIT
                   }
-                val structEnv =
-                  coutputs.getInnerEnvForType(TemplataCompiler.getStructTemplate(structId))
+                // One would think we'd grab the inner env, so that we can know what its templatas are.
+                // For example, if we have:
+                //   struct Vec<T> {
+                //     func new() Vec<T> { }
+                //   }
+                //   exported func main() {
+                //     v = Vec<int>.new();
+                //   }
+                // we'll be here for that `Vec<int>.new()` call.
+                // And one would think we'd want to grab the Vec<int>'s inner env so that we can resolve the `new`
+                // function from the env that already has T = int.
+                // HOWEVER, that's not how it works. The inner env does have a T... but it's a placeholder, not int.
+                // We still want the outer env though, so we can find that `new` function.
+                // DO NOT SUBMIT document?
+
+//                val structTemplateId = TemplataCompiler.getStructTemplate(structId)
+                val structResolvedEnv = coutputs.getResolvedEnvForType(structId)
+//                val structOuterEnv =
+//                  coutputs.getOuterEnvForType(range :: parentRanges, structTemplateId)
+
+//
+//                val patchedStructOuterEnv =
+//                  CitizenEnvironmentT(
+//                    structOuterEnv.globalEnv,
+//                    structOuterEnv,
+//                    structTemplateId,
+//                    structId,
+//                    TemplatasStore(structId, Map(), Map())
+//                      .addEntries(
+//                        interner,
+//                        templatasByRune.toVector
+//                          .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+
                 newGlobalFunctionGroupExpression(
-                  structEnv,
+                  structResolvedEnv,
                   // i suppose this can instead take on the region of whatever's expected?
                   nenv.defaultRegion,
                   funcName)
@@ -960,7 +994,7 @@ class ExpressionCompiler(
 
           (expr2, returnsFromContainerExpr)
         }
-        case FunctionSE(functionS @ FunctionS(range, name, _, _, _, _, _, _, _, _)) => {
+        case FunctionSE(functionS @ FunctionS(range, name, _, _, _, _, _, _, _, _, _)) => {
           val callExpr2 = evaluateClosure(coutputs, nenv, range :: parentRanges, outerCallLocation, region, name, functionS)
           (callExpr2, Set())
         }
@@ -1955,26 +1989,26 @@ class ExpressionCompiler(
     parentRanges: List[RangeS],
     functionS: FunctionS):
   FunctionA = {
-    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, bodyS) = functionS
+    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, lift, bodyS) = functionS
 
-    def lookupType(x: IImpreciseNameS) = {
-      x match {
-        // This is here because if we tried to look up this lambda struct, it wouldn't exist yet.
-        // It's not an insurmountable problem, it will exist slightly later when we're inside StructCompiler,
-        // but this workaround makes for a cleaner separation between FunctionCompiler and StructCompiler
-        // at least for now.
-        // If this proves irksome, consider rearranging FunctionCompiler and StructCompiler's steps in
-        // evaluating lambdas.
-        case LambdaStructImpreciseNameS(_) => {
-          // Lambdas look up their struct as a KindTemplata in their environment, they dont look up
-          // the origin template by name. Not sure why.
-          KindTemplataType()
-        }
-        case n => {
-          vassertSome(nenv.lookupNearestWithImpreciseName(n, Set(TemplataLookupContext))).tyype
-        }
-      }
-    }
+//    def lookupType(x: IImpreciseNameS) = {
+//      x match {
+//        // This is here because if we tried to look up this lambda struct, it wouldn't exist yet.
+//        // It's not an insurmountable problem, it will exist slightly later when we're inside StructCompiler,
+//        // but this workaround makes for a cleaner separation between FunctionCompiler and StructCompiler
+//        // at least for now.
+//        // If this proves irksome, consider rearranging FunctionCompiler and StructCompiler's steps in
+//        // evaluating lambdas.
+//        case LambdaStructImpreciseNameS(_) => {
+//          // Lambdas look up their struct as a KindTemplata in their environment, they dont look up
+//          // the origin template by name. Not sure why.
+//          KindTemplataType()
+//        }
+//        case n => {
+//          vassertSome(nenv.lookupNearestWithImpreciseName(n, Set(TemplataLookupContext))).tyype
+//        }
+//      }
+//    }
 
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
@@ -2016,6 +2050,7 @@ class ExpressionCompiler(
       paramsS,
       maybeRetCoordRune,
       ruleBuilder.toVector,
+      lift,
       bodyS)
   }
 

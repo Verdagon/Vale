@@ -100,6 +100,7 @@ class InterfaceDropMacro(
               Some(use(-64002, selfCoordRune)), None))),
         Some(use(-64002, voidCoordRune)),
         rules.buildArray().toVector,
+        true,
         AbstractBodyS)
 
     Vector(

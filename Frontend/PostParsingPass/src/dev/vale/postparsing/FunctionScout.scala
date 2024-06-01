@@ -24,7 +24,8 @@ sealed trait IFunctionParent
 
 case class FunctionNoParent() extends IFunctionParent
 
-case class ParentInterface(
+case class ParentCitizen(
+  isInterface: Boolean,
   interfaceEnv: EnvironmentS,
   interfaceGenericParams: Vector[GenericParameterS],
   interfaceRules: Vector[IRulexSR],
@@ -73,7 +74,7 @@ class FunctionScout(
 
     maybeParent match {
       case FunctionNoParent() =>
-      case ParentInterface(_, _, _, _) =>
+      case ParentCitizen(_, _, _, _, _) =>
       case ParentFunction(_) => {
         vcurious(maybeGenericParametersP.isEmpty)
       }
@@ -81,7 +82,7 @@ class FunctionScout(
 
     val funcName =
       maybeParent match {
-        case FunctionNoParent() | ParentInterface(_, _, _, _) => {
+        case FunctionNoParent() | ParentCitizen(_, _, _, _, _) => {
           val NameP(_, codeName) = vassertSome(maybeName)
           interner.intern(FunctionNameS(codeName, codeLocation))
         }
@@ -111,7 +112,7 @@ class FunctionScout(
     val userDeclaredRunes = (userSpecifiedIdentifyingRunes ++ userRunesFromRules).distinct
 
     maybeParent match {
-      case ParentInterface(_, _, _, _) => vassert(userDeclaredRunes.isEmpty)
+      case ParentCitizen(_, _, _, _, _) => vassert(userDeclaredRunes.isEmpty)
       case _ =>
     }
 
@@ -120,12 +121,14 @@ class FunctionScout(
     maybeParent match {
       case FunctionNoParent() =>
       case ParentFunction(_) =>
-      case ParentInterface(_, _, _, _) => {
-        maybeParamsP match {
-          case None =>
-          case Some(paramsP) => {
-            if (!paramsP.params.exists(_.virtuality match { case Some(AbstractP(_)) => true case _ => false })) {
-              throw CompileErrorExceptionS(InterfaceMethodNeedsSelf(rangeS))
+      case ParentCitizen(isInterface, _, _, _, _) => {
+        if (isInterface) {
+          maybeParamsP match {
+            case None =>
+            case Some(paramsP) => {
+              if (!paramsP.params.exists(_.virtuality match { case Some(AbstractP(_)) => true case _ => false })) {
+                throw CompileErrorExceptionS(InterfaceMethodNeedsSelf(rangeS))
+              }
             }
           }
         }
@@ -136,13 +139,13 @@ class FunctionScout(
       maybeParent match {
         case FunctionNoParent() => None
         case ParentFunction(parentStackFrame) => Some(parentStackFrame.parentEnv)
-        case ParentInterface(interfaceEnv, _, _, _) => Some(interfaceEnv)
+        case ParentCitizen(_, interfaceEnv, _, _, _) => Some(interfaceEnv)
       }
     val isInterfaceInternalMethod =
       maybeParent match {
         case FunctionNoParent() => false
         case ParentFunction(parentStackFrame) => false
-        case ParentInterface(_, _, _, _) => true
+        case ParentCitizen(_, _, _, _, _) => true
       }
     val functionEnv =
       postparsing.FunctionEnvironmentS(
@@ -194,7 +197,7 @@ class FunctionScout(
       case ParentFunction(_) => {
         vassert(templateRulesP.isEmpty)
       }
-      case ParentInterface(interfaceEnv, _, interfaceRules, interfaceRuneToExplicitType) => {
+      case ParentCitizen(_, interfaceEnv, _, interfaceRules, interfaceRuneToExplicitType) => {
         // ruleBuilder ++= interfaceRules
         // runeToExplicitType ++= interfaceRuneToExplicitType
         ruleScout.translateRulexes(
@@ -228,7 +231,7 @@ class FunctionScout(
     val paramsP =
       maybeParamsP.toVector.flatMap(_.params).map(param => {
         maybeParent match {
-          case FunctionNoParent() | ParentInterface(_, _, _, _) => {
+          case FunctionNoParent() | ParentCitizen(_, _, _, _, _) => {
             // Should have been caught by LightFunctionMustHaveParamTypes error in parser,
             vassert(vassertSome(param.pattern).templex.nonEmpty)
           }
@@ -286,6 +289,7 @@ class FunctionScout(
 //    val explicitParamsS = explicitParamPatternsAndIdentifyingRunes.map(_._1).map(ParameterS)
 //    val identifyingRunesFromExplicitParams = explicitParamPatternsAndIdentifyingRunes.flatMap(_._2)
 
+
     // Only if the function actually has a body
     val maybeCaptureDeclarations =
       maybeBody0 match {
@@ -294,7 +298,7 @@ class FunctionScout(
           val firstParams =
             maybeParent match {
               case FunctionNoParent() => noDeclarations
-              case ParentInterface(_, _, _, _) => noDeclarations
+              case ParentCitizen(_, _, _, _, _) => noDeclarations
               case ParentFunction(_) => {
                 // Every lambda has a closure as its first arg, even if its empty
                 val closureParamName = interner.intern(ClosureParamNameS(rangeS.begin))
@@ -320,7 +324,7 @@ class FunctionScout(
             case ParentFunction(_) => {
               None // Infer the return
             }
-            case FunctionNoParent() | ParentInterface(_, _, _, _) => {
+            case FunctionNoParent() | ParentCitizen(_, _, _, _, _) => {
               // If nothing's present, assume void
               val rangeS = PostParser.evalRange(file, retRange)
               val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
@@ -335,11 +339,12 @@ class FunctionScout(
         }
         case Some(retTypePT) => {
           templexScout.translateMaybeTypeIntoMaybeRune(
-            maybeParent match {
-              case FunctionNoParent() => functionEnv
-              case ParentFunction(_) => functionEnv
-              case ParentInterface(interfaceEnv, _, _, _) => interfaceEnv
-            },
+            functionEnv, // DO NOT SUBMIT we need this here because otherwise we cant tell whats a parent rune and whats a local rune... explain this better
+//            maybeParent match {
+//              case FunctionNoParent() => functionEnv
+//              case ParentFunction(_) => functionEnv
+//              case ParentCitizen(_, interfaceEnv, _, _, _) => interfaceEnv
+//            },
             lidb.child(),
             PostParser.evalRange(myStackFrameWithoutParams.file, retRange),
             ruleBuilder,
@@ -354,7 +359,7 @@ class FunctionScout(
     maybeParent match {
       case FunctionNoParent() =>
       case ParentFunction(_) =>
-      case ParentInterface(_, _, _, _) => {
+      case ParentCitizen(_, _, _, _, _) => {
         if (attrsP.collect({ case AbstractAttributeP(_) => true }).nonEmpty) {
           throw CompileErrorExceptionS(
             RangedInternalErrorS(rangeS, "Dont need abstract here"))
@@ -366,11 +371,11 @@ class FunctionScout(
       (maybeParent match {
         case FunctionNoParent() => Vector()
         case ParentFunction(_) => Vector()
-        case ParentInterface(_, interfaceGenericParams, _, _) => interfaceGenericParams
+        case ParentCitizen(_, _, interfaceGenericParams, _, _) => interfaceGenericParams
       })
 
     val (maybeBody1, variableUses, extraGenericParamsFromBodyS, maybeClosureParam, magicParams) =
-      if (maybeParent match { case ParentInterface(_, _, _, _) => true case _ => false }) {
+      if (maybeParent match { case ParentCitizen(true, _, _, _, _) => true case _ => false }) {
         val bodyS = AbstractBodyS
         (bodyS, noVariableUses, Vector(), None, Vector())
       } else if (attrsP.collectFirst({ case AbstractAttributeP(_) => }).nonEmpty) {
@@ -400,7 +405,7 @@ class FunctionScout(
 
         val parentStackFrame =
           maybeParent match {
-            case FunctionNoParent() | ParentInterface(_, _, _, _) => None
+            case FunctionNoParent() | ParentCitizen(_, _, _, _, _) => None
             case ParentFunction(parentStackFrame) => Some(parentStackFrame)
           }
         val (body1, variableUses, lambdaMagicParamNames) =
@@ -417,7 +422,7 @@ class FunctionScout(
 
         val (extraGenericParamsFromBodyS, maybeClosureParam, magicParams) =
           maybeParent match {
-            case FunctionNoParent() | ParentInterface(_, _, _, _) => {
+            case FunctionNoParent() | ParentCitizen(_, _, _, _, _) => {
               if (lambdaMagicParamNames.nonEmpty) {
                 throw CompileErrorExceptionS(postparsing.RangedInternalErrorS(rangeS, "Magic param (underscore) in a normal block!"))
               }
@@ -483,9 +488,32 @@ class FunctionScout(
 
     val totalParamsS = maybeClosureParam.toVector ++ explicitParamsS ++ magicParams;
 
+    // DO NOT SUBMIT explain all this
+    // DO NOT SUBMIT mention that we're making quite an assumption here.
+    val lift =
+        attrsP.collect({ case LiftableAttributeP(_) => }).nonEmpty ||
+        (maybeParent match {
+          case FunctionNoParent() => true // Free functions are lifted by default
+          case ParentFunction(parentStackFrame) => {
+            // Closures are lifted by default
+            // DO NOT SUBMIT thats weird
+            true
+          }
+          case ParentCitizen(isInterface, _, _, _, _) => {
+            if (isInterface) {
+              // Interface methods are lifted by default
+              true
+            } else {
+              // Struct methods aren't lifted by default, they need the keyword
+              false
+            }
+          }
+        })
+
     vregionmut() // Put back in regions
     val genericParametersS =
-      (extraGenericParamsFromParentS ++
+      (
+        (if (lift) extraGenericParamsFromParentS else Vector()) ++
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS)
           .filter({
@@ -507,9 +535,10 @@ class FunctionScout(
         case FunctionNoParent() => {
           unfilteredAttrsP.filter({ case AbstractAttributeP(_) => false case _ => true })
         }
-        case ParentInterface(_, _, _, _) => unfilteredAttrsP
+        case ParentCitizen(_, _, _, _, _) => unfilteredAttrsP
         case ParentFunction(_) => unfilteredAttrsP
       })
+          .filter({ case LiftableAttributeP(_) => false case _ => true })
         //.filter({ case AdditiveAttributeP(_) => false case _ => true })
 
     val funcAttrsS =
@@ -529,11 +558,16 @@ class FunctionScout(
       maybeParent match {
         case FunctionNoParent() => unfilteredRulesArray
         case ParentFunction(_) => unfilteredRulesArray
-        case ParentInterface(_, _, _, _) => {
-          unfilteredRulesArray.filter({
-            case RuneParentEnvLookupSR(_, _) => false
-            case _ => true
-          })
+        case ParentCitizen(isInterface, _, _, _, _) => {
+          if (isInterface) {
+            unfilteredRulesArray.filter({
+              case RuneParentEnvLookupSR(_, _) => false
+              case _ => true
+            })
+          } else {
+            // DO NOT SUBMIT investigate this inconsistency
+            unfilteredRulesArray
+          }
         }
       }
 
@@ -549,10 +583,11 @@ class FunctionScout(
           })
     vregionmut() // dont filter regions out
 
-    postParser.checkIdentifiability(
-      rangeS,
-      genericParametersS.map(_.rune.rune),
-      rulesArray)
+    // DO NOT SUBMIT
+//    postParser.checkIdentifiability(
+//      rangeS,
+//      genericParametersS.map(_.rune.rune),
+//      rulesArray)
 
     val tyype = TemplateTemplataType(genericParametersS.map(_.tyype.tyype), FunctionTemplataType())
 
@@ -567,6 +602,7 @@ class FunctionScout(
         totalParamsS,
         maybeRetCoordRune,
         rulesArray,
+        lift,
         maybeBody1)
     (functionS, variableUses)
   }
@@ -742,8 +778,9 @@ class FunctionScout(
     (bodySE, VariableUses(usesOfParentVariables), magicParamNames)
   }
 
+  // DO NOT SUBMIT rename
   def scoutInterfaceMember(
-    parentInterface: ParentInterface,
+    parentInterface: ParentCitizen,
     functionP: FunctionP):
   FunctionS = {
     val file = parentInterface.interfaceEnv.file

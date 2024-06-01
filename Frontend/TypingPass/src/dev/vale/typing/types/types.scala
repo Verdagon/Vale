@@ -237,4 +237,11 @@ case class OverloadSetT(
 // placeholder templata instead of needing this special kind.
 case class KindPlaceholderT(id: IdT[KindPlaceholderNameT]) extends ISubKindTT with ISuperKindTT {
   override def isPrimitive: Boolean = false
+
+//  this match {
+//    case KindPlaceholderT(IdT(PackageCoordinate(StrI(test),Vector()),Vector(StructTemplateNameT(StrI("Vec")), FunctionTemplateNameT(StrI("new"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))) => {
+//      vpass()
+//    }
+//    case _ =>
+//  }
 }
