@@ -1284,8 +1284,14 @@ class Instantiator(
     substitutions: Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]],
     perspectiveRegionT: RegionT,
     member: IStructMemberT):
-  (CoordI[sI], StructMemberI) = {
+  StructMemberI = {
     member match {
+      case OpaqueStructMemberT() => {
+        StructMemberI(
+          OpaqueMemberNameI(),
+          FinalI,
+          OpaqueMemberTypeI())
+      }
       case NormalStructMemberT(name, variability, tyype) => {
         val (memberSubjectiveIT, memberTypeI) =
           tyype match {
@@ -1312,7 +1318,7 @@ class Instantiator(
             RegionCollapserIndividual.collapseVarName(nameS),
             translateVariability(variability),
             memberTypeI)
-        (memberSubjectiveIT.coord, memberC)
+        memberC
       }
       case VariadicStructMemberT(name, tyype) => {
         vimpl()
@@ -1467,10 +1473,14 @@ class Instantiator(
             } else {
               if (opts.sanityCheck) {
                 val desiredFuncSuperTemplateName = TemplataCompiler.getSuperTemplate(desiredPrototypeT.id)
+                println("Looking for: " + desiredFuncSuperTemplateName) // DO NOT SUBMIT
                 val funcT =
                   vassertOne(
                     hinputs.functions
-                        .filter(funcT => TemplataCompiler.getSuperTemplate(funcT.header.id) == desiredFuncSuperTemplateName))
+                        .filter(funcT => {
+                          println("Candidate: " + TemplataCompiler.getSuperTemplate(funcT.header.id)) // DO NOT SUBMIT
+                          TemplataCompiler.getSuperTemplate(funcT.header.id) == desiredFuncSuperTemplateName
+                        }))
                 vassert(runeToBoundArgsForCall.runeToFunctionBoundArg.size == funcT.instantiationBoundParams.runeToBoundPrototype.size)
                 vassert(
                   runeToBoundArgsForCall.callerRuneToCalleeRuneToReachableFunc.count(_._2.nonEmpty) ==
@@ -1619,7 +1629,7 @@ class Instantiator(
         weakable,
         mutability,
         members.map(memberT => {
-          translateStructMember(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, memberT)._2
+          translateStructMember(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, memberT)
         }),
         isClosure,
         Map(),

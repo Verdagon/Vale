@@ -2,6 +2,7 @@
 
 mod indexer;
 mod resolve_id;
+mod vast_types;
 
 extern crate toml;
 
@@ -67,8 +68,8 @@ enum ParsedType {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-  // _VR_2_std_collections_HashMap__i32__String
-  // _VR_2_std_collections_HashMap__i32__2_std_collections_Vec__String
+  // _rust_2_std_collections_HashMap__i32__String
+  // _rust_2_std_collections_HashMap__i32__2_std_collections_Vec__String
 
   let root_matches =
       clap::Command::new("ValeRuster")
@@ -115,6 +116,10 @@ fn main() -> Result<(), anyhow::Error> {
               .help("Directory to output to.")
               .action(ArgAction::Set)
               .required(true))
+          .arg(Arg::new("output_sizes")
+              .long("output_sizes")
+              .help("File to output size information to.")
+              .action(ArgAction::Set))
           .arg(Arg::new("cargo_toml")
               .long("cargo_toml")
               .help("The Cargo.toml to use for dependencies.")
@@ -152,6 +157,7 @@ fn main() -> Result<(), anyhow::Error> {
   }
 
   let output_dir_path = root_matches.get_one::<String>("output_dir").unwrap();
+  let maybe_output_sizes_path = root_matches.get_one::<String>("output_sizes");
 
   // This should be done before read_toml, so it can read the generated docs from it.
   setup_output_dir(&cargo_toml_path, &output_dir_path)?;
@@ -204,12 +210,19 @@ fn main() -> Result<(), anyhow::Error> {
 
       let mut lines: Vec<String> = Vec::new();
       if let Some(input_file_path) = maybe_input_file_path {
-        let file = File::open(input_file_path)?;
-        let reader = io::BufReader::new(file);
-        for line_res in reader.lines() {
-          let line = line_res?;
-          if Regex::new(r#"^#pragma\s+rs(use|fn)"#).unwrap().is_match(&line) {
-            lines.push(line);
+        if input_file_path.ends_with(".vast") {
+          // TODO: handle vast directly?
+        } else {
+          if !(input_file_path.ends_with(".h") || input_file_path.ends_with(".c") || input_file_path.ends_with(".cpp")) {
+            eprintln!("Input file doesn't end with .vast, .h, .c, or .cpp. Assuming C, proceeding...");
+          }
+          let file = File::open(input_file_path)?;
+          let reader = io::BufReader::new(file);
+          for line_res in reader.lines() {
+            let line = line_res?;
+            if Regex::new(r#"^#pragma\s+rs(use|fn)"#).unwrap().is_match(&line) {
+              lines.push(line);
+            }
           }
         }
       } else {
@@ -305,10 +318,10 @@ fn main() -> Result<(), anyhow::Error> {
                     }
                 }]
             };
-        original_str_to_alias.insert("&str".to_owned(), "VR_str_ref".to_owned());
-        alias_to_original_str.insert("VR_str_ref".to_owned(), "&str".to_owned());
+        original_str_to_alias.insert("&str".to_owned(), "rust_str_ref".to_owned());
+        alias_to_original_str.insert("rust_str_ref".to_owned(), "&str".to_owned());
         original_type_str_and_parsed_type_and_original_line_and_maybe_alias.push(
-          ("&str".to_owned(), parsed_type, "(builtin)".to_owned(), Some("VR_str_ref".to_owned())));
+          ("&str".to_owned(), parsed_type, "(builtin)".to_owned(), Some("rust_str_ref".to_owned())));
       }
       let str_ref_alias = original_str_to_alias.get("&str").unwrap();
 
@@ -400,6 +413,8 @@ fn main() -> Result<(), anyhow::Error> {
       let mut type_rust_str_to_size_and_alignment: HashMap<String, (usize, usize)> = HashMap::new();
       let mut func_rust_str_to_ret_str_and_params_strs: HashMap<String, (String, Vec<String>)> = HashMap::new();
 
+      let mut original_str_to_rust_str: HashMap<String, String> = HashMap::new();
+      let mut rust_str_to_original_str: HashMap<String, String> = HashMap::new();
       let mut rust_str_to_alias: HashMap<String, String> = HashMap::new();
       let mut alias_to_rust_str: HashMap<String, String> = HashMap::new();
 
@@ -466,6 +481,9 @@ fn main() -> Result<(), anyhow::Error> {
           } else {
             panic!("Bad output from sizer program: {}", root_line);
           };
+
+        rust_str_to_original_str.insert(rust_str.clone(), original_str.to_owned());
+        original_str_to_rust_str.insert(original_str.to_owned(), rust_str.clone());
 
         if let Some(alias) = original_str_to_alias.get(original_str) {
           alias_to_rust_str.insert(alias.to_string(), rust_str.to_string());
@@ -591,6 +609,27 @@ fn main() -> Result<(), anyhow::Error> {
       for (rust_type_str, func_info) in &func_rust_str_to_info {
         let maybe_alias = rust_str_to_alias.get(rust_type_str).map(|x| x.as_str());
         func_strings.push(instantiate_func(&type_rust_str_to_info, func_info)?);
+      }
+
+      if let Some(output_sizes_path) = maybe_output_sizes_path {
+        let output_sizes_str =
+            original_str_to_rust_str
+                .iter()
+                .map(|(original_str, rust_str)| {
+                  if let Some(info) = type_rust_str_to_info.get(rust_str) {
+                    let mangled = mangle_full_type(&info.public_type);
+                    format!("type/{}/{}/{}/{}\n", original_str, mangled, info.size, info.alignment)
+                  } else if let Some(info) = func_rust_str_to_info.get(rust_str) {
+                    let mangled = mangle_full_type(&info.public_type);
+                    format!("fn/{}/{}\n", original_str, mangled)
+                  } else {
+                    panic!("original str not fn or type?");
+                  }
+                })
+                .collect::<Vec<_>>()
+                .join("");
+        fs::write(output_sizes_path, output_sizes_str)
+            .with_context(|| "Failed to write ".to_string() + output_sizes_path)?;
       }
 
       let final_program_str =
@@ -902,10 +941,10 @@ use core::ffi::c_char;
 fn instantiations_preamble(str_ref_alias: &str) -> String {
   r#"
 #[no_mangle]
-pub extern "C" fn VR_StrFromCStr(char_ptr: *const c_char) -> VR_str_ref {
+pub extern "C" fn rust_StrFromCStr(char_ptr: *const c_char) -> rust_str_ref {
   let c_str = unsafe { core::ffi::CStr::from_ptr(char_ptr) };
   if let Ok(rust_str) = c_str.to_str() {
-    let s_rs: VR_str_ref = unsafe { mem::transmute(rust_str) };
+    let s_rs: rust_str_ref = unsafe { mem::transmute(rust_str) };
     return s_rs;
   } else {
     panic!("Error: c_str.to_str() failed.");
@@ -914,11 +953,11 @@ pub extern "C" fn VR_StrFromCStr(char_ptr: *const c_char) -> VR_str_ref {
 
 // TODO: Is it okay to use u8 here instead of c_char?
 #[no_mangle]
-pub extern "C" fn VR_StrNew(length: usize, char_ptr: *const u8) -> VR_str_ref {
+pub extern "C" fn rust_StrNew(length: usize, char_ptr: *const u8) -> rust_str_ref {
   let c_str = unsafe { std::slice::from_raw_parts(char_ptr, length) };
   if let Ok(rust_str) = core::ffi::CStr::from_bytes_with_nul(c_str) {
     if let Ok(rust_str) = rust_str.to_str() {
-      let s_rs: VR_str_ref = unsafe { mem::transmute(rust_str) };
+      let s_rs: rust_str_ref = unsafe { mem::transmute(rust_str) };
       return s_rs;
     } else {
       panic!("Error: c_str.to_str() failed.");
@@ -929,20 +968,20 @@ pub extern "C" fn VR_StrNew(length: usize, char_ptr: *const u8) -> VR_str_ref {
 }
 
 #[no_mangle]
-pub extern "C" fn VR_StrToCStr(str_c: VR_str_ref) -> *const c_char {
+pub extern "C" fn rust_StrToCStr(str_c: rust_str_ref) -> *const c_char {
   let str_rs: &str = unsafe { mem::transmute(str_c) };
   let ptr = str_rs.as_ptr() as *const c_char;
   return ptr;
 }
 
 #[no_mangle]
-pub extern "C" fn VR_StrLen(str_c: VR_str_ref) -> usize {
+pub extern "C" fn rust_StrLen(str_c: rust_str_ref) -> usize {
   let str_rs: &str = unsafe { mem::transmute(str_c) };
   let len: usize = str_rs.len();
   return len;
 }
 
-"#.replace("VR_str_ref", str_ref_alias)
+"#.replace("rust_str_ref", str_ref_alias)
 }
 
 enum ResolveError {
@@ -1606,20 +1645,34 @@ fn get_pointered_prefixed_mangled_type(
         _ => {
           "*".to_owned() +
               (if *mutable { "mut " } else { "const " }) +
-              &get_pointered_prefixed_mangled_type(referend)
+              &get_prefixed_mangled_type(referend)
         }
       }
     }
+    _ => get_prefixed_mangled_type(type_)
+  }
+}
+
+fn get_prefixed_mangled_type(
+  type_: &ParsedFullType
+) -> String {
+  match type_.steps.last().unwrap() {
+    ImplCast { .. } => unimplemented!(),
+    ParsedType::Lifetime => unimplemented!(),
+    ParsedType::Wildcard => unimplemented!(),
+    ParsedType::Ref { mutable, inner: referend } => {
+      unimplemented!(); // If we get here, we're probably in a double pointer
+    }
     ParsedType::Value { .. } => {
-      "VR_".to_owned() + &mangle_full_type(type_)
+      "rust_".to_owned() + &mangle_full_type(type_)
     }
     ParsedType::Alias(name) => name.clone(),
     ParsedType::Primitive(name) => name.clone(),
     ParsedType::Tuple { .. } => {
-      "VR_".to_owned() + &mangle_full_type(type_)
+      "rust_".to_owned() + &mangle_full_type(type_)
     }
     ParsedType::Slice { .. } => {
-      "VR_".to_owned() + &mangle_full_type(type_)
+      "rust_".to_owned() + &mangle_full_type(type_)
     }
   }
 }

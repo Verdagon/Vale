@@ -12,9 +12,6 @@
 #include <region/common/migration.h>
 #include <utils/counters.h>
 
-std::string rustifySimpleIdStep(SimpleIdStep* simpleIdStep);
-std::string rustifySimpleId(SimpleId* simpleId);
-
 ValeFuncPtrLE declareFunction(
     GlobalState* globalState,
     Function* functionM) {
@@ -218,7 +215,8 @@ void exportFunction(GlobalState* globalState, Package* package, Function* functi
 RawFuncPtrLE declareExternFunction(
     GlobalState* globalState,
     Package* package,
-    Prototype* prototypeM) {
+    Prototype* prototypeM,
+    const std::string& mangledName) {
   LLVMTypeRef externReturnLT = translateExternReturnType(globalState, prototypeM->returnType);
 
   bool usingReturnOutParam = typeNeedsPointerParameter(globalState, prototypeM->returnType);
@@ -246,52 +244,15 @@ RawFuncPtrLE declareExternFunction(
     }
   }
 
-  auto userFuncExtern = package->getFunctionExtern(prototypeM);
-  auto abiFuncNameL = std::string("vale_abi_") + userFuncExtern->mangledName;
+  auto abiFuncNameL = std::string("vale_abi_") + prototypeM->name->packageCoord->projectName + "_" + mangledName;
 
   RawFuncPtrLE functionL =
       addRawFunction(globalState->mod, abiFuncNameL.c_str(), externReturnLT, externParamTypesL);
 
   assert(globalState->externFunctions.count(prototypeM) == 0);
   globalState->externFunctions.emplace(prototypeM, functionL);
-  std::cout << "Adding extern prototype name: " << prototypeM->name->name
-    << " mangled name: " << userFuncExtern->mangledName
-    << " steps: " << rustifySimpleId(userFuncExtern->simpleId)
-    << std::endl;
 
   return functionL;
-}
-
-// TODO: optimize: use a string builder
-std::string rustifySimpleId(SimpleId* simpleId) {
-  std::string stepsStr;
-  for (auto step : simpleId->steps) {
-    if (!stepsStr.empty()) {
-      stepsStr += "::";
-    }
-    stepsStr += rustifySimpleIdStep(step);
-  }
-  return stepsStr;
-}
-std::string rustifySimpleIdStep(SimpleIdStep* simpleIdStep) {
-  if (simpleIdStep->name == "&" || simpleIdStep->name == "&mut") {
-    assert(simpleIdStep->templateArgs.size() == 1);
-    return simpleIdStep->name + rustifySimpleId(simpleIdStep->templateArgs[0]);
-  }
-  std::string result = simpleIdStep->name;
-  if (!simpleIdStep->templateArgs.empty()) {
-    std::string templateArgsInnerStr;
-    for (auto templateArg : simpleIdStep->templateArgs) {
-      if (!templateArgsInnerStr.empty()) {
-        templateArgsInnerStr += ", ";
-      }
-      templateArgsInnerStr += rustifySimpleId(templateArg);
-    }
-    result += "<";
-    result += templateArgsInnerStr;
-    result += ">";
-  }
-  return result;
 }
 
 void translateFunction(

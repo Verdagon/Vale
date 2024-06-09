@@ -43,7 +43,8 @@ Linear::Linear(GlobalState* globalState_)
   regionKind =
       globalState->metalCache->getStructKind(
           globalState->metalCache->getName(
-              globalState->metalCache->builtinPackageCoord, namePrefix + "_Region"));
+              globalState->metalCache->builtinPackageCoord,
+              namePrefix + "_Region"));
   regionRefMT =
       globalState->metalCache->getReference(
           Ownership::MUTABLE_BORROW, Location::YONDER, regionKind);
@@ -215,6 +216,12 @@ LLVMTypeRef Linear::translateType(Reference* referenceM) {
     return result;
   } else if (dynamic_cast<Void*>(referenceM->kind)) {
     return LLVMVoidTypeInContext(globalState->context);
+  } else if (auto opaque = dynamic_cast<Opaque*>(referenceM->kind)) {
+    int size = 0, alignment = 0;
+    std::tie(size, alignment) = globalState->getOpaqueMeasurements(opaque);
+    int numBytes = alignSize(size, alignment);
+    auto lt = LLVMArrayType(LLVMInt8TypeInContext(globalState->context), numBytes);
+    return lt;
   } else {
     std::cerr << "Unimplemented type: " << typeid(*referenceM->kind).name() << std::endl;
     { assert(false); throw 1337; }
@@ -248,7 +255,8 @@ void Linear::declareStaticSizedArray(
 
   auto hostName =
       globalState->metalCache->getName(
-          globalState->metalCache->builtinPackageCoord, namePrefix + "_" + ssaDefM->name->name);
+          ssaDefM->kind->getPackageCoordinate(),
+          namePrefix + "_" + ssaDefM->name->name);
   auto hostKind = globalState->metalCache->getStaticSizedArray(hostName);
   addMappedKind(ssaDefM->kind, hostKind);
   globalState->regionIdByKind.emplace(hostKind, getRegionId());
@@ -282,7 +290,8 @@ void Linear::declareRuntimeSizedArray(
     RuntimeSizedArrayDefinitionT* rsaDefM) {
   auto hostName =
       globalState->metalCache->getName(
-          globalState->metalCache->builtinPackageCoord, namePrefix + "_" + rsaDefM->name->name);
+          rsaDefM->kind->getPackageCoordinate(),
+          namePrefix + "_" + rsaDefM->name->name);
   auto hostKind = globalState->metalCache->getRuntimeSizedArray(hostName);
   addMappedKind(rsaDefM->kind, hostKind);
   globalState->regionIdByKind.emplace(hostKind, getRegionId());
@@ -312,10 +321,10 @@ void Linear::defineRuntimeSizedArrayExtraFunctions(RuntimeSizedArrayDefinitionT*
 
 void Linear::declareStruct(
     StructDefinition* structM) {
-
   auto hostName =
       globalState->metalCache->getName(
-          globalState->metalCache->builtinPackageCoord, namePrefix + "_" + structM->name->name);
+          structM->kind->getPackageCoordinate(),
+          namePrefix + "_" + structM->name->name);
   auto hostKind = globalState->metalCache->getStructKind(hostName);
   addMappedKind(structM->kind, hostKind);
   globalState->regionIdByKind.emplace(hostKind, getRegionId());
@@ -323,12 +332,24 @@ void Linear::declareStruct(
   structs.declareStruct(hostKind);
 }
 
+void Linear::declareOpaque(Opaque* opaque) {
+  auto hostName =
+      globalState->metalCache->getName(
+          opaque->getPackageCoordinate(),
+          namePrefix + "_" + opaque->name->name);
+  auto hostKind =
+      globalState->metalCache->getOpaque(
+          hostName, opaque->structSimpleId);
+  addMappedKind(opaque, hostKind);
+  std::cerr << "Declaring linear opaque: " << hostName->name << std::endl;
+  globalState->regionIdByKind.emplace(hostKind, getRegionId());
+}
+
 void Linear::declareStructExtraFunctions(StructDefinition* structDefM) {
   declareConcreteSerializeFunction(structDefM->kind);
 }
 
-void Linear::defineStruct(
-    StructDefinition* structM) {
+void Linear::defineStruct(StructDefinition* structM) {
   auto hostKind = hostKindByValeKind.find(structM->kind)->second;
   auto hostStructMT = dynamic_cast<StructKind*>(hostKind);
   assert(hostStructMT);
@@ -339,6 +360,14 @@ void Linear::defineStruct(
         translateType(linearizeReference(structM->members[i]->type, true)));
   }
   structs.defineStruct(hostStructMT, innerStructMemberTypesL);
+}
+
+void Linear::defineOpaque(Opaque* opaque, int size, int alignment) {
+  auto hostKind = hostKindByValeKind.find(opaque)->second;
+  auto hostOpaqueMT = dynamic_cast<Opaque*>(hostKind);
+  assert(hostOpaqueMT);
+  std::cerr << "Defining linear opaque: " << hostOpaqueMT->name->name << std::endl;
+  globalState->setOpaqueMeasurements(hostOpaqueMT, std::make_pair(size, alignment));
 }
 
 void Linear::defineStructExtraFunctions(StructDefinition* structDefM) {
@@ -416,7 +445,7 @@ void Linear::defineEdgeSerializeFunction(Edge* edge) {
 void Linear::declareInterface(InterfaceDefinition* interfaceM) {
   auto hostName =
       globalState->metalCache->getName(
-          globalState->metalCache->builtinPackageCoord, namePrefix + "_" + interfaceM->name->name);
+          interfaceM->kind->getPackageCoordinate(), namePrefix + "_" + interfaceM->name->name);
   auto hostKind = globalState->metalCache->getInterfaceKind(hostName);
   addMappedKind(interfaceM->kind, hostKind);
   globalState->regionIdByKind.emplace(hostKind, getRegionId());
@@ -1110,9 +1139,14 @@ LoadResult Linear::loadMember2(
     const std::string& memberName) {
   auto structRefLE = checkValidReference(FL(), functionState, builder, structRefMT, structRef);
   if (structRefMT->location == Location::INLINE) {
-    auto memberLE = LLVMBuildExtractValue(builder, structRefLE, memberIndex, memberName.c_str());
-    { assert(false); throw 1337; } // impl. should inline structs have their pointers adjusted already?
-    return LoadResult{toRef(globalState->getRegion(expectedMemberType), expectedMemberType, memberLE)};
+    if (structRefMT->kind->getPackageCoordinate()->projectName == "rust") {
+      auto memberLE = LLVMBuildExtractValue(builder, structRefLE, memberIndex, memberName.c_str());
+      return LoadResult{toRef(globalState->getRegion(expectedMemberType), expectedMemberType, memberLE)};
+    } else {
+      auto memberLE = LLVMBuildExtractValue(builder, structRefLE, memberIndex, memberName.c_str());
+      { assert(false); throw 1337; } // impl. should inline structs have their pointers adjusted already?
+      return LoadResult{toRef(globalState->getRegion(expectedMemberType), expectedMemberType, memberLE)};
+    }
   } else {
     auto unadjustedStructPtrLE = structRefLE;
     // When we read a pointer, we need to add the Serialized Address Adjuster, see PSBCBO.
@@ -1314,9 +1348,12 @@ std::pair<LiveRef, Ref> Linear::topLevelSerialize(
     Ref readonlyRef) {
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
 
+  auto location = // DO NOT SUBMIT
+      valeKind->getPackageCoordinate()->projectName == "rust" ?
+      Location::INLINE : Location::YONDER;
   auto valeRefMT =
       globalState->metalCache->getReference(
-          Ownership::MUTABLE_SHARE, Location::YONDER, valeKind);
+          Ownership::MUTABLE_SHARE, location, valeKind);
   auto hostRefMT = linearizeReference(valeRefMT, true);
 
   auto regionLT = structs.getStructStruct(regionKind);
@@ -1440,6 +1477,10 @@ std::pair<Ref, Ref> Linear::receiveUnencryptedAlienReference(
     auto resultRef = toRef(globalState->getRegion(targetRefMT), targetRefMT, sourceRefLE);
     auto sizeRef = globalState->constI32(LLVMABISizeOfType(globalState->dataLayout, translateType(targetRefMT)));
     return std::make_pair(resultRef, sizeRef);
+  } else if (dynamic_cast<Opaque*>(sourceRefMT->kind)) {
+    auto resultRef = toRef(globalState->getRegion(targetRefMT), targetRefMT, sourceRefLE);
+    auto sizeRef = globalState->constI32(LLVMABISizeOfType(globalState->dataLayout, translateType(targetRefMT)));
+    return std::make_pair(resultRef, sizeRef);
   } else if (dynamic_cast<Str*>(sourceRefMT->kind) ||
       dynamic_cast<StructKind*>(sourceRefMT->kind) ||
       dynamic_cast<InterfaceKind*>(sourceRefMT->kind) ||
@@ -1452,7 +1493,15 @@ std::pair<Ref, Ref> Linear::receiveUnencryptedAlienReference(
         auto sizeRef = globalState->constI32(LLVMABISizeOfType(globalState->dataLayout, translateType(targetRefMT)));
         return std::make_pair(resultRef, sizeRef);
       } else {
-        { assert(false); throw 1337; }
+        if (sourceRefMT->kind->getPackageCoordinate()->projectName == "rust") { // DO NOT SUBMIT
+          auto [liveRef, size] =
+              topLevelSerialize(
+                  functionState, builder, targetRegionInstanceRef, sourceRegionInstanceRef, sourceRefMT->kind, sourceRefMT, sourceRef);
+          auto ref = toRef(globalState, targetRefMT, liveRef);
+          return std::make_pair(ref, size);
+        } else {
+          { assert(false); throw 1337; }
+        }
       }
     } else {
       auto [liveRef, size] =
@@ -1588,9 +1637,14 @@ LiveRef Linear::callSerialize(
 
 Prototype* Linear::getSerializePrototype(Kind* valeKind) {
   auto boolMT = globalState->metalCache->boolRef;
+  auto location = // DO NOT SUBMIT
+      valeKind->getPackageCoordinate()->projectName == "rust" ?
+      Location::INLINE : Location::YONDER;
   auto sourceStructRefMT =
       globalState->metalCache->getReference(
-          Ownership::IMMUTABLE_SHARE, Location::YONDER, valeKind);
+          Ownership::IMMUTABLE_SHARE,
+          location,
+          valeKind);
   auto hostRefMT = linearizeReference(sourceStructRefMT, true);
   auto sourceRegionRefMT =
       globalState->getRegion(sourceStructRefMT)->getRegionRefType();
@@ -1647,6 +1701,9 @@ void Linear::defineConcreteSerializeFunction(Kind* valeKind) {
           auto ref = toRef(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE);
           return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
         } else if (sourceMemberRefMT == globalState->metalCache->i32Ref) {
+          auto ref = toRef(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE);
+          return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
+        } else if (dynamic_cast<Opaque*>(sourceMemberRefMT->kind)) { // DO NOT SUBMIT
           auto ref = toRef(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE);
           return checkRefLive(FL(), functionState, builder, regionInstanceRef, targetMemberRefMT, ref, true);
         } else if (sourceMemberRefMT == globalState->metalCache->boolRef) {

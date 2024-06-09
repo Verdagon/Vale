@@ -114,28 +114,28 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                   VonMember("kind", vonifyKind(kind))))
             }))),
         VonMember(
-          "externNameToFunction",
+          "prototypeToExtern",
           VonArray(
             None,
-            externNameToFunction.toVector.map({ case (externName, HamutsFunctionExtern(prototype, simpleId)) =>
+            externNameToFunction.toVector.map({ case (_, HamutsFunctionExtern(maybeExternName, prototype, simpleId)) =>
               VonObject(
                 "ExternFunction",
                 None,
                 Vector(
-                  VonMember("mangledName", VonStr(externName)),
+                  VonMember("mangledName", VonStr(maybeExternName)),
                   VonMember("id", vonifySimpleId(simpleId)),
                   VonMember("prototype", vonifyPrototype(prototype))))
             }))),
         VonMember(
-          "externNameToKind",
+          "kindToExtern", // DO NOT SUBMIT rename plz
           VonArray(
             None,
-            externNameToKind.toVector.map({ case (externName, HamutsKindExtern(kind, simpleId)) =>
+            externNameToKind.toVector.map({ case (_, HamutsKindExtern(maybeExternName, kind, simpleId)) =>
               VonObject(
                 "ExternKind",
                 None,
                 Vector(
-                  VonMember("mangledName", VonStr(externName)),
+                  VonMember("mangledName", VonStr(maybeExternName)),
                   VonMember("id", vonifySimpleId(simpleId)),
                   VonMember("kind", vonifyKind(kind))))
             })))))
@@ -359,6 +359,14 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           None,
           Vector(
             VonMember("name", vonifyName(name))))
+      }
+      case OpaqueHT(structId, simpleId) => {
+        VonObject(
+          "Opaque",
+          None,
+          Vector(
+            VonMember("structId", vonifyName(structId)),
+            VonMember("structSimpleId", vonifySimpleId(simpleId))))
       }
     }
   }

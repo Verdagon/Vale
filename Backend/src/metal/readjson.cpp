@@ -101,6 +101,16 @@ StructKind* readStructKind(MetalCache* cache, const json& kind) {
   return result;
 }
 
+Opaque* readOpaqueKind(MetalCache* cache, const json& obj) {
+  assert(obj.is_object());
+  assert(obj["__type"] == "Opaque");
+
+  auto structId = readName(cache, obj["structId"]);
+  auto structSimpleId = readSimpleId(cache, obj["structSimpleId"]);
+
+  return cache->getOpaque(structId, structSimpleId);
+}
+
 InterfaceKind* readInterfaceKind(MetalCache* cache, const json& kind) {
   assert(kind["__type"] == "InterfaceId");
 
@@ -162,6 +172,8 @@ Kind* readKind(MetalCache* cache, const json& kind) {
     return cache->str;
   } else if (kind["__type"] == "StructId") {
     return readStructKind(cache, kind);
+  } else if (kind["__type"] == "Opaque") {
+    return readOpaqueKind(cache, kind);
   } else if (kind["__type"] == "Never") {
     return cache->never;
   } else if (kind["__type"] == "RuntimeSizedArray") {
@@ -185,10 +197,7 @@ Reference* readReference(MetalCache* cache, const json& reference) {
   auto kind = readKind(cache, reference["kind"]);
 //  std::string debugStr = reference["debugStr"];
 
-  return cache->getReference(
-      ownership,
-      location,
-      kind);
+  return cache->getReference(ownership,location,kind);
 }
 
 Mutability readMutability(const json& mutability) {
@@ -820,23 +829,23 @@ Package* readPackage(MetalCache* cache, const json& program) {
             auto kind = readKind(cache, entryJ["kind"]);
             return std::make_pair(exportName, kind);
           }),
-      readArrayIntoMap<std::string, ExternFunction*>(
+      readArrayIntoMap<Prototype*, ExternFunction*>(
           cache,
-          std::hash<std::string>(),
-          std::equal_to<std::string>(),
-          program["externNameToFunction"],
+          AddressHasher<Prototype*>(cache->addressNumberer),
+          AddressEquator<Prototype*>(),
+          program["prototypeToExtern"],
           [](MetalCache* cache, json entryJ){
             auto externFunc = readExternFunction(cache, entryJ);
-            return std::make_pair(externFunc->mangledName, externFunc);
+            return std::make_pair(externFunc->prototype, externFunc);
           }),
-      readArrayIntoMap<std::string, ExternKind*>(
+      readArrayIntoMap<Kind*, ExternKind*>(
           cache,
-          std::hash<std::string>(),
-          std::equal_to<std::string>(),
-          program["externNameToKind"],
+          AddressHasher<Kind*>(cache->addressNumberer),
+          AddressEquator<Kind*>(),
+          program["kindToExtern"],
           [](MetalCache* cache, json entryJ){
               auto externKind = readExternKind(cache, entryJ);
-              return std::make_pair(externKind->mangledName, externKind);
+              return std::make_pair(externKind->kind, externKind);
           }));
 }
 

@@ -127,11 +127,6 @@ class StructCompiler(
         TemplatasStore(structTemplateId, Map(), Map())
           .addEntries(
             interner,
-            structA.internalMethods
-                .map(internalMethod => {
-                  val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
-                  (functionName -> FunctionEnvEntry(internalMethod))
-                }) ++
             // Merge in any things from the global environment that say they're part of this
             // structs's namespace (see IMRFDI and CODME).
             // StructFreeMacro will put a free function here.

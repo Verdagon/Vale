@@ -173,132 +173,73 @@ class Hammer(interner: Interner, keywords: Keywords) {
   val vonHammer = new VonHammer(nameHammer, typeHammer)
 
   def mangleFunc(id: IdI[cI, IFunctionNameI[cI]]): String = {
-    val IdI(packageCoord, initSteps, localName) = id
-    (localName match {
-      case FunctionNameIX(FunctionTemplateNameI(humanName, _), templateArgs, _) => {
-        packageCoord.packages.map(_.str + "_").mkString("") +
-        initSteps.map(mangleName(_, true)).mkString("") +
-        humanName.str +
-        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
-        templateArgs.map("__" + mangleTemplata(_)).mkString("")
-      }
-      case ExternFunctionNameI(humanName, templateArgs, _) => {
-        packageCoord.packages.map(_.str + "_").mkString("") +
-        initSteps.map(mangleName(_, true)).mkString("") +
-        humanName.str +
-        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
-        templateArgs.map("__" + mangleTemplata(_)).mkString("")
-      }
-      case other => vimpl(other)
-    })
-  }
-
-  def mangleName(name: INameI[cI], stuffAfter: Boolean): String = {
-    name match {
-      case StructNameI(StructTemplateNameI(humanName),templateArgs) => {
-        humanName.str +
-        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
-        templateArgs.map("__" + mangleTemplata(_)).mkString("") +
-        (if (stuffAfter) "__" else "")
-      }
-      case other => vimpl(other)
-    }
-  }
-
-  def mangleStruct(id: IdI[cI, IStructNameI[cI]]): String = {
-    val IdI(packageCoord, initSteps, localName) = id
-    mangleName(localName, false)
-//    localName match {
-//      case s @ StructNameI(StructTemplateNameI(humanName), templateArgs) => {
-//
-//      }
+    ""
+//    val IdI(packageCoord, initSteps, localName) = id
+//    (localName match {
 //      case FunctionNameIX(FunctionTemplateNameI(humanName, _), templateArgs, _) => {
-//        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+//        packageCoord.packages.map(_.str + "_").mkString("") +
+//        initSteps.map(mangleName(_, true)).mkString("") +
 //        humanName.str +
+//        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
 //        templateArgs.map("__" + mangleTemplata(_)).mkString("")
 //      }
 //      case ExternFunctionNameI(humanName, templateArgs, _) => {
-//        (if (templateArgs.nonEmpty) {templateArgs.length + "_"} else {""}) +
+//        packageCoord.packages.map(_.str + "_").mkString("") +
+//        initSteps.map(mangleName(_, true)).mkString("") +
 //        humanName.str +
+//        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
 //        templateArgs.map("__" + mangleTemplata(_)).mkString("")
+//      }
+//      case other => vimpl(other)
+//    })
+  }
+
+  def mangleName(name: INameI[cI], stuffAfter: Boolean): String = {
+    ""
+//    name match {
+//      case StructNameI(StructTemplateNameI(humanName),templateArgs) => {
+//        humanName.str +
+//        (if (templateArgs.nonEmpty) "_" + templateArgs.length else "") +
+//        templateArgs.map("__" + mangleTemplata(_)).mkString("") +
+//        (if (stuffAfter) "__" else "")
 //      }
 //      case other => vimpl(other)
 //    }
   }
 
+  def mangleStruct(id: IdI[cI, IStructNameI[cI]]): String = {
+    ""
+//    val IdI(packageCoord, initSteps, localName) = id
+//    mangleName(localName, false)
+  }
+
   def mangleKind(kind: KindIT[cI]): String = {
-    kind match {
-      case IntIT(bits) => "i" + bits
-      case other => vimpl(other)
-    }
+    ""
+//    kind match {
+//      case IntIT(bits) => "i" + bits
+//      case other => vimpl(other)
+//    }
   }
 
   def mangleCoord(coord: CoordI[cI]): String = {
-    val CoordI(ownership, kind) = coord
-    (ownership match {
-      case ImmutableShareI => "1_IRef_"
-      case MutableShareI => ""
-      case OwnI => ""
-      case WeakI => "1_Weak_"
-      case ImmutableBorrowI => "1_IRef_"
-      case MutableBorrowI => "1_Ref_"
-    }) + mangleKind(kind)
+    ""
+//    val CoordI(ownership, kind) = coord
+//    (ownership match {
+//      case ImmutableShareI => "1_IRef_"
+//      case MutableShareI => ""
+//      case OwnI => ""
+//      case WeakI => "1_Weak_"
+//      case ImmutableBorrowI => "1_IRef_"
+//      case MutableBorrowI => "1_Ref_"
+//    }) + mangleKind(kind)
   }
 
   def mangleTemplata(templata: ITemplataI[cI]): String = {
-    templata match {
-      case CoordTemplataI(region, coord) => mangleCoord(coord)
-      case other => vimpl(other)
-    }
-  }
-
-  def simplifyId(id: IdI[cI, INameI[cI]]): SimpleId = {
-    val IdI(packageCoord, initSteps, localName) = id
-    val PackageCoordinate(module, packages) = packageCoord
-    SimpleId(
-      (SimpleIdStep(module.str, Vector()) +:
-          packages.map(paackage => SimpleIdStep(paackage.str, Vector()))) ++
-          initSteps.map(step => simplifyName(step)) :+
-          simplifyName(localName))
-  }
-
-  def simplifyName(name: INameI[cI]): SimpleIdStep = {
-    name match {
-      case StructNameI(StructTemplateNameI(humanName), templateArgs) => {
-        SimpleIdStep(humanName.str, templateArgs.map(simplifyTemplata))
-      }
-      case ExternFunctionNameI(humanName, templateArgs, parameters) => {
-        SimpleIdStep(humanName.str, templateArgs.map(simplifyTemplata))
-      }
-      case other => vimpl(other)
-    }
-  }
-
-  def simplifyTemplata(templata: ITemplataI[cI]): SimpleId = {
-    templata match {
-      case CoordTemplataI(region, coord) => simplifyCoord(coord)
-      case other => vimpl(other)
-    }
-  }
-
-  def simplifyKind(value: KindIT[cI]): SimpleId = {
-    value match {
-      case IntIT(bits) => SimpleId(Vector(SimpleIdStep("i" + bits, Vector())))
-      case other => vimpl(other)
-    }
-  }
-
-  def simplifyCoord(value: CoordI[cI]): SimpleId = {
-    val CoordI(ownership, kind) = value
-    val kindId = simplifyKind(kind)
-    (ownership match {
-      case ImmutableShareI => kindId
-      case MutableShareI => kindId
-      case OwnI => kindId
-      case WeakI => vimpl()
-      case ImmutableBorrowI => SimpleId(Vector(SimpleIdStep("&", Vector(kindId))))
-      case MutableBorrowI => SimpleId(Vector(SimpleIdStep("&mut", Vector(kindId))))
-    })
+    ""
+//    templata match {
+//      case CoordTemplataI(region, coord) => mangleCoord(coord)
+//      case other => vimpl(other)
+//    }
   }
 
   def translate(hinputs: HinputsI): ProgramH = {
@@ -336,14 +277,14 @@ class Hammer(interner: Interner, keywords: Keywords) {
 
     kindExterns.foreach({ case KindExternI(struct) =>
       val exportName = mangleStruct(struct.id)
-      val exportSimplifiedId = simplifyId(struct.id)
+      val exportSimplifiedId = NameHammer.simplifyId(struct.id)
       val structH = structHammer.translateStructI(hinputs, hamuts, struct)
       hamuts.addKindExtern(structH, exportSimplifiedId, exportName)
     })
 
     functionExterns.foreach({ case FunctionExternI(prototype) =>
       val exportName = mangleFunc(prototype.id)
-      val exportSimplifiedId = simplifyId(prototype.id)
+      val exportSimplifiedId = NameHammer.simplifyId(prototype.id)
       val prototypeH = typeHammer.translatePrototype(hinputs, hamuts, prototype)
       hamuts.addFunctionExtern(prototypeH, exportSimplifiedId, exportName)
     })
@@ -394,8 +335,8 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //    val packageToImmDestructorPrototypes = immDestructorPrototypesH.groupBy(_._1.packageCoord(interner, keywords))
     val packageToExportNameToKind = hamuts.packageCoordToExportNameToKind
     val packageToExportNameToFunction = hamuts.packageCoordToExportNameToFunction
-    val packageToExternNameToKind = hamuts.packageCoordToExternNameToKind
-    val packageToExternNameToFunction = hamuts.packageCoordToExternNameToFunction
+    val packageToExternNameToKind = hamuts.packageCoordToKindToExtern
+    val packageToExternNameToFunction = hamuts.packageCoordToPrototypeToExtern
 
     val allPackageCoords =
       packageToInterfaceDefs.keySet ++

@@ -139,6 +139,7 @@ class StructConstructorMacro(
           vassertSome(coutputs.getInstantiationBounds(structTT.id))))
     val members =
       definition.members.map({
+        case OpaqueStructMemberT() => vimpl()
         case NormalStructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
           (name, placeholderSubstituter.substituteForCoord(coutputs, tyype))
         }

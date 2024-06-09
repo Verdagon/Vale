@@ -10,6 +10,7 @@ dependencies = [
  "clap",
  "regex",
  "rustdoc-types",
+ "serde",
  "serde_json",
  "toml",
 ]

@@ -398,7 +398,7 @@ class StructCompilerGenericArgsLayer(
 
       val id = assembleStructName(structTemplateId, templateArgs)
 
-      val innerEnv =
+      val runesEnv =
         CitizenEnvironmentT(
           outerEnv.globalEnv,
           outerEnv,
@@ -407,12 +407,17 @@ class StructCompilerGenericArgsLayer(
           TemplatasStore(id, Map(), Map())
             .addEntries(
               interner,
+              structA.internalMethods
+                  .map(internalMethod => {
+                    val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
+                    (functionName -> FunctionEnvEntry(internalMethod))
+                  }) ++
               inferences.toVector
                 .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
 
-      coutputs.declareTypeInnerEnv(structTemplateId, innerEnv)
+      coutputs.declareTypeInnerEnv(structTemplateId, runesEnv)
 
-      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, callLocation, structA)
+      core.compileStruct(outerEnv, runesEnv, coutputs, parentRanges, callLocation, structA)
 
       uncheckedDefiningConclusions
     })

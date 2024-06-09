@@ -68,6 +68,11 @@ sealed trait IStructMemberT {
   def name: IVarNameT
 }
 
+case class OpaqueStructMemberT() extends IStructMemberT {
+  override def name: IVarNameT = OpaqueMemberNameT()
+  vpass()
+}
+
 case class NormalStructMemberT(
   name: IVarNameT,
   // In the case of address members, this refers to the variability of the pointee variable.

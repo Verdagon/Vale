@@ -245,6 +245,18 @@ public:
   Linear* linearRegion = nullptr;
   std::unordered_map<RegionId*, IRegion*, AddressHasher<RegionId*>> regions;
 
+  std::unordered_map<Opaque*, std::pair<int, int>, AddressHasher<Opaque*>> opaqueToMeasurements;
+  std::pair<int, int> getOpaqueMeasurements(Opaque* opaque) const {
+    auto iter = opaqueToMeasurements.find(opaque);
+    assert(iter != opaqueToMeasurements.end());
+    return iter->second;
+  }
+  void setOpaqueMeasurements(Opaque* opaque, std::pair<int, int> sizeAndAlignment) {
+    auto iter = opaqueToMeasurements.find(opaque);
+    assert(iter == opaqueToMeasurements.end());
+    opaqueToMeasurements.emplace(opaque, std::move(sizeAndAlignment));
+  }
+
 
   std::vector<ValeFuncPtrLE> getEdgeFunctions(Edge* edge);
 

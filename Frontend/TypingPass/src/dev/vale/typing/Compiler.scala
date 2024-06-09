@@ -1040,6 +1040,7 @@ class Compiler(
             templatas.entriesByNameT.map({ case (name, entry) =>
               entry match {
                 case FunctionEnvEntry(functionA) => {
+                  println("Compiling function: " + packageId.packageCoord.module.str + " / " + PostParserErrorHumanizer.humanizeName(functionA.name))
                   opts.debugOut("Compiling function: " + PostParserErrorHumanizer.humanizeName(functionA.name))
 
                   val templata = FunctionTemplataT(packageEnv, functionA)

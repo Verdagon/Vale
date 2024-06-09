@@ -398,6 +398,7 @@ case class CompilerOutputs() {
   def addStruct(structDef: StructDefinitionT): Unit = {
     if (structDef.mutability == MutabilityTemplataT(ImmutableT)) {
       structDef.members.foreach({
+        case OpaqueStructMemberT() => // Do nothing, is expected
         case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
           vwat() // Immutable structs cant contain address members
         }

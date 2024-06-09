@@ -98,8 +98,9 @@ class StructHammer(
         val temporaryStructRefH = StructHT(fullNameH);
         hamuts.forwardDeclareStruct(structIT, temporaryStructRefH)
         val structDefI = hinputs.lookupStruct(structIT.id);
+        val mutabilityH = Conversions.evaluateMutabilityTemplata(structDefI.mutability)
         val (membersH) =
-          translateMembers(hinputs, hamuts, structDefI.instantiatedCitizen.id, structDefI.members)
+          translateMembers(hinputs, hamuts, structDefI.instantiatedCitizen.id, mutabilityH, structDefI.members)
 
         val (edgesH) = translateEdgesForStruct(hinputs, hamuts, temporaryStructRefH, structIT)
 
@@ -108,7 +109,7 @@ class StructHammer(
             fullNameH,
             structDefI.weakable,
             structDefI.attributes.exists({ case ExternI(_) => true case _ => false }),
-            Conversions.evaluateMutabilityTemplata(structDefI.mutability),
+            mutabilityH,
             edgesH,
             membersH);
         hamuts.addStructOriginatingFromTypingPass(structIT, structDefH)
@@ -134,16 +135,22 @@ class StructHammer(
     }
   }
 
-  def translateMembers(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], members: Vector[StructMemberI]):
+  def translateMembers(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], structMutabilityH: Mutability, members: Vector[StructMemberI]):
   (Vector[StructMemberH]) = {
-    members.map(translateMember(hinputs, hamuts, structName, _))
+    members.map(translateMember(hinputs, hamuts, structName, structMutabilityH, _))
   }
 
-  def translateMember(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], member2: StructMemberI):
+  def translateMember(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], structMutabilityH: Mutability, member2: StructMemberI):
   (StructMemberH) = {
     val (variability, memberType) =
       member2 match {
-//        case VariadicStructMemberI(name, tyype) => vimpl()
+        case StructMemberI(_, variability, OpaqueMemberTypeI()) => {
+          val opaqueHT =
+            OpaqueHT(
+              nameHammer.translateFullName(hinputs, hamuts, structName),
+              NameHammer.simplifyId(structName))
+          (variability, CoordH(vregionmut(MutableShareH), YonderH, opaqueHT))
+        }
         case StructMemberI(_, variability, ReferenceMemberTypeI(coord)) => {
           (variability, translateReference(hinputs, hamuts, coord))
         }

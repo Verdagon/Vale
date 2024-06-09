@@ -86,7 +86,7 @@ class VivemTests extends FunSuite with Matchers {
       PackageCoordinate.BUILTIN(interner, keywords),
       PackageH(
         Vector.empty, Vector.empty, Vector(addExtern), Vector.empty, Vector.empty, Map(), Map(),
-        Map("__vbi_addI32" -> HamutsFunctionExtern(addPrototype, vimpl())), Map()))
+        vimpl(), Map()))//Map(vimpl() -> HamutsFunctionExtern("__vbi_addI32", addPrototype, vimpl())), Map()))
     packages.put(
       PackageCoordinate.TEST_TLD(interner, keywords),
       PackageH(

@@ -47,6 +47,7 @@
 #include "function/expressions/shared/members.h"
 #include "function/expressions/expressions.h"
 #include "region/naiverc/naiverc.h"
+#include "utils/rustify.h"
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -102,6 +103,11 @@ ValeFuncPtrLE declareFunction(
   GlobalState* globalState,
   Function* functionM);
 
+void doRustyThings(
+    Program* program,
+    GlobalState* globalState,
+    Determinism* determinism);
+
 
 std::string makeIncludeDirectory(GlobalState* globalState);
 std::string makeModuleIncludeDirectory(const GlobalState *globalState, PackageCoordinate *packageCoord);
@@ -114,6 +120,7 @@ void makeExternOrExportFunction(
     std::stringstream* headerC,
     std::stringstream* sourceC,
     const PackageCoordinate *packageCoord, Package *package,
+    const std::string& rustGeneratedHeaderFilepath,
     const std::string &externName,
     Prototype *prototype,
     bool isExport);
@@ -231,9 +238,12 @@ std::string generateFunctionC(
   auto returnTypeExportName =
       globalState->getRegion(prototype->returnType)->getExportName(package, prototype->returnType, true);
   auto projectName = package->packageCoordinate->projectName;
-  std::string userFuncName =
-      (!package->packageCoordinate->projectName.empty() ? package->packageCoordinate->projectName + "_" : "") +
-      outsideName;
+  std::string userFuncName = outsideName;
+  if (!package->packageCoordinate->projectName.empty()) {
+//    if (package->packageCoordinate->projectName != "rust") { // DO NOT SUBMIT
+    userFuncName = projectName + "_" + userFuncName;
+//    }
+  }
   std::string abiFuncName = std::string("vale_abi_") + userFuncName;
 
   bool abiUsingRetOutParam = typeNeedsPointerParameter(globalState, prototype->returnType);
@@ -474,6 +484,9 @@ void generateExports(GlobalState* globalState, Prototype* mainM) {
       }
     }
   }
+
+  std::string rustGeneratedHeaderFilepath = "rust_deps.h";
+
   for (auto[packageCoord, package] : program->packages) {
     for (auto[exportName, prototype] : package->exportNameToFunction) {
       bool skipExporting = exportName == "main";
@@ -482,18 +495,19 @@ void generateExports(GlobalState* globalState, Prototype* mainM) {
 
       auto* headerC = &packageCoordToHeaderNameToC[packageCoord].emplace(exportName, std::stringstream()).first->second;
       auto* sourceC = &packageCoordToSourceNameToC[packageCoord].emplace(exportName, std::stringstream()).first->second;
-      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, exportName, prototype, true);
+      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, exportName, prototype, true);
     }
   }
   for (auto[packageCoord, package] : program->packages) {
-    for (auto[externName, externFunc] : package->externNameToFunction) {
+    for (auto[prototype, externFunc] : package->functionToExtern) {
+      auto externName = externFunc->mangledName; // DO NOT SUBMIT package->externNameToFunc keys are out of date, and never made sense in the first place because they might be blank
       if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
         // Dont generate C code for built in externs
         continue;
       }
       auto* headerC = &packageCoordToHeaderNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
       auto* sourceC = &packageCoordToSourceNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
-      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, externName, externFunc->prototype, false);
+      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false);
     }
   }
   if (globalState->opt->outputDir.empty()) {
@@ -555,6 +569,7 @@ void makeExternOrExportFunction(
     std::stringstream* sourceC,
     const PackageCoordinate *packageCoord,
     Package *package,
+    const std::string& rustGeneratedHeaderFilepath,
     const std::string &externName,
     Prototype *prototype,
     bool isExport) {
@@ -567,11 +582,16 @@ void makeExternOrExportFunction(
         dynamic_cast<Str *>(kind)) {
       // Do nothing, no need to include anything for these
     } else {
-      auto paramTypeExportName = package->getKindExportName(kind, false);
-//      if (ownershipToMutability(param->ownership) == Mutability::MUTABLE) {
-//        paramTypeExportName += "Ref";
-//      }
-      (*headerC) << "#include \"" << packageCoord->projectName << "/" << paramTypeExportName << ".h\"" << std::endl;
+      if (package->packageCoordinate->projectName == "rust") { // DO NOT SUBMIT
+        (*headerC) << "#include \"" << rustGeneratedHeaderFilepath << "\"" << std::endl;
+      } else {
+        auto paramTypeExportName = package->getKindExportName(kind, false);
+        // if (ownershipToMutability(param->ownership) == Mutability::MUTABLE) {
+        //   paramTypeExportName += "Ref";
+        // }
+        assert(paramTypeExportName.size());
+        (*headerC) << "#include \"" << packageCoord->projectName << "/" << paramTypeExportName << ".h\"" << std::endl;
+      }
     }
   }
   {
@@ -583,12 +603,17 @@ void makeExternOrExportFunction(
         dynamic_cast<Str *>(kind)) {
       // Do nothing, no need to include anything for these
     } else {
-      // We need to include the actual header for interfaces, because the user func hands them around by value
-      auto paramTypeExportName = package->getKindExportName(kind, false);
-//      if (ownershipToMutability(prototype->returnType->ownership) == Mutability::MUTABLE) {
-//        paramTypeExportName += "Ref";
-//      }
-      (*headerC) << "#include \"" << packageCoord->projectName << "/" << paramTypeExportName << ".h\"" << std::endl;
+      if (package->packageCoordinate->projectName == "rust") { // DO NOT SUBMIT
+        (*headerC) << "#include \"" << rustGeneratedHeaderFilepath << "\"" << std::endl;
+      } else {
+        // We need to include the actual header for interfaces, because the user func hands them around by value
+        auto returnTypeExportName = package->getKindExportName(kind, false);
+        assert(returnTypeExportName.size());
+        // if (ownershipToMutability(prototype->returnType->ownership) == Mutability::MUTABLE) {
+        //   returnTypeExportName += "Ref";
+        // }
+        (*headerC) << "#include \"" << packageCoord->projectName << "/" << returnTypeExportName << ".h\"" << std::endl;
+      }
     }
   }
   auto userHeaderC = generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_USER_PROTOTYPE : CFuncLineMode::EXTERN_USER_PROTOTYPE, isExport);
@@ -596,7 +621,9 @@ void makeExternOrExportFunction(
   (*headerC) << userHeaderC << ";" << std::endl;
   (*headerC) << abiHeaderC << ";" << std::endl;
 
+  std::cerr << "Doing extern thing: " << prototype->name->name << std::endl;
   auto userSourceC = std::stringstream{};
+  assert(externName.size());
   userSourceC << "#include \"" << packageCoord->projectName << "/" << externName << ".h\"" << std::endl;
   userSourceC << generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE : CFuncLineMode::EXTERN_INTERMEDIATE_PROTOTYPE, isExport) << " {" << std::endl;
   userSourceC << "  " << generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_BODY : CFuncLineMode::EXTERN_INTERMEDIATE_BODY, isExport) << ";" << std::endl;
@@ -898,6 +925,23 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       auto region = globalState->getRegion(structM->regionId);
       region->declareStruct(structM);
 
+      if (structM->mutability == Mutability::IMMUTABLE) {
+        // TODO: https://github.com/ValeLang/Vale/issues/479
+        globalState->linearRegion->declareStruct(structM);
+      }
+
+      if (structM->exterrn) {
+        assert(structM->members.size() == 1);
+        auto opaqueKind = structM->members[0]->type->kind;
+        auto opaque = dynamic_cast<Opaque*>(opaqueKind);
+        assert(opaque);
+        globalState->getRegion(structM->regionId)->declareOpaque(opaque);
+
+        if (structM->mutability == Mutability::IMMUTABLE) {
+          globalState->linearRegion->declareOpaque(opaque);
+        }
+      }
+
       // std::cout << "Declaring struct " << packageCoord->projectName;
       // for (auto step : packageCoord->packageSteps) {
       //   std::cout << "." << step;
@@ -905,10 +949,6 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
       // std::cout << "." << name;
       // std::cout << std::endl;
 
-      if (structM->mutability == Mutability::IMMUTABLE) {
-        // TODO: https://github.com/ValeLang/Vale/issues/479
-        globalState->linearRegion->declareStruct(structM);
-      }
     }
   }
 
@@ -1012,12 +1052,16 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     }
   }
 
+  doRustyThings(&program, globalState, &determinism);
+
   for (auto[packageCoord, package] : program.packages) {
     for (auto [name, structM] : package->structs) {
       assert(name == structM->name->name);
       if (structM->exterrn) {
-        std::cout << "TODO: extern struct " << structM->name->name << " extern name " << package->getKindExternName(structM->kind) << std::endl;
-//        assert(false); // impl
+        // skip, we handle these elsewhere
+//        std::cout << "TODO: extern struct " << structM->name->name << " extern name " << package->getKindExternName(structM->kind) << std::endl;
+////        assert(false); // impl
+
       } else {
         globalState->getRegion(structM->regionId)->defineStruct(structM);
         if (structM->mutability == Mutability::IMMUTABLE) {
@@ -1123,20 +1167,6 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
     region.second->defineExtraFunctions();
   }
 
-  std::cout << "Packages: " << program.packages.size() << std::endl;
-  for (auto[packageCoord, package] : program.packages) {
-    std::cout << "externNameToFunction: " << package->externNameToFunction.size() << std::endl;
-    for (auto[externName, externFunc] : package->externNameToFunction) {
-      std::cout << "Found extern " << externName << std::endl;
-      if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
-        // Dont generate C code for built in externs
-        continue;
-      }
-      declareExternFunction(globalState, package, externFunc->prototype);
-      determinism.registerFunction(externFunc->prototype);
-    }
-  }
-
   for (auto[packageCoord, package] : program.packages) {
     for (auto[name, function] : package->functions) {
       declareFunction(globalState, function);
@@ -1219,6 +1249,185 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
 
   generateExports(globalState, mainM);
 }
+
+void doRustyThings(
+    Program* program,
+    GlobalState* globalState,
+    Determinism* determinism) {
+  std::unordered_map<Prototype*, std::string> prototypeToRustFuncStr;
+  std::unordered_map<Kind*, std::string> kindToRustKindStr;
+  std::stringstream divinationInput;
+  for (auto[packageCoord, package] : program->packages) {
+    if (packageCoord->projectName == "rust") { // DO NOT SUBMIT just lookup?
+      for (auto [prototype, externFunc]: package->functionToExtern) {
+        std::string rustFuncStr = rustifySimpleId(externFunc->simpleId, true);
+        prototypeToRustFuncStr.emplace(externFunc->prototype, rustFuncStr);
+        divinationInput << "#pragma rsfn " << rustFuncStr << std::endl;
+      }
+    }
+  }
+  for (auto[packageCoord, package] : program->packages) {
+    if (packageCoord->projectName == "rust") { // DO NOT SUBMIT but we cant just lookup because there are multiple packages under rust
+      for (auto [externName, externKind]: package->kindToExtern) {
+        std::string rustKindStr = rustifySimpleId(externKind->simpleId, true);
+        kindToRustKindStr.emplace(externKind->kind, rustKindStr);
+        divinationInput << "#pragma rsuse " << rustKindStr << std::endl;
+      }
+    }
+  }
+
+  std::string divinationInputStr = divinationInput.str();
+  std::cout << "Using divination input:" << std::endl;
+  std::cout << divinationInputStr << std::endl;
+
+  std::string rustExternsFilename = "rust_externs.h";
+  std::ofstream rustExternsFile(rustExternsFilename);
+  if (!rustExternsFile.is_open()) {
+    std::cerr << "Error creating " << rustExternsFilename << std::endl;
+    exit(1);
+  }
+  rustExternsFile << divinationInputStr;
+  rustExternsFile.close();
+
+  std::string sizesFilePath = "/Volumes/V/Catter/build/rust/sizes.txt";
+
+  std::stringstream rusterCmd;
+  rusterCmd << "/Volumes/V/Vale/ValeRuster/target/debug/ValeRuster"; // DO NOT SUBMIT
+  rusterCmd << " --crate std";
+  rusterCmd << " --cargo_toml /Volumes/V/Catter/Dependencies.toml";
+  rusterCmd << " --output_dir /Volumes/V/Catter/build/rust";
+  rusterCmd << " --output_sizes " << sizesFilePath;
+  rusterCmd << " instantiate";
+  rusterCmd << " --input_file " << rustExternsFilename;
+  std::string rusterCmdStr = rusterCmd.str();
+  std::cout << "Running ValeRuster: " << rusterCmdStr << std::endl;
+  int exitCode = std::system(rusterCmdStr.c_str());
+  if (exitCode != 0) {
+    std::cerr << "Error running ValeRuster!" << std::endl;
+    exit(1);
+  }
+
+  std::ifstream sizesFile(sizesFilePath);
+  if (!sizesFile.is_open()) {
+    throw std::runtime_error("Could not open file: " + sizesFilePath);
+  }
+
+  std::unordered_map<std::string, std::tuple<std::string, int, int>> typeStrToMangledNameAndSizeAndAlignment;
+  std::unordered_map<std::string, std::string> funcStrToMangledName;
+  for (std::string line; std::getline(sizesFile, line); ) {
+    std::cerr << "Line from sizes.txt: " << line << std::endl;
+    std::vector<std::string> lineParts = split(line, '/');
+    if (lineParts.size() < 1) {
+      std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+      exit(1);
+    }
+    if (lineParts[0] == "type") {
+      if (lineParts.size() != 5) {
+        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        exit(1);
+      }
+      std::string typeStr = lineParts[1];
+      std::string mangledName = lineParts[2];
+      std::string sizeStr = lineParts[3];
+      std::string alignmentStr = lineParts[4];
+      int size = 0;
+      int alignment = 0;
+      try {
+        size = std::stoi(sizeStr);
+        alignment = std::stoi(alignmentStr);
+      } catch (const std::invalid_argument& e) {
+        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        exit(1);
+      } catch (const std::out_of_range& e) {
+        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        exit(1);
+      }
+      std::cout << "Adding to typeStrToSizeAndAlignment " << typeStr << " " << size << " " << alignment << std::endl;
+      typeStrToMangledNameAndSizeAndAlignment.emplace(typeStr, std::make_tuple(mangledName, size, alignment));
+    } else if (lineParts[0] == "fn") {
+      if (lineParts.size() != 3) {
+        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        exit(1);
+      }
+      std::string funcRustStr = lineParts[1];
+      std::string mangledName = lineParts[2];
+      std::cout << "Adding to funcStrToMangledName " << funcRustStr << " " << mangledName << std::endl;
+      funcStrToMangledName.emplace(funcRustStr, mangledName);
+    } else {
+      std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+      exit(1);
+    }
+  }
+  sizesFile.close();
+
+  for (auto[packageCoord, package] : program->packages) {
+    for (auto [name, structM] : package->structs) {
+      if (packageCoord->projectName == "rust") { // DO NOT SUBMIT but we cant just lookup because there are multiple packages under rust
+        if (structM->exterrn) {
+          std::cout << "Found extern struct def: " << name << std::endl;
+
+          auto iter1 = kindToRustKindStr.find(structM->kind);
+          assert(iter1 != kindToRustKindStr.end());
+          auto rustKindStr = iter1->second;
+          auto iter2 = typeStrToMangledNameAndSizeAndAlignment.find(rustKindStr);
+          assert(iter2 != typeStrToMangledNameAndSizeAndAlignment.end());
+          auto [mangledName, size, alignment] = iter2->second;
+
+          package->kindToExtern[structM->kind]->mangledName = mangledName;
+
+          assert(structM->members.size() == 1);
+          auto opaqueKind = structM->members[0]->type->kind;
+          auto opaque = dynamic_cast<Opaque *>(opaqueKind);
+          assert(opaque);
+          globalState->getRegion(structM->regionId)->defineOpaque(opaque, size, alignment);
+          globalState->getRegion(structM->regionId)->defineStruct(structM);
+          if (structM->mutability == Mutability::IMMUTABLE) {
+            globalState->linearRegion->defineOpaque(opaque, size, alignment);
+            globalState->linearRegion->defineStruct(structM);
+          }
+        }
+      }
+    }
+  }
+
+  for (auto[packageCoord, package] : program->packages) {
+    if (packageCoord->projectName == "rust") { // DO NOT SUBMIT but we cant just lookup because there are multiple packages under rust
+      for (auto [prototype, externFunc]: package->functionToExtern) {
+        std::cerr << "Looking for prototype: " << prototype->name->name << std::endl;
+        auto iter1 = prototypeToRustFuncStr.find(prototype);
+        assert(iter1 != prototypeToRustFuncStr.end());
+        auto funcRustStr = iter1->second;
+        auto iter2 = funcStrToMangledName.find(funcRustStr);
+        assert(iter2 != funcStrToMangledName.end());
+        auto mangledName = iter2->second;
+
+        package->functionToExtern[externFunc->prototype]->mangledName = mangledName;
+
+        if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
+          // Dont generate C code for built in externs
+          continue;
+        }
+        std::string name;
+        if (!externFunc->mangledName.empty()) {
+          name = externFunc->mangledName;
+        } else {
+          assert(false);
+          auto iter = prototypeToRustFuncStr.find(externFunc->prototype);
+          if (iter != prototypeToRustFuncStr.end()) {
+            name = iter->second;
+          } else {
+            std::cerr << "No extern name found for extern prototype!" << std::endl;
+            assert(false);
+            exit(1);
+          }
+        }
+        declareExternFunction(globalState, package, externFunc->prototype, externFunc->mangledName);
+        determinism->registerFunction(externFunc->prototype);
+      }
+    }
+  }
+}
+
 
 void createModule(std::vector<std::string>& inputFilepaths, GlobalState *globalState) {
   globalState->mod = LLVMModuleCreateWithNameInContext("build", globalState->context);

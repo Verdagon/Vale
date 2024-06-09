@@ -86,6 +86,11 @@ cmake -B build -DLLVM_DIR="$LLVM_CMAKE_DIR" || { echo 'Backend generate failed, 
 echo Compiling Backend...
 cmake --build build || { echo 'Backend build failed, aborting.' ; exit 1; }
 
+cd ../ValeRuster
+
+echo Compiling ValeRuster...
+cargo build --release || { echo 'Coordinator build failed, aborting.' ; exit 1; }
+
 cd ../Coordinator
 
 echo Compiling Coordinator...
@@ -103,6 +108,7 @@ cp -r ../Backend/builtins ../release-mac/builtins || { echo 'Error copying into 
 cp ../Backend/build/backend ../release-mac/backend || { echo 'Error copying into release-mac.' ; exit 1; }
 cp -r ../stdlib ../release-mac/stdlib || { echo 'Error copying into release-mac.' ; exit 1; }
 cp ../Coordinator/build/valec ../release-mac/valec || { echo 'Error copying into release-mac.' ; exit 1; }
+cp ../ValeRuster/target/release/ValeRuster ../release-mac/ValeRuster || { echo 'Error copying into release-mac.' ; exit 1; }
 
 cat all/README | sed s/\{valec_exe\}/.\\\/valec/g | sed s/\{sep\}/\\/\/g | sed s/\{valec_version\}/$VALEC_VERSION/g > ../release-mac/README || { echo 'Error copying into release-mac.' ; exit 1; }
 cat all/valec-help-build.txt | sed s/\{valec_exe\}/.\\\/valec/g | sed s/\{sep\}/\\/\/g | sed s/\{valec_version\}/$VALEC_VERSION/g > ../release-mac/valec-help-build.txt || { echo 'Error copying into release-mac.' ; exit 1; }
