@@ -303,7 +303,7 @@ case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironmen
 case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT
 case class ClosureParamNameT(codeLocation: CodeLocationS) extends IVarNameT
 case class ConstructingMemberNameT(name: StrI) extends IVarNameT
-case class OpaqueMemberNameT() extends IVarNameT
+//case class OpaqueMemberNameT() extends IVarNameT
 case class WhileCondResultNameT(range: RangeS) extends IVarNameT
 case class IterableNameT(range: RangeS) extends IVarNameT {  }
 case class IteratorNameT(range: RangeS) extends IVarNameT {  }

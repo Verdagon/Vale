@@ -91,21 +91,21 @@ class StructCompilerCore(
         TemplatasStore(placeholderedIdT, Map(), Map()))
 
     val members =
-      if (templateIdT.packageCoord.module.str == "rust") { // DO NOT SUBMIT
-        vassert(structA.members.isEmpty) // DO NOT SUBMIT
-        Vector(OpaqueStructMemberT())
-      } else {
+//      if (templateIdT.packageCoord.module.str == "rust") { // DO NOT SUBMIT
+//        vassert(structA.members.isEmpty) // DO NOT SUBMIT
+//        Vector(OpaqueStructMemberT())
+//      } else {
         makeStructMembers(structInnerEnv, coutputs, structA.members)
-      }
+//      }
 
     if (mutability == MutabilityTemplataT(ImmutableT)) {
       members.zipWithIndex.foreach({
         case (VariadicStructMemberT(name, tyype), index) => {
           vimpl() // Dont have imm variadics yet
         }
-        case (OpaqueStructMemberT(), _) => {
-          // No checks needed here
-        }
+//        case (OpaqueStructMemberT(), _) => {
+//          // No checks needed here
+//        }
         case (NormalStructMemberT(name, variability, tyype), index) => {
           if (variability == VaryingT) {
             throw CompileErrorExceptionT(

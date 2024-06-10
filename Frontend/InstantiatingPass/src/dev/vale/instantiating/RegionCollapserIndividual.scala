@@ -123,7 +123,7 @@ object RegionCollapserIndividual {
     name: IVarNameI[sI]):
   IVarNameI[cI] = {
     name match {
-      case OpaqueMemberNameI() => OpaqueMemberNameI()
+//      case OpaqueMemberNameI() => OpaqueMemberNameI()
       case TypingPassBlockResultVarNameI(life) => TypingPassBlockResultVarNameI(life)
       case CodeVarNameI(name) => CodeVarNameI(name)
       case TypingPassTemporaryVarNameI(life) => TypingPassTemporaryVarNameI(life)

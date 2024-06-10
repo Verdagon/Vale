@@ -68,10 +68,10 @@ sealed trait IStructMemberT {
   def name: IVarNameT
 }
 
-case class OpaqueStructMemberT() extends IStructMemberT {
-  override def name: IVarNameT = OpaqueMemberNameT()
-  vpass()
-}
+//case class OpaqueStructMemberT() extends IStructMemberT {
+//  override def name: IVarNameT = OpaqueMemberNameT()
+//  vpass()
+//}
 
 case class NormalStructMemberT(
   name: IVarNameT,

@@ -1286,12 +1286,12 @@ class Instantiator(
     member: IStructMemberT):
   StructMemberI = {
     member match {
-      case OpaqueStructMemberT() => {
-        StructMemberI(
-          OpaqueMemberNameI(),
-          FinalI,
-          OpaqueMemberTypeI())
-      }
+//      case OpaqueStructMemberT() => {
+//        StructMemberI(
+//          OpaqueMemberNameI(),
+//          FinalI,
+//          OpaqueMemberTypeI())
+//      }
       case NormalStructMemberT(name, variability, tyype) => {
         val (memberSubjectiveIT, memberTypeI) =
           tyype match {

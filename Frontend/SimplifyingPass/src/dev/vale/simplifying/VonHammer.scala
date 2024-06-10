@@ -360,7 +360,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("name", vonifyName(name))))
       }
-      case OpaqueHT(structId, simpleId) => {
+      case OpaqueHT(_, structId, simpleId) => {
         VonObject(
           "Opaque",
           None,

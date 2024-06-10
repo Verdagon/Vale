@@ -307,7 +307,7 @@ ExternKind* readExternKind(MetalCache* cache, const json& obj) {
 
   std::string mangledName = obj["mangledName"];
   auto simpleId = readSimpleId(cache, obj["id"]);
-  auto kind = readKind(cache, obj["kind"]);
+  auto kind = readOpaqueKind(cache, obj["kind"]);
 
   return new ExternKind{std::move(mangledName), simpleId, kind};
 }
@@ -838,10 +838,10 @@ Package* readPackage(MetalCache* cache, const json& program) {
             auto externFunc = readExternFunction(cache, entryJ);
             return std::make_pair(externFunc->prototype, externFunc);
           }),
-      readArrayIntoMap<Kind*, ExternKind*>(
+      readArrayIntoMap<Opaque*, ExternKind*>(
           cache,
-          AddressHasher<Kind*>(cache->addressNumberer),
-          AddressEquator<Kind*>(),
+          AddressHasher<Opaque*>(cache->addressNumberer),
+          AddressEquator<Opaque*>(),
           program["kindToExtern"],
           [](MetalCache* cache, json entryJ){
               auto externKind = readExternKind(cache, entryJ);

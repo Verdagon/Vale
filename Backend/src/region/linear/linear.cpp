@@ -178,6 +178,7 @@ LLVMTypeRef Linear::translateType(Reference* referenceM) {
     assert(referenceM->ownership == Ownership::MUTABLE_SHARE);
     return LLVMDoubleTypeInContext(globalState->context);
   } else if (dynamic_cast<Never*>(referenceM->kind) != nullptr) {
+    assert(false); // Curiosity, can't imagine when want to instantiate one of these.
     return LLVMArrayType(LLVMIntTypeInContext(globalState->context, NEVER_INT_BITS), 0);
   } else if (dynamic_cast<Str *>(referenceM->kind) != nullptr) {
     assert(referenceM->location != Location::INLINE);
@@ -197,13 +198,14 @@ LLVMTypeRef Linear::translateType(Reference* referenceM) {
     return LLVMPointerType(runtimeSizedArrayCountedStructLT, 0);
   } else if (auto structKind =
       dynamic_cast<StructKind *>(referenceM->kind)) {
-    if (referenceM->location == Location::INLINE) {
-      auto innerStructL = structs.getStructStruct(structKind);
-      return innerStructL;
-    } else {
+    // Even if its inline, linear treats it as not inline. It'll live in the
+//    if (referenceM->location == Location::INLINE) {
+//      auto innerStructL = structs.getStructStruct(structKind);
+//      return forcePointer ? LLVMPointerType(innerStructL, 0) : innerStructL;
+//    } else {
       auto countedStructL = structs.getStructStruct(structKind);
       return LLVMPointerType(countedStructL, 0);
-    }
+//    }
   } else if (auto interfaceKind =
       dynamic_cast<InterfaceKind *>(referenceM->kind)) {
     assert(referenceM->location != Location::INLINE);
@@ -211,6 +213,7 @@ LLVMTypeRef Linear::translateType(Reference* referenceM) {
         structs.getInterfaceRefStruct(interfaceKind);
     return interfaceRefStructL;
   } else if (dynamic_cast<Never*>(referenceM->kind)) {
+    assert(false); // DO NOT SUBMIT is this a duplicate case
     auto result = LLVMPointerType(makeNeverType(globalState), 0);
     assert(LLVMTypeOf(globalState->neverPtrLE) == result);
     return result;
@@ -1198,6 +1201,15 @@ std::string Linear::getExportName(Package* currentPackage, Reference* hostRefMT,
     return "double";
   } else if (dynamic_cast<Str *>(hostMT)) {
     return "ValeStr*";
+  } else if (dynamic_cast<Opaque *>(hostMT)) {
+    auto valeKind = valeKindByHostKind.find(hostMT)->second;
+    auto valeOpaque = dynamic_cast<Opaque*>(valeKind);
+    assert(valeKind);
+    auto package = globalState->program->getPackage(valeOpaque->getPackageCoordinate());
+    auto externIter = package->kindToExtern.find(valeOpaque);
+    assert(externIter != package->kindToExtern.end());
+    auto exterrn = externIter->second; // DO NOT SUBMIT feels repeated
+    return package->packageCoordinate->projectName + "_" + exterrn->mangledName;
   } else if (auto hostInterfaceMT = dynamic_cast<InterfaceKind *>(hostMT)) {
     auto valeMT = valeKindByHostKind.find(hostMT)->second;
     auto valeInterfaceMT = dynamic_cast<InterfaceKind*>(valeMT);
@@ -2522,7 +2534,7 @@ LiveRef Linear::getDestinationRef(
     Reference* desiredRefMT) {
   auto destinationI8PtrLE = getDestinationPtr(functionState, builder, regionInstanceRef);
   auto desiredRefLT = translateType(desiredRefMT);
-  auto unadjustedDestinationPtrLE = LLVMBuildBitCast(builder, destinationI8PtrLE, desiredRefLT, "unadjustedDestinationPtr");
+  auto unadjustedDestinationPtrLE = LLVMBuildPointerCast(builder, destinationI8PtrLE, desiredRefLT, "unadjustedDestinationPtr");
 
   auto adjustedDestinationPtr =
       translateBetweenBufferAddressAndPointer(

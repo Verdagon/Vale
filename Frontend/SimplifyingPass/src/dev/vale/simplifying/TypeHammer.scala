@@ -19,7 +19,13 @@ class TypeHammer(
       case FloatIT() => FloatHT()
       case StrIT() => StrHT()
       case VoidIT() => VoidHT()
-      case s @ StructIT(_) => structHammer.translateStructI(hinputs, hamuts, s)
+      case s @ StructIT(id) => {
+        if (id.packageCoord.module.str == "rust") {
+          structHammer.translateOpaqueI(hinputs, hamuts, s)
+        } else {
+          structHammer.translateStructI(hinputs, hamuts, s)
+        }
+      }
 
       case i @ InterfaceIT(_) => structHammer.translateInterface(hinputs, hamuts, i)
 

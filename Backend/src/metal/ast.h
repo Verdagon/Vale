@@ -74,14 +74,14 @@ public:
 // Not interned
 class ExternKind {
 public:
-  std::string mangledName;
+  std::string mangledName; // We update this from empty to something, later on. DO NOT SUBMIT
   SimpleId* simpleId;
-  Kind* kind;
+  Opaque* kind;
 
   ExternKind(
       std::string mangledName_,
       SimpleId* simpleId_,
-      Kind* kind_) :
+      Opaque* kind_) :
       mangledName(std::move(mangledName_)),
       simpleId(simpleId_),
       kind(kind_) {}
@@ -102,7 +102,7 @@ public:
   std::unordered_map<std::string, Prototype*> exportNameToFunction;
   std::unordered_map<std::string, Kind*> exportNameToKind;
   std::unordered_map<Prototype*, ExternFunction*, AddressHasher<Prototype*>, AddressEquator<Prototype*>> functionToExtern;
-  std::unordered_map<Kind*, ExternKind*, AddressHasher<Kind*>, AddressEquator<Kind*>> kindToExtern;
+  std::unordered_map<Opaque*, ExternKind*, AddressHasher<Opaque*>, AddressEquator<Opaque*>> kindToExtern;
   // These are inverses of the above maps
   std::unordered_map<Prototype*, std::string, AddressHasher<Prototype*>> functionToExportName;
   std::unordered_map<Kind*, std::string, AddressHasher<Kind*>> kindToExportName;
@@ -119,7 +119,7 @@ public:
     std::unordered_map<std::string, Prototype*> exportNameToFunction_,
     std::unordered_map<std::string, Kind*> exportNameToKind_,
     std::unordered_map<Prototype*, ExternFunction*, AddressHasher<Prototype*>, AddressEquator<Prototype*>> functionToExtern_,
-    std::unordered_map<Kind*, ExternKind*, AddressHasher<Kind*>, AddressEquator<Kind*>> kindToExtern_) :
+    std::unordered_map<Opaque*, ExternKind*, AddressHasher<Opaque*>, AddressEquator<Opaque*>> kindToExtern_) :
       packageCoordinate(packageCoordinate_),
       interfaces(std::move(interfaces_)),
       structs(std::move(structs_)),
@@ -132,7 +132,7 @@ public:
       functionToExportName(0, addressNumberer->makeHasher<Prototype*>()),
       kindToExportName(0, addressNumberer->makeHasher<Kind*>()),
       functionToExtern(0, addressNumberer->makeHasher<Prototype*>()),
-      kindToExtern(0, addressNumberer->makeHasher<Kind*>()) {
+      kindToExtern(0, addressNumberer->makeHasher<Opaque*>()) {
     for (auto [exportName, prototype] : exportNameToFunction) {
       assert(functionToExportName.count(prototype) == 0);
       functionToExportName[prototype] = exportName;
@@ -146,7 +146,7 @@ public:
       functionToExtern[exterrn->prototype] = exterrn;
     }
     for (auto [kind, exterrn] : kindToExtern_) {
-      assert(kindToExtern.count(exterrn->kind) == 0);
+      assert(kindToExtern.count(kind) == 0);
       kindToExtern[exterrn->kind] = exterrn;
     }
   }
@@ -251,7 +251,7 @@ public:
     assert(iter != functionToExportName.end());
     return (!packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + iter->second;
   }
-  ExternKind* getKindExtern(Kind* kind) const {
+  ExternKind* getKindExtern(Opaque* kind) const {
     auto iter = kindToExtern.find(kind);
     assert(iter != kindToExtern.end());
     return iter->second;

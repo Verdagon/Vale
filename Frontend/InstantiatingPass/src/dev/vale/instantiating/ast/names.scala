@@ -285,7 +285,7 @@ case class CaseFunctionFromImplTemplateNameI[+R <: IRegionsModeI](
 }
 
 sealed trait IVarNameI[+R <: IRegionsModeI] extends INameI[R]
-case class OpaqueMemberNameI[+R <: IRegionsModeI]() extends IVarNameI[R]
+//case class OpaqueMemberNameI[+R <: IRegionsModeI]() extends IVarNameI[R]
 case class TypingPassBlockResultVarNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]
 case class TypingPassFunctionResultVarNameI[+R <: IRegionsModeI]() extends IVarNameI[R]
 case class TypingPassTemporaryVarNameI[+R <: IRegionsModeI](life: LocationInFunctionEnvironmentI) extends IVarNameI[R]

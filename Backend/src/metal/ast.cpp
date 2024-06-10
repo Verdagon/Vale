@@ -12,21 +12,23 @@ std::string Package::getKindExportName(Kind* kind, bool includeProjectName) cons
     return "double";
   } else if (dynamic_cast<Str *>(kind)) {
     return "ValeStr*";
+  } else if (auto opaque = dynamic_cast<Opaque *>(kind)) {
+    auto iter2 = kindToExtern.find(opaque);
+    if (iter2 == kindToExtern.end()) {
+      std::cerr << "Couldn't find export name for: " << getKindHumanName(kind) << std::endl;
+      exit(1);
+    }
+    auto thing = iter2->second->mangledName; // DO NOT SUBMIT name
+    return (includeProjectName && !packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + thing;
   } else {
     // DO NOT SUBMIT this is awkward
     std::string thing;
     auto iter1 = kindToExportName.find(kind);
-    if (iter1 != kindToExportName.end()) {
-      thing = iter1->second;
-    } else {
-      auto iter2 = kindToExtern.find(kind);
-      if (iter2 != kindToExtern.end()) {
-        thing = iter2->second->mangledName;
-      } else {
-        std::cerr << "Couldn't find export name for: " << getKindHumanName(kind) << std::endl;
-        exit(1);
-      }
+    if (iter1 == kindToExportName.end()) {
+      std::cerr << "Couldn't find export name for: " << getKindHumanName(kind) << std::endl;
+      exit(1);
     }
+    thing = iter1->second;
     return (includeProjectName && !packageCoordinate->projectName.empty() ? packageCoordinate->projectName + "_" : "") + thing;
   }
 }

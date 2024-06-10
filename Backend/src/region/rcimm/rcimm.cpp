@@ -94,7 +94,8 @@ void RCImm::alias(
   if (dynamic_cast<Int *>(sourceRnd) ||
       dynamic_cast<Bool *>(sourceRnd) ||
       dynamic_cast<Float *>(sourceRnd) ||
-      dynamic_cast<Void *>(sourceRnd)) {
+      dynamic_cast<Void *>(sourceRnd) ||
+      dynamic_cast<Opaque *>(sourceRnd)) {
     // Do nothing for these, they're always inlined and copied.
   } else if (dynamic_cast<InterfaceKind *>(sourceRnd) ||
              dynamic_cast<StructKind *>(sourceRnd) ||

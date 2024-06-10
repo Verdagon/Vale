@@ -13,6 +13,7 @@ case class HamutsBox(var inner: Hamuts) {
   def packageCoordToExportNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]] = inner.packageCoordToExportNameToKind
   def packageCoordToPrototypeToExtern: Map[PackageCoordinate, Map[PrototypeH, HamutsFunctionExtern]] = inner.packageCoordToPrototypeToExtern
   def packageCoordToKindToExtern: Map[PackageCoordinate, Map[KindHT, HamutsKindExtern]] = inner.packageCoordToKindToExtern
+  def structTToOpaqueH: Map[StructIT[cI], OpaqueHT] = inner.structTToOpaqueH
   def structTToStructH: Map[StructIT[cI], StructHT] = inner.structTToStructH
   def structTToStructDefH: Map[StructIT[cI], StructDefinitionH] = inner.structTToStructDefH
   def structDefs: Vector[StructDefinitionH] = inner.structDefs
@@ -29,6 +30,10 @@ case class HamutsBox(var inner: Hamuts) {
 
   def addStructOriginatingFromTypingPass(structIT: StructIT[cI], structDefH: StructDefinitionH): Unit = {
     inner = inner.addStructOriginatingFromTypingPass(structIT, structDefH)
+  }
+
+  def addOpaque(structIT: StructIT[cI], opaqueH: OpaqueHT): Unit = {
+    inner = inner.addOpaque(structIT, opaqueH)
   }
 
   def addStructOriginatingFromHammer(structDefH: StructDefinitionH): Unit = {
@@ -71,8 +76,8 @@ case class HamutsBox(var inner: Hamuts) {
     inner = inner.addFunctionExport(prototype, packageCoordinate, exportedName)
   }
 
-  def addKindExtern(struct: StructHT, simpleId: SimpleId, exportedName: String): Unit = {
-    inner = inner.addKindExtern(struct, simpleId, exportedName)
+  def addKindExtern(opaqueH: OpaqueHT, simpleId: SimpleId, exportedName: String): Unit = {
+    inner = inner.addKindExtern(opaqueH, simpleId, exportedName)
   }
 
   def addFunctionExtern(prototype: PrototypeH, simpleId: SimpleId, exportedName: String): Unit = {
@@ -95,6 +100,7 @@ case class HamutsBox(var inner: Hamuts) {
 
 case class Hamuts(
     humanNameToFullNameToId: Map[String, Map[String, Int]],
+    structTToOpaqueH: Map[StructIT[cI], OpaqueHT],
     structTToStructH: Map[StructIT[cI], StructHT],
     structTToStructDefH: Map[StructIT[cI], StructDefinitionH],
     structDefs: Vector[StructDefinitionH],
@@ -117,6 +123,7 @@ case class Hamuts(
   def forwardDeclareStruct(structIT: StructIT[cI], structRefH: StructHT): Hamuts = {
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH + (structIT -> structRefH),
       structTToStructDefH,
       structDefs,
@@ -146,6 +153,7 @@ case class Hamuts(
     //   case None => {
         Hamuts(
           humanNameToFullNameToId,
+          structTToOpaqueH,
           structTToStructH,
           structTToStructDefH + (structTT -> structDefH),
           structDefs :+ structDefH,
@@ -163,11 +171,32 @@ case class Hamuts(
     // }
   }
 
+  def addOpaque(structIT: StructIT[cI], opaqueH: OpaqueHT): Hamuts = {
+    vassert(!structTToOpaqueH.contains(structIT)) // I think we only do this function once and use the cached thing
+    Hamuts(
+      humanNameToFullNameToId,
+      structTToOpaqueH + (structIT -> opaqueH),
+      structTToStructH,
+      structTToStructDefH,
+      structDefs,
+      staticSizedArrays,
+      runtimeSizedArrays,
+      interfaceTToInterfaceH,
+      interfaceTToInterfaceDefH,
+      functionRefs,
+      functionDefs,
+      packageCoordToExportNameToFunction,
+      packageCoordToExportNameToKind,
+      packageCoordToPrototypeToExtern,
+      packageCoordToKindToExtern)
+  }
+
   def addStructOriginatingFromHammer(structDefH: StructDefinitionH): Hamuts = {
     vassert(!structDefs.exists(_.id == structDefH.id))
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs :+ structDefH,
@@ -186,6 +215,7 @@ case class Hamuts(
   def forwardDeclareInterface(interfaceIT: InterfaceIT[cI], interfaceRefH: InterfaceHT): Hamuts = {
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -205,6 +235,7 @@ case class Hamuts(
     vassert(interfaceTToInterfaceH.contains(interfaceIT))
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -225,6 +256,7 @@ case class Hamuts(
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -251,6 +283,7 @@ case class Hamuts(
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -286,6 +319,7 @@ case class Hamuts(
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -321,6 +355,7 @@ case class Hamuts(
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -336,17 +371,17 @@ case class Hamuts(
       packageCoordToKindToExtern)
   }
 
-  def addKindExtern(struct: StructHT, simpleId: SimpleId, exportedName: String): Hamuts = {
-    val packageCoordinate = struct.id.packageCoordinate
+  def addKindExtern(opaqueH: OpaqueHT, simpleId: SimpleId, exportedName: String): Hamuts = {
+    val packageCoordinate = opaqueH.packageCoord
     val newPackageCoordToKindToExtern: Map[PackageCoordinate, Map[KindHT, HamutsKindExtern]] =
       packageCoordToKindToExtern.get(packageCoordinate) match {
         case None => {
-          packageCoordToKindToExtern + (packageCoordinate -> Map(struct -> HamutsKindExtern(exportedName, struct, simpleId)))
+          packageCoordToKindToExtern + (packageCoordinate -> Map(opaqueH -> HamutsKindExtern(exportedName, opaqueH, simpleId)))
         }
         case Some(exportNameToFullName) => {
-          exportNameToFullName.get(struct) match {
+          exportNameToFullName.get(opaqueH) match {
             case None => {
-              packageCoordToKindToExtern + (packageCoordinate -> (exportNameToFullName + (struct -> HamutsKindExtern(exportedName, struct, simpleId))))
+              packageCoordToKindToExtern + (packageCoordinate -> (exportNameToFullName + (opaqueH -> HamutsKindExtern(exportedName, opaqueH, simpleId))))
             }
             case Some(existingFullName) => {
               vfail("Already exported a `" + exportedName + "` from package `" + packageCoordinate + " : " + existingFullName)
@@ -357,6 +392,7 @@ case class Hamuts(
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -393,6 +429,7 @@ case class Hamuts(
 
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -414,6 +451,7 @@ case class Hamuts(
   ): Hamuts = {
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,
@@ -435,6 +473,7 @@ case class Hamuts(
   ): Hamuts = {
     Hamuts(
       humanNameToFullNameToId,
+      structTToOpaqueH,
       structTToStructH,
       structTToStructDefH,
       structDefs,

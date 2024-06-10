@@ -500,14 +500,19 @@ void generateExports(GlobalState* globalState, Prototype* mainM) {
   }
   for (auto[packageCoord, package] : program->packages) {
     for (auto[prototype, externFunc] : package->functionToExtern) {
-      auto externName = externFunc->mangledName; // DO NOT SUBMIT package->externNameToFunc keys are out of date, and never made sense in the first place because they might be blank
-      if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
-        // Dont generate C code for built in externs
-        continue;
+      if (prototype->name->name == "rust") {
+        // We handle these elsewhere
+      } else {
+        auto externName = externFunc->mangledName;
+        assert(!externName.empty());
+        if (externFunc->prototype->name->name.rfind("__vbi_", 0) == 0) {
+          // Dont generate C code for built in externs
+          continue;
+        }
+        auto* headerC = &packageCoordToHeaderNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
+        auto* sourceC = &packageCoordToSourceNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
+        makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false);
       }
-      auto* headerC = &packageCoordToHeaderNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
-      auto* sourceC = &packageCoordToSourceNameToC[packageCoord].emplace(externName, std::stringstream()).first->second;
-      makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false);
     }
   }
   if (globalState->opt->outputDir.empty()) {
@@ -581,17 +586,15 @@ void makeExternOrExportFunction(
         dynamic_cast<Float *>(kind) ||
         dynamic_cast<Str *>(kind)) {
       // Do nothing, no need to include anything for these
+    } else if (dynamic_cast<Opaque*>(kind)) {
+      (*headerC) << "#include \"" << rustGeneratedHeaderFilepath << "\"" << std::endl;
     } else {
-      if (package->packageCoordinate->projectName == "rust") { // DO NOT SUBMIT
-        (*headerC) << "#include \"" << rustGeneratedHeaderFilepath << "\"" << std::endl;
-      } else {
-        auto paramTypeExportName = package->getKindExportName(kind, false);
-        // if (ownershipToMutability(param->ownership) == Mutability::MUTABLE) {
-        //   paramTypeExportName += "Ref";
-        // }
-        assert(paramTypeExportName.size());
-        (*headerC) << "#include \"" << packageCoord->projectName << "/" << paramTypeExportName << ".h\"" << std::endl;
-      }
+      auto paramTypeExportName = package->getKindExportName(kind, false);
+      // if (ownershipToMutability(param->ownership) == Mutability::MUTABLE) {
+      //   paramTypeExportName += "Ref";
+      // }
+      assert(paramTypeExportName.size());
+      (*headerC) << "#include \"" << packageCoord->projectName << "/" << paramTypeExportName << ".h\"" << std::endl;
     }
   }
   {
@@ -602,18 +605,16 @@ void makeExternOrExportFunction(
         dynamic_cast<Float *>(kind) ||
         dynamic_cast<Str *>(kind)) {
       // Do nothing, no need to include anything for these
+    } else if (dynamic_cast<Opaque*>(kind)) {
+      (*headerC) << "#include \"" << rustGeneratedHeaderFilepath << "\"" << std::endl;
     } else {
-      if (package->packageCoordinate->projectName == "rust") { // DO NOT SUBMIT
-        (*headerC) << "#include \"" << rustGeneratedHeaderFilepath << "\"" << std::endl;
-      } else {
-        // We need to include the actual header for interfaces, because the user func hands them around by value
-        auto returnTypeExportName = package->getKindExportName(kind, false);
-        assert(returnTypeExportName.size());
-        // if (ownershipToMutability(prototype->returnType->ownership) == Mutability::MUTABLE) {
-        //   returnTypeExportName += "Ref";
-        // }
-        (*headerC) << "#include \"" << packageCoord->projectName << "/" << returnTypeExportName << ".h\"" << std::endl;
-      }
+      // We need to include the actual header for interfaces, because the user func hands them around by value
+      auto returnTypeExportName = package->getKindExportName(kind, false);
+      assert(returnTypeExportName.size());
+      // if (ownershipToMutability(prototype->returnType->ownership) == Mutability::MUTABLE) {
+      //   returnTypeExportName += "Ref";
+      // }
+      (*headerC) << "#include \"" << packageCoord->projectName << "/" << returnTypeExportName << ".h\"" << std::endl;
     }
   }
   auto userHeaderC = generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_USER_PROTOTYPE : CFuncLineMode::EXTERN_USER_PROTOTYPE, isExport);
@@ -929,26 +930,17 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
         // TODO: https://github.com/ValeLang/Vale/issues/479
         globalState->linearRegion->declareStruct(structM);
       }
+    }
+  }
 
-      if (structM->exterrn) {
-        assert(structM->members.size() == 1);
-        auto opaqueKind = structM->members[0]->type->kind;
-        auto opaque = dynamic_cast<Opaque*>(opaqueKind);
-        assert(opaque);
-        globalState->getRegion(structM->regionId)->declareOpaque(opaque);
 
-        if (structM->mutability == Mutability::IMMUTABLE) {
-          globalState->linearRegion->declareOpaque(opaque);
-        }
-      }
-
-      // std::cout << "Declaring struct " << packageCoord->projectName;
-      // for (auto step : packageCoord->packageSteps) {
-      //   std::cout << "." << step;
-      // }
-      // std::cout << "." << name;
-      // std::cout << std::endl;
-
+  for (auto packageCoordAndPackage : program.packages) {
+    auto[packageCoord, package] = packageCoordAndPackage;
+    for (auto [opaqueMT, kindExtern] : package->kindToExtern) {
+//      auto region = globalState->getRegion(structM->regionId);
+      globalState->rcImm->declareOpaque(opaqueMT);
+      // TODO: https://github.com/ValeLang/Vale/issues/479
+      globalState->linearRegion->declareOpaque(opaqueMT);
     }
   }
 
@@ -1168,6 +1160,18 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
   }
 
   for (auto[packageCoord, package] : program.packages) {
+    for (auto[prototype, funcExtern] : package->functionToExtern) {
+      if (prototype->name->name.rfind("__vbi_", 0) == 0) {
+        // Dont generate C code for built in externs
+        continue;
+      }
+      if (prototype->name->packageCoord->projectName != "rust") { // DO NOT SUBMIT
+        declareExternFunction(globalState, package, prototype, funcExtern->mangledName);
+        determinism.registerFunction(prototype);
+      }
+    }
+  }
+  for (auto[packageCoord, package] : program.packages) {
     for (auto[name, function] : package->functions) {
       declareFunction(globalState, function);
     }
@@ -1250,12 +1254,13 @@ void compileValeCode(GlobalState* globalState, std::vector<std::string>& inputFi
   generateExports(globalState, mainM);
 }
 
+// DO NOT SUBMIT name
 void doRustyThings(
     Program* program,
     GlobalState* globalState,
     Determinism* determinism) {
   std::unordered_map<Prototype*, std::string> prototypeToRustFuncStr;
-  std::unordered_map<Kind*, std::string> kindToRustKindStr;
+  std::unordered_map<Opaque*, std::string> kindToRustKindStr;
   std::stringstream divinationInput;
   for (auto[packageCoord, package] : program->packages) {
     if (packageCoord->projectName == "rust") { // DO NOT SUBMIT just lookup?
@@ -1361,32 +1366,18 @@ void doRustyThings(
   sizesFile.close();
 
   for (auto[packageCoord, package] : program->packages) {
-    for (auto [name, structM] : package->structs) {
-      if (packageCoord->projectName == "rust") { // DO NOT SUBMIT but we cant just lookup because there are multiple packages under rust
-        if (structM->exterrn) {
-          std::cout << "Found extern struct def: " << name << std::endl;
+    for (auto [opaque, kindExtern] : package->kindToExtern) {
+      auto iter1 = kindToRustKindStr.find(opaque);
+      assert(iter1 != kindToRustKindStr.end());
+      auto rustKindStr = iter1->second;
+      auto iter2 = typeStrToMangledNameAndSizeAndAlignment.find(rustKindStr);
+      assert(iter2 != typeStrToMangledNameAndSizeAndAlignment.end());
+      auto [mangledName, size, alignment] = iter2->second;
 
-          auto iter1 = kindToRustKindStr.find(structM->kind);
-          assert(iter1 != kindToRustKindStr.end());
-          auto rustKindStr = iter1->second;
-          auto iter2 = typeStrToMangledNameAndSizeAndAlignment.find(rustKindStr);
-          assert(iter2 != typeStrToMangledNameAndSizeAndAlignment.end());
-          auto [mangledName, size, alignment] = iter2->second;
+      package->kindToExtern[opaque]->mangledName = mangledName;
 
-          package->kindToExtern[structM->kind]->mangledName = mangledName;
-
-          assert(structM->members.size() == 1);
-          auto opaqueKind = structM->members[0]->type->kind;
-          auto opaque = dynamic_cast<Opaque *>(opaqueKind);
-          assert(opaque);
-          globalState->getRegion(structM->regionId)->defineOpaque(opaque, size, alignment);
-          globalState->getRegion(structM->regionId)->defineStruct(structM);
-          if (structM->mutability == Mutability::IMMUTABLE) {
-            globalState->linearRegion->defineOpaque(opaque, size, alignment);
-            globalState->linearRegion->defineStruct(structM);
-          }
-        }
-      }
+      globalState->rcImm->defineOpaque(opaque, size, alignment);
+      globalState->linearRegion->defineOpaque(opaque, size, alignment);
     }
   }
 

@@ -119,11 +119,12 @@ case class VoidHT() extends KindHT {
   override def isRustOpaqueType(): Boolean = false
 }
 case class OpaqueHT(
+  packageCoord: PackageCoordinate,
   structId: IdH,
   simpleId: SimpleId
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
+  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = packageCoord
     override def isRustOpaqueType(): Boolean = false
 }
 case class BoolHT() extends KindHT {

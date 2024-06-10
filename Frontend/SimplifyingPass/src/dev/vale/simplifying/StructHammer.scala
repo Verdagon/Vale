@@ -82,7 +82,13 @@ class StructHammer(
   }
 
   def translateStructs(hinputs: HinputsI, hamuts: HamutsBox): Unit = {
-    hinputs.structs.foreach(structDefI => translateStructI(hinputs, hamuts, structDefI.instantiatedCitizen))
+    hinputs.structs.foreach(structDefI => {
+      if (structDefI.instantiatedCitizen.id.packageCoord.module.str == "rust") { // DO NOT SUBMIT
+        translateOpaqueI(hinputs, hamuts, structDefI.instantiatedCitizen)
+      } else {
+        translateStructI(hinputs, hamuts, structDefI.instantiatedCitizen)
+      }
+    })
   }
 
   def translateStructI(
@@ -135,6 +141,41 @@ class StructHammer(
     }
   }
 
+  def translateOpaqueI(
+      hinputs: HinputsI,
+      hamuts: HamutsBox,
+      structIT: StructIT[cI]):
+  (OpaqueHT) = {
+    vassert(structIT.id.packageCoord.module.str == "rust")
+    hamuts.structTToOpaqueH.get(structIT) match {
+      case Some(opaqueH) => opaqueH
+      case None => {
+        val (fullNameH) = nameHammer.translateFullName(hinputs, hamuts, structIT.id)
+        // This is the only place besides StructDefinitionH that can make a StructRefH
+        val temporaryStructRefH = StructHT(fullNameH);
+        hamuts.forwardDeclareStruct(structIT, temporaryStructRefH)
+        val structDefI = hinputs.lookupStruct(structIT.id);
+        val mutabilityH = Conversions.evaluateMutabilityTemplata(structDefI.mutability)
+        vassert(structDefI.members.isEmpty)
+
+        val (edgesH) = translateEdgesForStruct(hinputs, hamuts, temporaryStructRefH, structIT)
+
+//        hamuts.addStructOriginatingFromTypingPass(structIT, structDefH)
+//        vassert(structDefH.getRef == temporaryStructRefH)
+
+        val opaqueH =
+          OpaqueHT(
+            structIT.id.packageCoord,
+            nameHammer.translateFullName(hinputs, hamuts, structIT.id),
+            NameHammer.simplifyId(structIT.id))
+
+        hamuts.addOpaque(structIT, opaqueH)
+
+        opaqueH
+      }
+    }
+  }
+
   def translateMembers(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], structMutabilityH: Mutability, members: Vector[StructMemberI]):
   (Vector[StructMemberH]) = {
     members.map(translateMember(hinputs, hamuts, structName, structMutabilityH, _))
@@ -144,13 +185,13 @@ class StructHammer(
   (StructMemberH) = {
     val (variability, memberType) =
       member2 match {
-        case StructMemberI(_, variability, OpaqueMemberTypeI()) => {
-          val opaqueHT =
-            OpaqueHT(
-              nameHammer.translateFullName(hinputs, hamuts, structName),
-              NameHammer.simplifyId(structName))
-          (variability, CoordH(vregionmut(MutableShareH), YonderH, opaqueHT))
-        }
+//        case StructMemberI(_, variability, OpaqueMemberTypeI()) => {
+//          val opaqueHT =
+//            OpaqueHT(
+//              nameHammer.translateFullName(hinputs, hamuts, structName),
+//              NameHammer.simplifyId(structName))
+//          (variability, CoordH(vregionmut(MutableShareH), YonderH, opaqueHT))
+//        }
         case StructMemberI(_, variability, ReferenceMemberTypeI(coord)) => {
           (variability, translateReference(hinputs, hamuts, coord))
         }

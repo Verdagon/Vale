@@ -76,7 +76,7 @@ class PatternTests extends FunSuite with Matchers {
       tupDef.members.collect({
         case StructMemberI(_, _, AddressMemberTypeI(tyype)) => tyype
         case StructMemberI(_, _, ReferenceMemberTypeI(tyype)) => tyype
-        case StructMemberI(_, _, OpaqueMemberTypeI()) => vwat()
+//        case StructMemberI(_, _, OpaqueMemberTypeI()) => vwat()
       })
     tupDefMemberTypes match {
       case Vector(
