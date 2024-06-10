@@ -881,7 +881,9 @@ LLVMTypeRef RCImm::translateType(Reference* referenceM) {
       int size = 0, alignment = 0;
       std::tie(size, alignment) = globalState->getOpaqueMeasurements(opaque);
       int numBytes = alignSize(size, alignment);
-      auto lt = LLVMArrayType(LLVMInt8TypeInContext(globalState->context), numBytes);
+      LLVMTypeRef memberArrType =
+          LLVMArrayType(LLVMInt8TypeInContext(globalState->context), numBytes);
+      auto lt = LLVMStructTypeInContext(globalState->context, &memberArrType, 1, false);
       return lt;
     } else {
       std::cerr << "Unimplemented type: " << typeid(*referenceM->kind).name() << std::endl;

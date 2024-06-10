@@ -248,6 +248,7 @@ RawFuncPtrLE declareExternFunction(
 
   RawFuncPtrLE functionL =
       addRawFunction(globalState->mod, abiFuncNameL.c_str(), externReturnLT, externParamTypesL);
+  LLVMSetFunctionCallConv(functionL.ptrLE, LLVMCCallConv);
 
   assert(globalState->externFunctions.count(prototypeM) == 0);
   globalState->externFunctions.emplace(prototypeM, functionL);
