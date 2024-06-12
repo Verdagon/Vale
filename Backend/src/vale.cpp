@@ -128,7 +128,8 @@ void makeExternOrExportFunction(
     Prototype *prototype,
     bool isExport,
     // DO NOT SUBMIT
-    const std::vector<bool>& borrowParams);
+    const std::string& retRustTypeStr,
+    const std::vector<std::string>& paramRustTypeStrs);
 
 void optimize(GlobalState *globalState);
 
@@ -241,7 +242,8 @@ std::string generateFunctionC(
     CFuncLineMode lineMode,
     bool isExport,
     // DO NOT SUBMIT
-    const std::vector<bool>& borrowParams) {
+    const std::string& rustRetStr,
+    const std::vector<std::string>& rustParamStrs) {
   auto returnTypeExportName =
       globalState->getRegion(prototype->returnType)->getExportName(package, prototype->returnType, true);
   auto projectName = package->packageCoordinate->projectName;
@@ -264,7 +266,13 @@ std::string generateFunctionC(
     }
     case CFuncLineMode::EXTERN_USER_PROTOTYPE:
     case CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE: {
-      s << "extern " << returnTypeExportName << " " << userFuncName << "(";
+      s << "extern ";
+      if (rustRetStr == "usize") {
+        s << "uintptr_t";
+      } else {
+        s << returnTypeExportName;
+      }
+      s << " " << userFuncName << "(";
       break;
     }
     case CFuncLineMode::EXTERN_INTERMEDIATE_BODY: {
@@ -324,6 +332,8 @@ std::string generateFunctionC(
   }
 
   for (int i = 0; i < prototype->params.size(); i++) {
+    std::string rustParamStr = rustParamStrs.empty() ? "" : rustParamStrs[i];
+    bool borrowParam = !rustParamStr.empty() && rustParamStr[0] == '&';
     if (addedAnyParam) {
       s << ", ";
     }
@@ -336,11 +346,41 @@ std::string generateFunctionC(
         s << paramTypeExportName << (abiUsesPointer ? "*" : "") << " param" << i;
         break;
       case CFuncLineMode::EXTERN_USER_PROTOTYPE:
+        if (borrowParam) {
+          s << "const "; // DO NOT SUBMIT complete hack, check for muts
+        } else {
+          s << "";
+        }
+        if (rustParamStr == "usize") {
+          s << "uintptr_t";
+        } else {
+          s << paramTypeExportName;
+        }
+        if (abiUsesPointer || borrowParam) {
+          s << "*"; // DO NOT SUBMIT doublecheck logic
+        } else {
+          s << "";
+        }
+        s << " param" << i;
+        break;
       case CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE:
         s << paramTypeExportName << " param" << i;
         break;
       case CFuncLineMode::EXTERN_INTERMEDIATE_BODY:
-        s << (abiUsesPointer ? "*" : "") << " param" << i;
+        if (abiUsesPointer) {
+          if (borrowParam) {
+            // No adjustment
+          } else {
+            s << "*";
+          }
+        } else {
+          if (borrowParam) {
+            s << "&";
+          } else {
+            s << "";
+          }
+        }
+        s << "param" << i;
         break;
       case CFuncLineMode::EXPORT_INTERMEDIATE_BODY:
         s << (abiUsesPointer ? "&" : "") << " param" << i;
@@ -493,12 +533,8 @@ void generateExports(
       auto* headerC = &(*packageCoordToHeaderNameToC)[packageCoord].emplace(exportName, std::stringstream()).first->second;
       auto* sourceC = &(*packageCoordToSourceNameToC)[packageCoord].emplace(exportName, std::stringstream()).first->second;
       // DO NOT SUBMIT
-      std::vector<bool> borrowParams;
-      for (auto _ : prototype->params) {
-        borrowParams.push_back(false);
-      }
       makeExternOrExportFunction(
-          globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, exportName, prototype, true, borrowParams);
+          globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, exportName, prototype, true, "", {});
     }
   }
   for (auto[packageCoord, package] : program->packages) {
@@ -515,12 +551,8 @@ void generateExports(
         auto* headerC = &(*packageCoordToHeaderNameToC)[packageCoord].emplace(externName, std::stringstream()).first->second;
         auto* sourceC = &(*packageCoordToSourceNameToC)[packageCoord].emplace(externName, std::stringstream()).first->second;
         // DO NOT SUBMIT
-        std::vector<bool> borrowParams;
-        for (auto _ : prototype->params) {
-          borrowParams.push_back(false);
-        }
         makeExternOrExportFunction(
-            globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false, borrowParams);
+            globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false, "", {});
       }
     }
   }
@@ -588,7 +620,8 @@ void makeExternOrExportFunction(
     Prototype *prototype,
     bool isExport,
     // DO NOT SUBMIT
-    const std::vector<bool>& borrowParams) {
+    const std::string& retRustTypeStr,
+    const std::vector<std::string>& paramRustTypeStrs) {
   for (auto param : prototype->params) {
     auto kind = param->kind;
     if (translatesToCVoid(globalState, param) ||
@@ -628,8 +661,8 @@ void makeExternOrExportFunction(
       (*headerC) << "#include \"" << packageCoord->projectName << "/" << returnTypeExportName << ".h\"" << std::endl;
     }
   }
-  auto userHeaderC = generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_USER_PROTOTYPE : CFuncLineMode::EXTERN_USER_PROTOTYPE, isExport, borrowParams);
-  auto abiHeaderC = generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE : CFuncLineMode::EXTERN_INTERMEDIATE_PROTOTYPE, isExport, borrowParams);
+  auto userHeaderC = generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_USER_PROTOTYPE : CFuncLineMode::EXTERN_USER_PROTOTYPE, isExport, retRustTypeStr, paramRustTypeStrs);
+  auto abiHeaderC = generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE : CFuncLineMode::EXTERN_INTERMEDIATE_PROTOTYPE, isExport, retRustTypeStr, paramRustTypeStrs);
   (*headerC) << userHeaderC << ";" << std::endl;
   (*headerC) << abiHeaderC << ";" << std::endl;
 
@@ -637,8 +670,8 @@ void makeExternOrExportFunction(
   auto userSourceC = std::stringstream{};
   assert(externName.size());
   userSourceC << "#include \"" << packageCoord->projectName << "/" << externName << ".h\"" << std::endl;
-  userSourceC << generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE : CFuncLineMode::EXTERN_INTERMEDIATE_PROTOTYPE, isExport, borrowParams) << " {" << std::endl;
-  userSourceC << "  " << generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_BODY : CFuncLineMode::EXTERN_INTERMEDIATE_BODY, isExport, borrowParams) << ";" << std::endl;
+  userSourceC << generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_PROTOTYPE : CFuncLineMode::EXTERN_INTERMEDIATE_PROTOTYPE, isExport, retRustTypeStr, paramRustTypeStrs) << " {" << std::endl;
+  userSourceC << "  " << generateFunctionC(globalState, package, externName, prototype, isExport ? CFuncLineMode::EXPORT_INTERMEDIATE_BODY : CFuncLineMode::EXTERN_INTERMEDIATE_BODY, isExport, retRustTypeStr, paramRustTypeStrs) << ";" << std::endl;
   userSourceC << "}" << std::endl;
   (*sourceC) << userSourceC.str();
 }
@@ -1350,7 +1383,7 @@ void doRustyThings(
   }
 
   std::unordered_map<std::string, std::tuple<std::string, int, int>> typeStrToMangledNameAndSizeAndAlignment;
-  std::unordered_map<std::string, std::string> funcStrToMangledName;
+  std::unordered_map<std::string, std::tuple<std::string, std::string, std::vector<std::string>>> funcStrToMangledNameAndRetAndParams;
   for (std::string line; std::getline(sizesFile, line); ) {
     std::cerr << "Line from sizes.txt: " << line << std::endl;
     std::vector<std::string> lineParts = split(line, '/');
@@ -1382,14 +1415,19 @@ void doRustyThings(
       std::cout << "Adding to typeStrToSizeAndAlignment " << typeStr << " " << size << " " << alignment << std::endl;
       typeStrToMangledNameAndSizeAndAlignment.emplace(typeStr, std::make_tuple(mangledName, size, alignment));
     } else if (lineParts[0] == "fn") {
-      if (lineParts.size() != 3) {
+      if (lineParts.size() < 4) {
         std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
         exit(1);
       }
       std::string funcRustStr = lineParts[1];
       std::string mangledName = lineParts[2];
       std::cout << "Adding to funcStrToMangledName " << funcRustStr << " " << mangledName << std::endl;
-      funcStrToMangledName.emplace(funcRustStr, mangledName);
+      std::string retRustTypeStr = lineParts[3];
+      std::vector<std::string> paramRustTypeStrs;
+      for (int i = 4; i < lineParts.size(); i++) {
+        paramRustTypeStrs.push_back(lineParts[i]);
+      }
+      funcStrToMangledNameAndRetAndParams.emplace(funcRustStr, std::make_tuple(mangledName, retRustTypeStr, paramRustTypeStrs));
     } else {
       std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
       exit(1);
@@ -1420,9 +1458,9 @@ void doRustyThings(
         auto iter1 = prototypeToRustFuncStr.find(prototype);
         assert(iter1 != prototypeToRustFuncStr.end());
         auto funcRustStr = iter1->second;
-        auto iter2 = funcStrToMangledName.find(funcRustStr);
-        assert(iter2 != funcStrToMangledName.end());
-        auto mangledName = iter2->second;
+        auto iter2 = funcStrToMangledNameAndRetAndParams.find(funcRustStr);
+        assert(iter2 != funcStrToMangledNameAndRetAndParams.end());
+        auto [mangledName, retRustTypeStr, paramsRustTypeStrs] = iter2->second;
 
         package->functionToExtern[externFunc->prototype]->mangledName = mangledName;
 
@@ -1459,14 +1497,26 @@ void doRustyThings(
           // Dont generate C code for built in externs
           continue;
         }
+
+        auto rustFuncStrIter = prototypeToRustFuncStr.find(prototype);
+        assert(rustFuncStrIter != prototypeToRustFuncStr.end());
+        auto rustFuncStr = rustFuncStrIter->second;
+        auto funcInfoIter = funcStrToMangledNameAndRetAndParams.find(rustFuncStr);
+        assert(funcInfoIter != funcStrToMangledNameAndRetAndParams.end());
+        auto [mangledName, retRustTypeStr, paramRustTypeStrs] = funcInfoIter->second;
+
         auto* headerC = &(*packageCoordToHeaderNameToC)[packageCoord].emplace(externName, std::stringstream()).first->second;
         auto* sourceC = &(*packageCoordToSourceNameToC)[packageCoord].emplace(externName, std::stringstream()).first->second;
         // DO NOT SUBMIT
-        std::vector<bool> borrowParams;
-        for (auto param : prototype->params) {
-          borrowParams.push_back(false);
-        }
-        makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false, borrowParams);
+//        std::vector<std::string> paramRustTypeStrs;
+//        assert(prototype->params.size() == paramRustTypeStrs.size());
+//        for (int i = 0; i < prototype->params.size(); i++) {
+//          auto valeParamMT = prototype->params[i];
+//          auto rustTypeStr = paramRustTypeStrs[i];
+//          bool rustTypeTakesReference = rustTypeStr[0] == '&'; // DO NOT SUBMIT unicode concerns?
+//          borrowParams.push_back(rustTypeTakesReference);
+//        }
+        makeExternOrExportFunction(globalState, headerC, sourceC, packageCoord, package, rustGeneratedHeaderFilepath, externName, externFunc->prototype, false, retRustTypeStr, paramRustTypeStrs);
       }
     }
   }

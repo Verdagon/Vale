@@ -621,7 +621,11 @@ fn main() -> Result<(), anyhow::Error> {
                     format!("type/{}/{}/{}/{}\n", original_str, mangled, info.size, info.alignment)
                   } else if let Some(info) = func_rust_str_to_info.get(rust_str) {
                     let mangled = mangle_full_type(&info.public_type);
-                    format!("fn/{}/{}\n", original_str, mangled)
+                    let mut result_str = format!("fn/{}/{}/{}", original_str, mangled, info.ret_type_rust_str);
+                    for param_str in &info.param_types_rust_strs {
+                      result_str = result_str + "/" + &param_str;
+                    }
+                    result_str + "\n"
                   } else {
                     panic!("original str not fn or type?");
                   }
