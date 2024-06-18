@@ -1213,7 +1213,7 @@ object ExpressionVivem {
         case MutableBorrowH | ImmutableBorrowH => // Do nothing.
         case MutableShareH | ImmutableShareH => {
           expectedReference.kind match {
-            case VoidHT() | IntHT(_) | BoolHT() | StrHT() | FloatHT() => {
+            case VoidHT() | IntHT(_) | BoolHT() | StrHT() | FloatHT() | OpaqueHT(_, _, _) => {
               heap.zero(actualReference)
               heap.deallocateIfNoWeakRefs(actualReference)
             }

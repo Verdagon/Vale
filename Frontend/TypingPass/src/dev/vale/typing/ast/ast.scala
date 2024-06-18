@@ -467,4 +467,11 @@ case class PrototypeT[+T <: IFunctionNameT](
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def paramTypes: Vector[CoordT] = id.localName.parameters
   def toSignature: SignatureT = SignatureT(id)
+
+  id.initSteps.foreach({
+    case StructTemplateNameT(_) => {
+      vwat() // See ZXCVCXZ
+    }
+    case _ =>
+  })
 }

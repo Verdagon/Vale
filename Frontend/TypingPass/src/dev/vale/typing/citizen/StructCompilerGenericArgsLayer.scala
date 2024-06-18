@@ -116,6 +116,7 @@ class StructCompilerGenericArgsLayer(
                 // the function we find it in *this* environment.
                 // we should probably take them out of the outer env...
                 structA.internalMethods
+                    .filter(!_.lift)
                     .map(internalMethod => {
                       val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
                       (functionName -> FunctionEnvEntry(internalMethod))
@@ -408,6 +409,7 @@ class StructCompilerGenericArgsLayer(
             .addEntries(
               interner,
               structA.internalMethods
+                  .filter(!_.lift)
                   .map(internalMethod => {
                     val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
                     (functionName -> FunctionEnvEntry(internalMethod))

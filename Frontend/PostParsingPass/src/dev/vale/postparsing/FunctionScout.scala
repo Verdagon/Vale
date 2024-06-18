@@ -30,7 +30,9 @@ case class ParentCitizen(
   interfaceGenericParams: Vector[GenericParameterS],
   interfaceRules: Vector[IRulexSR],
   interfaceRuneToExplicitType: Map[IRuneS, ITemplataType]
-) extends IFunctionParent
+) extends IFunctionParent {
+  interfaceGenericParams.foreach(x => vassert(x.inherited))
+}
 
 case class ParentFunction(
   parentStackFrame: StackFrame
@@ -56,6 +58,24 @@ class FunctionScout(
       interner,
       keywords
     )
+
+  // DO NOT SUBMIT
+//  def getAllMentionedNamesAndRunes(paramsP: Vector[ParameterP]): Set[StrI] = {
+//    paramsP.flatMap(_.pattern).flatMap(getPatternAllMentionedNamesAndRunes).toSet
+//  }
+//
+//  def getPatternAllMentionedNamesAndRunes(patternPP: PatternPP): Vector[StrI] = {
+//    patternPP.templex.toVector.flatMap(getTemplexAllMentionedNamesAndRunes) ++
+//        patternPP.destructure.toVector.flatMap(_.patterns).flatMap(getPatternAllMentionedNamesAndRunes)
+//  }
+//
+//  def getTemplexAllMentionedNamesAndRunes(templex: ITemplexPT): Vector[StrI] = {
+//    templex match {
+//      case n @ NameOrRunePT(_) => Vector(n.name.str)
+//      case CallPT(range, template, args) => getTemplexAllMentionedNamesAndRunes(template) ++ args.flatMap(getTemplexAllMentionedNamesAndRunes)
+//      case other => vimpl(other)
+//    }
+//  }
 
   def scoutFunction(
     file: FileCoordinate,
@@ -165,7 +185,7 @@ class FunctionScout(
           // runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(
-              regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
+              regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, maybeRegionName)) => {
@@ -477,6 +497,7 @@ class FunctionScout(
                     GenericParameterS(
                       param.pattern.range,
                       coordRune,
+                      false,
                       CoordGenericParameterTypeS(None, true, false),
                       None))
                 })
@@ -499,13 +520,30 @@ class FunctionScout(
             // DO NOT SUBMIT thats weird
             true
           }
-          case ParentCitizen(isInterface, _, _, _, _) => {
+          case ParentCitizen(isInterface, parentEnv, _, _, _) => {
             if (isInterface) {
               // Interface methods are lifted by default
               true
             } else {
-              // Struct methods aren't lifted by default, they need the keyword
-              false
+              // It's liftable if there's a self parameter, see DO NOT SUBMIT get name of section ZXCVCXZ from docs
+              paramsP.flatMap(_.pattern).flatMap(_.destination).map(_.decl).exists({
+                case LocalNameDeclarationP(NameP(_, self)) if self == keywords.self => true
+                case _ => false
+              })
+//              val allMentionedGenericParams = getAllMentionedNamesAndRunes(paramsP)
+//              val (declaredRunesPresentInParams, declaredRunesMissingFromParams) =
+//                U.filterOut[IRuneS, CodeRuneS](
+//                  (extraGenericParamsFromParentS.map(_.rune.rune) ++
+//                        functionUserSpecifiedGenericParametersS.map(_.rune.rune)).toArray,
+//                    {
+//                      case c @ CodeRuneS(name) if allMentionedGenericParams.contains(name) => c
+//                    })
+//              if (declaredRunesMissingFromParams.nonEmpty) {
+//                // If there's any declared runes that are missing from the params list, then this can't be lifted.
+//                false
+//              } else {
+//                true
+//              }
             }
           }
         })
@@ -517,7 +555,7 @@ class FunctionScout(
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS)
           .filter({
-            case GenericParameterS(_, _, RegionGenericParameterTypeS(_), _) => false
+            case GenericParameterS(_, _, _, RegionGenericParameterTypeS(_), _) => false
             case _ => true
           })
 

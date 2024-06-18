@@ -19,7 +19,24 @@ case class IdT[+T <: INameT](
   localName: T
 )  {
   this match {
-    case IdT(PackageCoordinate(StrI("rust"),Vector(StrI("std"), StrI("vec"))),Vector(),ExternFunctionNameT(StrI("new"),Vector(),Vector())) => {
+    case IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),FunctionNameT(FunctionTemplateNameT(StrI("capacity"),_),Vector(CoordTemplataT(CoordT(ShareT,RegionT(DefaultRegionT),IntT(32)))),Vector(CoordT(share,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(_,RegionT(DefaultRegionT),IntT(32))))))))))) => {
+      vpass()
+    }
+    case IdT(_, Vector(StructTemplateNameT(StrI("Vec"))), FunctionNameT(FunctionTemplateNameT(StrI("len"), _), _, _)) => {
+      vpass()
+    }
+    case IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(CoordTemplataT(CoordT(share,RegionT(DefaultRegionT),IntT(32)))),Vector(CoordT(own,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(ShareT,RegionT(DefaultRegionT),IntT(32))))))))))) => {
+      vpass()
+    }
+    case IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),FunctionTemplateNameT(StrI("drop"),_)) => {
+      vpass()
+    }
+    case IdT(_,
+      Vector(StructTemplateNameT(StrI("Vec"))),
+      FunctionNameT(
+        FunctionTemplateNameT(StrI("drop"),_),
+        Vector(_),
+        Vector(_))) => {
       vpass()
     }
     case _ =>
@@ -46,6 +63,9 @@ case class IdT[+T <: INameT](
         }
         case other => vfail(other)
       }
+    }
+    case PackageTopLevelNameT() => {
+      // vassert(initSteps.isEmpty) DO NOT SUBMIT add this in
     }
     case _ =>
   }

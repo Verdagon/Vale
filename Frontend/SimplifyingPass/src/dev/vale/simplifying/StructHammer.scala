@@ -83,7 +83,7 @@ class StructHammer(
 
   def translateStructs(hinputs: HinputsI, hamuts: HamutsBox): Unit = {
     hinputs.structs.foreach(structDefI => {
-      if (structDefI.instantiatedCitizen.id.packageCoord.module.str == "rust") { // DO NOT SUBMIT
+      if (hinputs.kindExterns.contains(structDefI.instantiatedCitizen)) {
         translateOpaqueI(hinputs, hamuts, structDefI.instantiatedCitizen)
       } else {
         translateStructI(hinputs, hamuts, structDefI.instantiatedCitizen)
@@ -146,7 +146,6 @@ class StructHammer(
       hamuts: HamutsBox,
       structIT: StructIT[cI]):
   (OpaqueHT) = {
-    vassert(structIT.id.packageCoord.module.str == "rust")
     hamuts.structTToOpaqueH.get(structIT) match {
       case Some(opaqueH) => opaqueH
       case None => {

@@ -278,7 +278,7 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //      hamuts.addKindExtern(kindH, packageCoordinate, exportName)
 //    })
 
-    kindExterns.foreach({ case KindExternI(struct) =>
+    kindExterns.foreach({ case (struct, KindExternI(_)) =>
       val exportName = mangleStruct(struct.id)
       val exportSimplifiedId = NameHammer.simplifyId(struct.id)
       val opaqueH = structHammer.translateOpaqueI(hinputs, hamuts, struct)

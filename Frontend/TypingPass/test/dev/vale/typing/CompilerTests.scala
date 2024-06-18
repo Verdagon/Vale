@@ -2049,4 +2049,55 @@ class CompilerTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
   }
+
+  test("Extern rust Vec capacity") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |extern struct Vec<T> imm {
+        |  extern func with_capacity(c i64) Vec<T>;
+        |  extern func capacity(v Vec<T>) i64;
+        |}
+        |exported func main() i64 {
+        |  v = Vec<int>.with_capacity(42i64);
+        |  return v.capacity();
+        |}
+        |""".stripMargin)
+    compile.expectCompilerOutputs()
+  }
+
+  test("Extern rust Vec len") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |extern struct Vec<T> imm {
+        |  extern func with_capacity(c i64) Vec<T>;
+        |  extern func capacity(v Vec<T>) i64;
+        |}
+        |exported func main() i64 {
+        |  v = Vec<int>.with_capacity(42i64);
+        |  Vec<int>.capacity(v);
+        |  capacity(v);
+        |  return v.capacity();
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    val capacityFunc = coutputs.lookupFunction("capacity")
+    capacityFunc.header.id match {
+      case IdT(_,
+      Vector(
+        StructNameT(
+          StructTemplateNameT(StrI("Vec")),
+          Vector(
+            CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))))),
+      FunctionNameT(
+        FunctionTemplateNameT(StrI("capacity"),_),
+        Vector(
+          CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),
+        Vector(
+          CoordT(ShareT,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))))))))) => {
+        // Good
+      }
+    }
+  }
+
 }

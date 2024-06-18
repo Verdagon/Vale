@@ -219,7 +219,7 @@ class AnonymousInterfaceMacro(
 
     val structGenericParams =
       interfaceA.genericParameters ++
-        memberRunes.map(mr => GenericParameterS(mr.range, mr, CoordGenericParameterTypeS(vregionmut(None), true, false), None))
+        memberRunes.map(mr => GenericParameterS(mr.range, mr, vimpl(), CoordGenericParameterTypeS(vregionmut(None), true, false), None))
 
     interfaceA.internalMethods.zip(memberRunes).zipWithIndex.foreach({ case ((internalMethod, memberRune), methodIndex) =>
       val methodRuneToType =
@@ -402,8 +402,8 @@ class AnonymousInterfaceMacro(
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
     val genericParams =
       struct.genericParameters
-          .map({ case GenericParameterS(range, RuneUsage(runeRange, rune), tyype, default) =>
-            GenericParameterS(range, RuneUsage(runeRange, inheritedMethodRune(interface, method, rune)), tyype, default)
+          .map({ case GenericParameterS(range, RuneUsage(runeRange, rune), inherited, tyype, default) =>
+            GenericParameterS(range, RuneUsage(runeRange, inheritedMethodRune(interface, method, rune)), inherited, tyype, default)
           })
 
     val runeToType = mutable.HashMap[IRuneS, ITemplataType]()

@@ -20,7 +20,7 @@ class TypeHammer(
       case StrIT() => StrHT()
       case VoidIT() => VoidHT()
       case s @ StructIT(id) => {
-        if (id.packageCoord.module.str == "rust") {
+        if (hinputs.kindExterns.contains(s)) {
           structHammer.translateOpaqueI(hinputs, hamuts, s)
         } else {
           structHammer.translateStructI(hinputs, hamuts, s)
@@ -65,7 +65,7 @@ class TypeHammer(
         case (OwnI, _) => YonderH
         case (ImmutableBorrowI | MutableBorrowI, _) => YonderH
         case (WeakI, _) => YonderH
-        case (ImmutableShareI | MutableShareI, StructIT(IdI(PackageCoordinate(StrI("rust"), _), _, _))) => {
+        case (_, kind @ StructIT(_)) if hinputs.kindExterns.contains(kind) => {
           InlineH
         }
         case (ImmutableShareI | MutableShareI, VoidIT() | IntIT(_) | BoolIT() | FloatIT() | NeverIT(_)) => InlineH

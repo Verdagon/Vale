@@ -33,7 +33,7 @@ case class HinputsI(
 
   kindExports: Vector[KindExportI],
   functionExports: Vector[FunctionExportI],
-  kindExterns: Vector[KindExternI],
+  kindExterns: Map[StructIT[cI], KindExternI],
   functionExterns: Vector[FunctionExternI],
 ) {
   override def toString: String = "HinputsI#()"

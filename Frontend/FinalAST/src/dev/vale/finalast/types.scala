@@ -33,12 +33,12 @@ case class CoordH[+T <: KindHT](
     kind: T) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
-  (ownership, location) match {
-    case (OwnH, YonderH) =>
-    case (OwnH, InlineH) if kind.isRustOpaqueType() =>
-    case (ImmutableShareH | MutableShareH, _) =>
-    case (MutableBorrowH | ImmutableBorrowH, YonderH) =>
-    case (WeakH, YonderH) =>
+  (ownership, location, kind) match {
+    case (OwnH, YonderH, _) =>
+    case (OwnH, InlineH, OpaqueHT(_, _, _)) =>
+    case (ImmutableShareH | MutableShareH, _, _) =>
+    case (MutableBorrowH | ImmutableBorrowH, YonderH, _) =>
+    case (WeakH, YonderH, _) =>
     case _ => vfail()
   }
 
@@ -55,16 +55,15 @@ case class CoordH[+T <: KindHT](
       vassert(ownership == ImmutableShareH || ownership == MutableShareH)
       vassert(location == YonderH)
     }
+    case s @ OpaqueHT(_, _, _) => {
+      vassert(ownership == ImmutableShareH || ownership == MutableShareH)
+      vassert(location == InlineH)
+    }
     case s @ StructHT(name) => {
       val isBox = name.fullyQualifiedName.startsWith("__Box")
 
       if (isBox) {
         vassert(ownership == OwnH || ownership == ImmutableBorrowH || ownership == MutableBorrowH)
-      }
-
-      if (s.isRustOpaqueType()) {
-        vassert(ownership == ImmutableShareH || ownership == MutableShareH)
-        vassert(location == InlineH)
       }
     }
     case _ =>
@@ -103,7 +102,7 @@ case class CoordH[+T <: KindHT](
 // A value, a thing that can be pointed at. See ReferenceH for more information.
 sealed trait KindHT {
   def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate
-  def isRustOpaqueType(): Boolean
+//  def isRustOpaqueType(): Boolean
 }
 object IntHT {
   val i32 = IntHT(32)
@@ -111,12 +110,12 @@ object IntHT {
 case class IntHT(bits: Int) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 case class VoidHT() extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 case class OpaqueHT(
   packageCoord: PackageCoordinate,
@@ -125,22 +124,22 @@ case class OpaqueHT(
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = packageCoord
-    override def isRustOpaqueType(): Boolean = false
+//    override def isRustOpaqueType(): Boolean = false
 }
 case class BoolHT() extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 case class StrHT() extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 case class FloatHT() extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 // A primitive which can never be instantiated. If something returns this, it
 // means that it will never actually return. For example, the return type of
@@ -151,7 +150,7 @@ case class FloatHT() extends KindHT {
 case class NeverHT(fromBreak: Boolean) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = PackageCoordinate.BUILTIN(interner, keywords)
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 
 case class InterfaceHT(
@@ -160,7 +159,7 @@ case class InterfaceHT(
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = id.packageCoordinate
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 
 case class StructHT(
@@ -169,7 +168,7 @@ case class StructHT(
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = id.packageCoordinate
-  override def isRustOpaqueType(): Boolean = id.packageCoordinate.module.str == "rust"
+//  override def isRustOpaqueType(): Boolean = id.packageCoordinate.module.str == "rust"
 }
 
 // An array whose size is known at compile time, and therefore doesn't need to
@@ -180,7 +179,7 @@ case class StaticSizedArrayHT(
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = id.packageCoordinate
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 
 // An array whose size is known at compile time, and therefore doesn't need to
@@ -204,7 +203,7 @@ case class RuntimeSizedArrayHT(
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = name.packageCoordinate
-  override def isRustOpaqueType(): Boolean = false
+//  override def isRustOpaqueType(): Boolean = false
 }
 
 case class RuntimeSizedArrayDefinitionHT(

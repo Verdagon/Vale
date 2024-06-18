@@ -539,4 +539,23 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case RuneExplicitTypeConflictS(_, CodeRuneS(StrI("N")), _) =>
     }
   }
+
+  test("Lift methods correctly") {
+    val programS =
+      compile(
+        """
+          |extern struct Vec<T> imm {
+          |  extern func with_capacity(c i64) Vec<T>;
+          |  extern func capacity(v Vec<T>) i64;
+          |}
+        """.stripMargin)
+    val struct = vassertOne(programS.structs)
+
+    // DO NOT SUBMIT explain
+    val withCapacityFunc = struct.internalMethods(0)
+    vassert(!withCapacityFunc.lift)
+
+    val capacityFunc = struct.internalMethods(1)
+    vassert(capacityFunc.lift)
+  }
 }

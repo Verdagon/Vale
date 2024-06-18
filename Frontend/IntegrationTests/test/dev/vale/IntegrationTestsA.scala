@@ -321,24 +321,13 @@ class IntegrationTestsA extends FunSuite with Matchers {
     }
   }
 
-  test("Extern struct") {
-    val compile = RunCompilation.test(
-      """
-        |extern struct Vec<T>;
-        |""".stripMargin,
-      false)
-    compile.evalForKind(Vector()) match {
-      case VonInt(42) =>
-    }
-  }
-
   test("Extern function returning extern struct") {
     val compile = RunCompilation.test(
       """
-        |extern struct Vec<T>;
-        |extern func VecNew<T>() Vec<T>;
+        |extern struct Vec<T> imm;
+        |extern func VecOuterNew<T>() Vec<T>;
         |exported func main() int {
-        |  v = VecNew<int>();
+        |  v = VecOuterNew<int>();
         |  return 42;
         |}
         |""".stripMargin,
@@ -351,12 +340,30 @@ class IntegrationTestsA extends FunSuite with Matchers {
   test("Extern rust Vec") {
     val compile = RunCompilation.test(
       """
-        |extern struct Vec<T> {
+        |extern struct Vec<T> imm {
         |  extern func new() Vec<T>;
         |}
         |exported func main() int {
         |  v = Vec<int>.new();
         |  return 42;
+        |}
+        |""".stripMargin,
+      false)
+    compile.evalForKind(Vector()) match {
+      case VonInt(42) =>
+    }
+  }
+
+  test("Extern rust Vec capacity") {
+    val compile = RunCompilation.test(
+      """
+        |extern struct Vec<T> imm {
+        |  extern func with_capacity(c i64) Vec<T>;
+        |  extern func capacity(self Vec<T>) i64;
+        |}
+        |exported func main() i64 {
+        |  v = Vec<int>.with_capacity(42i64);
+        |  return Vec<int>.capacity(v);
         |}
         |""".stripMargin,
       false)

@@ -34,14 +34,14 @@ class StructCompilerCore(
 
   def compileStruct(
     outerEnv: IInDenizenEnvironmentT,
-    structRunesEnv: CitizenEnvironmentT[IStructNameT, IStructTemplateNameT],
+    structInnerEnv: CitizenEnvironmentT[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     structA: StructA):
   Unit = {
-    val templateArgs = structRunesEnv.id.localName.templateArgs
-    val templateIdT = structRunesEnv.templateId
+    val templateArgs = structInnerEnv.id.localName.templateArgs
+    val templateIdT = structInnerEnv.templateId
     val templateNameT = templateIdT.localName
     val placeholderedNameT = templateNameT.makeStructName(interner, templateArgs)
     val placeholderedIdT = templateIdT.copy(localName = placeholderedNameT)
@@ -58,7 +58,7 @@ class StructCompilerCore(
       })
 
     val mutability =
-      structRunesEnv.lookupNearestWithImpreciseName(
+      structInnerEnv.lookupNearestWithImpreciseName(
         interner.intern(RuneNameS(structA.mutabilityRune.rune)),
         Set(TemplataLookupContext)).toList match {
         case List(m) => ITemplataT.expectMutability(m)
@@ -82,10 +82,10 @@ class StructCompilerCore(
         case (macrosToCall, _) => macrosToCall
       })
 
-    val structInnerEnv =
+    val structMembersEnv =
       CitizenEnvironmentT(
-        structRunesEnv.globalEnv,
-        structRunesEnv,
+        structInnerEnv.globalEnv,
+        structInnerEnv,
         templateIdT,
         placeholderedIdT,
         TemplatasStore(placeholderedIdT, Map(), Map()))
@@ -95,7 +95,7 @@ class StructCompilerCore(
 //        vassert(structA.members.isEmpty) // DO NOT SUBMIT
 //        Vector(OpaqueStructMemberT())
 //      } else {
-        makeStructMembers(structInnerEnv, coutputs, structA.members)
+        makeStructMembers(structMembersEnv, coutputs, structA.members)
 //      }
 
     if (mutability == MutabilityTemplataT(ImmutableT)) {
@@ -150,14 +150,15 @@ class StructCompilerCore(
 ////                  outerEnv,
 //                  structRunesEnv, // DO NOT SUBMIT its weird that runesenv has stuff and innerenv has nothing
                   // If we're lifting, its in its own environment. If not, it gets the struct's runes and stuff.
-                  if (functionA.lift) outerEnv else structRunesEnv,
+//                  if (functionA.lift) outerEnv else structInnerEnv,
+                  structInnerEnv,
                   functionA))
             }))
       }
       case _ => vcurious()
     })
 
-    structRunesEnv.templatas.entriesByNameT.foreach({
+    structInnerEnv.templatas.entriesByNameT.foreach({
       case (name, FunctionEnvEntry(functionA)) => {
         // These have to be deferred, otherwise some compiling functions won't have what we expect.
         // For example, MyShip.drop will expect to see the members of MyEngine, but we haven't compiled
@@ -175,15 +176,15 @@ class StructCompilerCore(
                   ////                  outerEnv,
                   //                  structRunesEnv, // DO NOT SUBMIT its weird that runesenv has stuff and innerenv has nothing
                   // If we're lifting, its in its own environment. If not, it gets the struct's runes and stuff.
-                  if (functionA.lift) outerEnv else structRunesEnv,
+                  if (functionA.lift) outerEnv else structInnerEnv,
                   functionA))
             }))
       }
       case _ =>
     })
 
-    val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structRunesEnv.templatas)
-    val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(structRunesEnv.templatas)
+    val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structInnerEnv.templatas)
+    val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(structInnerEnv.templatas)
 
     val structDefT =
       StructDefinitionT(

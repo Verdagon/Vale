@@ -243,27 +243,57 @@ class FunctionCompilerCore(
   // - either no closured vars, or they were already added to the env.
   def getFunctionPrototypeForCall(
     fullEnv: FunctionEnvironmentT,
-      coutputs: CompilerOutputs,
+    coutputs: CompilerOutputs,
     callRange: List[RangeS],
-      params2: Vector[ParameterT]):
+    genericParametersS: Vector[GenericParameterS],
+    params2: Vector[ParameterT]):
   (PrototypeT[IFunctionNameT]) = {
-    getFunctionPrototypeInnerForCall(
-      fullEnv, fullEnv.id)
-  }
-
-  def getFunctionPrototypeInnerForCall(
-    fullEnv: FunctionEnvironmentT,
-    id: IdT[IFunctionNameT]):
-  PrototypeT[IFunctionNameT] = {
     val retCoordRune = vassertSome(fullEnv.function.maybeRetCoordRune)
     val returnCoord =
       fullEnv.lookupNearestWithImpreciseName(
         interner.intern(RuneNameS(retCoordRune.rune)),
-        Set(TemplataLookupContext))  match {
+        Set(TemplataLookupContext)) match {
         case Some(CoordTemplataT(retCoord)) => retCoord
         case other => vwat(other)
       }
-    PrototypeT(id, returnCoord)
+
+    val IdT(packageCoord, initSteps, funcEnvName) = fullEnv.id
+    initSteps.lastOption match {
+      case Some(StructTemplateNameT(_)) => {
+        // DO NOT SUBMIT make into a proper error
+        val selfParam =
+          vassertSome(
+            params2.find(param2 => {
+              param2.name match {
+                case CodeVarNameT(s) if s == keywords.self => true
+                case _ => false
+              }
+            }))
+        val selfStructId =
+          selfParam.tyype match {
+            case CoordT(ownership, region, StructTT(structId)) => structId
+            case _ => vwat() // Make a proper error
+          }
+        vassert(selfStructId.steps.startsWith(initSteps.init))
+
+        val newFuncName =
+          funcEnvName match {
+            case FunctionNameT(template, templateArgs, parameters) => {
+              vassert(templateArgs.size == genericParametersS.size)
+              val newTemplateArgs =
+                genericParametersS.zip(templateArgs).filter(!_._1.inherited).map(_._2)
+              FunctionNameT(template, newTemplateArgs, parameters)
+            }
+            case other => vimpl(other)
+          }
+
+        val newId = selfStructId.addStep(newFuncName)
+        PrototypeT(newId, returnCoord)
+      }
+      case _ => {
+        PrototypeT(fullEnv.id, returnCoord)
+      }
+    }
   }
 
   def finalizeHeader(
@@ -367,7 +397,8 @@ class FunctionCompilerCore(
             returnType2,
             maybeOrigin)
 
-        val externFunctionId = IdT(env.id.packageCoord, env.id.initSteps, interner.intern(ExternFunctionNameT(humanName, templateParams, params)))
+        val externFunctionId =
+          IdT(env.id.packageCoord, env.id.initSteps, interner.intern(ExternFunctionNameT(humanName, templateParams, params)))
         val externPrototype = PrototypeT[ExternFunctionNameT](externFunctionId, header.returnType)
         ////                      coutputs.addInstantiationBounds(
         ////                        opts.globalOptions.sanityCheck,

@@ -324,6 +324,7 @@ case class OtherGenericParameterTypeS(tyype: ITemplataType) extends IGenericPara
 case class GenericParameterS(
   range: RangeS,
   rune: RuneUsage,
+  inherited: Boolean,
   tyype: IGenericParameterTypeS,
   default: Option[GenericParameterDefaultS])
 

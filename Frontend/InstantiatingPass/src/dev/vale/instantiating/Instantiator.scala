@@ -326,7 +326,7 @@ class Instantiator(
 //        Map(),
         kindExportsC,
         functionExportsC,
-        monouts.kindExterns.toVector,
+        monouts.kindExterns.map(x => x.struct -> x).toMap,
         monouts.functionExterns.toVector)
 //        monouts.structs.values
 //            .filter(_.attributes.exists({ case ExternI(_) => true case _ => false }))
@@ -1028,6 +1028,7 @@ class Instantiator(
               if (localNameUncastedI.isInstanceOf[IInstantiationNameI[sI]]) {
                 IdI(packageCoordI, initStepsI, localNameUncastedI.asInstanceOf[IInstantiationNameI[sI]])
               } else {
+                // We could get here if, for example, idT is an instantiation like Vec<int> and idS is a template Vec.
                 vwat()
               }
             }

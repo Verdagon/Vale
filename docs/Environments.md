@@ -115,3 +115,119 @@ But that seems to conflict with a requirement of interfaces, which is to have he
 
 We can resolve by delaying compilation of any function *bodies.* Interfaces only need the headers, not the bodies.
 
+
+# Resolving Things In Templated Namespaces (RTITN)
+
+DO NOT SUBMIT
+
+```
+struct Vec<T> {
+  func new() Vec<T> { }
+}
+exported func main() {
+  v = Vec<int>.new();
+}
+```
+
+new is actually secretly `new<T>` because inner functions like these pull the generic parameters from their parents.
+
+A: Patch the environment so that it doesn't have placeholders.
+
+Could even make it a new child environment.
+
+This should be done at the initial solve place, when we have the values for *all* templatas.
+
+Pros:
+
+ * It conceptually fits with what an environment really is.
+
+Cons:
+
+ * It means placeholders can be seen if there's a bug.
+
+need to do an assembleKnownTemplatas call or something like it, when we make the globalfunctiongroup.
+
+
+
+B: Create new specific environment
+
+We'd remember the inferences from when we resolved the struct. We'd make a new environment with those and all the functions from the struct definition's environment.
+
+It's like A but an entirely new environment, no risk of placeholders in the parent envs getting out.
+
+Cons:
+
+ * Seems a bit complicated and expensive to make entirely new environments.
+
+
+C: Send an Id which has all the identifying runes filled out.
+
+Pros:
+
+ * Makes a nice separation between call-site and definition environment
+
+Cons:
+
+ * We'll have to re-solve for all the other runes.
+    * Or will we? Won't we be just doing a new solve for the function?
+ * Have to pipe that through everywhere
+
+
+
+
+If we have this:
+
+```
+extern struct Vec<T> imm {
+  extern func with_capacity(c i64) Vec<T>;
+  extern func capacity(v Vec<T>) i64;
+}
+```
+
+We generally don't want these:
+
+`Vec.capacity<int>(v Vec<int>)`
+
+because they confuse the instantiator, because all struct internal methods now have names like this:
+
+`Vec<T>.capacity<T>(v Vec<T>)`
+
+But that leads to an interesting conundrum.
+
+When we're resolving the function, the function resolving code sees the function in the struct's outer environment (the one that doesn't have any placeholders or anything).
+
+But the struct's outer environment simply has the name `Vec`, not `Vec<T>`, so when we instantiate the resolved function's name, it comes out like:
+
+`Vec.capacity<int>(v Vec<int>)`
+
+which confuses the instantiator.
+
+In other words, the function resolving logic needs to output the same shape of name as the function definition, so it doesn't confuse the instantiator.
+
+Our options are limited. We need the name to end up like this:
+
+`Vec<T>.capacity<T>(v Vec<T>)`
+
+so that we can successfully interoperate with Rust, which can put methods inside a struct's inner namespace.
+
+So the only option seems to be to make the function resolving code output this:
+
+`Vec<int>.capacity<int>(v Vec<int>)`
+
+But how do we do that?
+
+There doesn't seem to be anything at the resolving site that could help us here.
+
+Perhaps we can say that if a parameter is named `self`, then the function will be liftable and that will be the parameter to bring into the final name.
+
+So this:
+
+`Vec.capacity<int>(self Vec<int>)`
+
+will be adjusted to this:
+
+`Vec<int>.capacity<int>(self Vec<int>)`
+
+This is also nice because it removes some of the complex logic for determining whether a function can be lifted (previously we looked to see if the parent struct could be determined via parameters).
+
+

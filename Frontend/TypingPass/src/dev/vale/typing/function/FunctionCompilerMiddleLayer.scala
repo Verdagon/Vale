@@ -370,7 +370,7 @@ class FunctionCompilerMiddleLayer(
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, paramTypes2, maybeReturnType)
-    val needleSignature = SignatureT(namedEnv.id)
+//    val needleSignature = SignatureT(namedEnv.id)
 
     //    coutputs.getDeclaredSignatureOrigin(needleSignature) match {
     //      case None => {
@@ -379,9 +379,9 @@ class FunctionCompilerMiddleLayer(
 
     val prototype =
       core.getFunctionPrototypeForCall(
-        namedEnv, coutputs, callRange, params2)
+        namedEnv, coutputs, callRange, function1.genericParameters, params2)
 
-    vassert(prototype.toSignature == needleSignature)
+//    vassert(prototype.toSignature == needleSignature)
     (prototype)
     //      }
     //      case Some(existingOriginS) => {
@@ -452,20 +452,20 @@ class FunctionCompilerMiddleLayer(
   IdT[IFunctionNameT] = {
     val parentId = runedEnv.parentEnv.id
     // DO NOT SUBMIT
-    if (runedEnv.function.lift) {
-      val parentNonInstantiationId = // DO NOT SUBMIT explain for the love of god
-        parentId match {
-          case IdT(packageCoord, initSteps, x: IInstantiationNameT) => {
-            TemplataCompiler.getTemplate(IdT(packageCoord, initSteps, x))
-          }
-          case other => other
-        }
-      parentNonInstantiationId.addStep(
-        runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
-    } else {
+//    if (runedEnv.function.lift) {
+//      val parentNonInstantiationId = // DO NOT SUBMIT explain for the love of god
+//        parentId match {
+//          case IdT(packageCoord, initSteps, x: IInstantiationNameT) => {
+//            TemplataCompiler.getTemplate(IdT(packageCoord, initSteps, x))
+//          }
+//          case other => other
+//        }
+//      parentNonInstantiationId.addStep(
+//        runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
+//    } else {
       parentId.addStep(
         runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
-    }
+//    }
   }
 
   def makeNamedEnv(

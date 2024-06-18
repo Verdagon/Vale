@@ -43,7 +43,7 @@ case class PackageH(
     // Translations for backends to use if they need to export a name.
     prototypeToExtern: Map[PrototypeH, HamutsFunctionExtern],
     // Translations for backends to use if they need to export a name.
-    kindToExtern: Map[KindHT, HamutsKindExtern]
+    kindToExtern: Map[OpaqueHT, HamutsKindExtern]
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 

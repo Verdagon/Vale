@@ -12,7 +12,7 @@ case class HamutsBox(var inner: Hamuts) {
   def packageCoordToExportNameToFunction: Map[PackageCoordinate, Map[StrI, PrototypeH]] = inner.packageCoordToExportNameToFunction
   def packageCoordToExportNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]] = inner.packageCoordToExportNameToKind
   def packageCoordToPrototypeToExtern: Map[PackageCoordinate, Map[PrototypeH, HamutsFunctionExtern]] = inner.packageCoordToPrototypeToExtern
-  def packageCoordToKindToExtern: Map[PackageCoordinate, Map[KindHT, HamutsKindExtern]] = inner.packageCoordToKindToExtern
+  def packageCoordToKindToExtern: Map[PackageCoordinate, Map[OpaqueHT, HamutsKindExtern]] = inner.packageCoordToKindToExtern
   def structTToOpaqueH: Map[StructIT[cI], OpaqueHT] = inner.structTToOpaqueH
   def structTToStructH: Map[StructIT[cI], StructHT] = inner.structTToStructH
   def structTToStructDefH: Map[StructIT[cI], StructDefinitionH] = inner.structTToStructDefH
@@ -113,7 +113,7 @@ case class Hamuts(
     packageCoordToExportNameToFunction: Map[PackageCoordinate, Map[StrI, PrototypeH]],
     packageCoordToExportNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]],
     packageCoordToPrototypeToExtern: Map[PackageCoordinate, Map[PrototypeH, HamutsFunctionExtern]],
-    packageCoordToKindToExtern: Map[PackageCoordinate, Map[KindHT, HamutsKindExtern]]) {
+    packageCoordToKindToExtern: Map[PackageCoordinate, Map[OpaqueHT, HamutsKindExtern]]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
   vassert(functionDefs.values.map(_.id).toVector.distinct.size == functionDefs.values.size)
@@ -373,7 +373,7 @@ case class Hamuts(
 
   def addKindExtern(opaqueH: OpaqueHT, simpleId: SimpleId, exportedName: String): Hamuts = {
     val packageCoordinate = opaqueH.packageCoord
-    val newPackageCoordToKindToExtern: Map[PackageCoordinate, Map[KindHT, HamutsKindExtern]] =
+    val newPackageCoordToKindToExtern: Map[PackageCoordinate, Map[OpaqueHT, HamutsKindExtern]] =
       packageCoordToKindToExtern.get(packageCoordinate) match {
         case None => {
           packageCoordToKindToExtern + (packageCoordinate -> Map(opaqueH -> HamutsKindExtern(exportedName, opaqueH, simpleId)))
