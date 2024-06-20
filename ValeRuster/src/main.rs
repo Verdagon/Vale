@@ -78,18 +78,10 @@ fn main() -> Result<(), anyhow::Error> {
           .about("Creates bindings for arbitrary Rust libraries")
           .subcommand(
             clap::Command::new("list")
-                .about("List all generic structs and functions")
-                .arg(Arg::new("struct")
-                    .long("struct")
-                    .help("The struct to list methods for")
-                    .action(ArgAction::Set)))
+                .about("List all generic structs and functions"))
           .subcommand(
             clap::Command::new("instantiate")
                 .about("Instantiate either a function or a struct.")
-                .arg(Arg::new("input_file")
-                    .long("input_file")
-                    .help("File to read from.")
-                    .action(ArgAction::Set))
             // .arg(Arg::new("as")
             //     .long("as")
             //     .help("Sets the name for the newly generated type.")
@@ -116,6 +108,10 @@ fn main() -> Result<(), anyhow::Error> {
               .help("Directory to output to.")
               .action(ArgAction::Set)
               .required(true))
+          .arg(Arg::new("input_file")
+              .long("input_file")
+              .help("File to read from, intead of stdin.")
+              .action(ArgAction::Set))
           .arg(Arg::new("output_sizes")
               .long("output_sizes")
               .help("File to output size information to.")
@@ -159,11 +155,53 @@ fn main() -> Result<(), anyhow::Error> {
   let output_dir_path = root_matches.get_one::<String>("output_dir").unwrap();
   let maybe_output_sizes_path = root_matches.get_one::<String>("output_sizes");
 
+  let maybe_input_file_path = root_matches.get_one::<String>("input_file");
+
+  let mut input_lines: Vec<String> = Vec::new();
+  if let Some(input_file_path) = maybe_input_file_path {
+    if !input_file_path.ends_with(".vale") {
+      panic!("Input file doesn't end with .vale!");
+    }
+
+    let file = File::open(input_file_path)?;
+    let reader = io::BufReader::new(file);
+    for line_res in reader.lines() {
+      let line = line_res?;
+      input_lines.push(line);
+    }
+  } else {
+    for line in io::stdin().lock().lines() {
+      input_lines.push(line?);
+    }
+  }
+
   // This should be done before read_toml, so it can read the generated docs from it.
   setup_output_dir(&cargo_toml_path, &output_dir_path)?;
 
   match root_matches.subcommand() {
     Some(("list", list_matches)) => {
+      let output_dir_path = root_matches.get_one::<String>("output_dir").unwrap();
+
+      let mut crates = HashMap::new();
+      crates.insert("std".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "std")?);
+      crates.insert("alloc".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "alloc")?);
+      crates.insert("core".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "core")?);
+      indexer::get_dependency_crates(&rustc_sysroot_path, &cargo_path, &output_dir_path, &cargo_toml_path, &mut crates)?;
+
+      let mut types_to_find: Vec<String> = Vec::new();
+
+      for line in input_lines {
+        let line = line.trim().to_string();
+
+        let regex = Regex::new(r#"^import\s+rust\s*\.([\w\.]+)"#).unwrap();
+        if let Some(captures) = regex.captures(&line) {
+          let type_str =
+              captures.get(1)
+                  .expect("Bad rsuse/rsfn line")
+                  .as_str().to_string();
+          types_to_find.push(type_str);
+        }
+      }
       unimplemented!();
     }
     Some(("instantiate", instantiate_matches)) => {
