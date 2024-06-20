@@ -1367,8 +1367,8 @@ void doRustyThings(
   rusterCmd << " --cargo_toml /Volumes/V/Catter/Dependencies.toml";
   rusterCmd << " --output_dir /Volumes/V/Catter/build/rust";
   rusterCmd << " --output_sizes " << sizesFilePath;
-  rusterCmd << " instantiate";
   rusterCmd << " --input_file " << rustExternsFilename;
+  rusterCmd << " instantiate";
   std::string rusterCmdStr = rusterCmd.str();
   std::cout << "Running ValeRuster: " << rusterCmdStr << std::endl;
   int exitCode = std::system(rusterCmdStr.c_str());

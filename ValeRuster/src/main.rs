@@ -11,7 +11,7 @@ use std::{fs, io};
 use std::cmp::max;
 use std::fmt::{Debug, Pointer};
 use clap::Arg;
-use std::process::Command;
+use std::process::{Command, ExitStatus, Stdio};
 use clap::ArgAction;
 use std::fs::File;
 use std::io::{BufRead, Read};
@@ -19,6 +19,8 @@ use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::ptr::replace;
 use anyhow::{Context, Result};
+use cargo_metadata::diagnostic::DiagnosticCode;
+use cargo_metadata::Message;
 use regex::Regex;
 use rustdoc_types::{Crate, Id, ItemEnum};
 use crate::indexer::ItemIndex;
@@ -159,10 +161,6 @@ fn main() -> Result<(), anyhow::Error> {
 
   let mut input_lines: Vec<String> = Vec::new();
   if let Some(input_file_path) = maybe_input_file_path {
-    if !input_file_path.ends_with(".vale") {
-      panic!("Input file doesn't end with .vale!");
-    }
-
     let file = File::open(input_file_path)?;
     let reader = io::BufReader::new(file);
     for line_res in reader.lines() {
@@ -190,6 +188,11 @@ fn main() -> Result<(), anyhow::Error> {
 
       let mut types_to_find: Vec<String> = Vec::new();
 
+      if let Some(input_file_path) = maybe_input_file_path {
+        if !input_file_path.ends_with(".vale") {
+          panic!("Input file doesn't end with .vale!");
+        }
+      }
       for line in input_lines {
         let line = line.trim().to_string();
 
@@ -244,9 +247,8 @@ fn main() -> Result<(), anyhow::Error> {
       let mut original_type_str_and_parsed_type_and_original_line_and_maybe_alias: Vec<(String, ParsedFullType, String, Option<String>)> = Vec::new();
       let mut original_func_str_and_parsed_type_and_original_line_and_maybe_alias: Vec<(String, ParsedFullType, String, Option<String>)> = Vec::new();
 
-      let maybe_input_file_path = instantiate_matches.get_one::<String>("input_file");
+      let mut alias_to_original_full_type: HashMap<String, ParsedFullType> = HashMap::new();
 
-      let mut lines: Vec<String> = Vec::new();
       if let Some(input_file_path) = maybe_input_file_path {
         if input_file_path.ends_with(".vast") {
           // TODO: handle vast directly?
@@ -254,24 +256,13 @@ fn main() -> Result<(), anyhow::Error> {
           if !(input_file_path.ends_with(".h") || input_file_path.ends_with(".c") || input_file_path.ends_with(".cpp")) {
             eprintln!("Input file doesn't end with .vast, .h, .c, or .cpp. Assuming C, proceeding...");
           }
-          let file = File::open(input_file_path)?;
-          let reader = io::BufReader::new(file);
-          for line_res in reader.lines() {
-            let line = line_res?;
-            if Regex::new(r#"^#pragma\s+rs(use|fn)"#).unwrap().is_match(&line) {
-              lines.push(line);
-            }
-          }
-        }
-      } else {
-        for line in io::stdin().lock().lines() {
-          lines.push(line?);
         }
       }
+      for line in input_lines {
+        if !Regex::new(r#"^#pragma\s+rs(use|fn)"#).unwrap().is_match(&line) {
+          continue;
+        }
 
-      let mut alias_to_original_full_type: HashMap<String, ParsedFullType> = HashMap::new();
-
-      for line in lines {
         let line = line.trim().to_string();
 
         let maybe_aliasing_line_captures =
@@ -556,12 +547,12 @@ fn main() -> Result<(), anyhow::Error> {
         eprintln!("alias type key: {:?}", str_for_full_type(&key));
       }
 
-      let mut crates = HashMap::new();
-      crates.insert("std".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "std")?);
-      crates.insert("alloc".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "alloc")?);
-      crates.insert("core".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "core")?);
-      indexer::get_dependency_crates(&rustc_sysroot_path, &cargo_path, &output_dir_path, &cargo_toml_path, &mut crates)?;
-      let item_index = indexer::genealogize(&crates)?;
+      // let mut crates = HashMap::new();
+      // crates.insert("std".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "std")?);
+      // crates.insert("alloc".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "alloc")?);
+      // crates.insert("core".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "core")?);
+      // indexer::get_dependency_crates(&rustc_sysroot_path, &cargo_path, &output_dir_path, &cargo_toml_path, &mut crates)?;
+      // let item_index = indexer::genealogize(&crates)?;
 
       let mut type_rust_str_to_info: HashMap<String, TypeInfo> = HashMap::new();
       let mut func_rust_str_to_info: HashMap<String, FuncInfo> = HashMap::new();
@@ -569,7 +560,7 @@ fn main() -> Result<(), anyhow::Error> {
         let (type_without_aliasing, type_with_aliasing, _) =
             parse_full_type(&concrete_primitives, &HashMap::new(), &parsed_type_to_alias, &func_rust_str)?;
         // let (type_with_aliasing, _) = parse_full_type(&concrete_primitives, &parsed_type_to_alias, &func_rust_str)?;
-        let public_type = determine_public_type(&crates, &item_index, &type_without_aliasing)?;
+        let public_type = type_without_aliasing.clone();//determine_public_type(&crates, &item_index, &type_without_aliasing)?;
         let c_name =
             rust_str_to_alias.get(&func_rust_str).map(|x| x.to_owned())
                 .unwrap_or(get_pointered_prefixed_mangled_type(&type_with_aliasing));
@@ -588,7 +579,7 @@ fn main() -> Result<(), anyhow::Error> {
             parse_full_type(&concrete_primitives, &HashMap::new(), &parsed_type_to_alias, &type_rust_str)?;
         eprintln!("Just parsed canonical {:?}, aliasing {:?}", str_for_full_type(&type_without_aliasing), str_for_full_type(&type_with_aliasing));
         // let (type_with_aliasing, _) = parse_full_type(&concrete_primitives, &parsed_type_to_alias, &type_rust_str)?;
-        let public_type = determine_public_type(&crates, &item_index, &type_without_aliasing)?;
+        let public_type = type_without_aliasing.clone();//determine_public_type(&crates, &item_index, &type_without_aliasing)?;
         let c_name =
             rust_str_to_alias.get(&type_rust_str).map(|x| x.to_owned())
                 .unwrap_or(get_pointered_prefixed_mangled_type(&type_with_aliasing));
@@ -681,7 +672,7 @@ fn main() -> Result<(), anyhow::Error> {
               .collect::<Vec<String>>()
               .join("\n");
 
-      fs::write(output_dir_path.to_string() + "/src/capi.rs", final_program_str)
+      fs::write(output_dir_path.to_string() + "/src/capi.rs", &final_program_str)
           .with_context(|| "Failed to write ".to_string() + output_dir_path + "/src/capi.rs")?;
 
       fs::write(
@@ -697,26 +688,113 @@ mod capi;
       fs::remove_file(output_dir_path.to_string() + "/src/main.rs")
           .with_context(|| "Failed to remove ".to_string() + output_dir_path + "/src/main.rs")?;
 
-      let output = Command::new(&cargo_path)
-          .args(&[
-            "+nightly",
-            "cbuild",
-            "--release",
-            &("--manifest-path=".to_string() + output_dir_path + "/Cargo.toml"),
-            "--destdir=clibthing",
-            "--target", "aarch64-apple-darwin",
-            "-Z", "build-std-features=panic_immediate_abort",
-            "-Z", "build-std=std,panic_abort",
-            "--library-type", "staticlib"])
+      let args_human_output: Vec<String> = vec![
+        "+nightly",
+        "cbuild",
+        "--release",
+        &("--manifest-path=".to_string() + output_dir_path + "/Cargo.toml"),
+        "--destdir=clibthing",
+        "--target", "aarch64-apple-darwin",
+        "-Z", "build-std-features=panic_immediate_abort",
+        "-Z", "build-std=std,panic_abort",
+        "--library-type", "staticlib"
+      ].into_iter().map(|x| x.to_owned()).collect::<Vec<String>>();
+
+      let mut args_json_output = args_human_output.clone();
+      args_json_output.push("--message-format=json".to_owned());
+
+      let mut command_with_json_output = Command::new(&cargo_path)
+          .args(args_json_output)
           .env("RUSTFLAGS", "-Zlocation-detail=none")
-          .output()
-          .with_context(|| "Failed to execute cbuild command")?;
-      if output.status.code() == Some(0) {
+          .stdout(Stdio::piped())
+          .spawn()
+          .with_context(|| "Failed to execute cbuild command")
+          .unwrap();
+      let json_output = command_with_json_output.wait_with_output().expect("Couldn't get cargo's exit status");
+      if json_output.status.code() == Some(0) {
         // Continue
       } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let error = "Error from cbuild command: ".to_string() + &stderr;
-        return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, error)));
+        let mut replacements = vec![];
+
+        // It gave some errors, probably about us accessing private names.
+        // Let's find the fixes and apply them.
+        // I wish cargo fix could do this for us but it can't =\
+        let reader = std::io::BufReader::new(json_output.stdout.take(1000000)); // DO NOT SUBMIT magic number
+        for message in cargo_metadata::Message::parse_stream(reader) {
+          match message.unwrap() {
+            Message::CompilerMessage(msg) => {
+              if let Some(code) = &msg.message.code {
+                if code.code == "E0603" {
+                  println!("Bork {:?}", msg);
+                  let maybe_suggestion =
+                    msg.message.children.iter().find(|m| {
+                      // Should match "consider importing this enum instead"
+                      // and "consider importing this struct instead"
+                      // etc.
+                      m.message.starts_with("consider importing this")
+                    });
+                  if let Some(suggestion_diagnostic) = maybe_suggestion {
+                    if suggestion_diagnostic.spans.len() != 1 {
+                      unimplemented!();
+                    }
+                    if suggestion_diagnostic.spans[0].suggested_replacement.is_none() {
+                      unimplemented!();
+                    }
+                    let suggestion_span = suggestion_diagnostic.spans[0].clone();
+                    replacements.push(suggestion_span);
+                  } else {
+                    unimplemented!();
+                  }
+                }
+              }
+            },
+            Message::CompilerArtifact(artifact) => {
+              // println!("Bork {:?}", artifact);
+            },
+            Message::BuildScriptExecuted(script) => {
+              // println!("Bork {:?}", script);
+            },
+            Message::BuildFinished(finished) => {
+              // println!("Bork {:?}", finished);
+            },
+            _ => () // Unknown message
+          }
+        }
+
+        replacements.sort_by_key(|a| a.byte_start);
+        for i in 0..(replacements.len() - 1) {
+          let this = &replacements[i];
+          let next = &replacements[i + 1];
+          if this.byte_end > next.byte_start {
+            unimplemented!();
+          }
+        }
+
+        let mut replaced_code = final_program_str;
+        for replacement in replacements.iter().rev() {
+          replaced_code.replace_range(
+            (replacement.byte_start as usize)..(replacement.byte_end as usize),
+            replacement.suggested_replacement.as_ref().unwrap());
+        }
+        fs::write(output_dir_path.to_string() + "/src/capi.rs", replaced_code)
+            .with_context(|| "Failed to write ".to_string() + output_dir_path + "/src/capi.rs")?;
+
+        let mut command_with_human_output = Command::new(&cargo_path)
+            .args(args_human_output)
+            .env("RUSTFLAGS", "-Zlocation-detail=none")
+            .stdout(Stdio::piped())
+            .output()
+            .with_context(|| "Failed to execute cbuild command")
+            .unwrap();
+
+        if command_with_human_output.status.code() == Some(0) {
+          // Proceed!
+        } else {
+          let stderr = String::from_utf8_lossy(&command_with_human_output.stderr);
+          let stdout = String::from_utf8_lossy(&command_with_human_output.stdout);
+          let error = "Error from cbuild command: ".to_string() + &stderr + "\n" + &stdout;
+          return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, error)));
+        }
       }
 
       let output = Command::new(&cargo_path)
