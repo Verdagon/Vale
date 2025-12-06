@@ -189,6 +189,7 @@ pub(crate) fn get_crate(rustc_sysroot_path: &str, cargo_path: &str, output_dir_p
 fn get_stdlib_json(rustc_sysroot_path: &str, crate_name: &str) -> Result<Option<String>, anyhow::Error> {
   let stdlib_json_file_path: String =
       rustc_sysroot_path.to_string() + "/share/doc/rust/json/" + &crate_name + ".json";
+  eprintln!("Reading json from {}", stdlib_json_file_path);
 
   if !Path::new(&stdlib_json_file_path).exists() {
     return Ok(None)

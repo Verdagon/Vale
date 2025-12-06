@@ -1362,7 +1362,7 @@ void doRustyThings(
   std::string sizesFilePath = "/Volumes/V/Catter/build/rust/sizes.txt";
 
   std::stringstream rusterCmd;
-  rusterCmd << "/Volumes/V/Vale/ValeRuster/target/debug/ValeRuster"; // DO NOT SUBMIT
+  rusterCmd << "/Volumes/V/Divination/target/debug/Divination"; // DO NOT SUBMIT
   rusterCmd << " --crate std";
   rusterCmd << " --cargo_toml /Volumes/V/Catter/Dependencies.toml";
   rusterCmd << " --output_dir /Volumes/V/Catter/build/rust";
@@ -1370,10 +1370,10 @@ void doRustyThings(
   rusterCmd << " --input_file " << rustExternsFilename;
   rusterCmd << " instantiate";
   std::string rusterCmdStr = rusterCmd.str();
-  std::cout << "Running ValeRuster: " << rusterCmdStr << std::endl;
+  std::cout << "Running Divination: " << rusterCmdStr << std::endl;
   int exitCode = std::system(rusterCmdStr.c_str());
   if (exitCode != 0) {
-    std::cerr << "Error running ValeRuster!" << std::endl;
+    std::cerr << "Error running Divination!" << std::endl;
     exit(1);
   }
 
@@ -1388,12 +1388,12 @@ void doRustyThings(
     std::cerr << "Line from sizes.txt: " << line << std::endl;
     std::vector<std::string> lineParts = split(line, '/');
     if (lineParts.size() < 1) {
-      std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+      std::cerr << "Bad output line from Divination: " << line << std::endl;
       exit(1);
     }
     if (lineParts[0] == "type") {
       if (lineParts.size() != 5) {
-        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        std::cerr << "Bad output line from Divination: " << line << std::endl;
         exit(1);
       }
       std::string typeStr = lineParts[1];
@@ -1406,17 +1406,17 @@ void doRustyThings(
         size = std::stoi(sizeStr);
         alignment = std::stoi(alignmentStr);
       } catch (const std::invalid_argument& e) {
-        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        std::cerr << "Bad output line from Divination: " << line << std::endl;
         exit(1);
       } catch (const std::out_of_range& e) {
-        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        std::cerr << "Bad output line from Divination: " << line << std::endl;
         exit(1);
       }
       std::cout << "Adding to typeStrToSizeAndAlignment " << typeStr << " " << size << " " << alignment << std::endl;
       typeStrToMangledNameAndSizeAndAlignment.emplace(typeStr, std::make_tuple(mangledName, size, alignment));
     } else if (lineParts[0] == "fn") {
       if (lineParts.size() < 4) {
-        std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+        std::cerr << "Bad output line from Divination: " << line << std::endl;
         exit(1);
       }
       std::string funcRustStr = lineParts[1];
@@ -1429,7 +1429,7 @@ void doRustyThings(
       }
       funcStrToMangledNameAndRetAndParams.emplace(funcRustStr, std::make_tuple(mangledName, retRustTypeStr, paramRustTypeStrs));
     } else {
-      std::cerr << "Bad output line from ValeRuster: " << line << std::endl;
+      std::cerr << "Bad output line from Divination: " << line << std::endl;
       exit(1);
     }
   }

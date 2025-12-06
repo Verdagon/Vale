@@ -122,8 +122,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.genericParams match {
       case Vector(
-        GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
-        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None)
+        GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),_,CoordGenericParameterTypeS(None,_,false),None),
+        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),_,CoordGenericParameterTypeS(None,_,false),None)
         // Put this back in when we have regions
         // , _
         ) => {

@@ -49,7 +49,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     vregionmut() // see below
     main.genericParams match {
       case Vector(
-        GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), CoordGenericParameterTypeS(_, _, _), None)
+        GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), _,CoordGenericParameterTypeS(_, _, _), None)
         // Put this back in when we have regions
         // , _ // implicit default region
         ) =>

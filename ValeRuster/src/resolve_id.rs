@@ -1,16 +1,17 @@
 use std::collections::{HashMap, HashSet};
+use itertools::Itertools;
 use rustdoc_types::{Crate, Id, Import, Item, ItemEnum, Type};
 use crate::ResolveError::{NotFound, ResolveFatal};
 use crate::{ResolveError, UId};
 
 // TODO: optimize: All over the place we're calling .keys() and .collect()
 // on some crate.index.
-fn tuple_id(
+pub(crate) fn tuple_id(
   primitive_name_to_uid: &HashMap<String, UId>,
 ) -> UId {
   primitive_name_to_uid.get("tuple").unwrap().clone()
 }
-fn str_id(
+pub(crate) fn str_id(
   primitive_name_to_uid: &HashMap<String, UId>,
 ) -> UId {
   primitive_name_to_uid.get("str").unwrap().clone()
@@ -24,7 +25,7 @@ fn lifetime_id(
 ) -> UId {
   UId{ crate_name: "".to_string(), id: Id("life".to_string()) }
 }
-fn primitive_id(
+pub(crate) fn primitive_id(
   primitive_name_to_uid: &HashMap<String, UId>,
   name: &str
 ) -> UId {
@@ -32,18 +33,24 @@ fn primitive_id(
 }
 
 // Any other primitive can roughly be treated as a normal type
-fn is_special_primitive(primitive_name_to_uid: &HashMap<String, UId>, id: &UId) -> bool {
+pub(crate) fn is_special_primitive(primitive_name_to_uid: &HashMap<String, UId>, id: &UId) -> bool {
   id == &tuple_id(primitive_name_to_uid) ||
       id == &str_id(primitive_name_to_uid) ||
       id == &slice_id(primitive_name_to_uid) ||
-      id == &lifetime_id()
+      id == &lifetime_id() ||
+      is_generic(id)
 }
-fn is_primitive(
+pub(crate) fn is_primitive(
   primitive_uid_to_name: &HashMap<UId, String>,
   id: &UId
 ) -> bool {
   id == &lifetime_id() ||
+      is_generic(id) ||
       primitive_uid_to_name.contains_key(id)
+}
+
+pub(crate) fn is_generic(id: &UId) -> bool {
+  id.crate_name == "$"
 }
 
 
@@ -253,15 +260,19 @@ pub(crate) fn extend_and_resolve_uid(
             };
         let found_child = lookup_uid(crates, &found_child_uid);
         match found_child.inner {
+          ItemEnum::Import(_) => {
+            println!("wat");
+          }
           ItemEnum::Macro(_) => {} // skip
           ItemEnum::ProcMacro(_) => {} // skip
           ItemEnum::Primitive(_) => {} // skip
           _ => {
-            new_found_items.push((found_child_uid.clone(), item));
+            new_found_items.push((found_child_uid.clone(), found_child));
           }
         }
       }
       found_items = new_found_items;
+      found_items = found_items.into_iter().unique_by(|(x, _)| x.clone()).collect(); // DO NOT SUBMIT optimize
 
       if found_items.len() == 0 {
         return Err(NotFound)
@@ -522,7 +533,7 @@ pub(crate) fn get_unexpanded_direct_child_uids_exclude_impl_children(
   }
 }
 
-fn item_has_name(direct_child_item: &Item, name: &str) -> bool {
+pub(crate) fn item_has_name(direct_child_item: &Item, name: &str) -> bool {
   match &direct_child_item.inner {
     ItemEnum::Import(import) => {
       import.name == name && !import.glob
