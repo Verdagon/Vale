@@ -81,6 +81,15 @@ case class TemplataLookupResult(templata: ITemplataType) extends IRuneTypeSolver
 */
 /*
 trait IRuneTypeSolverEnv {
+*/
+fn lookup_rune_type<'a>(
+  _range: crate::utils::range::RangeS<'a>,
+  _name: crate::postparsing::names::IImpreciseNameS<'a>,
+) -> Result<(), ()> {
+  panic!("Unimplemented lookup_rune_type");
+}
+/*
+  // MIGALLOW: lookup -> lookup_rune_type
   def lookup(range: RangeS, name: IImpreciseNameS):
   Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError]
 }
@@ -88,7 +97,13 @@ trait IRuneTypeSolverEnv {
 /*
 class RuneTypeSolver(interner: Interner) {
 */
+fn get_runes_rune_type<'a>(
+  _rule: &crate::postparsing::rules::rules::IRulexSR<'a>,
+) -> Vec<crate::postparsing::names::IRuneS<'a>> {
+  panic!("Unimplemented get_runes_rune_type");
+}
 /*
+  // MIGALLOW: getRunes -> get_runes_rune_type
   def getRunes(rule: IRulexSR): Vector[IRuneS] = {
     val sanityCheck: Vector[RuneUsage] =
       rule match {
@@ -125,7 +140,14 @@ class RuneTypeSolver(interner: Interner) {
     result.map(_.rune)
   }
 */
+fn get_puzzles_rune_type<'a>(
+  _predicting: bool,
+  _rule: &crate::postparsing::rules::rules::IRulexSR<'a>,
+) -> Vec<Vec<crate::postparsing::names::IRuneS<'a>>> {
+  panic!("Unimplemented get_puzzles_rune_type");
+}
 /*
+  // MIGALLOW: getPuzzles -> get_puzzles_rune_type
   def getPuzzles(predicting: Boolean, rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
@@ -195,6 +217,13 @@ class RuneTypeSolver(interner: Interner) {
     }
   }
 */
+fn solve_rule<'a>(
+  _state: (),
+  _rule_index: usize,
+  _rule: &crate::postparsing::rules::rules::IRulexSR<'a>,
+) -> Result<(), ()> {
+  panic!("Unimplemented solve_rule");
+}
 /*
   private def solveRule(
     state: Unit,
@@ -525,12 +554,39 @@ class RuneTypeSolver(interner: Interner) {
         (rule: IRulexSR) => getPuzzles(predicting, rule),
         getRunes,
         new ISolveRule[IRulexSR, IRuneS, IRuneTypeSolverEnv, Unit, ITemplataType, IRuneTypeRuleError] {
-          override def sanityCheckConclusion(env: IRuneTypeSolverEnv, state: Unit, rune: IRuneS, conclusion: ITemplataType): Unit = {}
+*/
 
+fn sanity_check_conclusion<'a>(
+  _rune: crate::postparsing::names::IRuneS<'a>,
+  _conclusion: &crate::postparsing::itemplatatype::ITemplataType,
+) {
+  panic!("Unimplemented sanity_check_conclusion");
+}
+/*
+          override def sanityCheckConclusion(env: IRuneTypeSolverEnv, state: Unit, rune: IRuneS, conclusion: ITemplataType): Unit = {}
+*/
+fn complex_solve<'a>() -> Result<(), ()> {
+  panic!("Unimplemented complex_solve");
+}
+/*
+          // MIGALLOW: complexSolve -> complex_solve
           override def complexSolve(state: Unit, env: IRuneTypeSolverEnv, solverState: ISolverState[IRulexSR, IRuneS, ITemplataType], stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
             Ok(())
           }
-
+*/
+fn solve_rune_type<'a>(
+  _range_s: crate::utils::range::RangeS<'a>,
+  _rules_s: &[crate::postparsing::rules::rules::IRulexSR<'a>],
+  _identifying_runes_s: &[crate::postparsing::names::IRuneS<'a>],
+  _rune_to_explicit_type: &std::collections::HashMap<crate::postparsing::names::IRuneS<'a>, crate::postparsing::itemplatatype::ITemplataType>,
+) -> Result<
+  std::collections::HashMap<crate::postparsing::names::IRuneS<'a>, crate::postparsing::itemplatatype::ITemplataType>,
+  (),
+> {
+  panic!("Unimplemented solve_rune_type");
+}
+/*
+          // MIGALLOW: solve -> solve_rune_type
           override def solve(state: Unit, env: IRuneTypeSolverEnv, solverState: ISolverState[IRulexSR, IRuneS, ITemplataType], ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
             solveRule(state, env, ruleIndex, rule, stepState)
           }
@@ -567,6 +623,12 @@ class RuneTypeSolver(interner: Interner) {
 
 object RuneTypeSolver {
 */
+fn check_generic_call_without_defaults<'a>(
+  _param_types: &[crate::postparsing::itemplatatype::ITemplataType],
+  _arg_types: &[crate::postparsing::itemplatatype::ITemplataType],
+) -> Result<(), ()> {
+  panic!("Unimplemented check_generic_call_without_defaults");
+}
 /*
   def checkGenericCallWithoutDefaults(
       range: List[RangeS],
@@ -590,6 +652,12 @@ object RuneTypeSolver {
     Ok(())
   }
 */
+fn check_generic_call<'a>(
+  _param_types: &[crate::postparsing::itemplatatype::ITemplataType],
+  _arg_types: &[crate::postparsing::itemplatatype::ITemplataType],
+) -> Result<(), ()> {
+  panic!("Unimplemented check_generic_call");
+}
 /*
   def checkGenericCall(
     range: List[RangeS],

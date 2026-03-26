@@ -8,8 +8,10 @@ use crate::keywords::Keywords;
 use crate::lexing::ast::*;
 use crate::lexing::errors::ParseError;
 use crate::parsing::ast::*;
-use crate::parsing::parse_utils::try_skip_past_equals_while;
+use crate::parsing::parse_utils::{parse_region, try_skip_past_equals_while};
 use crate::parsing::scramble_iterator::ScrambleIterator;
+use crate::utils::arena_utils::alloc_slice_from_vec;
+use bumpalo::Bump;
 /*
 package dev.vale.parsing.templex
 
@@ -29,29 +31,35 @@ type ParseResult<T> = Result<T, ParseError>;
 /// TemplexParser - parses type expressions
 /// Mirrors Scala's TemplexParser class (line 13 in TemplexParser.scala)
 #[derive(Clone)]
-pub struct TemplexParser<'a, 'ctx> {
+pub struct TemplexParser<'a, 'ctx, 'p> {
   #[allow(dead_code)]
   interner: &'ctx Interner<'a>,
   keywords: &'ctx Keywords<'a>,
+  arena: &'p Bump,
 }
 /*
 class TemplexParser(interner: Interner, keywords: Keywords) {
 */
 
-impl<'a, 'ctx> TemplexParser<'a, 'ctx>
+impl<'a, 'ctx, 'p> TemplexParser<'a, 'ctx, 'p>
 where
   'a: 'ctx,
+  'a: 'p,
 {
-  pub fn new(interner: &'ctx Interner<'a>, keywords: &'ctx Keywords<'a>) -> Self {
-    TemplexParser { interner, keywords }
+  pub fn new(interner: &'ctx Interner<'a>, keywords: &'ctx Keywords<'a>, arena: &'p Bump) -> Self {
+    TemplexParser {
+      interner,
+      keywords,
+      arena,
+    }
   }
 
   /// Parse an array type expression
   /// Mirrors parseArray in TemplexParser.scala lines 14-85
   pub fn parse_array(
     &self,
-    original_iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<ITemplexPT<'a>>> {
+    original_iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<ITemplexPT<'a, 'p>>> {
     let begin = original_iter.get_pos();
 
     let mut tentative_iter = original_iter.clone();
@@ -59,11 +67,12 @@ where
     let immutable = tentative_iter.try_skip_symbol('#');
 
     // Check for squared brackets
+    let squared_contents;
     let size_scramble_iter_l = match tentative_iter.peek_cloned() {
       Some(INodeLEEnum::Squared(squared)) => {
-        let contents = squared.contents.clone();
+        squared_contents = squared.contents.clone();
         tentative_iter.advance();
-        ScrambleIterator::new(contents)
+        ScrambleIterator::new(&squared_contents)
       }
       _ => return Ok(None),
     };
@@ -94,20 +103,14 @@ where
     ) {
       (true, Some(_)) => return Err(ParseError::FoundBothImmutableAndMutabilityInArray(begin)),
       (false, Some(templex)) => templex.clone(),
-      (true, None) => ITemplexPT::Mutability(MutabilityPT {
-        range: RangeL {
-          begin: template_args_begin,
-          end: template_args_end,
-        },
-        mutability: MutabilityP::Immutable,
-      }),
-      (false, None) => ITemplexPT::Mutability(MutabilityPT {
-        range: RangeL {
-          begin: template_args_begin,
-          end: template_args_end,
-        },
-        mutability: MutabilityP::Mutable,
-      }),
+      (true, None) => ITemplexPT::Mutability(MutabilityPT(
+        RangeL(template_args_begin, template_args_end),
+        MutabilityP::Immutable,
+      )),
+      (false, None) => ITemplexPT::Mutability(MutabilityPT(
+        RangeL(template_args_begin, template_args_end),
+        MutabilityP::Mutable,
+      )),
     };
 
     let variability = maybe_template_args
@@ -115,35 +118,26 @@ where
       .and_then(|v| v.get(1))
       .cloned()
       .unwrap_or_else(|| {
-        ITemplexPT::Variability(VariabilityPT {
-          range: RangeL {
-            begin: template_args_begin,
-            end: template_args_end,
-          },
-          variability: VariabilityP::Final,
-        })
+        ITemplexPT::Variability(VariabilityPT(
+          RangeL(template_args_begin, template_args_end),
+          VariabilityP::Final,
+        ))
       });
 
     let element_type = self.parse_templex(iter)?;
 
     let result = match maybe_size_templex {
       None => ITemplexPT::RuntimeSizedArray(RuntimeSizedArrayPT {
-        range: RangeL {
-          begin,
-          end: iter.get_prev_end_pos(),
-        },
-        mutability: Box::new(mutability),
-        element: Box::new(element_type),
+        range: RangeL(begin, iter.get_prev_end_pos()),
+        mutability: &*self.arena.alloc(mutability),
+        element: &*self.arena.alloc(element_type),
       }),
       Some(size_templex) => ITemplexPT::StaticSizedArray(StaticSizedArrayPT {
-        range: RangeL {
-          begin,
-          end: iter.get_prev_end_pos(),
-        },
-        mutability: Box::new(mutability),
-        variability: Box::new(variability),
-        size: Box::new(size_templex),
-        element: Box::new(element_type),
+        range: RangeL(begin, iter.get_prev_end_pos()),
+        mutability: &*self.arena.alloc(mutability),
+        variability: &*self.arena.alloc(variability),
+        size: &*self.arena.alloc(size_templex),
+        element: &*self.arena.alloc(element_type),
       }),
     };
 
@@ -226,181 +220,142 @@ where
 
   /// Parse a function name (including operator names)
   /// Mirrors parseFunctionName in TemplexParser.scala lines 87-161
-  pub fn parse_function_name(&self, iter: &mut ScrambleIterator<'a>) -> Option<NameP<'a>> {
+  pub fn parse_function_name(&self, iter: &mut ScrambleIterator<'a, '_>) -> Option<NameP<'a>> {
     match iter.peek_cloned() {
       Some(INodeLEEnum::Word(word)) => {
         let range = word.range;
         let str = word.str;
         iter.advance();
-        Some(NameP { range, str })
+        Some(NameP(range, str))
       }
       Some(INodeLEEnum::Symbol(_)) => {
         let begin = iter.get_pos();
         match iter.peek3_cloned() {
           (
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
           ) => {
             iter.advance();
             iter.advance();
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.triple_equals,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.triple_equals,
+            ))
           }
           (
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '<', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '>', .. })),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '<'))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '>'))),
           ) => {
             iter.advance();
             iter.advance();
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.spaceship,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.spaceship,
+            ))
           }
           (
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
             _,
           ) => {
             iter.advance();
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.double_equals,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.double_equals,
+            ))
           }
           (
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '!', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '!'))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
             _,
           ) => {
             iter.advance();
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.not_equals,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.not_equals,
+            ))
           }
           (
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '<', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '<'))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
             _,
           ) => {
             iter.advance();
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.less_equals,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.less_equals,
+            ))
           }
           (
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '>', .. })),
-            Some(INodeLEEnum::Symbol(SymbolLE { c: '=', .. })),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '>'))),
+            Some(INodeLEEnum::Symbol(SymbolLE(_, '='))),
             _,
           ) => {
             iter.advance();
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.greater_equals,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.greater_equals,
+            ))
           }
-          (Some(INodeLEEnum::Symbol(SymbolLE { c: '<', .. })), _, _) => {
+          (Some(INodeLEEnum::Symbol(SymbolLE(_, '<'))), _, _) => {
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.less,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.less,
+            ))
           }
-          (Some(INodeLEEnum::Symbol(SymbolLE { c: '>', .. })), _, _) => {
+          (Some(INodeLEEnum::Symbol(SymbolLE(_, '>'))), _, _) => {
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.greater,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.greater,
+            ))
           }
-          (Some(INodeLEEnum::Symbol(SymbolLE { c: '+', .. })), _, _) => {
+          (Some(INodeLEEnum::Symbol(SymbolLE(_, '+'))), _, _) => {
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.plus,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.plus,
+            ))
           }
-          (Some(INodeLEEnum::Symbol(SymbolLE { c: '-', .. })), _, _) => {
+          (Some(INodeLEEnum::Symbol(SymbolLE(_, '-'))), _, _) => {
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.minus,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.minus,
+            ))
           }
-          (Some(INodeLEEnum::Symbol(SymbolLE { c: '*', .. })), _, _) => {
+          (Some(INodeLEEnum::Symbol(SymbolLE(_, '*'))), _, _) => {
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.asterisk,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.asterisk,
+            ))
           }
-          (Some(INodeLEEnum::Symbol(SymbolLE { c: '/', .. })), _, _) => {
+          (Some(INodeLEEnum::Symbol(SymbolLE(_, '/'))), _, _) => {
             iter.advance();
-            Some(NameP {
-              range: RangeL {
-                begin,
-                end: iter.get_prev_end_pos(),
-              },
-              str: self.keywords.slash,
-            })
+            Some(NameP(
+              RangeL(begin, iter.get_prev_end_pos()),
+              self.keywords.slash,
+            ))
           }
           _ => None,
         }
       }
       Some(INodeLEEnum::Parend(ParendLE { range, .. })) => {
         // Don't advance, we do that elsewhere
-        Some(NameP {
-          range: RangeL {
-            begin: range.begin,
-            end: range.begin,
-          },
-          str: self.keywords.underscores_call,
-        })
+        Some(NameP(
+          RangeL(range.begin(), range.begin()),
+          self.keywords.underscores_call,
+        ))
       }
       _ => None,
     }
@@ -487,11 +442,11 @@ where
   /// Mirrors parsePrototype in TemplexParser.scala lines 163-189
   pub fn parse_prototype(
     &self,
-    iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<ITemplexPT<'a>>> {
+    iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<ITemplexPT<'a, 'p>>> {
     let begin = iter.get_pos();
 
-    if iter.try_skip_word(&self.keywords.func).is_none() {
+    if iter.try_skip_word(self.keywords.func).is_none() {
       return Ok(None);
     }
 
@@ -511,17 +466,11 @@ where
     let return_type = self.parse_templex(iter)?;
 
     let result = ITemplexPT::Func(FuncPT {
-      range: RangeL {
-        begin,
-        end: iter.get_prev_end_pos(),
-      },
+        range: RangeL(begin, iter.get_prev_end_pos()),
       name,
-      params_range: RangeL {
-        begin: args_begin,
-        end: args_end,
-      },
+      params_range: RangeL(args_begin, args_end),
       parameters: args,
-      return_type: Box::new(return_type),
+      return_type: &*self.arena.alloc(return_type),
     });
 
     Ok(Some(result))
@@ -560,8 +509,8 @@ where
   /// Mirrors parseTemplateCallArgs in TemplexParser.scala lines 443-461
   pub fn parse_template_call_args(
     &self,
-    iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<Vec<ITemplexPT<'a>>>> {
+    iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<&'p [ITemplexPT<'a, 'p>]>> {
     let angled = match iter.peek_cloned() {
       Some(INodeLEEnum::Angled(a)) => a.clone(),
       Some(_) => return Ok(None),
@@ -571,7 +520,8 @@ where
     iter.advance();
 
     let mut elements_p = Vec::new();
-    let contents_iter = ScrambleIterator::new(angled.contents.clone());
+    let angled_contents = angled.contents.clone();
+    let contents_iter = ScrambleIterator::new(&angled_contents);
     let element_iters = contents_iter.split_on_symbol(',', false);
 
     for element_iter in element_iters {
@@ -579,7 +529,7 @@ where
       elements_p.push(self.parse_templex(&mut elem_iter)?);
     }
 
-    Ok(Some(elements_p))
+    Ok(Some(alloc_slice_from_vec(self.arena, elements_p)))
   }
   /*
     def parseTemplateCallArgs(iter: ScrambleIterator): Result[Option[Vector[ITemplexPT]], IParseError] = {
@@ -607,8 +557,8 @@ where
   /// Mirrors parseTuple in TemplexParser.scala lines 463-481
   pub fn parse_tuple(
     &self,
-    outer_iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<ITemplexPT<'a>>> {
+    outer_iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<ITemplexPT<'a, 'p>>> {
     let _begin = outer_iter.get_pos();
 
     match outer_iter.peek_cloned() {
@@ -617,7 +567,7 @@ where
         outer_iter.advance();
 
         let mut elements = Vec::new();
-        let contents_iter = ScrambleIterator::new(contents);
+        let contents_iter = ScrambleIterator::new(&contents);
         let iter_splits = contents_iter.split_on_symbol(',', false);
 
         for iter_split in iter_splits {
@@ -625,7 +575,10 @@ where
           elements.push(self.parse_templex(&mut iter)?);
         }
 
-        Ok(Some(ITemplexPT::Tuple(TuplePT { range, elements })))
+        Ok(Some(ITemplexPT::Tuple(TuplePT {
+          range,
+          elements: alloc_slice_from_vec(self.arena, elements),
+        })))
       }
       _ => Ok(None),
     }
@@ -656,49 +609,25 @@ where
   /// Mirrors parseInterpreted in TemplexParser.scala lines 273-303
   pub fn parse_interpreted(
     &self,
-    iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<ITemplexPT<'a>>> {
+    iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<ITemplexPT<'a, 'p>>> {
     let begin = iter.get_pos();
 
     // Parse ownership prefix (^, @, &&, &)
     let maybe_ownership = if iter.try_skip_symbol('^') {
-      Some(OwnershipPT {
-        range: RangeL {
-          begin,
-          end: iter.get_pos(),
-        },
-        ownership: OwnershipP::Own,
-      })
+      Some(OwnershipPT(RangeL(begin, iter.get_pos()), OwnershipP::Own))
     } else if iter.try_skip_symbol('@') {
-      Some(OwnershipPT {
-        range: RangeL {
-          begin,
-          end: iter.get_pos(),
-        },
-        ownership: OwnershipP::Share,
-      })
+      Some(OwnershipPT(RangeL(begin, iter.get_pos()), OwnershipP::Share))
     } else if iter.try_skip_symbols(&['&', '&']) {
-      Some(OwnershipPT {
-        range: RangeL {
-          begin,
-          end: iter.get_pos(),
-        },
-        ownership: OwnershipP::Weak,
-      })
+      Some(OwnershipPT(RangeL(begin, iter.get_pos()), OwnershipP::Weak))
     } else if iter.try_skip_symbol('&') {
-      Some(OwnershipPT {
-        range: RangeL {
-          begin,
-          end: iter.get_pos(),
-        },
-        ownership: OwnershipP::Borrow,
-      })
+      Some(OwnershipPT(RangeL(begin, iter.get_pos()), OwnershipP::Borrow))
     } else {
       None
     };
 
     // Parse region (e.g., a' in a'T)
-    let maybe_region = Self::parse_region_helper(iter)?;
+    let maybe_region = parse_region(iter)?;
 
     // If we have neither ownership nor region, return None
     match (&maybe_ownership, &maybe_region) {
@@ -710,13 +639,10 @@ where
     let inner = self.parse_templex_atom_and_call_and_prefixes(iter)?;
 
     Ok(Some(ITemplexPT::Interpreted(InterpretedPT {
-      range: RangeL {
-        begin,
-        end: iter.get_prev_end_pos(),
-      },
-      maybe_ownership: maybe_ownership.map(Box::new),
-      maybe_region: maybe_region.map(Box::new),
-      inner: Box::new(inner),
+        range: RangeL(begin, iter.get_prev_end_pos()),
+      maybe_ownership: maybe_ownership.map(|x| &*self.arena.alloc(x)),
+      maybe_region: maybe_region.map(|x| &*self.arena.alloc(x)),
+      inner: &*self.arena.alloc(inner),
     })))
   }
   /*
@@ -757,11 +683,11 @@ where
   /// Mirrors parseEndingRegion in TemplexParser.scala lines 306-323
   pub fn parse_ending_region(
     &self,
-    original_iter: &mut ScrambleIterator<'a>,
+    original_iter: &mut ScrambleIterator<'a, '_>,
   ) -> ParseResult<Option<RegionRunePT<'a>>> {
     let mut tentative_iter = original_iter.clone();
 
-    let region = match Self::parse_region_helper(&mut tentative_iter)? {
+    let region = match parse_region(&mut tentative_iter)? {
       None => return Ok(None),
       Some(region_rune) => region_rune,
     };
@@ -797,54 +723,12 @@ where
     }
   */
 
-  /// Helper to parse region - mirrors Parser.parseRegion in Parser.scala lines 826-853
-  fn parse_region_helper(
-    original_iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<RegionRunePT<'a>>> {
-    let mut tentative_iter = original_iter.clone();
-
-    let rune_begin = tentative_iter.get_pos();
-    let maybe_rune = if tentative_iter.try_skip_symbol('\'') {
-      // Anonymous region, in other words an isolate
-      None
-    } else {
-      let region_rune = match tentative_iter.next_word() {
-        None => return Ok(None),
-        Some(r) => r,
-      };
-
-      if !tentative_iter.try_skip_symbol('\'') {
-        return Ok(None);
-      }
-
-      Some(region_rune)
-    };
-    let rune_end = tentative_iter.get_prev_end_pos();
-
-    original_iter.skip_to(&tentative_iter);
-
-    let range = RangeL {
-      begin: rune_begin,
-      end: rune_end,
-    };
-    Ok(Some(RegionRunePT {
-      range,
-      name: maybe_rune.map(|z| NameP {
-        range: RangeL {
-          begin: rune_begin,
-          end: rune_end,
-        },
-        str: z.str,
-      }),
-    }))
-  }
-
   /// Parse templex atom and any following calls/prefixes/suffixes
   /// Mirrors parseTemplexAtomAndCallAndPrefixesAndSuffixes in TemplexParser.scala lines 326-334
   pub fn parse_templex_atom_and_call_and_prefixes_and_suffixes(
     &self,
-    original_iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<ITemplexPT<'a>> {
+    original_iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<ITemplexPT<'a, 'p>> {
     let inner = self.parse_templex_atom_and_call_and_prefixes(original_iter)?;
     Ok(inner)
   }
@@ -862,101 +746,68 @@ where
 
   /// Parse a templex atom (basic type expression)
   /// Mirrors parseTemplexAtom in TemplexParser.scala lines 336-441
-  pub fn parse_templex_atom(&self, iter: &mut ScrambleIterator<'a>) -> ParseResult<ITemplexPT<'a>> {
+  pub fn parse_templex_atom(&self, iter: &mut ScrambleIterator<'a, '_>) -> ParseResult<ITemplexPT<'a, 'p>> {
     assert!(iter.peek_cloned().is_some());
     let _begin = iter.get_pos();
 
     // Try keywords first (lines 340-403)
-    if let Some(range) = iter.try_skip_word(&self.keywords.underscore) {
+    if let Some(range) = iter.try_skip_word(self.keywords.underscore) {
       return Ok(ITemplexPT::AnonymousRune(AnonymousRunePT { range }));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.truue) {
+    if let Some(range) = iter.try_skip_word(self.keywords.truue) {
       return Ok(ITemplexPT::Bool(BoolPT { range, value: true }));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.faalse) {
+    if let Some(range) = iter.try_skip_word(self.keywords.faalse) {
       return Ok(ITemplexPT::Bool(BoolPT {
         range,
         value: false,
       }));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.own) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Own,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.own) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Own)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.borrow) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Borrow,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.borrow) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Borrow)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.weak) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Weak,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.weak) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Weak)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.share) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Share,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.share) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Share)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.inl) {
+    if let Some(range) = iter.try_skip_word(self.keywords.inl) {
       return Ok(ITemplexPT::Location(LocationPT {
         range,
         location: LocationP::Inline,
       }));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.heap) {
+    if let Some(range) = iter.try_skip_word(self.keywords.heap) {
       return Ok(ITemplexPT::Location(LocationPT {
         range,
         location: LocationP::Yonder,
       }));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.imm) {
-      return Ok(ITemplexPT::Mutability(MutabilityPT {
-        range,
-        mutability: MutabilityP::Immutable,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.imm) {
+      return Ok(ITemplexPT::Mutability(MutabilityPT(range, MutabilityP::Immutable)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.r#mut) {
-      return Ok(ITemplexPT::Mutability(MutabilityPT {
-        range,
-        mutability: MutabilityP::Mutable,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.r#mut) {
+      return Ok(ITemplexPT::Mutability(MutabilityPT(range, MutabilityP::Mutable)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.vary) {
-      return Ok(ITemplexPT::Variability(VariabilityPT {
-        range,
-        variability: VariabilityP::Varying,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.vary) {
+      return Ok(ITemplexPT::Variability(VariabilityPT(range, VariabilityP::Varying)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.fiinal) {
-      return Ok(ITemplexPT::Variability(VariabilityPT {
-        range,
-        variability: VariabilityP::Final,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.fiinal) {
+      return Ok(ITemplexPT::Variability(VariabilityPT(range, VariabilityP::Final)));
     }
     // Duplicate checks for weak, own, share (lines 392-403 in Scala)
-    if let Some(range) = iter.try_skip_word(&self.keywords.weak) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Weak,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.weak) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Weak)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.own) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Own,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.own) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Own)));
     }
-    if let Some(range) = iter.try_skip_word(&self.keywords.share) {
-      return Ok(ITemplexPT::Ownership(OwnershipPT {
-        range,
-        ownership: OwnershipP::Share,
-      }));
+    if let Some(range) = iter.try_skip_word(self.keywords.share) {
+      return Ok(ITemplexPT::Ownership(OwnershipPT(range, OwnershipP::Share)));
     }
 
     // Try parsing prototype (lines 404-408)
@@ -984,7 +835,7 @@ where
             range: *range,
             str: s.clone(),
           })),
-          _ => Err(ParseError::BadStringInTemplex(range.begin)),
+          _ => Err(ParseError::BadStringInTemplex(range.begin())),
         }
       }
       INodeLEEnum::ParsedInteger(ParsedIntegerLE { range, value, .. }) => {
@@ -992,7 +843,7 @@ where
         Ok(ITemplexPT::Int(IntPT { range, value }))
       }
       INodeLEEnum::ParsedDouble(ParsedDoubleLE { range, .. }) => {
-        let pos = range.begin;
+        let pos = range.begin();
         iter.advance();
         Err(ParseError::RangedInternalError {
           pos,
@@ -1001,9 +852,7 @@ where
       }
       INodeLEEnum::Word(WordLE { range, str }) => {
         iter.advance();
-        Ok(ITemplexPT::NameOrRune(NameOrRunePT {
-          name: NameP { range, str },
-        }))
+        Ok(ITemplexPT::NameOrRune(NameOrRunePT(NameP(range, str))))
       }
       _ => Err(ParseError::BadTypeExpression(iter.get_pos())),
     }
@@ -1121,8 +970,8 @@ where
   /// Mirrors parseTemplexAtomAndCall in TemplexParser.scala lines 483-499
   pub fn parse_templex_atom_and_call(
     &self,
-    iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<ITemplexPT<'a>> {
+    iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<ITemplexPT<'a, 'p>> {
     let begin = iter.get_pos();
 
     let atom = self.parse_templex_atom(iter)?;
@@ -1130,11 +979,8 @@ where
     match self.parse_template_call_args(iter)? {
       Some(args) => {
         return Ok(ITemplexPT::Call(CallPT {
-          range: RangeL {
-            begin,
-            end: iter.get_prev_end_pos(),
-          },
-          template: Box::new(atom),
+        range: RangeL(begin, iter.get_prev_end_pos()),
+          template: &*self.arena.alloc(atom),
           args,
         }));
       }
@@ -1167,8 +1013,8 @@ where
   /// Mirrors parseTemplexAtomAndCallAndPrefixes in TemplexParser.scala lines 501-539
   pub fn parse_templex_atom_and_call_and_prefixes(
     &self,
-    iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<ITemplexPT<'a>> {
+    iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<ITemplexPT<'a, 'p>> {
     assert!(iter.has_next());
 
     // Check for 'in' keyword - should not be interpreted as a templex (lines 506-515)
@@ -1238,7 +1084,7 @@ where
 
   /// Main entry point for parsing a templex
   /// Mirrors parseTemplex in TemplexParser.scala lines 541-545
-  pub fn parse_templex(&self, iter: &mut ScrambleIterator<'a>) -> ParseResult<ITemplexPT<'a>> {
+  pub fn parse_templex(&self, iter: &mut ScrambleIterator<'a, '_>) -> ParseResult<ITemplexPT<'a, 'p>> {
     self.parse_templex_atom_and_call_and_prefixes_and_suffixes(iter)
   }
   /*
@@ -1253,8 +1099,8 @@ where
   /// Mirrors parseTypedRune in TemplexParser.scala lines 547-571
   pub fn parse_typed_rune(
     &self,
-    original_iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<IRulexPR<'a>>> {
+    original_iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<IRulexPR<'a, 'p>>> {
     match original_iter.peek2_cloned() {
       // Don't parse "func moo()void" (lines 550-552)
       (Some(INodeLEEnum::Word(WordLE { str: name_str, .. })), _)
@@ -1275,10 +1121,7 @@ where
         let maybe_name = if name_str == self.keywords.underscore {
           None
         } else {
-          Some(NameP {
-            range: name_range,
-            str: name_str,
-          })
+          Some(NameP(name_range, name_str))
         };
 
         original_iter.advance();
@@ -1290,10 +1133,7 @@ where
         };
 
         Ok(Some(IRulexPR::Typed(TypedPR {
-          range: RangeL {
-            begin: name_range.begin,
-            end: type_range.end,
-          },
+          range: RangeL(name_range.begin(), type_range.end()),
           rune: maybe_name,
           tyype,
         })))
@@ -1331,7 +1171,7 @@ where
 
   /// Parse a rule call
   /// Mirrors parseRuleCall in TemplexParser.scala lines 573-607
-  pub fn parse_rule_call(&self, iter: &mut ScrambleIterator<'a>) -> ParseResult<Option<IRulexPR<'a>>> {
+  pub fn parse_rule_call(&self, iter: &mut ScrambleIterator<'a, '_>) -> ParseResult<Option<IRulexPR<'a, 'p>>> {
     match iter.peek2_cloned() {
       (Some(INodeLEEnum::Word(WordLE { str, .. })), _) if str == self.keywords.func => {
         return Ok(None);
@@ -1346,14 +1186,12 @@ where
           contents: args_lr,
         })),
       ) => {
-        let range = RangeL {
-          begin: name_range.begin,
-          end: args_range.end,
-        };
+        let range = RangeL(name_range.begin(), args_range.end());
 
         // Parse the arguments
         let mut args_pr = Vec::new();
-        let args_iter = ScrambleIterator::new(args_lr.clone());
+        let args_lr_clone = args_lr.clone();
+        let args_iter = ScrambleIterator::new(&args_lr_clone);
         let arg_iters = args_iter.split_on_symbol(',', false);
 
         for arg_iter in arg_iters {
@@ -1363,11 +1201,8 @@ where
 
         Ok(Some(IRulexPR::BuiltinCall(BuiltinCallPR {
           range,
-          name: NameP {
-            range: name_range,
-            str: name,
-          },
-          args: args_pr,
+          name: NameP(name_range, name),
+          args: alloc_slice_from_vec(self.arena, args_pr),
         })))
       }
       _ => Ok(None),
@@ -1415,8 +1250,8 @@ where
   /// Mirrors parseRuleDestructure in TemplexParser.scala lines 609-632
   pub fn parse_rule_destructure(
     &self,
-    original_iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<Option<IRulexPR<'a>>> {
+    original_iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<Option<IRulexPR<'a, 'p>>> {
     // Extract data from peek2() before mutating
     let (begin, end, components_l) = match original_iter.peek2_cloned() {
       (
@@ -1427,7 +1262,7 @@ where
           range: squared_range,
           contents: components_l,
         })),
-      ) => (word_range.begin, squared_range.end, components_l.clone()),
+      ) => (word_range.begin(), squared_range.end(), components_l.clone()),
       _ => return Ok(None),
     };
 
@@ -1441,7 +1276,7 @@ where
 
     // Parse the components
     let mut components_p = Vec::new();
-    let components_iter = ScrambleIterator::new(components_l);
+    let components_iter = ScrambleIterator::new(&components_l);
     let component_iters = components_iter.split_on_symbol(',', false);
 
     for component_iter in component_iters {
@@ -1450,9 +1285,9 @@ where
     }
 
     Ok(Some(IRulexPR::Components(ComponentsPR {
-      range: RangeL { begin, end },
+      range: RangeL(begin, end),
       container: rune_type,
-      components: components_p,
+      components: alloc_slice_from_vec(self.arena, components_p),
     })))
   }
   /*
@@ -1484,7 +1319,7 @@ where
 
   /// Parse a rule atom
   /// Mirrors parseRuleAtom in TemplexParser.scala lines 634-659
-  pub fn parse_rule_atom(&self, iter: &mut ScrambleIterator<'a>) -> ParseResult<IRulexPR<'a>> {
+  pub fn parse_rule_atom(&self, iter: &mut ScrambleIterator<'a, '_>) -> ParseResult<IRulexPR<'a, 'p>> {
     let _begin = iter.get_pos();
 
     // Try parsing a rule call (lines 637-641)
@@ -1540,14 +1375,14 @@ where
   /// Mirrors parseRuleUpToEqualsPrecedence in TemplexParser.scala lines 661-689
   pub fn parse_rule_up_to_equals_precedence(
     &self,
-    iter: &mut ScrambleIterator<'a>,
-  ) -> ParseResult<IRulexPR<'a>> {
+    iter: &mut ScrambleIterator<'a, '_>,
+  ) -> ParseResult<IRulexPR<'a, 'p>> {
     // Try to find an equals sign while scouting ahead (lines 663-672)
     let maybe_before_iter = try_skip_past_equals_while(iter, |scouting_iter| {
       match scouting_iter.peek_cloned() {
         None => false,
         // Stop on comma
-        Some(INodeLEEnum::Symbol(SymbolLE { c: ',', .. })) => false,
+        Some(INodeLEEnum::Symbol(SymbolLE(_, ','))) => false,
         // Stop if we hit an open brace, its the function body
         Some(INodeLEEnum::Curlied(_)) => false,
         _ => true,
@@ -1564,12 +1399,9 @@ where
         let left = self.parse_rule_atom(&mut before_iter)?;
         let right = self.parse_rule_atom(iter)?;
         Ok(IRulexPR::Equals(EqualsPR {
-          range: RangeL {
-            begin: left.range().begin,
-            end: right.range().end,
-          },
-          left: Box::new(left),
-          right: Box::new(right),
+          range: RangeL(left.range().begin(), right.range().end()),
+          left: &*self.arena.alloc(left),
+          right: &*self.arena.alloc(right),
         }))
       }
     }
@@ -1599,7 +1431,7 @@ where
                 case Err(e) => return Err(e)
                 case Ok(x) => x
               }
-            Ok(EqualsPR(RangeL(left.range.begin, right.range.end), left, right))
+            Ok(EqualsPR(RangeL(left.range().begin(), right.range().end()), left, right))
           }
         }
       })
@@ -1608,7 +1440,7 @@ where
 
   /// Main entry point for parsing a rule
   /// Mirrors parseRule in TemplexParser.scala lines 691-693
-  pub fn parse_rule(&self, iter: &mut ScrambleIterator<'a>) -> ParseResult<IRulexPR<'a>> {
+  pub fn parse_rule(&self, iter: &mut ScrambleIterator<'a, '_>) -> ParseResult<IRulexPR<'a, 'p>> {
     self.parse_rule_up_to_equals_precedence(iter)
   }
   /*
@@ -1619,7 +1451,7 @@ where
 
   /// Parse a rune type (Ref, Int, etc.)
   /// Mirrors parseRuneType in TemplexParser.scala lines 695-732
-  pub fn parse_rune_type(&self, iter: &mut ScrambleIterator<'a>) -> ParseResult<Option<ITypePR>> {
+  pub fn parse_rune_type(&self, iter: &mut ScrambleIterator<'a, '_>) -> ParseResult<Option<ITypePR>> {
     match iter.peek_cloned() {
       None => Ok(None),
 

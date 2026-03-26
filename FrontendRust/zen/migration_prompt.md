@@ -1,3 +1,50 @@
+======== PLACEHOLDERS
+
+You're going to help me migrate some code.
+
+First, please look at these files for guidelines to follow:
+- migration_process.md
+- migration_checks.md
+
+Then say "ready"
+
+==
+
+I'd like you to add a rust function header for every unmigrated Scala function you see.
+
+Feel free to use the `check_scala_rust_mapping.py` script to know what to add.
+
+It should have no instructions inside, just a `panic!("Unimplemented {function name here}");`. For example if we're trying to migrate this:
+
+    /*
+    def flattenExpressions(expr: IExpressionSE): Vector[IExpressionSE] = {
+      expr match {
+        case ConsecutorSE(exprs) => exprs.flatMap(flattenExpressions)
+        case other => Vector(other)
+      }
+    }
+    */
+
+then you should insert this rust function right above it:
+
+    fn flatten_expressions<'a, 's>(
+      expr: &IExpressionSE<'a, 's>,
+    ) -> Vec<&'s IExpressionSE<'a, 's>> {
+      panic!("Unimplemented flatten_expressions");
+    }
+    /*
+    def flattenExpressions(expr: IExpressionSE): Vector[IExpressionSE] = {
+      expr match {
+        case ConsecutorSE(exprs) => exprs.flatMap(flattenExpressions)
+        case other => Vector(other)
+      }
+    }
+    */
+
+DO NOT attempt to build, run, or test. Ignore the placement of impl blocks, and you don't have to add any impl blocks. Just add `fn` statements where they should be, and I'll add the necessarily impl blocks myself later.
+
+Feel free to leave off namespace qualifiers, for example `crate::postparsing::rules::rules::IRulexSR<'a>` can just be `IRulexSR<'a>`. I'll add the imports later.
+
 ======== MIGRATE
 
 You're going to help me migrate some code.
@@ -6,8 +53,6 @@ First, please look at these files for guidelines to follow:
 - migration_process.md
 - migration_checks.md
 - testing.md
-
-Then look at expression_tests.rs for an example.
 
 Then say "ready"
 
@@ -23,12 +68,17 @@ Implement anything in src/postparsing that is directly and immediately needed to
 
 CRITICAL RULES:
 
- * DO NOT ADD ANY novel logic! All the functions you need should already exist as Scala code in a comment.
+ * DO NOT ADD ANY novel logic! All the functions you need should already exist as Scala code in a comment. NO adding new functions. You will only be modifying existing functions.
  * Anything you add should be *directly immediately above* the Scala comment. NOT below the comment. NOT in a different file. Feel free to slice scala comments apart so the new rust code can be directly above the old scala code.
  * Only *iteratively* implement the bare minimum that you need to make it compile. Add panic!/assert! placeholders until it compiles, then implement only the panic!s/assert!s your test runs into.
 
+If any of these sound like a problem, then stop and ask me for help.
 
 The test we'll be working to enable is 
+
+== (followup)
+
+/migration-correct
 
 ======== CHECKS
 
@@ -39,28 +89,13 @@ Look again at these files for guidelines to follow (they might have changed):
 
 then say "ready"
 
-== (tests only)
+==
 
-Someone just migrated this file, but im not sure they did it well. can you fix what they missed or got wrong?
-
-== (impl only)
-
-Someone just added this new rust code. Does it correspond well to the scala code below it? And does it conform to all the checks in migration_checks.md? Are there any other differences that we should be worried about? It's okay if there are panic!s for unimplemented parts, but I want to know about any other problems. this passes tests, so we don't want to implement any missing logic, but we might want to put in assertions and panics. everything should either be correct or panic!ing.
-
-The new code in question is: 
+/migration-diff-review
 
 == (followup impl)
 
-Go ahead and fix. However, you *cannot use your own novel code* to fix. The only way to make this better is to bring the rust code closer to the old scala code. Look at migration_process.md again, it may have changed.
-
-CRITICAL RULES:
-
- * DO NOT ADD ANY novel logic! All the functions you need should already exist as Scala code in a comment.
- * Anything you add should be *directly immediately above* the Scala comment. NOT below the comment. NOT in a different file. Feel free to slice scala comments apart so the new rust code can be directly above the old scala code.
- * Only *iteratively* implement the bare minimum that you need to make it compile. Add panic!/assert! placeholders until it compiles, then implement only the panic!s/assert!s your test runs into.
-
-proceed.
-
+/migration-drive
 
 
 ======== NOTES
@@ -94,3 +129,8 @@ it just put in a temporary hack like:
 so perhaps:
  * we should just say that it can only add panics in branches? but then it would create default values which isnt right
  * we should just do the pre-pass that creates rust stubs.
+
+
+
+
+wow, it sucks at dealing with lifetimes.

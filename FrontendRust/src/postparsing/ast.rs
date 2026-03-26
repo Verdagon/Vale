@@ -38,22 +38,22 @@ trait IExpressionSE {
 }
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct ProgramS<'a> {
-  pub structs: Vec<StructS<'a>>,
-  pub interfaces: Vec<InterfaceS<'a>>,
-  pub impls: Vec<ImplS<'a>>,
-  pub implemented_functions: Vec<FunctionS<'a>>,
-  pub exports: Vec<ExportAsS<'a>>,
-  pub imports: Vec<ImportS<'a>>,
+pub struct ProgramS<'a, 's> {
+  pub structs: &'s [StructS<'a, 's>],
+  pub interfaces: &'s [InterfaceS<'a, 's>],
+  pub impls: &'s [ImplS<'a, 's>],
+  pub implemented_functions: &'s [FunctionS<'a, 's>],
+  pub exports: &'s [ExportAsS<'a, 's>],
+  pub imports: &'s [ImportS<'a, 's>],
 }
 
-impl ProgramS<'_> {
-  pub fn lookup_function(&self, name: &str) -> &FunctionS<'_> {
-    let matches: Vec<&FunctionS<'_>> = self
+impl<'a, 's> ProgramS<'a, 's> {
+  pub fn lookup_function(&self, name: &str) -> &FunctionS<'a, 's> {
+    let matches: Vec<&FunctionS<'a, 's>> = self
       .implemented_functions
       .iter()
       .filter(|f| match &f.name {
-        IFunctionDeclarationNameS::FunctionName(n) => n.name.str == name,
+        IFunctionDeclarationNameS::FunctionName(n) => n.name.as_str() == name,
         _ => false,
       })
       .collect();
@@ -61,21 +61,21 @@ impl ProgramS<'_> {
     matches[0]
   }
 
-  pub fn lookup_interface(&self, name: &str) -> &InterfaceS<'_> {
-    let matches: Vec<&InterfaceS<'_>> = self
+  pub fn lookup_interface(&self, name: &str) -> &InterfaceS<'a, 's> {
+    let matches: Vec<&InterfaceS<'a, 's>> = self
       .interfaces
       .iter()
-      .filter(|i| i.name.name.str == name)
+      .filter(|i| i.name.name.as_str() == name)
       .collect();
     assert_eq!(matches.len(), 1);
     matches[0]
   }
 
-  pub fn lookup_struct(&self, name: &str) -> &StructS<'_> {
-    let matches: Vec<&StructS<'_>> = self
+  pub fn lookup_struct(&self, name: &str) -> &StructS<'a, 's> {
+    let matches: Vec<&StructS<'a, 's>> = self
       .structs
       .iter()
-      .filter(|s| s.name.name.str == name)
+      .filter(|s| s.name.name.as_str() == name)
       .collect();
     assert_eq!(matches.len(), 1);
     matches[0]
@@ -127,16 +127,16 @@ pub struct ExternS<'a> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BuiltinS<'a> {
-  // MIGTODO: can we give everything a lifetime into an arena so we can
+  // AFTERM: can we give everything a lifetime into an arena so we can
   // all have references instead of using Arc everywhere?
-  pub generator_name: &'a StrI,
+  pub generator_name: StrI<'a>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MacroCallS<'a> {
   pub range: RangeS<'a>,
   pub include: IMacroInclusionP,
-  pub macro_name: &'a StrI,
+  pub macro_name: StrI<'a>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -196,12 +196,12 @@ case class ExportS(packageCoordinate: PackageCoordinate) extends IFunctionAttrib
 case object UserFunctionS extends IFunctionAttributeS // Whether it was written by a human. Mostly for tests right now.
 */
 #[derive(Clone, Debug, PartialEq)]
-pub enum ICitizenS<'a> {
-  Struct(StructS<'a>),
-  Interface(InterfaceS<'a>),
+pub enum ICitizenS<'a, 's> {
+  Struct(StructS<'a, 's>),
+  Interface(InterfaceS<'a, 's>),
 }
 
-impl ICitizenS<'_> {
+impl<'a, 's> ICitizenS<'a, 's> {
   pub fn name(&self) -> TopLevelCitizenDeclarationNameS<'_> {
     match self {
       ICitizenS::Struct(s) => TopLevelCitizenDeclarationNameS::from(&s.name),
@@ -216,10 +216,10 @@ impl ICitizenS<'_> {
     }
   }
 
-  pub fn generic_params(&self) -> &Vec<GenericParameterS<'_>> {
+  pub fn generic_params(&self) -> &'s [GenericParameterS<'a>] {
     match self {
-      ICitizenS::Struct(s) => &s.generic_params,
-      ICitizenS::Interface(i) => &i.generic_params,
+      ICitizenS::Struct(s) => s.generic_params,
+      ICitizenS::Interface(i) => i.generic_params,
     }
   }
 }
@@ -232,22 +232,22 @@ sealed trait ICitizenS {
 }
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct StructS<'a> {
+pub struct StructS<'a, 's> {
   pub range: RangeS<'a>,
   pub name: TopLevelStructDeclarationNameS<'a>,
-  pub attributes: Vec<ICitizenAttributeS<'a>>,
+  pub attributes: &'s [ICitizenAttributeS<'a>],
   pub weakable: bool,
-  pub generic_params: Vec<GenericParameterS<'a>>,
+  pub generic_params: &'s [GenericParameterS<'a>],
   pub mutability_rune: RuneUsage<'a>,
   pub maybe_predicted_mutability: Option<MutabilityP>,
   pub tyype: TemplateTemplataType,
   pub header_rune_to_explicit_type: HashMap<IRuneS<'a>, ITemplataType>,
   pub header_predicted_rune_to_type: HashMap<IRuneS<'a>, ITemplataType>,
-  pub header_rules: Vec<IRulexSR<'a>>,
+  pub header_rules: &'s [IRulexSR<'a>],
   pub members_rune_to_explicit_type: HashMap<IRuneS<'a>, ITemplataType>,
   pub members_predicted_rune_to_type: HashMap<IRuneS<'a>, ITemplataType>,
-  pub member_rules: Vec<IRulexSR<'a>>,
-  pub members: Vec<IStructMemberS<'a>>,
+  pub member_rules: &'s [IRulexSR<'a>],
+  pub members: &'s [IStructMemberS<'a>],
 }
 
 /*
@@ -339,7 +339,7 @@ sealed trait IStructMemberS {
 #[derive(Clone, Debug, PartialEq)]
 pub struct NormalStructMemberS<'a> {
   pub range: RangeS<'a>,
-  pub name: &'a StrI,
+  pub name: StrI<'a>,
   pub variability: VariabilityP,
   pub type_rune: RuneUsage<'a>,
 }
@@ -369,19 +369,19 @@ case class VariadicStructMemberS(
 }
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct InterfaceS<'a> {
+pub struct InterfaceS<'a, 's> {
   pub range: RangeS<'a>,
   pub name: TopLevelInterfaceDeclarationNameS<'a>,
-  pub attributes: Vec<ICitizenAttributeS<'a>>,
+  pub attributes: &'s [ICitizenAttributeS<'a>],
   pub weakable: bool,
-  pub generic_params: Vec<GenericParameterS<'a>>,
+  pub generic_params: &'s [GenericParameterS<'a>],
   pub rune_to_explicit_type: HashMap<IRuneS<'a>, ITemplataType>,
   pub mutability_rune: RuneUsage<'a>,
   pub maybe_predicted_mutability: Option<MutabilityP>,
   pub predicted_rune_to_type: HashMap<IRuneS<'a>, ITemplataType>,
   pub tyype: TemplateTemplataType,
-  pub rules: Vec<IRulexSR<'a>>,
-  pub internal_methods: Vec<FunctionS<'a>>,
+  pub rules: &'s [IRulexSR<'a>],
+  pub internal_methods: &'s [FunctionS<'a, 's>],
 }
 
 /*
@@ -436,11 +436,11 @@ case class InterfaceS(
 }
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct ImplS<'a> {
+pub struct ImplS<'a, 's> {
   pub range: RangeS<'a>,
   pub name: ImplDeclarationNameS<'a>,
-  pub user_specified_identifying_runes: Vec<GenericParameterS<'a>>,
-  pub rules: Vec<IRulexSR<'a>>,
+  pub user_specified_identifying_runes: &'s [GenericParameterS<'a>],
+  pub rules: &'s [IRulexSR<'a>],
   pub rune_to_explicit_type: HashMap<IRuneS<'a>, ITemplataType>,
   pub tyype: ITemplataType,
   pub struct_kind_rune: RuneUsage<'a>,
@@ -466,12 +466,12 @@ case class ImplS(
 }
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct ExportAsS<'a> {
+pub struct ExportAsS<'a, 's> {
   pub range: RangeS<'a>,
-  pub rules: Vec<IRulexSR<'a>>,
+  pub rules: &'s [IRulexSR<'a>],
   pub export_name: ExportAsNameS<'a>,
   pub rune: RuneUsage<'a>,
-  pub exported_name: &'a StrI,
+  pub exported_name: StrI<'a>,
 }
 
 /*
@@ -485,11 +485,11 @@ case class ExportAsS(
 }
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct ImportS<'a> {
+pub struct ImportS<'a, 's> {
   pub range: RangeS<'a>,
-  pub module_name: &'a StrI,
-  pub package_names: Vec<&'a StrI>,
-  pub importee_name: &'a StrI,
+  pub module_name: StrI<'a>,
+  pub package_names: &'s [StrI<'a>],
+  pub importee_name: StrI<'a>,
 }
 
 /*
@@ -501,7 +501,7 @@ case class ImportS(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 */
-pub fn interface_s_name<'a>(interface_s: &InterfaceS<'a>) -> TopLevelCitizenDeclarationNameS<'a> {
+pub fn interface_s_name<'a, 's>(interface_s: &InterfaceS<'a, 's>) -> TopLevelCitizenDeclarationNameS<'a> {
   TopLevelCitizenDeclarationNameS::from(&interface_s.name)
 }
 
@@ -513,7 +513,7 @@ object interfaceSName {
   }
 }
 */
-pub fn struct_s_name<'a>(struct_s: &StructS<'a>) -> TopLevelCitizenDeclarationNameS<'a> {
+pub fn struct_s_name<'a, 's>(struct_s: &StructS<'a, 's>) -> TopLevelCitizenDeclarationNameS<'a> {
   TopLevelCitizenDeclarationNameS::from(&struct_s.name)
 }
 
@@ -592,12 +592,12 @@ case class SimpleParameterS(
 */
 #[derive(Clone, Debug, PartialEq)]
 pub struct GeneratedBodyS<'a> {
-  pub generator_id: &'a StrI,
+  pub generator_id: StrI<'a>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct CodeBodyS<'a> {
-  pub body: BodySE<'a>,
+pub struct CodeBodyS<'a, 's> {
+  pub body: BodySE<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -607,11 +607,11 @@ pub struct ExternBodyS {}
 pub struct AbstractBodyS {}
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum IBodyS<'a> {
+pub enum IBodyS<'a, 's> {
   ExternBody(ExternBodyS),
   AbstractBody(AbstractBodyS),
   GeneratedBody(GeneratedBodyS<'a>),
-  CodeBody(CodeBodyS<'a>),
+  CodeBody(CodeBodyS<'a, 's>),
 }
 
 /*
@@ -768,20 +768,20 @@ case class GenericParameterDefaultS(
   rules: Vector[IRulexSR])
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct FunctionS<'a> {
+pub struct FunctionS<'a, 's> {
   pub range: RangeS<'a>,
   pub name: IFunctionDeclarationNameS<'a>,
-  pub attributes: Vec<IFunctionAttributeS<'a>>,
-  pub generic_params: Vec<GenericParameterS<'a>>,
+  pub attributes: &'s [IFunctionAttributeS<'a>],
+  pub generic_params: &'s [GenericParameterS<'a>],
   pub rune_to_predicted_type: HashMap<IRuneS<'a>, ITemplataType>,
   pub tyype: TemplateTemplataType,
-  pub params: Vec<ParameterS<'a>>,
+  pub params: &'s [ParameterS<'a>],
   pub maybe_ret_coord_rune: Option<RuneUsage<'a>>,
-  pub rules: Vec<IRulexSR<'a>>,
-  pub body: IBodyS<'a>,
+  pub rules: &'s [IRulexSR<'a>],
+  pub body: IBodyS<'a, 's>,
 }
 
-impl FunctionS<'_> {
+impl<'a, 's> FunctionS<'a, 's> {
   pub fn is_light(&self) -> bool {
     match &self.body {
       IBodyS::ExternBody(_) | IBodyS::AbstractBody(_) | IBodyS::GeneratedBody(_) => false,
@@ -888,6 +888,7 @@ pub struct LocationInDenizenBuilder {
 }
 
 impl LocationInDenizenBuilder {
+  // MIGALLOW: new -> new
   pub fn new(path: Vec<i32>) -> Self {
     Self {
       path,
@@ -977,53 +978,53 @@ case class LocationInDenizen(path: Vector[Int]) {
 
 */
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopLevelFunctionS<'a> {
-  pub function: FunctionS<'a>,
+pub struct TopLevelFunctionS<'a, 's> {
+  pub function: FunctionS<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopLevelImplS<'a> {
-  pub impl_: ImplS<'a>,
+pub struct TopLevelImplS<'a, 's> {
+  pub impl_: ImplS<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopLevelExportAsS<'a> {
-  pub export: ExportAsS<'a>,
+pub struct TopLevelExportAsS<'a, 's> {
+  pub export: ExportAsS<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopLevelImportS<'a> {
-  pub imporrt: ImportS<'a>,
+pub struct TopLevelImportS<'a, 's> {
+  pub imporrt: ImportS<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopLevelStructS<'a> {
-  pub strukt: StructS<'a>,
+pub struct TopLevelStructS<'a, 's> {
+  pub strukt: StructS<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TopLevelInterfaceS<'a> {
-  pub interface: InterfaceS<'a>,
+pub struct TopLevelInterfaceS<'a, 's> {
+  pub interface: InterfaceS<'a, 's>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum IDenizenS<'a> {
-  TopLevelFunction(TopLevelFunctionS<'a>),
-  TopLevelImpl(TopLevelImplS<'a>),
-  TopLevelExportAs(TopLevelExportAsS<'a>),
-  TopLevelImport(TopLevelImportS<'a>),
-  TopLevelStruct(TopLevelStructS<'a>),
-  TopLevelInterface(TopLevelInterfaceS<'a>),
+pub enum IDenizenS<'a, 's> {
+  TopLevelFunction(TopLevelFunctionS<'a, 's>),
+  TopLevelImpl(TopLevelImplS<'a, 's>),
+  TopLevelExportAs(TopLevelExportAsS<'a, 's>),
+  TopLevelImport(TopLevelImportS<'a, 's>),
+  TopLevelStruct(TopLevelStructS<'a, 's>),
+  TopLevelInterface(TopLevelInterfaceS<'a, 's>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ICitizenDenizenS<'a> {
-  TopLevelStruct(TopLevelStructS<'a>),
-  TopLevelInterface(TopLevelInterfaceS<'a>),
+pub enum ICitizenDenizenS<'a, 's> {
+  TopLevelStruct(TopLevelStructS<'a, 's>),
+  TopLevelInterface(TopLevelInterfaceS<'a, 's>),
 }
 
-impl ICitizenDenizenS<'_> {
-  pub fn citizen(&self) -> ICitizenS<'_> {
+impl<'a, 's> ICitizenDenizenS<'a, 's> {
+  pub fn citizen(&self) -> ICitizenS<'a, 's> {
     match self {
       ICitizenDenizenS::TopLevelStruct(s) => ICitizenS::Struct(s.strukt.clone()),
       ICitizenDenizenS::TopLevelInterface(i) => ICitizenS::Interface(i.interface.clone()),
@@ -1031,7 +1032,8 @@ impl ICitizenDenizenS<'_> {
   }
 }
 
-pub fn as_citizen_denizen<'a>(x: &IDenizenS<'a>) -> Option<ICitizenDenizenS<'a>> {
+// MIGALLOW: unapply -> as_citizen_denizen
+pub fn as_citizen_denizen<'a, 's>(x: &IDenizenS<'a, 's>) -> Option<ICitizenDenizenS<'a, 's>> {
   match x {
     IDenizenS::TopLevelStruct(s) => Some(ICitizenDenizenS::TopLevelStruct(s.clone())),
     IDenizenS::TopLevelInterface(i) => Some(ICitizenDenizenS::TopLevelInterface(i.clone())),
@@ -1040,8 +1042,8 @@ pub fn as_citizen_denizen<'a>(x: &IDenizenS<'a>) -> Option<ICitizenDenizenS<'a>>
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FileS<'a> {
-  pub denizens: Vec<IDenizenS<'a>>,
+pub struct FileS<'a, 's> {
+  pub denizens: Vec<IDenizenS<'a, 's>>,
 }
 
 /*

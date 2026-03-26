@@ -20,9 +20,10 @@ use crate::parsing::tests::utils::*;
 #[test]
 fn normal_impl() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let file = compile(&interner, &keywords, "impl MyInterface for SomeStruct;");
+  let file = compile(&interner, &keywords, &parse_arena, "impl MyInterface for SomeStruct;");
   let denizen = expect_1(&file.denizens);
   let impl_ = cast!(denizen, IDenizenP::TopLevelImpl);
 
@@ -52,15 +53,16 @@ fn normal_impl() {
 #[test]
 fn templated_impl() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let file = compile(&interner, &keywords, "impl<T> MyInterface<T> for SomeStruct<T>;");
+  let file = compile(&interner, &keywords, &parse_arena, "impl<T> MyInterface<T> for SomeStruct<T>;");
   let denizen = expect_1(&file.denizens);
   let impl_ = cast!(denizen, IDenizenP::TopLevelImpl);
 
   let generic_params = impl_.generic_params.as_ref().unwrap();
   let generic_param = expect_1(&generic_params.params);
-  assert_eq!(generic_param.name.str.str, "T");
+  assert_eq!(generic_param.name.as_str(), "T");
   assert!(generic_param.maybe_type.is_none());
   assert!(generic_param.coord_region.is_none());
   assert_eq!(generic_param.attributes.len(), 0);
@@ -68,12 +70,12 @@ fn templated_impl() {
   assert!(impl_.template_rules.is_none());
 
   let struct_ = cast!(impl_.struct_.as_ref().unwrap(), ITemplexPT::Call);
-  assert_templex_name(struct_.template.as_ref(), "SomeStruct");
+  assert_templex_name(struct_.template, "SomeStruct");
   let struct_template_arg = expect_1(&struct_.args);
   assert_templex_name(struct_template_arg, "T");
 
   let interface = cast!(&impl_.interface, ITemplexPT::Call);
-  assert_templex_name(interface.template.as_ref(), "MyInterface");
+  assert_templex_name(interface.template, "MyInterface");
   let interface_template_arg = expect_1(&interface.args);
   assert_templex_name(interface_template_arg, "T");
   assert_eq!(impl_.attributes.len(), 0);
@@ -98,9 +100,10 @@ fn templated_impl() {
 #[test]
 fn impling_a_template_call() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let file = compile(&interner, &keywords, "impl IFunction1<mut, int, int> for MyIntIdentity;");
+  let file = compile(&interner, &keywords, &parse_arena, "impl IFunction1<mut, int, int> for MyIntIdentity;");
   let denizen = expect_1(&file.denizens);
   let impl_ = cast!(denizen, IDenizenP::TopLevelImpl);
 
@@ -109,10 +112,10 @@ fn impling_a_template_call() {
   assert_templex_name(impl_.struct_.as_ref().unwrap(), "MyIntIdentity");
 
   let interface = cast!(&impl_.interface, ITemplexPT::Call);
-  assert_templex_name(interface.template.as_ref(), "IFunction1");
+  assert_templex_name(interface.template, "IFunction1");
   let (mutability_arg, int_arg1, int_arg2) = expect_3(&interface.args);
   assert_eq!(
-    cast!(mutability_arg, ITemplexPT::Mutability).mutability,
+    cast!(mutability_arg, ITemplexPT::Mutability).1,
     MutabilityP::Mutable
   );
   assert_templex_name(int_arg1, "int");

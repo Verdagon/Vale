@@ -3,6 +3,7 @@
 use bumpalo::Bump;
 use crate::cast;
 use crate::compile_options::GlobalOptions;
+use crate::interner::StrI;
 use crate::{Interner, Keywords};
 use crate::parsing::ast::{IMacroInclusionP, LoadAsP, VariabilityP};
 use crate::postparsing::ast::{IStructMemberS, ProgramS};
@@ -10,8 +11,8 @@ use crate::postparsing::expressions::{
   DotSE, FunctionCallSE, IExpressionSE, IVariableUseCertainty, LocalLoadSE, OutsideLoadSE,
   OwnershippedSE, ReturnSE,
 };
-use crate::postparsing::names::{IFunctionDeclarationNameS, IImpreciseNameS, IVarNameS};
-use crate::postparsing::post_parser::PostParser;
+use crate::postparsing::names::{CodeNameS, CodeRuneS, IFunctionDeclarationNameS, IImpreciseNameS, IRuneS, IRuneValS, IVarNameS};
+use crate::postparsing::post_parser::{ICompileErrorS, PostParser};
 use crate::postparsing::rules::rules::{ILiteralSL, LiteralSR, MaybeCoercingLookupSR};
 use crate::postparsing::test::traverse::NodeRefS;
 use crate::parsing::tests::utils::compile_file;
@@ -35,13 +36,15 @@ import org.scalatest._
 
 class PostParserTests extends FunSuite with Matchers with Collector {
 */
-fn compile<'a, 'ctx>(
+fn compile<'a, 'ctx, 'p>(
   interner: &'ctx Interner<'a>,
   keywords: &'ctx Keywords<'a>,
+  arena: &'p Bump,
   code: &str,
-) -> ProgramS<'a>
+) -> ProgramS<'a, 'p>
 where
   'a: 'ctx,
+  'a: 'p,
 {
   let options = GlobalOptions {
     sanity_check: true,
@@ -51,8 +54,8 @@ where
     debug_output: false,
   };
 
-  let only_file = compile_file(interner, keywords, code).unwrap();
-  let post_parser = PostParser::new(options, interner, keywords);
+  let only_file = compile_file(interner, keywords, arena, code).unwrap();
+  let post_parser = PostParser::new(options, interner, keywords, arena);
   post_parser
     .scout_program(only_file.file_coord, &only_file)
     .unwrap()
@@ -76,6 +79,31 @@ where
     }
   }
 */
+fn compile_for_error<'a, 'ctx, 'p>(
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
+  arena: &'p Bump,
+  code: &str,
+) -> ICompileErrorS<'a>
+where
+  'a: 'ctx,
+  'a: 'p,
+{
+  let options = GlobalOptions {
+    sanity_check: true,
+    use_overload_index: true,
+    use_optimized_solver: true,
+    verbose_errors: false,
+    debug_output: false,
+  };
+
+  let only_file = compile_file(interner, keywords, arena, code).unwrap();
+  let post_parser = PostParser::new(options, interner, keywords, arena);
+  match post_parser.scout_program(only_file.file_coord, &only_file) {
+    Ok(_) => panic!("Accidentally compiled!"),
+    Err(e) => e,
+  }
+}
 /*
   private def compileForError(code: String): ICompileErrorS = {
     PostParserTestCompilation.test(code).getScoutput() match {
@@ -124,11 +152,42 @@ where
     }
   }
 */
+#[test]
+fn lookup_plus() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() int { return +(3, 4); }",
+  );
+  let main = program.lookup_function("main");
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  match code_body.body.block.expr {
+    IExpressionSE::Return(ReturnSE {
+      inner:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(code_name),
+              ..
+            }),
+          ..
+        }),
+      ..
+    }) => assert_eq!(code_name.name.as_str(), "+"),
+    _ => panic!("expected return +(3, 4) structure"),
+  }
+}
 /*
   test("Lookup +") {
     val program1 = compile("exported func main() int { return +(3, 4); }")
     val main = program1.lookupFunction("main")
 
+    // MIGALLOW: Rust can just do one big match on code_body.body.block.expr
     val CodeBodyS(BodySE(_, _, block)) = main.body
     val ret = Collector.only(block.expr, { case x @ ReturnSE(_, _) => x })
     val call = Collector.only(ret.inner, { case x @ FunctionCallSE(_, _, _, _) => x })
@@ -138,13 +197,14 @@ where
 #[test]
 fn test_struct() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let program = compile(&interner, &keywords, "struct Moo { x int; }");
+  let program = compile(&interner, &keywords, &parse_arena, "struct Moo { x int; }");
   let imoo = program.lookup_struct("Moo");
 
-  crate::collect_only_sstruct!(
-    imoo,
+  crate::collect_only_snode!(
+    NodeRefS::Struct(imoo),
     NodeRefS::LiteralRule(
       literal_rule @ LiteralSR {
         literal: ILiteralSL::MutabilityLiteral(mutability_literal),
@@ -155,19 +215,19 @@ fn test_struct() {
   );
   
   let only_member = expect_1(&imoo.members);
-  crate::collect_only_sstruct!(
-    imoo,
+  crate::collect_only_snode!(
+    NodeRefS::Struct(imoo),
     NodeRefS::MaybeCoercingLookupRule(
       MaybeCoercingLookupSR {
         name: IImpreciseNameS::CodeName(code_name),
         rune,
         ..
       }
-    ) if code_name.name.str == "int" && *rune == *only_member.type_rune() => Some(())
+    ) if code_name.name.as_str() == "int" && *rune == *only_member.type_rune() => Some(())
   );
 
   let normal_member = cast!(only_member, IStructMemberS::NormalStructMember);
-  assert_eq!(normal_member.name.str, "x");
+  assert_eq!(normal_member.name.as_str(), "x");
   assert_eq!(normal_member.variability, VariabilityP::Final);
 }
 /*
@@ -189,15 +249,16 @@ fn test_struct() {
 #[test]
 fn linear_struct() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let program = compile(&interner, &keywords, "linear struct Moo { x int; }");
+  let program = compile(&interner, &keywords, &parse_arena, "linear struct Moo { x int; }");
   let moo_struct = program.lookup_struct("Moo");
-  crate::collect_only_sstruct!(
-    moo_struct,
+  crate::collect_only_snode!(
+    NodeRefS::Struct(moo_struct),
     NodeRefS::MacroCallAttribute(macro_call)
       if macro_call.include == IMacroInclusionP::DontCallMacro
-        && macro_call.macro_name.str == "DeriveStructDrop" => Some(())
+        && macro_call.macro_name.as_str() == "DeriveStructDrop" => Some(())
   );
 }
 /*
@@ -210,6 +271,76 @@ fn linear_struct() {
     })
   }
 */
+#[test]
+fn lambda() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() int { return {_ + _}(4, 6); }",
+  );
+  let main = program.lookup_function("main");
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let lambda = match code_body.body.block.expr {
+    IExpressionSE::Return(ReturnSE {
+      inner:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::Ownershipped(OwnershippedSE {
+              inner_expr: IExpressionSE::Function(lambda_function),
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            }),
+          arg_exprs:
+            [
+              IExpressionSE::ConstantInt(crate::postparsing::expressions::ConstantIntSE {
+                value: 4,
+                ..
+              }),
+              IExpressionSE::ConstantInt(crate::postparsing::expressions::ConstantIntSE {
+                value: 6,
+                ..
+              }),
+            ],
+          ..
+        }),
+      ..
+    }) => &lambda_function.function,
+    _ => panic!("expected return {{_ + _}}(4, 6) structure"),
+  };
+
+  let (first_generic_param, second_generic_param) = expect_2(lambda.generic_params);
+  match &first_generic_param.tyype {
+    crate::postparsing::ast::IGenericParameterTypeS::CoordGenericParameterType(coord_type) => {
+      assert_eq!(coord_type.coord_region, None);
+      assert!(!coord_type.region_mutable);
+    }
+    _ => panic!("expected first lambda generic param to be a CoordGenericParameterType"),
+  }
+  match &second_generic_param.tyype {
+    crate::postparsing::ast::IGenericParameterTypeS::CoordGenericParameterType(coord_type) => {
+      assert_eq!(coord_type.coord_region, None);
+      assert!(!coord_type.region_mutable);
+    }
+    _ => panic!("expected second lambda generic param to be a CoordGenericParameterType"),
+  }
+  let first_magic_param_rune = match first_generic_param.rune.rune {
+    IRuneS::MagicParamRune(magic_param_rune) => magic_param_rune,
+    _ => panic!("expected first lambda generic param to be a magic param rune"),
+  };
+  let second_magic_param_rune = match second_generic_param.rune.rune {
+    IRuneS::MagicParamRune(magic_param_rune) => magic_param_rune,
+    _ => panic!("expected second lambda generic param to be a magic param rune"),
+  };
+  assert_ne!(
+    first_magic_param_rune, second_magic_param_rune,
+    "expected two different magic param runes"
+  );
+}
 /*
   test("Lambda") {
     val program1 = compile("exported func main() int { return {_ + _}(4, 6); }")
@@ -237,13 +368,14 @@ fn linear_struct() {
 #[test]
 fn interface() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let program = compile(&interner, &keywords, "interface IMoo { func blork(virtual this &IMoo, a bool)void; }");
+  let program = compile(&interner, &keywords, &parse_arena, "interface IMoo { func blork(virtual this &IMoo, a bool)void; }");
   let imoo = program.lookup_interface("IMoo");
   let blork = expect_1(&imoo.internal_methods);
   let function_name = cast!(&blork.name, IFunctionDeclarationNameS::FunctionName);
-  assert_eq!(function_name.name.str, "blork");
+  assert_eq!(function_name.name.as_str(), "blork");
 }
 /*
   test("Interface") {
@@ -256,6 +388,30 @@ fn interface() {
     }
   }
 */
+#[test]
+fn generic_interface() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "interface IMoo<T> { func blork(virtual this &IMoo, a T)void; }",
+  );
+  let imoo = program.lookup_interface("IMoo");
+  let blork = expect_1(imoo.internal_methods);
+  let blork_name = cast!(&blork.name, IFunctionDeclarationNameS::FunctionName);
+  assert_eq!(blork_name.name.as_str(), "blork");
+
+  let t_ = interner.intern("T");
+  let t_rune = interner.intern_rune(IRuneValS::CodeRune(CodeRuneS { name: t_ }));
+  let imoo_first_rune = &expect_1(imoo.generic_params).rune.rune;
+  assert_eq!(*imoo_first_rune, t_rune);
+  assert!(imoo.generic_params.iter().any(|generic_param| generic_param.rune.rune == t_rune));
+  assert!(blork.generic_params.iter().any(|generic_param| generic_param.rune.rune == t_rune));
+}
 /*
   test("Generic interface") {
     val interner = new Interner()
@@ -276,6 +432,38 @@ fn interface() {
     vassert(blork.genericParams.map(_.rune.rune).contains(CodeRuneS(interner.intern(StrI("T")))))
   }
 */
+#[test]
+fn impl_() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(&interner, &keywords, &parse_arena, "impl IMoo for Moo;");
+  let impl_ = expect_1(program.impls);
+
+  crate::collect_only_snode!(
+    NodeRefS::Impl(impl_),
+    NodeRefS::MaybeCoercingLookupRule(MaybeCoercingLookupSR {
+      name: IImpreciseNameS::CodeName(CodeNameS {
+        name: StrI("Moo"),
+        ..
+      }),
+      rune,
+      ..
+    }) if *rune == impl_.struct_kind_rune => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Impl(impl_),
+    NodeRefS::MaybeCoercingLookupRule(MaybeCoercingLookupSR {
+      name: IImpreciseNameS::CodeName(CodeNameS {
+        name: StrI("IMoo"),
+        ..
+      }),
+      rune,
+      ..
+    }) if *rune == impl_.interface_kind_rune => Some(())
+  );
+}
 /*
   test("Impl") {
     val program1 = compile("impl IMoo for Moo;")
@@ -288,6 +476,43 @@ fn interface() {
     }
   }
 */
+#[test]
+fn method_call() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() int { return true.shout(); }",
+  );
+  let main = program.lookup_function("main");
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  crate::collect_only_snode!(
+    NodeRefS::Expression(code_body.body.block.expr),
+    NodeRefS::Expression(IExpressionSE::Return(ReturnSE {
+      inner:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+                name: crate::interner::StrI("shout"),
+              }),
+              ..
+            }),
+          arg_exprs:
+            [IExpressionSE::ConstantBool(crate::postparsing::expressions::ConstantBoolSE {
+              value: true,
+              ..
+            })],
+          ..
+        }),
+      ..
+    })) => Some(())
+  );
+}
 /*
   test("Method call") {
     val program1 = compile("exported func main() int { return true.shout(); }")
@@ -299,6 +524,44 @@ fn interface() {
 //    { case ReturnSE(_,FunctionCallSE(_,_,Vector()) => }
   }
 */
+#[test]
+fn moving_method_call() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() int { x = 4; return (x).shout(); }",
+  );
+  let main = program.lookup_function("main");
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  crate::collect_only_snode!(
+    NodeRefS::Expression(code_body.body.block.expr),
+    NodeRefS::Expression(IExpressionSE::Return(ReturnSE {
+      inner:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+                name: crate::interner::StrI("shout"),
+              }),
+              ..
+            }),
+          arg_exprs:
+            [IExpressionSE::LocalLoad(LocalLoadSE {
+              name: IVarNameS::CodeVarName(crate::interner::StrI("x")),
+              target_ownership: LoadAsP::Use,
+              ..
+            })],
+          ..
+        }),
+      ..
+    })) => Some(())
+  );
+}
 /*
   test("Moving method call") {
     val program1 = compile("exported func main() int { x = 4; return (x).shout(); }")
@@ -339,6 +602,84 @@ fn interface() {
 //     }
 //   }
 */
+#[test]
+fn function_with_magic_lambda_and_regular_lambda() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() int {
+      {_};
+      (a) => {a};
+    }",
+  );
+  let main = program.lookup_function("main");
+
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let block = &code_body.body.block;
+  let things = cast!(&block.expr, IExpressionSE::Consecutor).exprs;
+  let thing_nodes = things
+    .iter()
+    .map(|thing| NodeRefS::Expression(*thing))
+    .collect::<Vec<_>>();
+  let lambdas = crate::collect_where_snodes!(
+    &thing_nodes,
+    NodeRefS::Expression(IExpressionSE::Function(function)) => Some(function)
+  );
+  let (first_lambda, second_lambda) = expect_2(&lambdas);
+
+  let (_, first_lambda_second_param) = expect_2(first_lambda.function.params);
+  match first_lambda_second_param {
+    crate::postparsing::ast::ParameterS {
+      pre_checked: false,
+      pattern:
+        crate::postparsing::patterns::AtomSP {
+          name:
+            Some(crate::postparsing::patterns::CaptureS {
+              name: IVarNameS::MagicParamName(_),
+              mutate: false,
+            }),
+          coord_rune:
+            Some(crate::postparsing::rules::RuneUsage {
+              rune: IRuneS::MagicParamRune(_),
+              ..
+            }),
+          destructure: None,
+          ..
+        },
+      ..
+    } => {}
+    _ => panic!("expected second param on first lambda to be a magic param"),
+  }
+
+  let (_, second_lambda_second_param) = expect_2(second_lambda.function.params);
+  match second_lambda_second_param {
+    crate::postparsing::ast::ParameterS {
+      pre_checked: false,
+      pattern:
+        crate::postparsing::patterns::AtomSP {
+          name:
+            Some(crate::postparsing::patterns::CaptureS {
+              name: IVarNameS::CodeVarName(crate::interner::StrI("a")),
+              mutate: false,
+            }),
+          coord_rune:
+            Some(crate::postparsing::rules::RuneUsage {
+              rune: IRuneS::ImplicitRune(_),
+              ..
+            }),
+          destructure: None,
+          ..
+        },
+      ..
+    } => {}
+    _ => panic!("expected second param on second lambda to be code var a with implicit rune"),
+  }
+}
 /*
   test("Function with magic lambda and regular lambda") {
     // There was a bug that confused the two, and an underscore would add a magic param to every lambda after it
@@ -363,6 +704,126 @@ fn interface() {
     }
   }
 */
+#[test]
+fn constructing_members() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func MyStruct() {
+      self.x = 4;
+      self.y = true;
+    }",
+  );
+  let mystruct = program.lookup_function("MyStruct");
+  let code_body = cast!(&mystruct.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let block = &code_body.body.block;
+
+  match &block.locals[..] {
+    [
+      crate::postparsing::expressions::LocalS {
+        var_name: IVarNameS::ConstructingMemberName(crate::interner::StrI("x")),
+        self_borrowed: IVariableUseCertainty::NotUsed,
+        self_moved: IVariableUseCertainty::Used,
+        self_mutated: IVariableUseCertainty::NotUsed,
+        child_borrowed: IVariableUseCertainty::NotUsed,
+        child_moved: IVariableUseCertainty::NotUsed,
+        child_mutated: IVariableUseCertainty::NotUsed,
+      },
+      crate::postparsing::expressions::LocalS {
+        var_name: IVarNameS::ConstructingMemberName(crate::interner::StrI("y")),
+        self_borrowed: IVariableUseCertainty::NotUsed,
+        self_moved: IVariableUseCertainty::Used,
+        self_mutated: IVariableUseCertainty::NotUsed,
+        child_borrowed: IVariableUseCertainty::NotUsed,
+        child_moved: IVariableUseCertainty::NotUsed,
+        child_mutated: IVariableUseCertainty::NotUsed,
+      },
+    ] => {}
+    other => panic!("unexpected constructing_members locals: {:?}", other),
+  }
+
+  let exprs = match block.expr {
+    IExpressionSE::Consecutor(crate::postparsing::expressions::ConsecutorSE { exprs }) => exprs,
+    _ => panic!("expected consecutor in constructing_members"),
+  };
+  let expr_nodes = exprs
+    .iter()
+    .map(|expr| NodeRefS::Expression(*expr))
+    .collect::<Vec<_>>();
+
+  let _ = crate::collect_only_snodes!(
+    &expr_nodes,
+    NodeRefS::Expression(
+      IExpressionSE::Let(crate::postparsing::expressions::LetSE {
+        pattern:
+          crate::postparsing::patterns::AtomSP {
+            name:
+              Some(crate::postparsing::patterns::CaptureS {
+                name: IVarNameS::ConstructingMemberName(crate::interner::StrI("x")),
+                mutate: false,
+              }),
+            destructure: None,
+            ..
+          },
+        expr: IExpressionSE::ConstantInt(crate::postparsing::expressions::ConstantIntSE { value: 4, .. }),
+        ..
+      })
+    ) => Some(())
+  );
+
+  let _ = crate::collect_only_snodes!(
+    &expr_nodes,
+    NodeRefS::Expression(
+      IExpressionSE::Let(crate::postparsing::expressions::LetSE {
+        pattern:
+          crate::postparsing::patterns::AtomSP {
+            name:
+              Some(crate::postparsing::patterns::CaptureS {
+                name: IVarNameS::ConstructingMemberName(crate::interner::StrI("y")),
+                mutate: false,
+              }),
+            destructure: None,
+            ..
+          },
+        expr: IExpressionSE::ConstantBool(crate::postparsing::expressions::ConstantBoolSE { value: true, .. }),
+        ..
+      })
+    ) => Some(())
+  );
+
+  let _ = crate::collect_only_snodes!(
+    &expr_nodes,
+    NodeRefS::Expression(
+      IExpressionSE::FunctionCall(FunctionCallSE {
+        callable_expr:
+          IExpressionSE::OutsideLoad(OutsideLoadSE {
+            name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+              name: crate::interner::StrI("MyStruct"),
+            }),
+            ..
+          }),
+        arg_exprs: [
+          IExpressionSE::LocalLoad(LocalLoadSE {
+            name: IVarNameS::ConstructingMemberName(crate::interner::StrI("x")),
+            target_ownership: LoadAsP::Use,
+            ..
+          }),
+          IExpressionSE::LocalLoad(LocalLoadSE {
+            name: IVarNameS::ConstructingMemberName(crate::interner::StrI("y")),
+            target_ownership: LoadAsP::Use,
+            ..
+          }),
+        ],
+        ..
+      })
+    ) => Some(())
+  );
+}
 /*
   test("Constructing members") {
     val program1 = compile(
@@ -401,6 +862,26 @@ fn interface() {
     })
   }
 */
+#[test]
+fn initializing_runtime_sized_array_requires_size_and_callable_too_few() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func MyStruct() {\n  ship = []();\n}",
+  );
+  match &err {
+    ICompileErrorS::InitializingRuntimeSizedArrayRequiresSizeAndCallable(_) => {}
+    _ => panic!(
+      "expected InitializingRuntimeSizedArrayRequiresSizeAndCallable(_), got {:?}",
+      err
+    ),
+  }
+}
 /*
   test("InitializingRuntimeSizedArrayRequiresSizeAndCallable too few") {
     val error = compileForError(
@@ -413,6 +894,26 @@ fn interface() {
     }
   }
 */
+#[test]
+fn initializing_runtime_sized_array_requires_size_and_callable_too_many() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func MyStruct() {\n  ship = [](4, {_}, 10);\n}",
+  );
+  match &err {
+    ICompileErrorS::InitializingRuntimeSizedArrayRequiresSizeAndCallable(_) => {}
+    _ => panic!(
+      "expected InitializingRuntimeSizedArrayRequiresSizeAndCallable(_), got {:?}",
+      err
+    ),
+  }
+}
 /*
   test("InitializingRuntimeSizedArrayRequiresSizeAndCallable too many") {
     val error = compileForError(
@@ -425,6 +926,26 @@ fn interface() {
     }
   }
 */
+#[test]
+fn initializing_static_sized_array_requires_size_and_callable_too_few() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func MyStruct() {\n  ship = [#5]();\n}",
+  );
+  match &err {
+    ICompileErrorS::InitializingStaticSizedArrayRequiresSizeAndCallable(_) => {}
+    _ => panic!(
+      "expected InitializingStaticSizedArrayRequiresSizeAndCallable(_), got {:?}",
+      err
+    ),
+  }
+}
 /*
   test("InitializingStaticSizedArrayRequiresSizeAndCallable too few") {
     val error = compileForError(
@@ -437,6 +958,26 @@ fn interface() {
     }
   }
 */
+#[test]
+fn initializing_static_sized_array_requires_size_and_callable_too_many() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func MyStruct() {\n  ship = [#5](4, {_});\n}",
+  );
+  match &err {
+    ICompileErrorS::InitializingStaticSizedArrayRequiresSizeAndCallable(_) => {}
+    _ => panic!(
+      "expected InitializingStaticSizedArrayRequiresSizeAndCallable(_), got {:?}",
+      err
+    ),
+  }
+}
 /*
   test("InitializingStaticSizedArrayRequiresSizeAndCallable too many") {
     val error = compileForError(
@@ -452,23 +993,25 @@ fn interface() {
 #[test]
 fn test_loading_from_member() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
   let program = compile(
     &interner,
     &keywords,
+    &parse_arena,
     "func MyStruct() {
       return moo.x;
     }",
   );
   let mystruct = program.lookup_function("MyStruct");
   let code_body = cast!(&mystruct.body, crate::postparsing::ast::IBodyS::CodeBody);
-  match code_body.body.block.expr.as_ref() {
+  match code_body.body.block.expr {
     IExpressionSE::Return(ReturnSE {
       inner:
-        box IExpressionSE::Dot(DotSE {
+        IExpressionSE::Dot(DotSE {
           left:
-            box IExpressionSE::OutsideLoad(OutsideLoadSE {
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
               name: IImpreciseNameS::CodeName(outside_name),
               maybe_template_args: None,
               target_ownership: LoadAsP::LoadAsBorrow,
@@ -480,8 +1023,8 @@ fn test_loading_from_member() {
         }),
       ..
     }) => {
-      assert_eq!(outside_name.name.str, "moo");
-      assert_eq!(member.str, "x");
+      assert_eq!(outside_name.name.as_str(), "moo");
+      assert_eq!(member.as_str(), "x");
     }
     other => panic!("unexpected shape: {:?}", other),
   }
@@ -504,26 +1047,28 @@ fn test_loading_from_member() {
 #[test]
 fn test_loading_from_member_2() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
   let program = compile(
     &interner,
     &keywords,
+    &parse_arena,
     "func MyStruct() {
       return &moo.x;
     }",
   );
   let mystruct = program.lookup_function("MyStruct");
   let code_body = cast!(&mystruct.body, crate::postparsing::ast::IBodyS::CodeBody);
-  match code_body.body.block.expr.as_ref() {
+  match code_body.body.block.expr {
     IExpressionSE::Return(ReturnSE {
       inner:
-        box IExpressionSE::Ownershipped(OwnershippedSE {
+        IExpressionSE::Ownershipped(OwnershippedSE {
           target_ownership: LoadAsP::LoadAsBorrow,
           inner_expr:
-            box IExpressionSE::Dot(DotSE {
+            IExpressionSE::Dot(DotSE {
               left:
-                box IExpressionSE::OutsideLoad(OutsideLoadSE {
+                IExpressionSE::OutsideLoad(OutsideLoadSE {
                   name: IImpreciseNameS::CodeName(outside_name),
                   maybe_template_args: None,
                   target_ownership: LoadAsP::LoadAsBorrow,
@@ -537,8 +1082,8 @@ fn test_loading_from_member_2() {
         }),
       ..
     }) => {
-      assert_eq!(outside_name.name.str, "moo");
-      assert_eq!(member.str, "x");
+      assert_eq!(outside_name.name.as_str(), "moo");
+      assert_eq!(member.as_str(), "x");
     }
     other => panic!("unexpected shape: {:?}", other),
   }
@@ -561,11 +1106,13 @@ fn test_loading_from_member_2() {
 #[test]
 fn constructing_members_borrowing_another_member() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
   let program = compile(
     &interner,
     &keywords,
+    &parse_arena,
     "func MyStruct() {
       self.x = 4;
       self.y = &self.x;
@@ -578,7 +1125,7 @@ fn constructing_members_borrowing_another_member() {
   let (first_local, second_local) = expect_2(&block.locals);
   assert!(matches!(
     first_local.var_name,
-    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "x"
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.as_str() == "x"
   ));
   assert_eq!(first_local.self_borrowed, IVariableUseCertainty::Used);
   assert_eq!(first_local.self_moved, IVariableUseCertainty::Used);
@@ -589,7 +1136,7 @@ fn constructing_members_borrowing_another_member() {
 
   assert!(matches!(
     second_local.var_name,
-    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "y"
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.as_str() == "y"
   ));
   assert_eq!(second_local.self_borrowed, IVariableUseCertainty::NotUsed);
   assert_eq!(second_local.self_moved, IVariableUseCertainty::Used);
@@ -598,58 +1145,58 @@ fn constructing_members_borrowing_another_member() {
   assert_eq!(second_local.child_moved, IVariableUseCertainty::NotUsed);
   assert_eq!(second_local.child_mutated, IVariableUseCertainty::NotUsed);
 
-  let consecutor = cast!(block.expr.as_ref(), IExpressionSE::Consecutor);
+  let consecutor = cast!(block.expr, IExpressionSE::Consecutor);
   let (first_expr, second_expr, third_expr) = expect_3(&consecutor.exprs);
 
   let let_x = cast!(first_expr, IExpressionSE::Let);
   let let_x_capture = let_x.pattern.name.as_ref().unwrap();
   assert!(matches!(
     let_x_capture.name,
-    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "x"
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.as_str() == "x"
   ));
   assert_eq!(let_x_capture.mutate, false);
-  assert_eq!(cast!(let_x.expr.as_ref(), IExpressionSE::ConstantInt).value, 4);
+  assert_eq!(cast!(let_x.expr, IExpressionSE::ConstantInt).value, 4);
 
   let let_y = cast!(second_expr, IExpressionSE::Let);
   let let_y_capture = let_y.pattern.name.as_ref().unwrap();
   assert!(matches!(
     let_y_capture.name,
-    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "y"
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.as_str() == "y"
   ));
   assert_eq!(let_y_capture.mutate, false);
-  let local_load_x_borrow = cast!(let_y.expr.as_ref(), IExpressionSE::LocalLoad);
+  let local_load_x_borrow = cast!(let_y.expr, IExpressionSE::LocalLoad);
   assert!(matches!(
     local_load_x_borrow.name,
-    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "x"
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.as_str() == "x"
   ));
   assert_eq!(local_load_x_borrow.target_ownership, LoadAsP::LoadAsBorrow);
 
   match third_expr {
     IExpressionSE::FunctionCall(FunctionCallSE {
       callable_expr:
-        box IExpressionSE::OutsideLoad(OutsideLoadSE {
+        IExpressionSE::OutsideLoad(OutsideLoadSE {
           name: IImpreciseNameS::CodeName(callable_name),
           ..
         }),
       arg_exprs,
       ..
     }) => {
-      assert_eq!(callable_name.name.str, "MyStruct");
-      match arg_exprs.as_slice() {
+      assert_eq!(callable_name.name.as_str(), "MyStruct");
+      match arg_exprs {
         [
           IExpressionSE::LocalLoad(LocalLoadSE {
             name: IVarNameS::ConstructingMemberName(x_name),
-            target_ownership: LoadAsP::Move,
+            target_ownership: LoadAsP::Use,
             ..
           }),
           IExpressionSE::LocalLoad(LocalLoadSE {
             name: IVarNameS::ConstructingMemberName(y_name),
-            target_ownership: LoadAsP::Move,
+            target_ownership: LoadAsP::Use,
             ..
           }),
         ] => {
-          assert_eq!(x_name.str, "x");
-          assert_eq!(y_name.str, "y");
+          assert_eq!(x_name.as_str(), "x");
+          assert_eq!(y_name.as_str(), "y");
         }
         other => panic!("unexpected constructor args: {:?}", other),
       }
@@ -692,6 +1239,240 @@ fn constructing_members_borrowing_another_member() {
     })
   }
 */
+#[test]
+fn foreach() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func main() {
+      foreach i in myList { }
+    }",
+  );
+  let main = program.lookup_function("main");
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let root_expr = code_body.body.block.expr;
+
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Local(crate::postparsing::expressions::LocalS {
+      var_name: IVarNameS::IterableName(_),
+      self_borrowed: IVariableUseCertainty::Used,
+      self_moved: IVariableUseCertainty::NotUsed,
+      self_mutated: IVariableUseCertainty::NotUsed,
+      child_borrowed: IVariableUseCertainty::NotUsed,
+      child_moved: IVariableUseCertainty::NotUsed,
+      child_mutated: IVariableUseCertainty::NotUsed,
+    }) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Local(crate::postparsing::expressions::LocalS {
+      var_name: IVarNameS::IteratorName(_),
+      self_borrowed: IVariableUseCertainty::Used,
+      self_moved: IVariableUseCertainty::NotUsed,
+      self_mutated: IVariableUseCertainty::NotUsed,
+      child_borrowed: IVariableUseCertainty::NotUsed,
+      child_moved: IVariableUseCertainty::NotUsed,
+      child_mutated: IVariableUseCertainty::NotUsed,
+    }) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Local(crate::postparsing::expressions::LocalS {
+      var_name: IVarNameS::IterationOptionName(_),
+      self_borrowed: IVariableUseCertainty::Used,
+      self_moved: IVariableUseCertainty::Used,
+      self_mutated: IVariableUseCertainty::NotUsed,
+      child_borrowed: IVariableUseCertainty::NotUsed,
+      child_moved: IVariableUseCertainty::NotUsed,
+      child_mutated: IVariableUseCertainty::NotUsed,
+    }) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Local(crate::postparsing::expressions::LocalS {
+      var_name: IVarNameS::CodeVarName(crate::interner::StrI("i")),
+      self_borrowed: IVariableUseCertainty::NotUsed,
+      self_moved: IVariableUseCertainty::NotUsed,
+      self_mutated: IVariableUseCertainty::NotUsed,
+      child_borrowed: IVariableUseCertainty::NotUsed,
+      child_moved: IVariableUseCertainty::NotUsed,
+      child_mutated: IVariableUseCertainty::NotUsed,
+    }) => Some(())
+  );
+
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::Let(crate::postparsing::expressions::LetSE {
+      pattern: crate::postparsing::patterns::AtomSP {
+        name:
+          Some(crate::postparsing::patterns::CaptureS {
+            name: IVarNameS::IterableName(_),
+            mutate: false,
+          }),
+        coord_rune: None,
+        destructure: None,
+        ..
+      },
+      expr:
+        IExpressionSE::OutsideLoad(OutsideLoadSE {
+          name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+            name: crate::interner::StrI("myList"),
+          }),
+          maybe_template_args: None,
+          target_ownership: LoadAsP::Use,
+          ..
+        }),
+      ..
+    })) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::Let(crate::postparsing::expressions::LetSE {
+      pattern: crate::postparsing::patterns::AtomSP {
+        name:
+          Some(crate::postparsing::patterns::CaptureS {
+            name: IVarNameS::IteratorName(_),
+            mutate: false,
+          }),
+        coord_rune: None,
+        destructure: None,
+        ..
+      },
+      expr:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+                name: crate::interner::StrI("begin"),
+              }),
+              maybe_template_args: None,
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            }),
+          arg_exprs:
+            [IExpressionSE::LocalLoad(LocalLoadSE {
+              name: IVarNameS::IterableName(_),
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            })],
+          ..
+        }),
+      ..
+    })) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::While(_)) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::Let(crate::postparsing::expressions::LetSE {
+      pattern: crate::postparsing::patterns::AtomSP {
+        name:
+          Some(crate::postparsing::patterns::CaptureS {
+            name: IVarNameS::IterationOptionName(_),
+            mutate: false,
+          }),
+        coord_rune: None,
+        destructure: None,
+        ..
+      },
+      expr:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+                name: crate::interner::StrI("next"),
+              }),
+              maybe_template_args: None,
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            }),
+          arg_exprs:
+            [IExpressionSE::LocalLoad(LocalLoadSE {
+              name: IVarNameS::IteratorName(_),
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            })],
+          ..
+        }),
+      ..
+    })) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::FunctionCall(FunctionCallSE {
+      callable_expr:
+        IExpressionSE::OutsideLoad(OutsideLoadSE {
+          name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+            name: crate::interner::StrI("isEmpty"),
+          }),
+          ..
+        }),
+      arg_exprs:
+        [IExpressionSE::LocalLoad(LocalLoadSE {
+          name: IVarNameS::IterationOptionName(_),
+          target_ownership: LoadAsP::LoadAsBorrow,
+          ..
+        })],
+      ..
+    })) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::Break(_)) => Some(())
+  );
+  crate::collect_only_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::Let(crate::postparsing::expressions::LetSE {
+      pattern: crate::postparsing::patterns::AtomSP {
+        name:
+          Some(crate::postparsing::patterns::CaptureS {
+            name: IVarNameS::CodeVarName(crate::interner::StrI("i")),
+            mutate: false,
+          }),
+        coord_rune: None,
+        destructure: None,
+        ..
+      },
+      expr:
+        IExpressionSE::FunctionCall(FunctionCallSE {
+          callable_expr:
+            IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(crate::postparsing::names::CodeNameS {
+                name: crate::interner::StrI("get"),
+              }),
+              maybe_template_args: None,
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            }),
+          arg_exprs:
+            [IExpressionSE::LocalLoad(LocalLoadSE {
+              name: IVarNameS::IterationOptionName(_),
+              target_ownership: LoadAsP::Use,
+              ..
+            })],
+          ..
+        }),
+      ..
+    })) => Some(())
+  );
+  let iteration_option_uses = crate::collect_where_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::LocalLoad(LocalLoadSE {
+      name: IVarNameS::IterationOptionName(_),
+      target_ownership: LoadAsP::Use,
+      ..
+    })) => Some(())
+  );
+  assert!(!iteration_option_uses.is_empty());
+}
 /*
   test("foreach") {
     val program1 = compile(
@@ -761,34 +1542,36 @@ fn constructing_members_borrowing_another_member() {
 #[test]
 fn this_isnt_special_if_was_explicit_param() {
   let arena = Bump::new();
+  let parse_arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
   let program = compile(
     &interner,
     &keywords,
+    &parse_arena,
     "func moo(self &MyStruct) {
       println(self.x);
     }",
   );
   let moo = program.lookup_function("moo");
   let code_body = cast!(&moo.body, crate::postparsing::ast::IBodyS::CodeBody);
-  let function_call = crate::collect_only_sprogram!(
-    &program,
+  let function_call = crate::collect_only_snode!(
+    NodeRefS::Program(&program),
     NodeRefS::Expression(IExpressionSE::FunctionCall(function_call)) => Some(function_call)
   );
-  let outside_load = cast!(function_call.callable_expr.as_ref(), IExpressionSE::OutsideLoad);
+  let outside_load = cast!(function_call.callable_expr, IExpressionSE::OutsideLoad);
   let code_name = cast!(&outside_load.name, IImpreciseNameS::CodeName);
-  assert_eq!(code_name.name.str, "println");
+  assert_eq!(code_name.name.as_str(), "println");
   let dot = cast!(expect_1(&function_call.arg_exprs), IExpressionSE::Dot);
-  assert_eq!(dot.member.str, "x");
+  assert_eq!(dot.member.as_str(), "x");
   assert!(dot.borrow_container);
-  let local_load = cast!(dot.left.as_ref(), IExpressionSE::LocalLoad);
+  let local_load = cast!(dot.left, IExpressionSE::LocalLoad);
   let code_var_name = cast!(&local_load.name, IVarNameS::CodeVarName);
-  assert_eq!(code_var_name.str, "self");
+  assert_eq!(code_var_name.as_str(), "self");
   assert_eq!(local_load.target_ownership, LoadAsP::LoadAsBorrow);
 
-  let function_calls = crate::collect_where_sprogram!(
-    &program,
+  let function_calls = crate::collect_where_snode!(
+    NodeRefS::Program(&program),
     NodeRefS::Expression(IExpressionSE::FunctionCall(_)) => Some(())
   );
   assert_eq!(function_calls.len(), 1);
@@ -811,6 +1594,23 @@ fn this_isnt_special_if_was_explicit_param() {
     Collector.all(main.body, { case FunctionCallSE(_, _, _, _) => }).size shouldEqual 1
   }
 */
+#[test]
+fn reports_when_mutating_nonexistant_local() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() int {\n  set a = a + 1;\n}",
+  );
+  match &err {
+    ICompileErrorS::CouldntFindVarToMutateS(c) => assert_eq!(c.name, "a"),
+    _ => panic!("expected CouldntFindVarToMutateS(_, \"a\"), got {:?}", err),
+  }
+}
 /*
   test("Reports when mutating nonexistant local") {
     val err = compileForError(
@@ -823,6 +1623,23 @@ fn this_isnt_special_if_was_explicit_param() {
     }
   }
 */
+#[test]
+fn reports_when_extern_function_has_body() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "extern func bork() int {\n  3\n}",
+  );
+  match &err {
+    ICompileErrorS::ExternHasBodyS(_) => {}
+    _ => panic!("expected ExternHasBody(_), got {:?}", err),
+  }
+}
 /*
   test("Reports when extern function has body") {
     val err = compileForError(
@@ -836,6 +1653,28 @@ fn this_isnt_special_if_was_explicit_param() {
     }
   }
 */
+#[test]
+fn reports_when_we_forget_set() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "exported func main() {\n  x = \"world!\";\n  x = \"changed\";\n}",
+  );
+  match &err {
+    ICompileErrorS::VariableNameAlreadyExists(
+      crate::postparsing::post_parser::VariableNameAlreadyExists {
+        name: IVarNameS::CodeVarName(crate::interner::StrI("x")),
+        ..
+      },
+    ) => {}
+    _ => panic!("expected VariableNameAlreadyExists(_, CodeVarName(\"x\")), got {:?}", err),
+  }
+}
 /*
   test("Reports when we forget set") {
     val err = compileForError(
@@ -851,6 +1690,23 @@ fn this_isnt_special_if_was_explicit_param() {
     }
   }
 */
+#[test]
+fn reports_when_interface_method_doesnt_have_self() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "interface IMoo { func blork(a bool)void; }",
+  );
+  match &err {
+    ICompileErrorS::InterfaceMethodNeedsSelf(_) => {}
+    _ => panic!("expected InterfaceMethodNeedsSelf(_), got {:?}", err),
+  }
+}
 /*
   test("Reports when interface method doesnt have self") {
     val err = compileForError("interface IMoo { func blork(a bool)void; }")
@@ -860,6 +1716,23 @@ fn this_isnt_special_if_was_explicit_param() {
     }
   }
 */
+#[test]
+fn statement_after_result_or_return() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func doCivicDance(virtual this Car) {\n  return 4;\n  7\n}",
+  );
+  match &err {
+    ICompileErrorS::StatementAfterReturnS(_) => {}
+    _ => panic!("expected StatementAfterReturnS(_), got {:?}", err),
+  }
+}
 /*
   test("Statement after result or return") {
     compileForError(
@@ -873,6 +1746,30 @@ fn this_isnt_special_if_was_explicit_param() {
     }
   }
 */
+#[test]
+fn report_type_mismatch() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let err = compile_for_error(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "struct Vec<N, T> where N Int\n{\n  values [#N]<imm>T;\n}\n",
+  );
+  match &err {
+    ICompileErrorS::RuneExplicitTypeConflictS(
+      crate::postparsing::post_parser::RuneExplicitTypeConflictS {
+        rune: IRuneS::CodeRune(crate::postparsing::names::CodeRuneS {
+          name: crate::interner::StrI("N"),
+        }),
+        ..
+      },
+    ) => {}
+    _ => panic!("expected RuneExplicitTypeConflictS(_, CodeRune(\"N\"), _), got {:?}", err),
+  }
+}
 /*
   test("Report type mismatch") {
     compileForError(
@@ -886,6 +1783,40 @@ fn this_isnt_special_if_was_explicit_param() {
       case RuneExplicitTypeConflictS(_, CodeRuneS(StrI("N")), _) =>
     }
   }
+*/
+
+#[test]
+fn foreach_expr() {
+  let arena = Bump::new();
+  let parse_arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    &parse_arena,
+    "func main() {
+      a = foreach i in c { i };
+    }",
+  );
+  let main = program.lookup_function("main");
+  let code_body = cast!(&main.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let root_expr = code_body.body.block.expr;
+
+  let map_exprs = crate::collect_where_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::Map(_)) => Some(())
+  );
+  assert_eq!(map_exprs.len(), 1);
+
+  let while_exprs = crate::collect_where_snode!(
+    NodeRefS::Expression(root_expr),
+    NodeRefS::Expression(IExpressionSE::While(_)) => Some(())
+  );
+  assert_eq!(while_exprs.len(), 0);
+}
+/*
+// MIGALLOW: new foreach_expr test is fine
 */
 /*
 }

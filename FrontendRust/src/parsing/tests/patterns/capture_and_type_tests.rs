@@ -37,22 +37,25 @@ use crate::parsing::tests::utils::{
   assert_destination_local_name, assert_templex_name, compile_pattern_expect,
 };
 
-fn compile<'a, 'ctx>(
+fn compile<'a, 'ctx, 'p>(
   interner: &'ctx Interner<'a>,
   keywords: &'ctx Keywords<'a>,
+  arena: &'p bumpalo::Bump,
   code: &str,
-) -> PatternPP<'a>
+) -> PatternPP<'a, 'p>
 where
   'a: 'ctx,
+  'a: 'p,
 {
-  compile_pattern_expect(interner, keywords, code)
+  compile_pattern_expect(interner, keywords, arena, code)
 }
 #[test]
 fn no_capture_with_type() {
   let arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let pattern = compile(&interner, &keywords, "_ int");
+  let parse_arena = Bump::new();
+  let pattern = compile(&interner, &keywords, &parse_arena, "_ int");
   assert_templex_name(pattern.templex.as_ref().unwrap(), "int");
   assert!(pattern.destructure.is_none());
 }
@@ -68,7 +71,8 @@ fn capture_with_type() {
   let arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let pattern = compile(&interner, &keywords, "a int");
+  let parse_arena = Bump::new();
+  let pattern = compile(&interner, &keywords, &parse_arena, "a int");
   assert_destination_local_name(pattern.destination.as_ref().unwrap(), "a");
   assert_templex_name(pattern.templex.as_ref().unwrap(), "int");
   assert!(pattern.destructure.is_none());
@@ -85,7 +89,8 @@ fn simple_capture_with_tame() {
   let arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let pattern = compile(&interner, &keywords, "a T");
+  let parse_arena = Bump::new();
+  let pattern = compile(&interner, &keywords, &parse_arena, "a T");
   assert_destination_local_name(pattern.destination.as_ref().unwrap(), "a");
   assert_templex_name(pattern.templex.as_ref().unwrap(), "T");
   assert!(pattern.destructure.is_none());
@@ -102,15 +107,16 @@ fn capture_with_borrow_tame() {
   let arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let pattern = compile(&interner, &keywords, "arr &R");
+  let parse_arena = Bump::new();
+  let pattern = compile(&interner, &keywords, &parse_arena, "arr &R");
   assert_destination_local_name(pattern.destination.as_ref().unwrap(), "arr");
   let interpreted = cast!(pattern.templex.as_ref().unwrap(), ITemplexPT::Interpreted);
   assert_eq!(
-    interpreted.maybe_ownership.as_ref().unwrap().ownership,
+    interpreted.maybe_ownership.as_ref().unwrap().1,
     OwnershipP::Borrow
   );
   assert!(interpreted.maybe_region.is_none());
-  assert_templex_name(interpreted.inner.as_ref(), "R");
+  assert_templex_name(interpreted.inner, "R");
   assert!(pattern.destructure.is_none());
 }
 /*
@@ -128,21 +134,22 @@ fn capture_with_self_in_front() {
   let arena = Bump::new();
   let interner = Interner::with_arena(&arena);
   let keywords = Keywords::new(&interner);
-  let pattern = compile(&interner, &keywords, "self.arr &&R");
+  let parse_arena = Bump::new();
+  let pattern = compile(&interner, &keywords, &parse_arena, "self.arr &&R");
   let destination = pattern.destination.as_ref().unwrap();
   let member_name = cast!(
     &destination.decl,
     INameDeclarationP::ConstructingMemberNameDeclaration
   );
-  assert_eq!(member_name.str.str, "arr");
+  assert_eq!(member_name.as_str(), "arr");
   assert!(destination.mutate.is_none());
   let interpreted = cast!(pattern.templex.as_ref().unwrap(), ITemplexPT::Interpreted);
   assert_eq!(
-    interpreted.maybe_ownership.as_ref().unwrap().ownership,
+    interpreted.maybe_ownership.as_ref().unwrap().1,
     OwnershipP::Weak
   );
   assert!(interpreted.maybe_region.is_none());
-  assert_templex_name(interpreted.inner.as_ref(), "R");
+  assert_templex_name(interpreted.inner, "R");
   assert!(pattern.destructure.is_none());
 }
 /*

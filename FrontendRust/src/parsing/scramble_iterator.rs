@@ -2,10 +2,10 @@ use crate::lexing::ast::*;
 use crate::StrI;
 
 /// Iterator over a scramble of lexed nodes
-/// Matches Scala's ScrambleIterator
+/// Matches Scala's ScrambleIterator (holds reference to scramble, like Scala)
 #[derive(Clone, Debug)]
-pub struct ScrambleIterator<'a> {
-  pub scramble: ScrambleLE<'a>,
+pub struct ScrambleIterator<'a, 's> {
+  pub scramble: &'s ScrambleLE<'a>,
   pub index: usize,
   pub end: usize,
 }
@@ -16,9 +16,9 @@ class ScrambleIterator(
     var end: Int) {
   assert(end <= scramble.elements.length)
 */
-impl<'a> ScrambleIterator<'a> {
+impl<'a, 's> ScrambleIterator<'a, 's> {
   /// Create a new iterator over the entire scramble
-  pub fn new(scramble: ScrambleLE<'a>) -> Self {
+  pub fn new(scramble: &'s ScrambleLE<'a>) -> Self {
     let end = scramble.elements.len();
     ScrambleIterator {
       scramble,
@@ -33,7 +33,7 @@ impl<'a> ScrambleIterator<'a> {
   */
 
   /// Create a new iterator with custom bounds
-  pub fn with_bounds(scramble: ScrambleLE<'a>, index: usize, end: usize) -> Self {
+  pub fn with_bounds(scramble: &'s ScrambleLE<'a>, index: usize, end: usize) -> Self {
     assert!(end <= scramble.elements.len());
     ScrambleIterator {
       scramble,
@@ -55,16 +55,13 @@ impl<'a> ScrambleIterator<'a> {
   /// Get the range covered by remaining elements
   pub fn range(&self) -> RangeL {
     if self.index < self.end {
-      RangeL {
-        begin: self.scramble.elements[self.index].range().begin,
-        end: self.scramble.elements[self.end - 1].range().end,
-      }
+      RangeL(
+        self.scramble.elements[self.index].range().begin(),
+        self.scramble.elements[self.end - 1].range().end(),
+      )
     } else {
       assert!(self.index == self.end);
-      RangeL {
-        begin: self.scramble.range.end,
-        end: self.scramble.range.end,
-      }
+      RangeL(self.scramble.range.end(), self.scramble.range.end())
     }
   }
   /*
@@ -83,9 +80,9 @@ impl<'a> ScrambleIterator<'a> {
   /// Get current position
   pub fn get_pos(&self) -> i32 {
     if self.index >= self.end {
-      self.scramble.range.end
+      self.scramble.range.end()
     } else {
-      self.scramble.elements[self.index].range().begin
+      self.scramble.elements[self.index].range().begin()
     }
   }
   /*
@@ -101,9 +98,9 @@ impl<'a> ScrambleIterator<'a> {
   /// Get the end position of the previous element
   pub fn get_prev_end_pos(&self) -> i32 {
     if self.index == 0 {
-      self.scramble.range.begin
+      self.scramble.range.begin()
     } else {
-      self.scramble.elements[self.index - 1].range().end
+      self.scramble.elements[self.index - 1].range().end()
     }
   }
   /*
@@ -126,7 +123,7 @@ impl<'a> ScrambleIterator<'a> {
   }
 
   /// Skip to the position of another iterator
-  pub fn skip_to(&mut self, that: &ScrambleIterator) {
+  pub fn skip_to(&mut self, that: &ScrambleIterator<'a, 's>) {
     self.index = that.index;
   }
   /*
@@ -276,9 +273,9 @@ impl<'a> ScrambleIterator<'a> {
   */
 
   /// Check if next element is a specific word
-  pub fn peek_word(&self, word: &&'_ StrI) -> bool {
+  pub fn peek_word(&self, word: StrI<'_>) -> bool {
     match self.peek() {
-      Some(INodeLEEnum::Word(WordLE { str, .. })) => str == word,
+      Some(INodeLEEnum::Word(WordLE { str, .. })) => *str == word,
       _ => false,
     }
   }
@@ -327,7 +324,7 @@ impl<'a> ScrambleIterator<'a> {
   /// Try to skip a symbol
   pub fn try_skip_symbol(&mut self, symbol: char) -> bool {
     match self.peek() {
-      Some(INodeLEEnum::Symbol(SymbolLE { c, .. })) if *c == symbol => {
+      Some(INodeLEEnum::Symbol(SymbolLE(_, c))) if *c == symbol => {
         self.index += 1;
         true
       }
@@ -354,7 +351,7 @@ impl<'a> ScrambleIterator<'a> {
 
     for (i, &expected) in symbols.iter().enumerate() {
       match &**&self.scramble.elements[self.index + i] {
-        INodeLEEnum::Symbol(SymbolLE { c, .. }) if *c == expected => {}
+        INodeLEEnum::Symbol(SymbolLE(_, c)) if *c == expected => {}
         _ => return false,
       }
     }
@@ -404,7 +401,7 @@ impl<'a> ScrambleIterator<'a> {
   */
 
   /// Expect a specific word (panics if not found)
-  pub fn expect_word(&mut self, str: &&'_ StrI) {
+  pub fn expect_word(&mut self, str: StrI<'_>) {
     let found = self.try_skip_word(str).is_some();
     assert!(found, "Expected word {:?}", str);
   }
@@ -416,9 +413,9 @@ impl<'a> ScrambleIterator<'a> {
   */
 
   /// Try to skip a specific word
-  pub fn try_skip_word(&mut self, str: &&'_ StrI) -> Option<RangeL> {
+  pub fn try_skip_word(&mut self, str: StrI<'_>) -> Option<RangeL> {
     match self.peek() {
-      Some(INodeLEEnum::Word(WordLE { range, str: s })) if s == str => {
+      Some(INodeLEEnum::Word(WordLE { range, str: s })) if *s == str => {
         let result = *range;
         self.index += 1;
         Some(result)
@@ -457,40 +454,6 @@ impl<'a> ScrambleIterator<'a> {
   */
 
   /// Split the scramble on a specific symbol
-  /// Split scramble into owned segments (avoids borrow issues in parsing loops).
-  /// Returns Vec<ScrambleLE> so each segment can live independently.
-  pub fn split_scramble_on_symbol(
-    scramble: ScrambleLE<'a>,
-    needle: char,
-    include_empty_trailing: bool,
-  ) -> Vec<ScrambleLE<'a>> {
-    let iter = ScrambleIterator::new(scramble);
-    let iters = iter.split_on_symbol(needle, include_empty_trailing);
-    iters
-      .into_iter()
-      .map(|i| {
-        let start = i.index;
-        let end = i.end;
-        let range = if start < end {
-          RangeL {
-            begin: i.scramble.elements[start].range().begin,
-            end: i.scramble.elements[end - 1].range().end,
-          }
-        } else {
-          RangeL {
-            begin: i.scramble.range.end,
-            end: i.scramble.range.end,
-          }
-        };
-        ScrambleLE {
-          range,
-          elements: i.scramble.elements[start..end].to_vec(),
-        }
-      })
-      .collect()
-  }
-
-  /// Split the scramble on a specific symbol
   ///
   /// `include_empty_trailing`: If true and the scramble ends with the needle,
   /// include an empty iterator at the end
@@ -498,19 +461,15 @@ impl<'a> ScrambleIterator<'a> {
     &self,
     needle: char,
     include_empty_trailing: bool,
-  ) -> Vec<ScrambleIterator<'a>> {
+  ) -> Vec<ScrambleIterator<'a, 's>> {
     let mut iters = Vec::new();
     let mut start = self.index;
     let mut i = start;
 
     while i < self.end {
       match &**&self.scramble.elements[i] {
-        INodeLEEnum::Symbol(SymbolLE { c, .. }) if *c == needle => {
-          iters.push(ScrambleIterator::with_bounds(
-            self.scramble.clone(),
-            start,
-            i,
-          ));
+        INodeLEEnum::Symbol(SymbolLE(_, c)) if *c == needle => {
+          iters.push(ScrambleIterator::with_bounds(self.scramble, start, i));
           start = i + 1;
           i += 1;
         }
@@ -522,18 +481,10 @@ impl<'a> ScrambleIterator<'a> {
 
     if start < self.end {
       // Scramble didn't end in the needle, add the last section
-      iters.push(ScrambleIterator::with_bounds(
-        self.scramble.clone(),
-        start,
-        self.end,
-      ));
+      iters.push(ScrambleIterator::with_bounds(self.scramble, start, self.end));
     } else if start == self.end && include_empty_trailing {
       // Ended in a needle and we want to include the empty section
-      iters.push(ScrambleIterator::with_bounds(
-        self.scramble.clone(),
-        start,
-        self.end,
-      ));
+      iters.push(ScrambleIterator::with_bounds(self.scramble, start, self.end));
     }
 
     iters
@@ -584,86 +535,6 @@ impl<'a> ScrambleIterator<'a> {
     }
   */
 
-  /// Try to match a Word node
-  pub fn try_match_word(&self) -> Option<&WordLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::Word(w)) => Some(w),
-      _ => None,
-    }
-  }
-
-  /// Try to match a Symbol node
-  pub fn try_match_symbol(&self) -> Option<&SymbolLE> {
-    match self.peek() {
-      Some(INodeLEEnum::Symbol(s)) => Some(s),
-      _ => None,
-    }
-  }
-
-  /// Try to match a Scramble node
-  pub fn try_match_scramble(&self) -> Option<&ScrambleLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::Scramble(s)) => Some(s),
-      _ => None,
-    }
-  }
-
-  /// Try to match a Parend node
-  pub fn try_match_parend(&self) -> Option<&ParendLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::Parend(p)) => Some(p),
-      _ => None,
-    }
-  }
-
-  /// Try to match an Angled node
-  pub fn try_match_angled(&self) -> Option<&AngledLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::Angled(a)) => Some(a),
-      _ => None,
-    }
-  }
-
-  /// Try to match a Squared node
-  pub fn try_match_squared(&self) -> Option<&SquaredLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::Squared(s)) => Some(s),
-      _ => None,
-    }
-  }
-
-  /// Try to match a Curlied node
-  pub fn try_match_curlied(&self) -> Option<&CurliedLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::Curlied(c)) => Some(c),
-      _ => None,
-    }
-  }
-
-  /// Try to match a String node
-  pub fn try_match_string(&self) -> Option<&StringLE<'a>> {
-    match self.peek() {
-      Some(INodeLEEnum::String(s)) => Some(s),
-      _ => None,
-    }
-  }
-
-  /// Try to match a ParsedInteger node
-  pub fn try_match_integer(&self) -> Option<&ParsedIntegerLE> {
-    match self.peek() {
-      Some(INodeLEEnum::ParsedInteger(n)) => Some(n),
-      _ => None,
-    }
-  }
-
-  /// Try to match a ParsedDouble node
-  pub fn try_match_double(&self) -> Option<&ParsedDoubleLE> {
-    match self.peek() {
-      Some(INodeLEEnum::ParsedDouble(n)) => Some(n),
-      _ => None,
-    }
-  }
-
   /// Get remaining elements count
   pub fn remaining(&self) -> usize {
     if self.end > self.index {
@@ -695,20 +566,14 @@ mod tests {
   #[test]
   fn test_basic_iteration() {
     let scramble = ScrambleLE {
-      range: RangeL { begin: 0, end: 10 },
+      range: RangeL(0, 10),
       elements: vec![
-        Box::new(INodeLEEnum::Symbol(SymbolLE {
-          range: RangeL { begin: 0, end: 1 },
-          c: '(',
-        })),
-        Box::new(INodeLEEnum::Symbol(SymbolLE {
-          range: RangeL { begin: 1, end: 2 },
-          c: ')',
-        })),
+        Box::new(INodeLEEnum::Symbol(SymbolLE(RangeL(0, 1), '('))),
+        Box::new(INodeLEEnum::Symbol(SymbolLE(RangeL(1, 2), ')'))),
       ],
     };
 
-    let mut iter = ScrambleIterator::new(scramble);
+    let mut iter = ScrambleIterator::new(&scramble);
     assert!(!iter.at_end());
     assert!(iter.has_next());
     assert_eq!(iter.remaining(), 2);
@@ -724,24 +589,15 @@ mod tests {
   #[test]
   fn test_split_on_symbol() {
     let scramble = ScrambleLE {
-      range: RangeL { begin: 0, end: 10 },
+      range: RangeL(0, 10),
       elements: vec![
-        Box::new(INodeLEEnum::Symbol(SymbolLE {
-          range: RangeL { begin: 0, end: 1 },
-          c: 'a',
-        })),
-        Box::new(INodeLEEnum::Symbol(SymbolLE {
-          range: RangeL { begin: 1, end: 2 },
-          c: ',',
-        })),
-        Box::new(INodeLEEnum::Symbol(SymbolLE {
-          range: RangeL { begin: 2, end: 3 },
-          c: 'b',
-        })),
+        Box::new(INodeLEEnum::Symbol(SymbolLE(RangeL(0, 1), 'a'))),
+        Box::new(INodeLEEnum::Symbol(SymbolLE(RangeL(1, 2), ','))),
+        Box::new(INodeLEEnum::Symbol(SymbolLE(RangeL(2, 3), 'b'))),
       ],
     };
 
-    let iter = ScrambleIterator::new(scramble);
+    let iter = ScrambleIterator::new(&scramble);
     let parts = iter.split_on_symbol(',', false);
     assert_eq!(parts.len(), 2);
     assert_eq!(parts[0].remaining(), 1);
