@@ -1,3 +1,23 @@
+// Run with: cargo test --manifest-path FrontendRust/Cargo.toml --lib postparsing::test::post_parser_tests
+
+use bumpalo::Bump;
+use crate::cast;
+use crate::compile_options::GlobalOptions;
+use crate::{Interner, Keywords};
+use crate::parsing::ast::{IMacroInclusionP, LoadAsP, VariabilityP};
+use crate::postparsing::ast::{IStructMemberS, ProgramS};
+use crate::postparsing::expressions::{
+  DotSE, FunctionCallSE, IExpressionSE, IVariableUseCertainty, LocalLoadSE, OutsideLoadSE,
+  OwnershippedSE, ReturnSE,
+};
+use crate::postparsing::names::{IFunctionDeclarationNameS, IImpreciseNameS, IVarNameS};
+use crate::postparsing::post_parser::PostParser;
+use crate::postparsing::rules::rules::{ILiteralSL, LiteralSR, MaybeCoercingLookupSR};
+use crate::postparsing::test::traverse::NodeRefS;
+use crate::parsing::tests::utils::compile_file;
+use crate::parsing::tests::utils::{expect_1, expect_2, expect_3};
+
+/*
 package dev.vale.postparsing
 
 import dev.vale._
@@ -14,7 +34,31 @@ import dev.vale.solver.IncompleteSolve
 import org.scalatest._
 
 class PostParserTests extends FunSuite with Matchers with Collector {
+*/
+fn compile<'a, 'ctx>(
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
+  code: &str,
+) -> ProgramS<'a>
+where
+  'a: 'ctx,
+{
+  let options = GlobalOptions {
+    sanity_check: true,
+    use_overload_index: true,
+    use_optimized_solver: true,
+    verbose_errors: false,
+    debug_output: false,
+  };
 
+  let only_file = compile_file(interner, keywords, code).unwrap();
+  let post_parser = PostParser::new(options, interner, keywords);
+  post_parser
+    .scout_program(only_file.file_coord, &only_file)
+    .unwrap()
+}
+
+/*
   private def compile(code: String, interner: Interner = new Interner()): ProgramS = {
     val compile = PostParserTestCompilation.test(code, interner)
     compile.getScoutput() match {
@@ -31,14 +75,16 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case Ok(t) => t.expectOne()
     }
   }
-
+*/
+/*
   private def compileForError(code: String): ICompileErrorS = {
     PostParserTestCompilation.test(code).getScoutput() match {
       case Err(e) => e
       case Ok(t) => vfail("Accidentally compiled!\n")
     }
   }
-
+*/
+/*
   vregionmut() // Put this back in with regions
   // test("Every function gets region generic param") {
   //   val program1 = compile("func moo() int { 3 }")
@@ -52,7 +98,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
   //         None)) =>
   //   }
   // }
-
+*/
+/*
   // See: User Must Specify Enough Identifying Runes (UMSEIR)
   test("Test UMSEIR") {
     // This should work, its fine that the _ is there because we can always figure out what
@@ -76,7 +123,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       }
     }
   }
-
+*/
+/*
   test("Lookup +") {
     val program1 = compile("exported func main() int { return +(3, 4); }")
     val main = program1.lookupFunction("main")
@@ -86,7 +134,43 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val call = Collector.only(ret.inner, { case x @ FunctionCallSE(_, _, _, _) => x })
     Collector.only(call.callableExpr, { case x @ OutsideLoadSE(_, _, CodeNameS(StrI("+")), _, _) => x })
   }
+*/
+#[test]
+fn test_struct() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(&interner, &keywords, "struct Moo { x int; }");
+  let imoo = program.lookup_struct("Moo");
 
+  crate::collect_only_sstruct!(
+    imoo,
+    NodeRefS::LiteralRule(
+      literal_rule @ LiteralSR {
+        literal: ILiteralSL::MutabilityLiteral(mutability_literal),
+        ..
+      }
+    ) if mutability_literal.mutability == crate::parsing::ast::MutabilityP::Mutable
+      && literal_rule.rune == imoo.mutability_rune => Some(())
+  );
+  
+  let only_member = expect_1(&imoo.members);
+  crate::collect_only_sstruct!(
+    imoo,
+    NodeRefS::MaybeCoercingLookupRule(
+      MaybeCoercingLookupSR {
+        name: IImpreciseNameS::CodeName(code_name),
+        rune,
+        ..
+      }
+    ) if code_name.name.str == "int" && *rune == *only_member.type_rune() => Some(())
+  );
+
+  let normal_member = cast!(only_member, IStructMemberS::NormalStructMember);
+  assert_eq!(normal_member.name.str, "x");
+  assert_eq!(normal_member.variability, VariabilityP::Final);
+}
+/*
   test("Struct") {
     val program1 = compile("struct Moo { x int; }")
     val imoo = program1.lookupStruct("Moo")
@@ -101,7 +185,22 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case Vector(NormalStructMemberS(_, StrI("x"), FinalP, _)) =>
     }
   }
-
+*/
+#[test]
+fn linear_struct() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(&interner, &keywords, "linear struct Moo { x int; }");
+  let moo_struct = program.lookup_struct("Moo");
+  crate::collect_only_sstruct!(
+    moo_struct,
+    NodeRefS::MacroCallAttribute(macro_call)
+      if macro_call.include == IMacroInclusionP::DontCallMacro
+        && macro_call.macro_name.str == "DeriveStructDrop" => Some(())
+  );
+}
+/*
   test("Linear struct") {
     val program1 = compile("linear struct Moo { x int; }")
 
@@ -110,7 +209,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case MacroCallS(_, DontCallMacroP, StrI("DeriveStructDrop")) =>
     })
   }
-
+*/
+/*
   test("Lambda") {
     val program1 = compile("exported func main() int { return {_ + _}(4, 6); }")
 
@@ -133,7 +233,19 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     vregionmut() // see above
   }
-
+*/
+#[test]
+fn interface() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(&interner, &keywords, "interface IMoo { func blork(virtual this &IMoo, a bool)void; }");
+  let imoo = program.lookup_interface("IMoo");
+  let blork = expect_1(&imoo.internal_methods);
+  let function_name = cast!(&blork.name, IFunctionDeclarationNameS::FunctionName);
+  assert_eq!(function_name.name.str, "blork");
+}
+/*
   test("Interface") {
     val program1 = compile("interface IMoo { func blork(virtual this &IMoo, a bool)void; }")
     val imoo = program1.lookupInterface("IMoo")
@@ -143,7 +255,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case FunctionNameS(StrI("blork"), _) =>
     }
   }
-
+*/
+/*
   test("Generic interface") {
     val interner = new Interner()
     val program1 = compile("interface IMoo<T> { func blork(virtual this &IMoo, a T)void; }", interner)
@@ -162,7 +275,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     // generic interfaces, see IMCBT.
     vassert(blork.genericParams.map(_.rune.rune).contains(CodeRuneS(interner.intern(StrI("T")))))
   }
-
+*/
+/*
   test("Impl") {
     val program1 = compile("impl IMoo for Moo;")
     val impl = program1.impls.head
@@ -173,7 +287,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case MaybeCoercingLookupSR(_, r, CodeNameS(StrI("IMoo"))) => vassert(r == impl.interfaceKindRune)
     }
   }
-
+*/
+/*
   test("Method call") {
     val program1 = compile("exported func main() int { return true.shout(); }")
     val main = program1.lookupFunction("main")
@@ -183,7 +298,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     Collector.only(ret, { case FunctionCallSE(_, _, OutsideLoadSE(_, _, CodeNameS(StrI("shout")), _, _), Vector(ConstantBoolSE(_,true))) => })
 //    { case ReturnSE(_,FunctionCallSE(_,_,Vector()) => }
   }
-
+*/
+/*
   test("Moving method call") {
     val program1 = compile("exported func main() int { x = 4; return (x).shout(); }")
     val main = program1.lookupFunction("main")
@@ -222,7 +338,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 //         GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("t"))), RegionGenericParameterTypeS(ReadWriteRegionS), None)) =>
 //     }
 //   }
-
+*/
+/*
   test("Function with magic lambda and regular lambda") {
     // There was a bug that confused the two, and an underscore would add a magic param to every lambda after it
 
@@ -245,8 +362,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case Vector(_, ParameterS(_, _, false, AtomSP(_, Some(CaptureS(CodeVarNameS(StrI("a")), false)), Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
     }
   }
-
-
+*/
+/*
   test("Constructing members") {
     val program1 = compile(
       """func MyStruct() {
@@ -283,7 +400,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
           LocalLoadSE(_, ConstructingMemberNameS(StrI("y")), UseP))) =>
     })
   }
-
+*/
+/*
   test("InitializingRuntimeSizedArrayRequiresSizeAndCallable too few") {
     val error = compileForError(
       """func MyStruct() {
@@ -294,7 +412,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case InitializingRuntimeSizedArrayRequiresSizeAndCallable(_) =>
     }
   }
-
+*/
+/*
   test("InitializingRuntimeSizedArrayRequiresSizeAndCallable too many") {
     val error = compileForError(
       """func MyStruct() {
@@ -305,7 +424,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case InitializingRuntimeSizedArrayRequiresSizeAndCallable(_) =>
     }
   }
-
+*/
+/*
   test("InitializingStaticSizedArrayRequiresSizeAndCallable too few") {
     val error = compileForError(
       """func MyStruct() {
@@ -316,7 +436,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case InitializingStaticSizedArrayRequiresSizeAndCallable(_) =>
     }
   }
-
+*/
+/*
   test("InitializingStaticSizedArrayRequiresSizeAndCallable too many") {
     val error = compileForError(
       """func MyStruct() {
@@ -327,7 +448,45 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case InitializingStaticSizedArrayRequiresSizeAndCallable(_) =>
     }
   }
-
+*/
+#[test]
+fn test_loading_from_member() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    "func MyStruct() {
+      return moo.x;
+    }",
+  );
+  let mystruct = program.lookup_function("MyStruct");
+  let code_body = cast!(&mystruct.body, crate::postparsing::ast::IBodyS::CodeBody);
+  match code_body.body.block.expr.as_ref() {
+    IExpressionSE::Return(ReturnSE {
+      inner:
+        box IExpressionSE::Dot(DotSE {
+          left:
+            box IExpressionSE::OutsideLoad(OutsideLoadSE {
+              name: IImpreciseNameS::CodeName(outside_name),
+              maybe_template_args: None,
+              target_ownership: LoadAsP::LoadAsBorrow,
+              ..
+            }),
+          member,
+          borrow_container: true,
+          ..
+        }),
+      ..
+    }) => {
+      assert_eq!(outside_name.name.str, "moo");
+      assert_eq!(member.str, "x");
+    }
+    other => panic!("unexpected shape: {:?}", other),
+  }
+}
+/*
   test("Test loading from member") {
     val program1 = compile(
       """func MyStruct() {
@@ -341,7 +500,50 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       { case ReturnSE(_, DotSE(_,OutsideLoadSE(_,_,CodeNameS(StrI("moo")),None,LoadAsBorrowP),StrI("x"),true)) => })
 
   }
-
+*/
+#[test]
+fn test_loading_from_member_2() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    "func MyStruct() {
+      return &moo.x;
+    }",
+  );
+  let mystruct = program.lookup_function("MyStruct");
+  let code_body = cast!(&mystruct.body, crate::postparsing::ast::IBodyS::CodeBody);
+  match code_body.body.block.expr.as_ref() {
+    IExpressionSE::Return(ReturnSE {
+      inner:
+        box IExpressionSE::Ownershipped(OwnershippedSE {
+          target_ownership: LoadAsP::LoadAsBorrow,
+          inner_expr:
+            box IExpressionSE::Dot(DotSE {
+              left:
+                box IExpressionSE::OutsideLoad(OutsideLoadSE {
+                  name: IImpreciseNameS::CodeName(outside_name),
+                  maybe_template_args: None,
+                  target_ownership: LoadAsP::LoadAsBorrow,
+                  ..
+                }),
+              member,
+              borrow_container: true,
+              ..
+            }),
+          ..
+        }),
+      ..
+    }) => {
+      assert_eq!(outside_name.name.str, "moo");
+      assert_eq!(member.str, "x");
+    }
+    other => panic!("unexpected shape: {:?}", other),
+  }
+}
+/*
   test("Test loading from member 2") {
     val program1 = compile(
       """func MyStruct() {
@@ -355,7 +557,107 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case ReturnSE(_, OwnershippedSE(_, DotSE(_,OutsideLoadSE(_,_,CodeNameS(StrI("moo")),None,LoadAsBorrowP),x,true),LoadAsBorrowP)) =>
     })
   }
+*/
+#[test]
+fn constructing_members_borrowing_another_member() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    "func MyStruct() {
+      self.x = 4;
+      self.y = &self.x;
+    }",
+  );
+  let mystruct = program.lookup_function("MyStruct");
+  let code_body = cast!(&mystruct.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let block = &code_body.body.block;
 
+  let (first_local, second_local) = expect_2(&block.locals);
+  assert!(matches!(
+    first_local.var_name,
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "x"
+  ));
+  assert_eq!(first_local.self_borrowed, IVariableUseCertainty::Used);
+  assert_eq!(first_local.self_moved, IVariableUseCertainty::Used);
+  assert_eq!(first_local.self_mutated, IVariableUseCertainty::NotUsed);
+  assert_eq!(first_local.child_borrowed, IVariableUseCertainty::NotUsed);
+  assert_eq!(first_local.child_moved, IVariableUseCertainty::NotUsed);
+  assert_eq!(first_local.child_mutated, IVariableUseCertainty::NotUsed);
+
+  assert!(matches!(
+    second_local.var_name,
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "y"
+  ));
+  assert_eq!(second_local.self_borrowed, IVariableUseCertainty::NotUsed);
+  assert_eq!(second_local.self_moved, IVariableUseCertainty::Used);
+  assert_eq!(second_local.self_mutated, IVariableUseCertainty::NotUsed);
+  assert_eq!(second_local.child_borrowed, IVariableUseCertainty::NotUsed);
+  assert_eq!(second_local.child_moved, IVariableUseCertainty::NotUsed);
+  assert_eq!(second_local.child_mutated, IVariableUseCertainty::NotUsed);
+
+  let consecutor = cast!(block.expr.as_ref(), IExpressionSE::Consecutor);
+  let (first_expr, second_expr, third_expr) = expect_3(&consecutor.exprs);
+
+  let let_x = cast!(first_expr, IExpressionSE::Let);
+  let let_x_capture = let_x.pattern.name.as_ref().unwrap();
+  assert!(matches!(
+    let_x_capture.name,
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "x"
+  ));
+  assert_eq!(let_x_capture.mutate, false);
+  assert_eq!(cast!(let_x.expr.as_ref(), IExpressionSE::ConstantInt).value, 4);
+
+  let let_y = cast!(second_expr, IExpressionSE::Let);
+  let let_y_capture = let_y.pattern.name.as_ref().unwrap();
+  assert!(matches!(
+    let_y_capture.name,
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "y"
+  ));
+  assert_eq!(let_y_capture.mutate, false);
+  let local_load_x_borrow = cast!(let_y.expr.as_ref(), IExpressionSE::LocalLoad);
+  assert!(matches!(
+    local_load_x_borrow.name,
+    IVarNameS::ConstructingMemberName(ref member_name) if member_name.str == "x"
+  ));
+  assert_eq!(local_load_x_borrow.target_ownership, LoadAsP::LoadAsBorrow);
+
+  match third_expr {
+    IExpressionSE::FunctionCall(FunctionCallSE {
+      callable_expr:
+        box IExpressionSE::OutsideLoad(OutsideLoadSE {
+          name: IImpreciseNameS::CodeName(callable_name),
+          ..
+        }),
+      arg_exprs,
+      ..
+    }) => {
+      assert_eq!(callable_name.name.str, "MyStruct");
+      match arg_exprs.as_slice() {
+        [
+          IExpressionSE::LocalLoad(LocalLoadSE {
+            name: IVarNameS::ConstructingMemberName(x_name),
+            target_ownership: LoadAsP::Move,
+            ..
+          }),
+          IExpressionSE::LocalLoad(LocalLoadSE {
+            name: IVarNameS::ConstructingMemberName(y_name),
+            target_ownership: LoadAsP::Move,
+            ..
+          }),
+        ] => {
+          assert_eq!(x_name.str, "x");
+          assert_eq!(y_name.str, "y");
+        }
+        other => panic!("unexpected constructor args: {:?}", other),
+      }
+    }
+    other => panic!("unexpected constructor call shape: {:?}", other),
+  }
+}
+/*
   test("Constructing members, borrowing another member") {
     val program1 = compile(
       """func MyStruct() {
@@ -389,7 +691,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
         LocalLoadSE(_, ConstructingMemberNameS(StrI("y")), UseP))) =>
     })
   }
-
+*/
+/*
   test("foreach") {
     val program1 = compile(
       """func main() {
@@ -454,7 +757,45 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case LocalLoadSE(_,IterationOptionNameS(_),UseP) =>
     }
   }
+*/
+#[test]
+fn this_isnt_special_if_was_explicit_param() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let program = compile(
+    &interner,
+    &keywords,
+    "func moo(self &MyStruct) {
+      println(self.x);
+    }",
+  );
+  let moo = program.lookup_function("moo");
+  let code_body = cast!(&moo.body, crate::postparsing::ast::IBodyS::CodeBody);
+  let function_call = crate::collect_only_sprogram!(
+    &program,
+    NodeRefS::Expression(IExpressionSE::FunctionCall(function_call)) => Some(function_call)
+  );
+  let outside_load = cast!(function_call.callable_expr.as_ref(), IExpressionSE::OutsideLoad);
+  let code_name = cast!(&outside_load.name, IImpreciseNameS::CodeName);
+  assert_eq!(code_name.name.str, "println");
+  let dot = cast!(expect_1(&function_call.arg_exprs), IExpressionSE::Dot);
+  assert_eq!(dot.member.str, "x");
+  assert!(dot.borrow_container);
+  let local_load = cast!(dot.left.as_ref(), IExpressionSE::LocalLoad);
+  let code_var_name = cast!(&local_load.name, IVarNameS::CodeVarName);
+  assert_eq!(code_var_name.str, "self");
+  assert_eq!(local_load.target_ownership, LoadAsP::LoadAsBorrow);
 
+  let function_calls = crate::collect_where_sprogram!(
+    &program,
+    NodeRefS::Expression(IExpressionSE::FunctionCall(_)) => Some(())
+  );
+  assert_eq!(function_calls.len(), 1);
+
+  let _ = code_body;
+}
+/*
   test("this isnt special if was explicit param") {
     val program1 = compile(
       """func moo(self &MyStruct) {
@@ -469,7 +810,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     })
     Collector.all(main.body, { case FunctionCallSE(_, _, _, _) => }).size shouldEqual 1
   }
-
+*/
+/*
   test("Reports when mutating nonexistant local") {
     val err = compileForError(
       """exported func main() int {
@@ -480,7 +822,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case CouldntFindVarToMutateS(_, "a") =>
     }
   }
-
+*/
+/*
   test("Reports when extern function has body") {
     val err = compileForError(
       """
@@ -492,7 +835,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case ExternHasBody(_) =>
     }
   }
-
+*/
+/*
   test("Reports when we forget set") {
     val err = compileForError(
       """
@@ -506,7 +850,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case _ => vfail()
     }
   }
-
+*/
+/*
   test("Reports when interface method doesnt have self") {
     val err = compileForError("interface IMoo { func blork(a bool)void; }")
     err match {
@@ -514,7 +859,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case _ => vfail()
     }
   }
-
+*/
+/*
   test("Statement after result or return") {
     compileForError(
       """
@@ -526,7 +872,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case StatementAfterReturnS(_) =>
     }
   }
-
+*/
+/*
   test("Report type mismatch") {
     compileForError(
       """
@@ -539,4 +886,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case RuneExplicitTypeConflictS(_, CodeRuneS(StrI("N")), _) =>
     }
   }
+*/
+/*
 }
+*/

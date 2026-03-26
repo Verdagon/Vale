@@ -7,7 +7,6 @@ use crate::parsing::Parser;
 use crate::utils::code_hierarchy::{FileCoordinate, IPackageResolver, PackageCoordinate};
 use crate::{Interner, Keywords};
 use std::collections::HashMap;
-use std::sync::Arc;
 /*
 package dev.vale.parsing
 
@@ -43,20 +42,21 @@ object ParseAndExplore {
 */
 
 // From ParseAndExplore.scala lines 35-101: parseAndExplore
-pub fn parse_and_explore<D, F, R, HandleParsedDenizen, FileHandler>(
-  interner: Arc<Interner>,
-  keywords: Arc<Keywords>,
+pub fn parse_and_explore<'a, 'ctx, D, F, R, HandleParsedDenizen, FileHandler>(
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
   _opts: GlobalOptions,
-  parser: &mut Parser,
-  packages: Vec<Arc<PackageCoordinate>>,
+  parser: &Parser<'a, 'ctx>,
+  packages: Vec<&'a PackageCoordinate<'a>>,
   resolver: &R,
   mut handle_parsed_denizen: HandleParsedDenizen,
   mut file_handler: FileHandler,
-) -> Result<Vec<F>, FailedParse>
+) -> Result<Vec<F>, FailedParse<'a>>
 where
-  R: IPackageResolver<HashMap<String, String>>,
-  HandleParsedDenizen: FnMut(&Arc<FileCoordinate>, &str, &[ImportL], IDenizenP) -> D,
-  FileHandler: FnMut(&Arc<FileCoordinate>, &str, &[RangeL], &[D]) -> F,
+  'a: 'ctx,
+  R: IPackageResolver<'a, HashMap<String, String>>,
+  HandleParsedDenizen: FnMut(&'a FileCoordinate<'a>, &str, &[ImportL<'a>], IDenizenP<'a>) -> D,
+  FileHandler: FnMut(&'a FileCoordinate<'a>, &str, &[RangeL], &[D]) -> F,
 {
   // From ParseAndExplore.scala lines 45-100: Call lexAndExplore with parsing logic
   lex_and_explore::lex_and_explore(
@@ -64,10 +64,10 @@ where
     keywords,
     packages,
     resolver,
-    |file_coord: &Arc<FileCoordinate>,
+    |file_coord: &'a FileCoordinate<'a>,
      code: &str,
-     imports: &[ImportL],
-     denizen_l: &IDenizenL|
+     imports: &[ImportL<'a>],
+     denizen_l: &IDenizenL<'a>|
      -> D {
       // From ParseAndExplore.scala lines 51-95: Parse each denizen type
       let denizen_p: IDenizenP = match denizen_l {
@@ -123,7 +123,7 @@ where
       // From ParseAndExplore.scala line 96
       handle_parsed_denizen(file_coord, code, imports, denizen_p)
     },
-    |file_coord: &Arc<FileCoordinate>,
+    |file_coord: &'a FileCoordinate<'a>,
      code: &str,
      comment_ranges: &[RangeL],
      denizens: &[D]|

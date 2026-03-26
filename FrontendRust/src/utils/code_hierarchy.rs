@@ -1,16 +1,16 @@
 // From Frontend/Utils/src/dev/vale/CodeHierarchy.scala
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use crate::interner::{InternedSlice, InternedStr, StrI};
 
 // From CodeHierarchy.scala lines 104-189
 #[derive(Clone)]
-pub struct FileCoordinateMap<Contents> {
-  pub package_coord_to_file_coords: HashMap<Arc<PackageCoordinate>, Vec<Arc<FileCoordinate>>>,
-  pub file_coord_to_contents: HashMap<Arc<FileCoordinate>, Contents>,
+pub struct FileCoordinateMap<'a, Contents> {
+  pub package_coord_to_file_coords: HashMap<&'a PackageCoordinate<'a>, Vec<&'a FileCoordinate<'a>>>,
+  pub file_coord_to_contents: HashMap<&'a FileCoordinate<'a>, Contents>,
 }
 
-impl<Contents: Clone> FileCoordinateMap<Contents> {
+impl<'a, Contents: Clone> FileCoordinateMap<'a, Contents> {
   pub fn new() -> Self {
     FileCoordinateMap {
       package_coord_to_file_coords: HashMap::new(),
@@ -19,7 +19,7 @@ impl<Contents: Clone> FileCoordinateMap<Contents> {
   }
 
   // From CodeHierarchy.scala lines 112-114
-  pub fn apply(&self, coord: &Arc<FileCoordinate>) -> &Contents {
+  pub fn apply(&self, coord: &'a FileCoordinate<'a>) -> &Contents {
     self
       .file_coord_to_contents
       .get(coord)
@@ -29,10 +29,10 @@ impl<Contents: Clone> FileCoordinateMap<Contents> {
   // From CodeHierarchy.scala lines 118-127: putPackage
   pub fn put_package(
     &mut self,
-    package_coord: Arc<PackageCoordinate>,
-    new_file_coord_to_contents: HashMap<Arc<FileCoordinate>, Contents>,
+    package_coord: &'a PackageCoordinate<'a>,
+    new_file_coord_to_contents: HashMap<&'a FileCoordinate<'a>, Contents>,
   ) {
-    let file_coords: Vec<Arc<FileCoordinate>> =
+    let file_coords: Vec<&'a FileCoordinate<'a>> =
       new_file_coord_to_contents.keys().cloned().collect();
     self
       .package_coord_to_file_coords
@@ -44,7 +44,7 @@ impl<Contents: Clone> FileCoordinateMap<Contents> {
   }
 
   // From CodeHierarchy.scala lines 129-135: put
-  pub fn put(&mut self, file_coord: Arc<FileCoordinate>, contents: Contents) {
+  pub fn put(&mut self, file_coord: &'a FileCoordinate<'a>, contents: Contents) {
     assert!(
       !self.file_coord_to_contents.contains_key(&file_coord),
       "FileCoordinateMap::put - file coordinate already exists"
@@ -52,9 +52,9 @@ impl<Contents: Clone> FileCoordinateMap<Contents> {
 
     self
       .file_coord_to_contents
-      .insert(file_coord.clone(), contents);
+      .insert(file_coord, contents.clone());
 
-    let package_coord = file_coord.package_coord.clone();
+    let package_coord = file_coord.package_coord;
     let file_coords = self
       .package_coord_to_file_coords
       .entry(package_coord)
@@ -63,31 +63,33 @@ impl<Contents: Clone> FileCoordinateMap<Contents> {
   }
 
   // From CodeHierarchy.scala lines 137-143: map
-  pub fn map<T, F>(&self, func: F) -> FileCoordinateMap<T>
+  pub fn map<T, F>(&self, func: F) -> FileCoordinateMap<'a, T>
   where
-    F: Fn(&Arc<FileCoordinate>, &Contents) -> T,
+    F: Fn(&'a FileCoordinate<'a>, &Contents) -> T,
     T: Clone,
   {
-    let mut result_file_coord_to_contents = HashMap::new();
+    let mut result_file_coord_to_contents: HashMap<&'a FileCoordinate<'a>, T> = HashMap::new();
     for (file_coord, contents) in &self.file_coord_to_contents {
-      result_file_coord_to_contents.insert(file_coord.clone(), func(file_coord, contents));
+      result_file_coord_to_contents.insert(file_coord, func(file_coord, contents));
     }
 
-    FileCoordinateMap {
-      package_coord_to_file_coords: self.package_coord_to_file_coords.clone(),
-      file_coord_to_contents: result_file_coord_to_contents,
-    }
+    let mut result: FileCoordinateMap<'a, T> = FileCoordinateMap::new();
+    result.put_package(
+      &self.package_coord_to_file_coords.keys().next().unwrap(),
+      result_file_coord_to_contents,
+    );
+    result
   }
 
   // From CodeHierarchy.scala lines 145-149: flatMap
   pub fn flat_map<T, F>(&self, func: F) -> Vec<T>
   where
-    F: Fn(&Arc<FileCoordinate>, &Contents) -> T,
+    F: Fn(&'a FileCoordinate<'a>, &Contents) -> T,
   {
     self
       .file_coord_to_contents
       .iter()
-      .map(|(file_coord, contents)| func(file_coord, contents))
+      .map(|(file_coord, contents)| func(&file_coord, contents))
       .collect()
   }
 
@@ -102,8 +104,8 @@ impl<Contents: Clone> FileCoordinateMap<Contents> {
 }
 
 // From CodeHierarchy.scala lines 109, 178-188: IPackageResolver implementation
-impl<Contents: Clone> IPackageResolver<HashMap<String, Contents>> for FileCoordinateMap<Contents> {
-  fn resolve(&self, package_coord: &Arc<PackageCoordinate>) -> Option<HashMap<String, Contents>> {
+impl<'a, Contents: Clone> IPackageResolver<'a, HashMap<String, Contents>> for FileCoordinateMap<'a, Contents> {
+  fn resolve(&self, package_coord: &'a PackageCoordinate<'a>) -> Option<HashMap<String, Contents>> {
     self
       .package_coord_to_file_coords
       .get(package_coord)
@@ -115,7 +117,7 @@ impl<Contents: Clone> IPackageResolver<HashMap<String, Contents>> for FileCoordi
               .file_coord_to_contents
               .get(file_coord)
               .expect("FileCoordinateMap::resolve - file coord not found in contents");
-            (file_coord.filepath.clone(), contents.clone())
+            (file_coord.filepath.to_string(), contents.clone())
           })
           .collect()
       })
@@ -126,44 +128,44 @@ impl<Contents: Clone> IPackageResolver<HashMap<String, Contents>> for FileCoordi
 /// File coordinate matching Scala's FileCoordinate
 /// Interned.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct FileCoordinate {
-  pub package_coord: Arc<PackageCoordinate>,
-  pub filepath: String,
+pub struct FileCoordinate<'a> {
+  pub package_coord: &'a PackageCoordinate<'a>,
+  pub filepath: InternedStr,
 }
 
 // TODO: move to utils/code_hierarchy.rs
 /// Package coordinate matching Scala's PackageCoordinate
 /// Interned.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PackageCoordinate {
-  pub module: Arc<crate::StrI>,
-  pub packages: Vec<Arc<crate::StrI>>,
+pub struct PackageCoordinate<'a> {
+  pub module: &'a StrI,
+  pub packages: InternedSlice<&'a StrI>,
 }
 
-impl PackageCoordinate {
+impl<'a> PackageCoordinate<'a> {
   // From CodeHierarchy.scala line 50: BUILTIN
-  pub fn builtin(
-    interner: &Arc<crate::Interner>,
-    keywords: &Arc<crate::Keywords>,
-  ) -> Arc<PackageCoordinate> {
-    interner.intern_package_coordinate(PackageCoordinate {
-      module: keywords.empty_string.clone(),
-      packages: vec![],
-    })
+  pub fn builtin<'ctx>(
+    interner: &'ctx crate::Interner<'a>,
+    keywords: &'ctx crate::Keywords<'a>,
+  ) -> &'a PackageCoordinate<'a>
+  where
+    'a: 'ctx,
+  {
+    interner.intern_package_coordinate(keywords.empty_string, &[])
   }
 }
 
 // TODO: move to utils/code_hierarchy.rs
 /// From CodeHierarchy.scala lines 218-230: IPackageResolver trait
 /// Note: Uses parsing::ast::PackageCoordinate (the one used by the parser)
-pub trait IPackageResolver<T> {
-  fn resolve(&self, package_coord: &Arc<PackageCoordinate>) -> Option<T>;
+pub trait IPackageResolver<'a, T> {
+  fn resolve(&self, package_coord: &'a PackageCoordinate<'a>) -> Option<T>;
 
   // From CodeHierarchy.scala lines 221-229: or() method for chaining resolvers
   fn or<F>(self, fallback: F) -> OrResolver<Self, F>
   where
     Self: Sized,
-    F: IPackageResolver<T>,
+    F: IPackageResolver<'a, T>,
   {
     OrResolver {
       primary: self,
@@ -179,12 +181,12 @@ pub struct OrResolver<P, F> {
   fallback: F,
 }
 
-impl<T, P, F> IPackageResolver<T> for OrResolver<P, F>
+impl<'a, T, P, F> IPackageResolver<'a, T> for OrResolver<P, F>
 where
-  P: IPackageResolver<T>,
-  F: IPackageResolver<T>,
+  P: IPackageResolver<'a, T>,
+  F: IPackageResolver<'a, T>,
 {
-  fn resolve(&self, package_coord: &Arc<PackageCoordinate>) -> Option<T> {
+  fn resolve(&self, package_coord: &'a PackageCoordinate<'a>) -> Option<T> {
     self
       .primary
       .resolve(package_coord)
@@ -194,11 +196,11 @@ where
 
 // TODO: move to utils/code_hierarchy.rs
 /// Implement IPackageResolver for function pointers (for lambda-style resolvers)
-impl<T, F> IPackageResolver<T> for F
+impl<'a, T, F> IPackageResolver<'a, T> for F
 where
-  F: Fn(&Arc<PackageCoordinate>) -> Option<T>,
+  F: Fn(&'a PackageCoordinate<'a>) -> Option<T>,
 {
-  fn resolve(&self, package_coord: &Arc<PackageCoordinate>) -> Option<T> {
+  fn resolve(&self, package_coord: &'a PackageCoordinate<'a>) -> Option<T> {
     self(package_coord)
   }
 }

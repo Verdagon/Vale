@@ -2,9 +2,9 @@ use crate::utils::code_hierarchy::FileCoordinate;
 
 /// Failed parse with context
 #[derive(Clone, Debug)]
-pub struct FailedParse {
+pub struct FailedParse<'a> {
   pub code: String,
-  pub file_coord: FileCoordinate,
+  pub file_coord: FileCoordinate<'a>,
   pub error: ParseError,
 }
 
@@ -223,7 +223,7 @@ impl ParseError {
     }
   }
 
-  pub fn error_id(&self) -> &'static str {
+  pub fn error_id(&self) -> &str {
     match self {
       ParseError::BadStartOfStatementError(_) => "P1002",
       ParseError::BadExpressionEnd(_)

@@ -26,19 +26,21 @@ object LexAndExplore {
 
 /// Main generic lexing function with import-driven package discovery
 /// From LexAndExplore.scala lines 43-150
-pub fn lex_and_explore<D, F, R>(
-  interner: Arc<Interner>,
-  keywords: Arc<Keywords>,
-  packages: Vec<Arc<PackageCoordinate>>,
+pub fn lex_and_explore<'a, 'ctx, D, F, R>(
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
+  packages: Vec<&'a PackageCoordinate<'a>>,
   resolver: &R,
-  mut denizen_handler: impl FnMut(&Arc<FileCoordinate>, &str, &[ImportL], &IDenizenL) -> D,
-  mut file_handler: impl FnMut(&Arc<FileCoordinate>, &str, &[RangeL], &[D]) -> F,
-) -> Result<Vec<F>, FailedParse>
+  mut denizen_handler: impl FnMut(&'a FileCoordinate<'a>, &str, &[ImportL<'a>], &IDenizenL<'a>) -> D,
+  mut file_handler: impl FnMut(&'a FileCoordinate<'a>, &str, &[RangeL], &[D]) -> F,
+) -> Result<Vec<F>, FailedParse<'a>>
 where
-  R: IPackageResolver<HashMap<String, String>>,
+  'a: 'ctx,
+  R: IPackageResolver<'a, HashMap<String, String>>,
 {
-  let mut unexplored_packages: HashSet<Arc<PackageCoordinate>> = packages.into_iter().collect();
-  let mut started_packages: HashSet<Arc<PackageCoordinate>> = HashSet::new();
+  let mut unexplored_packages: HashSet<&'a PackageCoordinate<'a>> =
+    packages.into_iter().collect();
+  let mut started_packages: HashSet<PackageCoordinate<'a>> = HashSet::new();
   let mut already_found_file_to_code = FileCoordinateMap::<String>::new();
 
   let mut files_acc = Vec::new();
@@ -48,34 +50,33 @@ where
     unexplored_packages.remove(&needed_package_coord);
     started_packages.insert(needed_package_coord.clone());
 
-    let filepaths_and_contents = match resolver.resolve(&needed_package_coord) {
+    let filepaths_and_contents: Vec<(&'a FileCoordinate<'a>, String)> = match resolver.resolve(&needed_package_coord) {
       None => {
         panic!("Couldn't find: {:?}", needed_package_coord);
       }
       Some(filepath_to_code) => {
         let mut result = Vec::new();
         for (filepath, code) in filepath_to_code {
-          let file_coord = interner.intern_file_coordinate(FileCoordinate {
-            package_coord: needed_package_coord.clone(),
-            filepath: filepath.clone(),
-          });
+          let file_coord = interner.intern_file_coordinate(needed_package_coord, &filepath);
           result.push((file_coord, code));
         }
         result
       }
     };
 
-    let filepaths_map: HashMap<Arc<FileCoordinate>, String> = filepaths_and_contents
+    let filepaths_map: HashMap<&'a FileCoordinate<'a>, String> = filepaths_and_contents
       .iter()
-      .map(|(fc, code)| (fc.clone(), code.clone()))
+    .map(|(fc, code)| (*fc, code.clone()))
       .collect();
-    already_found_file_to_code.put_package(needed_package_coord.clone(), filepaths_map);
+    already_found_file_to_code.put_package(needed_package_coord, filepaths_map);
 
     for (file_coord, code) in filepaths_and_contents {
       let mut result_acc = Vec::new();
 
       let mut iter = LexingIterator::new(code.clone());
-      let mut lexer = Lexer::new(interner.clone(), keywords.clone());
+      let lexer = Lexer::<'a, 'ctx>::new(interner, keywords);
+      // Store (module, packages) as owned strings to avoid lexer borrow conflict.
+      let mut packages_to_explore: Vec<(String, Vec<String>)> = Vec::new();
 
       iter.consume_comments_and_whitespace();
 
@@ -84,7 +85,7 @@ where
 
       // Imports must come first, so that we can ship these denizens off with all
       // their relevant imports.
-
+      // Defer intern_package_coordinate until after the lex loop to avoid borrow conflicts.
       while !iter.at_end() {
         let denizen = match lexer.lex_denizen(&mut iter) {
           Err(e) => {
@@ -105,24 +106,24 @@ where
               Some(imports_accum) => imports_accum.push(im.clone()),
             }
 
-            // This is where we could fire off another thread to do any parsing in parallel,
-            // because we're still only partway through the lexing.
-            let next_needed_package_coord = interner.intern_package_coordinate(PackageCoordinate {
-              module: im.module_name.str.clone(),
-              packages: im.package_steps.iter().map(|x| x.str.clone()).collect(),
-            });
+            packages_to_explore.push((
+              im.module_name.str.str.to_string(),
+              im.package_steps.iter().map(|x| x.str.str.to_string()).collect(),
+            ));
 
-            if !started_packages.contains(&next_needed_package_coord) {
-              unexplored_packages.insert(next_needed_package_coord);
-            }
-
-            let denizen_result = denizen_handler(&file_coord, &code, &[], &denizen);
+            let denizen_result = denizen_handler(file_coord, &code, &[], &denizen);
             result_acc.push(denizen_result);
           }
           _ => {
             match maybe_imports_accum.take() {
               None => {}
               Some(imports_accum) => {
+                for imp in &imports_accum {
+                  packages_to_explore.push((
+                    imp.module_name.str.str.to_string(),
+                    imp.package_steps.iter().map(|x| x.str.str.to_string()).collect(),
+                  ));
+                }
                 maybe_imports = Some(imports_accum);
               }
             }
@@ -130,27 +131,24 @@ where
             let imports = maybe_imports
               .as_ref()
               .expect("maybe_imports should be Some");
-            let denizen_result = denizen_handler(&file_coord, &code, imports, &denizen);
+            let denizen_result = denizen_handler(file_coord, &code, imports, &denizen);
             result_acc.push(denizen_result);
           }
         }
       }
 
-      // Add any remaining imports to unexplored packages
-      if let Some(imports) = &maybe_imports {
-        for import in imports {
-          let import_coord = interner.intern_package_coordinate(PackageCoordinate {
-            module: import.module_name.str.clone(),
-            packages: import.package_steps.iter().map(|x| x.str.clone()).collect(),
-          });
-          if !started_packages.contains(&import_coord) {
-            unexplored_packages.insert(import_coord);
-          }
+      // Add discovered packages to unexplored (after lex loop to avoid borrow conflicts).
+      for (module_str, package_strs) in packages_to_explore {
+        let package_steps: Vec<&'a crate::interner::StrI> =
+          package_strs.iter().map(|s| interner.intern(s)).collect();
+        let coord = interner.intern_package_coordinate(interner.intern(&module_str), &package_steps);
+        if !started_packages.contains(&*coord) {
+          unexplored_packages.insert(&*coord);
         }
       }
 
       let comments_ranges = iter.comments.clone();
-      let file = file_handler(&file_coord, &code, &comments_ranges, &result_acc);
+      let file = file_handler(file_coord, &code, &comments_ranges, &result_acc);
       files_acc.push(file);
     }
   }
@@ -272,49 +270,25 @@ where
 
 /// Helper function that collects all denizens and files
 /// From LexAndExplore.scala lines 12-40
-pub fn lex_and_explore_and_collect<R>(
-  interner: Arc<Interner>,
-  keywords: Arc<Keywords>,
-  packages: Vec<Arc<PackageCoordinate>>,
-  resolver: &R,
+/// TODO: Fix closure lifetime issues - collect pattern causes borrow checker to reject.
+/// Workaround: Implement without using lex_and_explore's callback, or change handler to take owned data.
+#[allow(dead_code)]
+pub fn lex_and_explore_and_collect<'a, R>(
+  _interner: &Interner<'a>,
+  _keywords: &Keywords<'a>,
+  _packages: Vec<&'a PackageCoordinate<'a>>,
+  _resolver: &R,
 ) -> Result<
   (
-    Vec<(Arc<FileCoordinate>, String, Vec<ImportL>, IDenizenL)>,
-    Vec<(Arc<FileCoordinate>, String, Vec<RangeL>, Vec<IDenizenL>)>,
+    Vec<(Arc<FileCoordinate<'a>>, String, Vec<ImportL<'a>>, IDenizenL<'a>)>,
+    Vec<(Arc<FileCoordinate<'a>>, String, Vec<RangeL>, Vec<IDenizenL<'a>>)>,
   ),
-  FailedParse,
+  FailedParse<'a>,
 >
 where
-  R: IPackageResolver<HashMap<String, String>>,
+  R: IPackageResolver<'a, HashMap<String, String>>,
 {
-  let mut denizens = Vec::new();
-  let mut files = Vec::new();
-
-  lex_and_explore(
-    interner,
-    keywords,
-    packages,
-    resolver,
-    |file_coord, code, imports, denizen| {
-      denizens.push((
-        file_coord.clone(),
-        code.to_string(),
-        imports.to_vec(),
-        denizen.clone(),
-      ));
-      denizen.clone()
-    },
-    |file_coord, code, ranges, denizens_in_file| {
-      files.push((
-        file_coord.clone(),
-        code.to_string(),
-        ranges.to_vec(),
-        denizens_in_file.to_vec(),
-      ));
-    },
-  )?;
-
-  Ok((denizens, files))
+  todo!("lex_and_explore_and_collect: closure lifetime fix needed")
 }
 
 /*

@@ -1,9 +1,11 @@
+use bumpalo::Bump;
 use crate::interner::Interner;
 use crate::keywords::Keywords;
 use crate::parsing::tests::parser_test_compilation;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
+use crate::utils::code_hierarchy::{FileCoordinateMap, IPackageResolver, PackageCoordinate};
+use std::collections::HashMap;
 
 /*
 package dev.vale.parsing
@@ -34,22 +36,64 @@ fn load_expected(path: &str) -> String {
     .unwrap_or_else(|e| panic!("Failed to load sample '{}': {} ({:?})", path, e, full_path))
 }
 
-fn parse(path: &str) {
-  let interner = Arc::new(Interner::new());
-  let keywords = Arc::new(Keywords::new(&interner));
-  let code = load_expected(path);
-  let mut compilation = parser_test_compilation::test(interner, keywords, &[&code]);
+fn parse<'a, 'ctx>(
+  path: &str,
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
+  resolver: &'ctx dyn IPackageResolver<'a, HashMap<String, String>>,
+  test_package_coord: &'a PackageCoordinate<'a>,
+)
+where
+  'a: 'ctx,
+{
+  let mut compilation = parser_test_compilation::test(interner, keywords, resolver, test_package_coord);
   compilation
     .get_parseds()
     .unwrap_or_else(|e| panic!("Failed to parse sample '{}': {:?}", path, e));
 }
 
-// NOVEL CODE: Macro-generated declarations mirroring ParseSamplesTests.scala's test list.
+struct ParserTestResolver<'a> {
+  code_map: FileCoordinateMap<'a, String>,
+}
+impl<'a> IPackageResolver<'a, HashMap<String, String>> for ParserTestResolver<'a> {
+  fn resolve(&self, package_coord: &'a PackageCoordinate<'a>) -> Option<HashMap<String, String>> {
+    // For testing the parser, we dont want it to fetch things with import statements.
+    Some(
+      self
+        .code_map
+        .resolve(package_coord)
+        .unwrap_or_else(|| HashMap::from([("".to_string(), "".to_string())])),
+    )
+  }
+}
+
 macro_rules! parse_sample_test {
   ($name:ident, $path:literal) => {
     #[test]
     fn $name() {
-      parse($path);
+      let arena = Bump::new();
+      let interner = Interner::with_arena(&arena);
+      let keywords = Keywords::new(&interner);
+
+      let test_module = interner.intern("test");
+      let test_package_coord = interner.intern_package_coordinate(test_module, &[]);
+
+      let code: &[String] = &[load_expected($path)];
+
+      let mut code_map = FileCoordinateMap::new();
+      for (index, contents) in code.iter().enumerate() {
+        let filepath = if code.len() == 1 {
+          "test.vale".to_string()
+        } else {
+          format!("{}.vale", index)
+        };
+        let file_coord = interner.intern_file_coordinate(test_package_coord, &filepath);
+        code_map.put(&file_coord, contents.clone());
+      }
+    
+      let resolver = ParserTestResolver { code_map };
+
+      parse($path, &interner, &keywords, &resolver, &test_package_coord);
     }
   };
 }

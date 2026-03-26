@@ -17,19 +17,32 @@ class RuleTests extends FunSuite with Matchers with Collector with TestParseUtil
 //    compile(new TemplexParser().parseRule(_), code)
   }
 */
+use bumpalo::Bump;
 use crate::cast;
+use crate::interner::Interner;
+use crate::keywords::Keywords;
 use crate::parsing::ast::*;
 use crate::parsing::tests::traverse::NodeRefP;
 use crate::parsing::tests::utils::*;
 
-fn compile(code: &str) -> IRulexPR {
-  compile_rulex_expect(code)
+fn compile<'a, 'ctx>(
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
+  code: &str,
+) -> IRulexPR<'a>
+where
+  'a: 'ctx,
+{
+  compile_rulex_expect(interner, keywords, code)
 }
 
 #[test]
 fn relations() {
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
   {
-    let rule = compile("implements(MyObject, IObject)");
+    let rule = compile(&interner, &keywords, "implements(MyObject, IObject)");
     let builtin = crate::collect_only_rulex!(
       &rule,
       NodeRefP::Rulex(IRulexPR::BuiltinCall(builtin)) => Some(builtin)
@@ -41,7 +54,7 @@ fn relations() {
   }
 
   {
-    let rule = compile("implements(R, IObject)");
+    let rule = compile(&interner, &keywords, "implements(R, IObject)");
     let builtin = crate::collect_only_rulex!(
       &rule,
       NodeRefP::Rulex(IRulexPR::BuiltinCall(builtin)) => Some(builtin)
@@ -53,7 +66,7 @@ fn relations() {
   }
 
   {
-    let rule = compile("implements(MyObject, T)");
+    let rule = compile(&interner, &keywords, "implements(MyObject, T)");
     let builtin = crate::collect_only_rulex!(
       &rule,
       NodeRefP::Rulex(IRulexPR::BuiltinCall(builtin)) => Some(builtin)
@@ -65,7 +78,7 @@ fn relations() {
   }
 
   {
-    let rule = compile("exists(func +(T)int)");
+    let rule = compile(&interner, &keywords, "exists(func +(T)int)");
     let builtin = crate::collect_only_rulex!(
       &rule,
       NodeRefP::Rulex(IRulexPR::BuiltinCall(builtin)) => Some(builtin)
@@ -96,7 +109,10 @@ fn relations() {
 
 #[test]
 fn super_complicated() {
-  compile("C = any([#I]X, [#N]T)");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  compile(&interner, &keywords, "C = any([#I]X, [#N]T)");
 }
 /*
   test("Super complicated") {
@@ -106,7 +122,10 @@ fn super_complicated() {
 
 #[test]
 fn destructure_prototype() {
-  let rule = compile("Prot[_, _, T] = moo");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "Prot[_, _, T] = moo");
   let equals = crate::collect_only_rulex!(&rule, NodeRefP::Rulex(IRulexPR::Equals(equals)) => Some(equals));
   let left = cast!(equals.left.as_ref(), IRulexPR::Components);
   assert_eq!(left.container, ITypePR::PrototypeType);
@@ -130,7 +149,10 @@ fn destructure_prototype() {
 
 #[test]
 fn func() {
-  let rule = compile("func moo()T");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "func moo()T");
   let func = crate::collect_only_rulex!(&rule, NodeRefP::Templex(ITemplexPT::Func(func)) => Some(func));
   assert_eq!(func.name.str.str, "moo");
   assert!(func.parameters.is_empty());
@@ -151,7 +173,10 @@ fn func() {
 
 #[test]
 fn prototype_with_coords() {
-  let rule = compile("Prot[_, pack(int, bool), _]");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "Prot[_, pack(int, bool), _]");
   let components = crate::collect_only_rulex!(
     &rule,
     NodeRefP::Rulex(IRulexPR::Components(components)) => Some(components)

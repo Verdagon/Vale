@@ -1,12 +1,11 @@
-use crate::interner::StrI;
 use crate::lexing::ast::*;
-use std::sync::Arc;
+use crate::StrI;
 
 /// Iterator over a scramble of lexed nodes
 /// Matches Scala's ScrambleIterator
 #[derive(Clone, Debug)]
-pub struct ScrambleIterator {
-  pub scramble: ScrambleLE,
+pub struct ScrambleIterator<'a> {
+  pub scramble: ScrambleLE<'a>,
   pub index: usize,
   pub end: usize,
 }
@@ -17,9 +16,9 @@ class ScrambleIterator(
     var end: Int) {
   assert(end <= scramble.elements.length)
 */
-impl ScrambleIterator {
+impl<'a> ScrambleIterator<'a> {
   /// Create a new iterator over the entire scramble
-  pub fn new(scramble: ScrambleLE) -> Self {
+  pub fn new(scramble: ScrambleLE<'a>) -> Self {
     let end = scramble.elements.len();
     ScrambleIterator {
       scramble,
@@ -34,7 +33,7 @@ impl ScrambleIterator {
   */
 
   /// Create a new iterator with custom bounds
-  pub fn with_bounds(scramble: ScrambleLE, index: usize, end: usize) -> Self {
+  pub fn with_bounds(scramble: ScrambleLE<'a>, index: usize, end: usize) -> Self {
     assert!(end <= scramble.elements.len());
     ScrambleIterator {
       scramble,
@@ -118,7 +117,7 @@ impl ScrambleIterator {
   */
 
   /// Peek at the previous element
-  pub fn peek_prev(&self) -> Option<&INodeLEEnum> {
+  pub fn peek_prev(&self) -> Option<&INodeLEEnum<'a>> {
     if self.index > 0 {
       Some(&self.scramble.elements[self.index - 1])
     } else {
@@ -155,12 +154,17 @@ impl ScrambleIterator {
   */
 
   /// Peek at the current element
-  pub fn peek(&self) -> Option<&INodeLEEnum> {
+  pub fn peek(&self) -> Option<&INodeLEEnum<'a>> {
     if self.index >= self.end {
       None
     } else {
       Some(&**&self.scramble.elements[self.index])
     }
+  }
+
+  /// Peek at the current element, returning owned clone to avoid borrow conflicts.
+  pub fn peek_cloned(&self) -> Option<INodeLEEnum<'a>> {
+    self.peek().cloned()
   }
   /*
     def peek(): Option[INodeLE] = {
@@ -170,7 +174,7 @@ impl ScrambleIterator {
   */
 
   /// Peek at the next n elements
-  pub fn peek_n(&self, n: usize) -> Vec<Option<&INodeLEEnum>> {
+  pub fn peek_n(&self, n: usize) -> Vec<Option<&INodeLEEnum<'a>>> {
     (0..n)
       .map(|i| {
         let idx = self.index + i;
@@ -198,7 +202,7 @@ impl ScrambleIterator {
   */
 
   /// Peek at the next 2 elements
-  pub fn peek2(&self) -> (Option<&INodeLEEnum>, Option<&INodeLEEnum>) {
+  pub fn peek2(&self) -> (Option<&INodeLEEnum<'a>>, Option<&INodeLEEnum<'a>>) {
     let first = if self.index < self.end {
       Some(&**&self.scramble.elements[self.index])
     } else {
@@ -210,6 +214,12 @@ impl ScrambleIterator {
       None
     };
     (first, second)
+  }
+
+  /// Peek at the next 2 elements, returning owned clones to avoid borrow conflicts.
+  pub fn peek2_cloned(&self) -> (Option<INodeLEEnum<'a>>, Option<INodeLEEnum<'a>>) {
+    let (a, b) = self.peek2();
+    (a.cloned(), b.cloned())
   }
   /*
     def peek2(): (Option[INodeLE], Option[INodeLE]) = {
@@ -223,9 +233,9 @@ impl ScrambleIterator {
   pub fn peek3(
     &self,
   ) -> (
-    Option<&INodeLEEnum>,
-    Option<&INodeLEEnum>,
-    Option<&INodeLEEnum>,
+    Option<&INodeLEEnum<'a>>,
+    Option<&INodeLEEnum<'a>>,
+    Option<&INodeLEEnum<'a>>,
   ) {
     let first = if self.index < self.end {
       Some(&**&self.scramble.elements[self.index])
@@ -244,6 +254,18 @@ impl ScrambleIterator {
     };
     (first, second, third)
   }
+
+  /// Peek at the next 3 elements, returning owned clones to avoid borrow conflicts.
+  pub fn peek3_cloned(
+    &self,
+  ) -> (
+    Option<INodeLEEnum<'a>>,
+    Option<INodeLEEnum<'a>>,
+    Option<INodeLEEnum<'a>>,
+  ) {
+    let (a, b, c) = self.peek3();
+    (a.cloned(), b.cloned(), c.cloned())
+  }
   /*
     def peek3(): (Option[INodeLE], Option[INodeLE], Option[INodeLE]) = {
       (
@@ -254,7 +276,7 @@ impl ScrambleIterator {
   */
 
   /// Check if next element is a specific word
-  pub fn peek_word(&self, word: &Arc<StrI>) -> bool {
+  pub fn peek_word(&self, word: &&'_ StrI) -> bool {
     match self.peek() {
       Some(INodeLEEnum::Word(WordLE { str, .. })) => str == word,
       _ => false,
@@ -270,7 +292,7 @@ impl ScrambleIterator {
   */
 
   /// Advance and return a reference to the current element
-  pub fn advance(&mut self) -> &INodeLEEnum {
+  pub fn advance(&mut self) -> &INodeLEEnum<'a> {
     assert!(self.has_next());
     let result = &**&self.scramble.elements[self.index];
     self.index += 1;
@@ -286,7 +308,7 @@ impl ScrambleIterator {
   */
 
   /// Take the current element and advance (returning owned)
-  pub fn take(&mut self) -> Option<INodeLEEnum> {
+  pub fn take(&mut self) -> Option<INodeLEEnum<'a>> {
     if self.index >= self.end {
       None
     } else {
@@ -359,7 +381,7 @@ impl ScrambleIterator {
   */
 
   /// Get the next word element
-  pub fn next_word(&mut self) -> Option<WordLE> {
+  pub fn next_word(&mut self) -> Option<WordLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Word(w)) => {
         let result = w.clone();
@@ -382,7 +404,7 @@ impl ScrambleIterator {
   */
 
   /// Expect a specific word (panics if not found)
-  pub fn expect_word(&mut self, str: &Arc<StrI>) {
+  pub fn expect_word(&mut self, str: &&'_ StrI) {
     let found = self.try_skip_word(str).is_some();
     assert!(found, "Expected word {:?}", str);
   }
@@ -394,7 +416,7 @@ impl ScrambleIterator {
   */
 
   /// Try to skip a specific word
-  pub fn try_skip_word(&mut self, str: &Arc<StrI>) -> Option<RangeL> {
+  pub fn try_skip_word(&mut self, str: &&'_ StrI) -> Option<RangeL> {
     match self.peek() {
       Some(INodeLEEnum::Word(WordLE { range, str: s })) if s == str => {
         let result = *range;
@@ -435,6 +457,40 @@ impl ScrambleIterator {
   */
 
   /// Split the scramble on a specific symbol
+  /// Split scramble into owned segments (avoids borrow issues in parsing loops).
+  /// Returns Vec<ScrambleLE> so each segment can live independently.
+  pub fn split_scramble_on_symbol(
+    scramble: ScrambleLE<'a>,
+    needle: char,
+    include_empty_trailing: bool,
+  ) -> Vec<ScrambleLE<'a>> {
+    let iter = ScrambleIterator::new(scramble);
+    let iters = iter.split_on_symbol(needle, include_empty_trailing);
+    iters
+      .into_iter()
+      .map(|i| {
+        let start = i.index;
+        let end = i.end;
+        let range = if start < end {
+          RangeL {
+            begin: i.scramble.elements[start].range().begin,
+            end: i.scramble.elements[end - 1].range().end,
+          }
+        } else {
+          RangeL {
+            begin: i.scramble.range.end,
+            end: i.scramble.range.end,
+          }
+        };
+        ScrambleLE {
+          range,
+          elements: i.scramble.elements[start..end].to_vec(),
+        }
+      })
+      .collect()
+  }
+
+  /// Split the scramble on a specific symbol
   ///
   /// `include_empty_trailing`: If true and the scramble ends with the needle,
   /// include an empty iterator at the end
@@ -442,7 +498,7 @@ impl ScrambleIterator {
     &self,
     needle: char,
     include_empty_trailing: bool,
-  ) -> Vec<ScrambleIterator> {
+  ) -> Vec<ScrambleIterator<'a>> {
     let mut iters = Vec::new();
     let mut start = self.index;
     let mut i = start;
@@ -529,7 +585,7 @@ impl ScrambleIterator {
   */
 
   /// Try to match a Word node
-  pub fn try_match_word(&self) -> Option<&WordLE> {
+  pub fn try_match_word(&self) -> Option<&WordLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Word(w)) => Some(w),
       _ => None,
@@ -545,7 +601,7 @@ impl ScrambleIterator {
   }
 
   /// Try to match a Scramble node
-  pub fn try_match_scramble(&self) -> Option<&ScrambleLE> {
+  pub fn try_match_scramble(&self) -> Option<&ScrambleLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Scramble(s)) => Some(s),
       _ => None,
@@ -553,7 +609,7 @@ impl ScrambleIterator {
   }
 
   /// Try to match a Parend node
-  pub fn try_match_parend(&self) -> Option<&ParendLE> {
+  pub fn try_match_parend(&self) -> Option<&ParendLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Parend(p)) => Some(p),
       _ => None,
@@ -561,7 +617,7 @@ impl ScrambleIterator {
   }
 
   /// Try to match an Angled node
-  pub fn try_match_angled(&self) -> Option<&AngledLE> {
+  pub fn try_match_angled(&self) -> Option<&AngledLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Angled(a)) => Some(a),
       _ => None,
@@ -569,7 +625,7 @@ impl ScrambleIterator {
   }
 
   /// Try to match a Squared node
-  pub fn try_match_squared(&self) -> Option<&SquaredLE> {
+  pub fn try_match_squared(&self) -> Option<&SquaredLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Squared(s)) => Some(s),
       _ => None,
@@ -577,7 +633,7 @@ impl ScrambleIterator {
   }
 
   /// Try to match a Curlied node
-  pub fn try_match_curlied(&self) -> Option<&CurliedLE> {
+  pub fn try_match_curlied(&self) -> Option<&CurliedLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::Curlied(c)) => Some(c),
       _ => None,
@@ -585,7 +641,7 @@ impl ScrambleIterator {
   }
 
   /// Try to match a String node
-  pub fn try_match_string(&self) -> Option<&StringLE> {
+  pub fn try_match_string(&self) -> Option<&StringLE<'a>> {
     match self.peek() {
       Some(INodeLEEnum::String(s)) => Some(s),
       _ => None,
@@ -623,7 +679,7 @@ impl ScrambleIterator {
   }
 
   /// Consume and return all remaining elements
-  pub fn consume_rest(&mut self) -> Vec<INodeLEEnum> {
+  pub fn consume_rest(&mut self) -> Vec<INodeLEEnum<'a>> {
     let mut result = Vec::new();
     while self.has_next() {
       result.push(self.take().unwrap());

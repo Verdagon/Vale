@@ -16,17 +16,30 @@ class CoordRuleTests extends FunSuite with Matchers with Collector with TestPars
 //    compile(new TemplexParser(interner).parseRule(_), code)
   }
 */
+use bumpalo::Bump;
 use crate::cast;
+use crate::interner::Interner;
+use crate::keywords::Keywords;
 use crate::parsing::ast::*;
 use crate::parsing::tests::utils::*;
 
-fn compile(code: &str) -> IRulexPR {
-  compile_rulex_expect(code)
+fn compile<'a, 'ctx>(
+  interner: &'ctx Interner<'a>,
+  keywords: &'ctx Keywords<'a>,
+  code: &str,
+) -> IRulexPR<'a>
+where
+  'a: 'ctx,
+{
+  compile_rulex_expect(interner, keywords, code)
 }
 
 #[test]
 fn empty_coord_rule() {
-  let rule = compile("_ Ref");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "_ Ref");
   let typed = cast!(rule, IRulexPR::Typed);
   assert!(typed.rune.is_none());
   assert_eq!(typed.tyype, ITypePR::CoordType);
@@ -42,7 +55,10 @@ fn empty_coord_rule() {
 
 #[test]
 fn coord_with_rune() {
-  let rule = compile("T Ref");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "T Ref");
   let typed = cast!(rule, IRulexPR::Typed);
   assert_eq!(typed.rune.unwrap().str.str, "T");
   assert_eq!(typed.tyype, ITypePR::CoordType);
@@ -57,7 +73,10 @@ fn coord_with_rune() {
 */
 #[test]
 fn coord_with_destructure_only() {
-  let rule = compile("Ref[_, _, _]");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "Ref[_, _, _]");
   let components = cast!(rule, IRulexPR::Components);
   assert_eq!(components.container, ITypePR::CoordType);
   let (first, second, third) = expect_3(&components.components);
@@ -76,7 +95,10 @@ fn coord_with_destructure_only() {
 
 #[test]
 fn coord_with_rune_and_destructure() {
-  let rule = compile("T = Ref[_, _, _]");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "T = Ref[_, _, _]");
   let equals = cast!(rule, IRulexPR::Equals);
   assert_templex_name(cast!(equals.left.as_ref(), IRulexPR::Templex), "T");
   let components = cast!(equals.right.as_ref(), IRulexPR::Components);
@@ -86,7 +108,7 @@ fn coord_with_rune_and_destructure() {
   assert!(matches!(cast!(second, IRulexPR::Templex), ITemplexPT::AnonymousRune(_)));
   assert!(matches!(cast!(third, IRulexPR::Templex), ITemplexPT::AnonymousRune(_)));
 
-  let rule = compile("T = Ref[own, _, _]");
+  let rule = compile(&interner, &keywords, "T = Ref[own, _, _]");
   let equals = cast!(rule, IRulexPR::Equals);
   assert_templex_name(cast!(equals.left.as_ref(), IRulexPR::Templex), "T");
   let components = cast!(equals.right.as_ref(), IRulexPR::Components);
@@ -125,7 +147,10 @@ fn coord_matches_plain_int() {
   //   (a: #T)
   // Note from later: I think this is an anachronism, this doesn't test
   // anything with coords.
-  let rule = compile("int");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "int");
   let templex = cast!(rule, IRulexPR::Templex);
   assert_templex_name(&templex, "int");
 }
@@ -149,7 +174,10 @@ fn coord_matches_plain_int() {
 */
 #[test]
 fn coord_with_int_in_kind_rule() {
-  let rule = compile("Ref[_, _, int]");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "Ref[_, _, int]");
   let components = cast!(rule, IRulexPR::Components);
   assert_eq!(components.container, ITypePR::CoordType);
   let (first, second, third) = expect_3(&components.components);
@@ -170,7 +198,10 @@ fn coord_with_int_in_kind_rule() {
 
 #[test]
 fn coord_with_specific_kind_rule() {
-  let rule = compile("Ref[_, _, Kind[mut]]");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "Ref[_, _, Kind[mut]]");
   let components = cast!(rule, IRulexPR::Components);
   assert_eq!(components.container, ITypePR::CoordType);
   let (first, second, third) = expect_3(&components.components);
@@ -198,7 +229,10 @@ fn coord_with_specific_kind_rule() {
 */
 #[test]
 fn coord_with_value() {
-  let rule = compile("T Ref = int");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "T Ref = int");
   let equals = cast!(rule, IRulexPR::Equals);
   let typed = cast!(equals.left.as_ref(), IRulexPR::Typed);
   assert_eq!(typed.rune.as_ref().unwrap().str.str, "T");
@@ -217,7 +251,10 @@ fn coord_with_value() {
 */
 #[test]
 fn coord_with_destructure_and_value() {
-  let rule = compile("Ref[_, _, _] = int");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "Ref[_, _, _] = int");
   let equals = cast!(rule, IRulexPR::Equals);
   let components = cast!(equals.left.as_ref(), IRulexPR::Components);
   assert_eq!(components.container, ITypePR::CoordType);
@@ -239,7 +276,10 @@ fn coord_with_destructure_and_value() {
 */
 #[test]
 fn coord_with_sequence_in_value_spot() {
-  let rule = compile("T Ref = (int, bool)");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "T Ref = (int, bool)");
   let equals = cast!(rule, IRulexPR::Equals);
   let typed = cast!(equals.left.as_ref(), IRulexPR::Typed);
   assert_eq!(typed.rune.as_ref().unwrap().str.str, "T");
@@ -263,7 +303,10 @@ fn coord_with_sequence_in_value_spot() {
 */
 #[test]
 fn lone_tuple_is_sequence() {
-  let rule = compile("(int, bool)");
+  let arena = Bump::new();
+  let interner = Interner::with_arena(&arena);
+  let keywords = Keywords::new(&interner);
+  let rule = compile(&interner, &keywords, "(int, bool)");
   let tuple = cast!(cast!(&rule, IRulexPR::Templex), ITemplexPT::Tuple);
   let (int_, bool_) = expect_2(&tuple.elements);
   assert_templex_name(int_, "int");
