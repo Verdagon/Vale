@@ -1,0 +1,72 @@
+================================================================================
+Line comment
+================================================================================
+
+// This is a comment
+func main() void {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (line_comment)
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block)))
+
+================================================================================
+Inline line comment
+================================================================================
+
+func main() void {
+  x = 42; // the answer
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (integer_literal))
+      (line_comment))))
+
+================================================================================
+Chevron comment
+================================================================================
+
+«This is a chevron comment»
+func main() void {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (chevron_comment)
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block)))
+
+================================================================================
+Ellipsis placeholder
+================================================================================
+
+func main() void {
+  ...
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (ellipsis))))

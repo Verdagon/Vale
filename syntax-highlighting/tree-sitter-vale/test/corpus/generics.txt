@@ -1,0 +1,116 @@
+================================================================================
+Generic struct
+================================================================================
+
+struct Pair<T, U> {
+  first T;
+  second U;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (identifier)
+    (generic_params
+      (type_param
+        (identifier))
+      (type_param
+        (identifier)))
+    (field_definition
+      (identifier)
+      (named_type
+        (identifier)))
+    (field_definition
+      (identifier)
+      (named_type
+        (identifier)))))
+
+================================================================================
+Generic function with constraint
+================================================================================
+
+func getFirst<T>(pair Pair<T, int>) T {
+  return pair.first;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (generic_params
+      (type_param
+        (identifier)))
+    (parameter_list
+      (named_parameter
+        (identifier)
+        (named_type
+          (identifier)
+          (generic_args
+            (named_type
+              (identifier))
+            (primitive_type)))))
+    (named_type
+      (identifier))
+    (block
+      (return_statement
+        (field_access_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Region generic param
+================================================================================
+
+func borrowFoo<'r>(x &'r Foo) &'r Foo {
+  return x;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (generic_params
+      (region_param
+        (region)))
+    (parameter_list
+      (named_parameter
+        (identifier)
+        (borrow_type
+          (region)
+          (named_type
+            (identifier)))))
+    (borrow_type
+      (region)
+      (named_type
+        (identifier)))
+    (block
+      (return_statement
+        (identifier)))))
+
+================================================================================
+Integer generic param
+================================================================================
+
+struct Vec<#N Int, T> {
+  values [#N]T;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (identifier)
+    (generic_params
+      (int_param
+        (identifier))
+      (type_param
+        (identifier)))
+    (field_definition
+      (identifier)
+      (array_type
+        (identifier)
+        (named_type
+          (identifier))))))

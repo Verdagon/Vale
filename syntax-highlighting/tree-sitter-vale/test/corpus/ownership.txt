@@ -1,0 +1,94 @@
+================================================================================
+Borrow type
+================================================================================
+
+func greet(name &str) void {
+  print(name);
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list
+      (named_parameter
+        (identifier)
+        (borrow_type
+          (primitive_type))))
+    (primitive_type)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)))))))
+
+================================================================================
+Weak reference type
+================================================================================
+
+struct Node {
+  parent &&Node;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (identifier)
+    (field_definition
+      (identifier)
+      (weak_ref_type
+        (named_type
+          (identifier))))))
+
+================================================================================
+Borrow expression
+================================================================================
+
+func main() void {
+  x = 42;
+  use(&x);
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (integer_literal))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (borrow_expression
+              (identifier))))))))
+
+================================================================================
+Mutable borrow
+================================================================================
+
+func main() void {
+  use(&!x);
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (borrow_mut_expression
+              (identifier))))))))

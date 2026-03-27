@@ -1,0 +1,8 @@
+// This is a line comment
+
+«This is a chevron comment»
+
+func main() void {
+  x = 42; // inline comment
+  ... // ellipsis placeholder
+}

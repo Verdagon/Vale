@@ -1,0 +1,91 @@
+================================================================================
+Arrow lambda
+================================================================================
+
+func main() void {
+  f = (x) => { x + 1 };
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (lambda_expression
+          (parameter_list
+            (named_parameter
+              (identifier)))
+          (block
+            (expression_statement
+              (binary_expression
+                (identifier)
+                (integer_literal)))))))))
+
+================================================================================
+Lambda without arrow
+================================================================================
+
+func main() void {
+  each(items, (x) { print(x); });
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (lambda_expression
+              (parameter_list
+                (named_parameter
+                  (identifier)))
+              (block
+                (expression_statement
+                  (call_expression
+                    (identifier)
+                    (argument_list
+                      (identifier))))))))))))
+
+================================================================================
+Borrow lambda
+================================================================================
+
+func main() void {
+  each(items, &(x) { print(x); });
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (lambda_expression
+              (parameter_list
+                (named_parameter
+                  (identifier)))
+              (block
+                (expression_statement
+                  (call_expression
+                    (identifier)
+                    (argument_list
+                      (identifier))))))))))))

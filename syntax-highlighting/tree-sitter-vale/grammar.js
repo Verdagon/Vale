@@ -1,0 +1,662 @@
+/**
+ * Vale language grammar for tree-sitter.
+ *
+ * Vale syntax reference: https://vale.dev/
+ * Authoritative token source: FrontendRust/src/lexing/lexer.rs
+ *
+ * Design notes:
+ * - We prioritize highlighting correctness over perfect AST accuracy.
+ * - `<` / `>` ambiguity (generics vs comparisons) is resolved via prec.dynamic.
+ * - Block `{...}` is used for function bodies, struct bodies, lambdas, and
+ *   if/while/foreach bodies. We represent all of these as `block` nodes.
+ * - Vale has no `let` keyword: `x = expr;` is a let-binding at statement level.
+ */
+
+module.exports = grammar({
+  name: 'vale',
+
+  // Used for keyword extraction (keyword conflicts resolved by word boundary).
+  word: $ => $.identifier,
+
+  // Always-valid nodes transparently skipped during parsing.
+  extras: $ => [
+    /\s/,
+    $.line_comment,
+    $.chevron_comment,
+    $.ellipsis,
+  ],
+
+  // External scanner handles string interpolation and triple-quoted strings.
+  externals: $ => [
+    $._string_start,            // "  (single-quoted string open)
+    $._multiline_string_start,  // """ (triple-quoted string open)
+    $._string_content,          // characters inside a string
+    $._string_end,              // " or """ (string close, matches opening)
+    $._interp_open,             // { inside a string (not followed by \n)
+    $._interp_close,            // } that closes an interpolation
+  ],
+
+  // GLR conflict declarations.
+  // Only truly ambiguous conflicts go here; unnecessary ones cause GLR paths
+  // that trigger error-recovery which breaks external scanner token handling.
+  conflicts: $ => [
+    // Foo<T>(args) — generic call vs comparison: < is both generic-open and less-than
+    [$._expression, $.generic_args],
+    [$.generic_args, $.binary_expression],
+    // named_type: region + identifier is ambiguous (region is optional)
+    [$.named_type, $.named_type],
+    // Destructure pattern vs call expression: Foo(a, b) at statement level
+    [$.destructure_pattern, $._expression],
+    // named_parameter ambiguous with expression in interpolated strings
+    [$.named_parameter, $._expression],
+    // function_type: <mut>(...) vs array_type < mut > followed by function_type(...)
+    [$.function_type],
+    // Lambda: (x) could be parameter_list or parenthesized_expression
+    [$.parameter_list, $.parenthesized_expression],
+    // Lambda expression ambiguity: &(params){body}
+    [$.lambda_expression],
+    // method_call vs field_access: expr.name followed by '('
+    [$.method_call_expression, $.field_access_expression],
+  ],
+
+  rules: {
+    // -----------------------------------------------------------------------
+    // Top level
+    // -----------------------------------------------------------------------
+
+    source_file: $ => repeat($._definition),
+
+    _definition: $ => choice(
+      $.import_definition,
+      $.function_definition,
+      $.struct_definition,
+      $.interface_definition,
+      $.impl_definition,
+      $.export_definition,
+    ),
+
+    // -----------------------------------------------------------------------
+    // Attributes
+    // -----------------------------------------------------------------------
+
+    _attribute: $ => choice(
+      $.keyword_attribute,
+      $.macro_attribute,
+      $.extern_attribute,
+    ),
+
+    keyword_attribute: $ => choice(
+      'abstract', 'pure', 'unsafe', 'weakable', 'sealed',
+      'linear', 'additive', 'exported', 'virtual',
+    ),
+
+    // #DeriveStructDrop, #!DeriveAnonymousSubstruct, etc.
+    macro_attribute: $ => token(/#!?[A-Z][a-zA-Z0-9]*/),
+
+    // extern or extern("cpp_name")
+    extern_attribute: $ => seq(
+      'extern',
+      optional(seq('(', $.string_literal, ')')),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Import
+    // -----------------------------------------------------------------------
+
+    import_definition: $ => seq(
+      'import',
+      $._dotted_path,
+      ';',
+    ),
+
+    _dotted_path: $ => seq(
+      $.identifier,
+      repeat(seq('.', choice($.identifier, '*'))),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Export
+    // -----------------------------------------------------------------------
+
+    export_definition: $ => seq(
+      'export',
+      $.identifier,
+      optional(seq('as', $.identifier)),
+      ';',
+    ),
+
+    // -----------------------------------------------------------------------
+    // Function definition
+    // -----------------------------------------------------------------------
+
+    function_definition: $ => seq(
+      repeat($._attribute),
+      'func',
+      field('name', choice($.identifier, $.operator_name)),
+      optional(field('generic_params', $.generic_params)),
+      field('parameters', $.parameter_list),
+      optional(field('return_type', $._type_expression)),
+      optional(field('where_clause', $.where_clause)),
+      choice(
+        field('body', $.block),
+        ';',
+      ),
+    ),
+
+    // Operator function names: func +(a int, b int) int { ... }
+    operator_name: $ => choice('+', '-', '*', '/', '===', '==', '!=', '<=>', '<=', '>='),
+
+    parameter_list: $ => seq(
+      '(',
+      optional(seq(
+        $._parameter,
+        repeat(seq(',', $._parameter)),
+        optional(','),
+      )),
+      ')',
+    ),
+
+    _parameter: $ => choice(
+      $.self_parameter,
+      $.named_parameter,
+    ),
+
+    self_parameter: $ => seq(
+      optional('virtual'),
+      choice('self', 'this'),
+      $._type_expression,
+    ),
+
+    named_parameter: $ => seq(
+      optional('virtual'),
+      field('name', $.identifier),
+      optional(field('type', $._type_expression)),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Struct definition
+    // -----------------------------------------------------------------------
+
+    struct_definition: $ => seq(
+      repeat($._attribute),
+      'struct',
+      field('name', $.identifier),
+      optional(field('generic_params', $.generic_params)),
+      optional(field('mutability', $.mutability)),
+      '{',
+      repeat($._struct_member),
+      '}',
+      optional($.where_clause),
+    ),
+
+    _struct_member: $ => choice(
+      $.field_definition,
+      $.function_definition,
+    ),
+
+    // name int; or name! int;  (! = mutable field)
+    field_definition: $ => seq(
+      field('name', $.identifier),
+      optional('!'),
+      field('type', $._type_expression),
+      ';',
+    ),
+
+    // -----------------------------------------------------------------------
+    // Interface definition
+    // -----------------------------------------------------------------------
+
+    interface_definition: $ => seq(
+      repeat($._attribute),
+      'interface',
+      field('name', $.identifier),
+      optional(field('generic_params', $.generic_params)),
+      optional(field('mutability', $.mutability)),
+      '{',
+      repeat($.function_definition),
+      '}',
+      optional($.where_clause),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Impl definition
+    // -----------------------------------------------------------------------
+
+    impl_definition: $ => seq(
+      'impl',
+      optional(field('generic_params', $.generic_params)),
+      field('interface', $._type_expression),
+      'for',
+      field('struct', $._type_expression),
+      choice(
+        seq('{', repeat($.function_definition), '}'),
+        ';',
+      ),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Generic params (type parameter declarations)
+    // -----------------------------------------------------------------------
+
+    generic_params: $ => seq(
+      '<',
+      $._generic_param,
+      repeat(seq(',', $._generic_param)),
+      optional(','),
+      '>',
+    ),
+
+    _generic_param: $ => choice(
+      $.region_param,
+      $.int_param,
+      $.type_param,
+    ),
+
+    region_param: $ => seq($.region, optional($.mutability), optional('Region')),
+
+    int_param: $ => seq('#', $.identifier, optional('Int')),
+
+    type_param: $ => seq($.identifier, optional($._type_constraint)),
+
+    _type_constraint: $ => choice(
+      seq('Ref', optional($.ownership), optional($.mutability)),
+      'Kind',
+      'Region',
+      'Int',
+      'Prot',
+    ),
+
+    // -----------------------------------------------------------------------
+    // Generic args (at call/instantiation sites)
+    // -----------------------------------------------------------------------
+
+    generic_args: $ => seq(
+      token(prec(1, '<')),
+      $._generic_arg,
+      repeat(seq(',', $._generic_arg)),
+      optional(','),
+      '>',
+    ),
+
+    _generic_arg: $ => choice(
+      $.region,
+      $.mutability,
+      $.ownership,
+      $.integer_literal,
+      seq('#', $.integer_literal),
+      $._type_expression,
+    ),
+
+    // -----------------------------------------------------------------------
+    // Where clause
+    // -----------------------------------------------------------------------
+
+    where_clause: $ => seq(
+      'where',
+      $.where_constraint,
+      repeat(seq(',', $.where_constraint)),
+    ),
+
+    where_constraint: $ => seq(
+      $._type_expression,
+      optional(seq(':', $._type_expression)),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Types
+    // -----------------------------------------------------------------------
+
+    _type_expression: $ => choice(
+      $.primitive_type,
+      $.metatype,
+      $.borrow_type,
+      $.weak_ref_type,
+      $.array_type,
+      $.function_type,
+      $.named_type,
+    ),
+
+    primitive_type: $ => choice(
+      'int', 'bool', 'float', 'str', 'void',
+      'i8', 'i16', 'i32', 'i64',
+      'u8', 'u16', 'u32', 'u64',
+      '__Never',
+    ),
+
+    metatype: $ => choice(
+      'Ref', 'Kind', 'Region', 'Prot', 'RefList',
+      'Ownership', 'Variability', 'Mutability', 'Location', 'Refs', 'Int',
+    ),
+
+    // &Type, &'r Type, &'r mut Type
+    borrow_type: $ => prec(2, seq(
+      '&',
+      optional($.region),
+      optional($.mutability),
+      $._type_expression,
+    )),
+
+    // &&Type (weak reference)
+    weak_ref_type: $ => prec(2, seq('&&', $._type_expression)),
+
+    // []T, [#N]T, []<mut>T
+    array_type: $ => seq(
+      '[',
+      optional(seq('#', choice($.integer_literal, $.identifier))),
+      ']',
+      optional(seq(token(prec(1, '<')), choice($.mutability, $.ownership), '>')),
+      $._type_expression,
+    ),
+
+    // <mut>(int) -> str or (int, bool) -> void
+    function_type: $ => seq(
+      optional(seq(token(prec(1, '<')), $.mutability, '>')),
+      '(',
+      optional(seq(
+        $._type_expression,
+        repeat(seq(',', $._type_expression)),
+        optional(','),
+      )),
+      ')',
+      optional(seq('->', $._type_expression)),
+    ),
+
+    // Foo, 'r Foo, mut Foo, Foo<T>, etc.
+    named_type: $ => seq(
+      optional($.region),
+      optional($.mutability),
+      optional($.ownership),
+      field('name', $.identifier),
+      optional(field('type_args', $.generic_args)),
+    ),
+
+    // -----------------------------------------------------------------------
+    // Ownership and mutability
+    // -----------------------------------------------------------------------
+
+    ownership: $ => choice('own', 'borrow', 'weak', 'share'),
+    mutability: $ => choice('mut', 'imm'),
+
+    // Region annotation: 'r
+    region: $ => /'\w+/,
+
+    // -----------------------------------------------------------------------
+    // Block
+    // -----------------------------------------------------------------------
+
+    block: $ => seq(
+      '{',
+      repeat($._block_item),
+      '}',
+    ),
+
+    // Items inside a block: statements only.
+    // Implicit return is modeled as expression_statement without ';'.
+    _block_item: $ => $._statement,
+
+    // -----------------------------------------------------------------------
+    // Statements
+    // -----------------------------------------------------------------------
+
+    _statement: $ => choice(
+      $.let_statement,
+      $.set_statement,
+      $.return_statement,
+      $.break_statement,
+      $.destruct_statement,
+      $.unlet_statement,
+      $.while_statement,
+      $.foreach_statement,
+      $.expression_statement,
+    ),
+
+    // pattern = expr;  (no 'let' keyword in Vale)
+    let_statement: $ => prec(1, seq(
+      field('pattern', $._let_pattern),
+      '=',
+      field('value', $._expression),
+      ';',
+    )),
+
+    _let_pattern: $ => prec(1, choice(
+      $.identifier,
+      $.destructure_pattern,
+    )),
+
+    // set target = expr;
+    set_statement: $ => seq(
+      'set',
+      field('target', $._expression),
+      '=',
+      field('value', $._expression),
+      ';',
+    ),
+
+    return_statement: $ => seq('return', optional($._expression), ';'),
+
+    break_statement: $ => seq('break', ';'),
+
+    destruct_statement: $ => seq(
+      'destruct',
+      $._let_pattern,
+      '=',
+      $._expression,
+      ';',
+    ),
+
+    unlet_statement: $ => seq('unlet', $.identifier, ';'),
+
+    while_statement: $ => seq('while', '(', $._expression, ')', $.block),
+
+    foreach_statement: $ => seq(
+      'foreach',
+      field('pattern', $._let_pattern),
+      'in',
+      field('iterable', $._expression),
+      $.block,
+    ),
+
+    // expr; — expression used as a statement (';' optional for implicit return)
+    expression_statement: $ => seq($._expression, optional(';')),
+
+    // -----------------------------------------------------------------------
+    // Destructure pattern
+    // -----------------------------------------------------------------------
+
+    destructure_pattern: $ => seq(
+      $.identifier,
+      '(',
+      optional(seq(
+        $._destructure_element,
+        repeat(seq(',', $._destructure_element)),
+        optional(','),
+      )),
+      ')',
+    ),
+
+    _destructure_element: $ => choice(
+      $.identifier,
+      '_',
+      $.destructure_pattern,
+    ),
+
+    // -----------------------------------------------------------------------
+    // Expressions
+    // -----------------------------------------------------------------------
+
+    _expression: $ => choice(
+      $.binary_expression,
+      $.unary_not_expression,
+      $.unary_minus_expression,
+      $.if_expression,
+      $.lambda_expression,
+      $.call_expression,
+      $.method_call_expression,
+      $.field_access_expression,
+      $.index_expression,
+      $.borrow_expression,
+      $.weak_borrow_expression,
+      $.borrow_mut_expression,
+      $.as_expression,
+      $.string_literal,
+      $.multiline_string_literal,
+      $.float_literal,
+      $.integer_literal,
+      $.boolean_literal,
+      $.parenthesized_expression,
+      $.block,
+      $.identifier,
+    ),
+
+    binary_expression: $ => {
+      const ops = [
+        [['..'],               6, 'left'],
+        [['*', '/'],          5, 'left'],
+        [['+', '-'],          4, 'left'],
+        [['mod'],             3, 'left'],
+        [[token(prec(1, '<=>')),  // prec(1) so <=> beats <= in the tokenizer
+          '<=', '>=', '===', '==', '!='], 2, 'left'],
+        [['<', '>'],          2, 'left'],
+        [['and', 'or'],       1, 'left'],
+      ];
+      return choice(...ops.flatMap(([operators, p, assoc]) =>
+        operators.map(op =>
+          (assoc === 'left' ? prec.left : prec.right)(p, seq(
+            field('left', $._expression),
+            field('operator', op),
+            field('right', $._expression),
+          ))
+        )
+      ));
+    },
+
+    unary_not_expression: $ => prec(10, seq('not', $._expression)),
+    unary_minus_expression: $ => prec(10, seq('-', $._expression)),
+
+    if_expression: $ => prec.right(seq(
+      'if',
+      '(',
+      field('condition', $._expression),
+      ')',
+      field('then', $.block),
+      optional(seq('else', field('else', choice($.block, $.if_expression)))),
+    )),
+
+    // Lambda forms:
+    //   (params) => { body }
+    //   (params) { body }
+    //   &(params) => { body }
+    //   &(params) { body }
+    //   &!(params) { body }
+    lambda_expression: $ => choice(
+      seq($.parameter_list, '=>', $.block),
+      seq($.parameter_list, $.block),
+      seq('&', optional('!'), $.parameter_list, '=>', $.block),
+      seq('&', optional('!'), $.parameter_list, $.block),
+    ),
+
+    // Foo(args), Foo<T>(args)
+    call_expression: $ => prec(8, seq(
+      field('function', $._expression),
+      optional(field('generic_args', $.generic_args)),
+      '(',
+      optional(field('arguments', $.argument_list)),
+      ')',
+    )),
+
+    // expr.method(args), expr.method<T>(args)
+    method_call_expression: $ => prec(9, seq(
+      field('receiver', $._expression),
+      '.',
+      field('method', $.identifier),
+      optional(field('generic_args', $.generic_args)),
+      '(',
+      optional(field('arguments', $.argument_list)),
+      ')',
+    )),
+
+    argument_list: $ => seq(
+      $._expression,
+      repeat(seq(',', $._expression)),
+      optional(','),
+    ),
+
+    // expr.field, expr.0
+    field_access_expression: $ => prec(9, seq(
+      field('object', $._expression),
+      '.',
+      field('field', choice($.identifier, $.integer_literal)),
+    )),
+
+    // expr[idx]
+    index_expression: $ => prec(9, seq(
+      field('object', $._expression),
+      '[',
+      field('index', $._expression),
+      ']',
+    )),
+
+    borrow_expression:     $ => prec(7, seq('&',  $._expression)),
+    weak_borrow_expression:$ => prec(7, seq('&&', $._expression)),
+    borrow_mut_expression: $ => prec(7, seq('&!', $._expression)),
+
+    as_expression: $ => prec.left(6, seq($._expression, 'as', $._type_expression)),
+
+    parenthesized_expression: $ => seq('(', $._expression, ')'),
+
+    // -----------------------------------------------------------------------
+    // String literals
+    // -----------------------------------------------------------------------
+
+    string_literal: $ => seq(
+      $._string_start,
+      repeat($._string_part),
+      $._string_end,
+    ),
+
+    multiline_string_literal: $ => seq(
+      $._multiline_string_start,
+      repeat($._string_part),
+      $._string_end,
+    ),
+
+    _string_part: $ => choice(
+      $._string_content,
+      $.string_escape,
+      $.string_interpolation,
+    ),
+
+    string_interpolation: $ => seq(
+      $._interp_open,
+      $._expression,
+      $._interp_close,
+    ),
+
+    string_escape: $ => token(seq(
+      '\\',
+      choice(/[rtn\\"\/\{\}]/, seq('u', /[0-9A-Fa-f]{4}/)),
+    )),
+
+    // -----------------------------------------------------------------------
+    // Literals
+    // -----------------------------------------------------------------------
+
+    float_literal:   $ => /\d+\.\d+/,
+    integer_literal: $ => /\d+/,
+    boolean_literal: $ => choice('true', 'false'),
+
+    // -----------------------------------------------------------------------
+    // Comments
+    // -----------------------------------------------------------------------
+
+    line_comment:    $ => token(seq('//', /.*/)),
+    chevron_comment: $ => /\u00AB[^\u00BB]*\u00BB/,
+    ellipsis:        $ => choice('...', '\u2026'),
+
+    // -----------------------------------------------------------------------
+    // Identifiers
+    // -----------------------------------------------------------------------
+
+    identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
+  },
+});

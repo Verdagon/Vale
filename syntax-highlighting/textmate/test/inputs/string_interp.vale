@@ -1,0 +1,8 @@
+exported func main() int {
+  name = "world";
+  s = "hello {name}!";
+  t = "x = {x + 1}, y = {y}";
+  u = "escaped \n newline";
+  v = "unicode \u0041";
+  return 0;
+}

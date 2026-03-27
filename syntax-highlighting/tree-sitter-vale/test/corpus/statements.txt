@@ -1,0 +1,214 @@
+================================================================================
+Let binding
+================================================================================
+
+func main() void {
+  x = 42;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (integer_literal)))))
+
+================================================================================
+Set statement
+================================================================================
+
+func main() void {
+  x = 0;
+  set x = 1;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (integer_literal))
+      (set_statement
+        (identifier)
+        (integer_literal)))))
+
+================================================================================
+Return statement
+================================================================================
+
+func main() int {
+  return 42;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (integer_literal)))))
+
+================================================================================
+Return without value
+================================================================================
+
+func main() void {
+  return;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement))))
+
+================================================================================
+While loop
+================================================================================
+
+func main() void {
+  while (true) {
+    break;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (while_statement
+        (boolean_literal)
+        (block
+          (break_statement))))))
+
+================================================================================
+Foreach loop
+================================================================================
+
+func main() void {
+  foreach x in items {
+    print(x);
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (foreach_statement
+        (identifier)
+        (identifier)
+        (block
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list
+                (identifier)))))))))
+
+================================================================================
+If expression as statement
+================================================================================
+
+func main() void {
+  if (x == 0) {
+    print("zero");
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (if_expression
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (block
+            (expression_statement
+              (call_expression
+                (identifier)
+                (argument_list
+                  (string_literal))))))))))
+
+================================================================================
+If-else expression
+================================================================================
+
+func main() int {
+  result = if (x > 0) { 1 } else { -1 };
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (if_expression
+          (binary_expression
+            (identifier)
+            (integer_literal))
+          (block
+            (expression_statement
+              (integer_literal)))
+          (block
+            (expression_statement
+              (unary_minus_expression
+                (integer_literal)))))))))
+
+================================================================================
+Unlet statement
+================================================================================
+
+func main() void {
+  x = 42;
+  unlet x;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (integer_literal))
+      (unlet_statement
+        (identifier)))))

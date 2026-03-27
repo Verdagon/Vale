@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "dependencies": {
+    "vscode-textmate": "^9.0.0",
+    "vscode-oniguruma": "^2.0.0"
+  }
+}

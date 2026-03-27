@@ -1,0 +1,10 @@
+{
+  "name": "tree-sitter-vale",
+  "version": "0.1.0",
+  "description": "Vale language grammar for tree-sitter",
+  "license": "MIT",
+  "main": "bindings/node",
+  "dependencies": {
+    "tree-sitter-cli": "^0.24"
+  }
+}

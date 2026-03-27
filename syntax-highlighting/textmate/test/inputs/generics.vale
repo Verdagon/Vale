@@ -1,0 +1,12 @@
+struct Pair<T, U> {
+  first T;
+  second U;
+}
+
+func swap<T, U>(p Pair<T, U>) Pair<U, T> {
+  return Pair<U, T>(p.second, p.first);
+}
+
+struct Vec<#N Int, T> {
+  values [#N]T;
+}

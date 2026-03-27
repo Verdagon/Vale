@@ -1,0 +1,10 @@
+exported func main() int {
+  double = (x) => { x * 2 };
+  noop = (x) { x };
+  f = &(x) { print(x); };
+  items = [];
+  items.each((item) => {
+    print(item);
+  });
+  return 0;
+}

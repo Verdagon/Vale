@@ -1,0 +1,299 @@
+================================================================================
+Integer literal
+================================================================================
+
+func main() int { return 42; }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (integer_literal)))))
+
+================================================================================
+Float literal
+================================================================================
+
+func main() float { return 3.14; }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (float_literal)))))
+
+================================================================================
+Boolean literals
+================================================================================
+
+func main() void {
+  a = true;
+  b = false;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (boolean_literal))
+      (let_statement
+        (identifier)
+        (boolean_literal)))))
+
+================================================================================
+Arithmetic operators
+================================================================================
+
+func main() int {
+  return a + b * c - d / e;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (binary_expression
+          (binary_expression
+            (identifier)
+            (binary_expression
+              (identifier)
+              (identifier)))
+          (binary_expression
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Comparison operators
+================================================================================
+
+func main() bool {
+  return a == b;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (binary_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Logical operators
+================================================================================
+
+func main() bool {
+  return a and b or c;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (binary_expression
+          (binary_expression
+            (identifier)
+            (identifier))
+          (identifier))))))
+
+================================================================================
+Not operator
+================================================================================
+
+func main() bool {
+  return not x;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (unary_not_expression
+          (identifier))))))
+
+================================================================================
+Function call
+================================================================================
+
+func main() void {
+  print(42);
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (integer_literal)))))))
+
+================================================================================
+Method call
+================================================================================
+
+func main() void {
+  s.print();
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (method_call_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Field access
+================================================================================
+
+func main() int {
+  return p.x;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (field_access_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Index expression
+================================================================================
+
+func main() int {
+  return arr[0];
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (index_expression
+          (identifier)
+          (integer_literal))))))
+
+================================================================================
+Borrow expression
+================================================================================
+
+func main() void {
+  useRef(&x);
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (borrow_expression
+              (identifier))))))))
+
+================================================================================
+Spaceship operator
+================================================================================
+
+func main() int {
+  return a <=> b;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (binary_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Range operator
+================================================================================
+
+func main() void {
+  r = 0..10;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (binary_expression
+          (integer_literal)
+          (integer_literal))))))

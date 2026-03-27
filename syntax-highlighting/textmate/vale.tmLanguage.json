@@ -1,0 +1,200 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Vale",
+  "scopeName": "source.vale",
+  "fileTypes": ["vale"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#macro-attribute" },
+    { "include": "#declaration-keyword" },
+    { "include": "#control-keyword" },
+    { "include": "#storage-modifier" },
+    { "include": "#ownership-keyword" },
+    { "include": "#mutability-keyword" },
+    { "include": "#variability-keyword" },
+    { "include": "#operator-keyword" },
+    { "include": "#boolean" },
+    { "include": "#builtin-type" },
+    { "include": "#metatype" },
+    { "include": "#number" },
+    { "include": "#region" },
+    { "include": "#operator" },
+    { "include": "#function-def" },
+    { "include": "#struct-def" },
+    { "include": "#interface-def" },
+    { "include": "#type-name" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.vale",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.chevron.vale",
+          "begin": "\u00AB",
+          "end": "\u00BB",
+          "contentName": "comment.block.content.vale"
+        },
+        {
+          "name": "comment.block.ellipsis.vale",
+          "match": "\\.\\.\\.|\u2026"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.vale",
+          "begin": "\"\"\"",
+          "end": "\"\"\"",
+          "patterns": [
+            { "include": "#string-escape" },
+            { "include": "#string-interpolation" }
+          ]
+        },
+        {
+          "name": "string.quoted.double.vale",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "include": "#string-escape" },
+            { "include": "#string-interpolation" }
+          ]
+        }
+      ]
+    },
+    "string-escape": {
+      "name": "constant.character.escape.vale",
+      "match": "\\\\([rtn\\\\\"/\\{\\}]|u[0-9A-Fa-f]{4})"
+    },
+    "string-interpolation": {
+      "name": "meta.interpolation.vale",
+      "begin": "\\{(?!\\n)",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.section.interpolation.begin.vale" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.section.interpolation.end.vale" }
+      },
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#string" },
+        { "include": "#declaration-keyword" },
+        { "include": "#control-keyword" },
+        { "include": "#storage-modifier" },
+        { "include": "#ownership-keyword" },
+        { "include": "#mutability-keyword" },
+        { "include": "#operator-keyword" },
+        { "include": "#boolean" },
+        { "include": "#builtin-type" },
+        { "include": "#metatype" },
+        { "include": "#number" },
+        { "include": "#region" },
+        { "include": "#operator" },
+        { "include": "#type-name" },
+        { "include": "#identifier" }
+      ]
+    },
+    "macro-attribute": {
+      "name": "meta.attribute.vale",
+      "match": "#!?[A-Z][a-zA-Z0-9]*"
+    },
+    "declaration-keyword": {
+      "name": "keyword.declaration.vale",
+      "match": "\\b(func|struct|interface|impl|import|export)\\b"
+    },
+    "control-keyword": {
+      "name": "keyword.control.vale",
+      "match": "\\b(if|else|while|foreach|in|break|return|set|destruct|unlet|block|as)\\b"
+    },
+    "storage-modifier": {
+      "name": "storage.modifier.vale",
+      "match": "\\b(abstract|extern|exported|weakable|sealed|linear|pure|unsafe|additive|virtual|self|this)\\b"
+    },
+    "ownership-keyword": {
+      "name": "keyword.other.ownership.vale",
+      "match": "\\b(own|borrow|weak|share)\\b"
+    },
+    "mutability-keyword": {
+      "name": "keyword.other.mutability.vale",
+      "match": "\\b(mut|imm)\\b"
+    },
+    "variability-keyword": {
+      "name": "keyword.other.variability.vale",
+      "match": "\\b(vary|final)\\b"
+    },
+    "operator-keyword": {
+      "name": "keyword.operator.word.vale",
+      "match": "\\b(and|or|not|mod)\\b"
+    },
+    "boolean": {
+      "name": "constant.language.boolean.vale",
+      "match": "\\b(true|false)\\b"
+    },
+    "builtin-type": {
+      "name": "support.type.primitive.vale",
+      "match": "\\b(int|bool|float|str|void|i8|i16|i32|i64|u8|u16|u32|u64|__Never)\\b"
+    },
+    "metatype": {
+      "name": "support.type.meta.vale",
+      "match": "\\b(Ref|Kind|Region|Prot|RefList|Ownership|Variability|Mutability|Location|Refs|Int)\\b"
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.vale",
+          "match": "-?\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.vale",
+          "match": "-?\\b\\d+\\b"
+        }
+      ]
+    },
+    "region": {
+      "name": "variable.other.region.vale",
+      "match": "'\\w+"
+    },
+    "operator": {
+      "name": "keyword.operator.vale",
+      "match": "<=>|===|==|!=|<=|>=|\\.\\.|-|\\+|\\*|/|&!|&&|&|\\|>|<|>"
+    },
+    "function-def": {
+      "name": "meta.function.vale",
+      "match": "\\b(func)\\s+([a-zA-Z_][a-zA-Z0-9_]*|[+\\-*/=!<>]+)",
+      "captures": {
+        "1": { "name": "keyword.declaration.function.vale" },
+        "2": { "name": "entity.name.function.vale" }
+      }
+    },
+    "struct-def": {
+      "name": "meta.struct.vale",
+      "match": "\\b(struct)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.struct.vale" },
+        "2": { "name": "entity.name.type.struct.vale" }
+      }
+    },
+    "interface-def": {
+      "name": "meta.interface.vale",
+      "match": "\\b(interface)\\s+([A-Z][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.interface.vale" },
+        "2": { "name": "entity.name.type.interface.vale" }
+      }
+    },
+    "type-name": {
+      "name": "entity.name.type.vale",
+      "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+    },
+    "identifier": {
+      "name": "variable.other.vale",
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+    }
+  }
+}

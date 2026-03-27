@@ -1,0 +1,20 @@
+exported func main() int {
+  a = 1 + 2;
+  b = 3 - 1;
+  c = 4 * 2;
+  d = 8 / 2;
+  e = 10 mod 3;
+  f = a == b;
+  g = a != b;
+  h = a === b;
+  i = a < b;
+  j = a > b;
+  k = a <= b;
+  l = a >= b;
+  m = a <=> b;
+  n = 1..10;
+  o = a and b;
+  p = a or b;
+  q = not a;
+  return 0;
+}

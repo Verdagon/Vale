@@ -1,0 +1,16 @@
+func borrow_fn(x &int) int {
+  return x;
+}
+
+func weak_fn(x &&Node) void {
+  use(x);
+}
+
+func mut_borrow(x &!int) void {
+  set x = 42;
+}
+
+struct Node {
+  parent &&Node;
+  value int;
+}

@@ -1,0 +1,22 @@
+exported func main() int {
+  x = 5;
+  if (x > 0) {
+    return 1;
+  } else if (x == 0) {
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+func countdown(n int) void {
+  while (n > 0) {
+    set n = n - 1;
+  }
+}
+
+func printAll(items &[]str) void {
+  foreach item in items {
+    print(item);
+  }
+}

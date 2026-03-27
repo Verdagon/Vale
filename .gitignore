@@ -22,3 +22,6 @@ test_output/
 */.claude/worktrees/
 Rabble
 .DS_Store
+syntax-highlighting/tree-sitter-vale/target
+syntax-highlighting/tree-sitter-vale/vale.dylib
+syntax-highlighting/tree-sitter-vale/node_modules

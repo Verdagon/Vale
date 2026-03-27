@@ -1,0 +1,260 @@
+================================================================================
+Import with wildcard
+================================================================================
+
+import stdlib.collections.hashmap.*;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_definition
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+Import specific
+================================================================================
+
+import v.builtins.print.println;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_definition
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+Simple exported function
+================================================================================
+
+exported func main() int {
+  return 0;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (keyword_attribute)
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (return_statement
+        (integer_literal)))))
+
+================================================================================
+Function with parameters
+================================================================================
+
+func add(a int, b int) int {
+  return a + b;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list
+      (named_parameter
+        (identifier)
+        (primitive_type))
+      (named_parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)
+    (block
+      (return_statement
+        (binary_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Simple struct
+================================================================================
+
+struct Point {
+  x int;
+  y int;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (identifier)
+    (field_definition
+      (identifier)
+      (primitive_type))
+    (field_definition
+      (identifier)
+      (primitive_type))))
+
+================================================================================
+Struct with mutable field
+================================================================================
+
+struct Counter {
+  count! int;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (identifier)
+    (field_definition
+      (identifier)
+      (primitive_type))))
+
+================================================================================
+Struct with macro attribute
+================================================================================
+
+#DeriveStructDrop
+struct Point {
+  x int;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    (macro_attribute)
+    (identifier)
+    (field_definition
+      (identifier)
+      (primitive_type))))
+
+================================================================================
+Interface definition
+================================================================================
+
+interface IShape {
+  func area(virtual self &IShape) float;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_definition
+    (identifier)
+    (function_definition
+      (identifier)
+      (parameter_list
+        (self_parameter
+          (borrow_type
+            (named_type
+              (identifier)))))
+      (primitive_type))))
+
+================================================================================
+Impl definition (with semicolon)
+================================================================================
+
+impl IShape for Point;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (impl_definition
+    (named_type
+      (identifier))
+    (named_type
+      (identifier))))
+
+================================================================================
+Impl definition with body
+================================================================================
+
+impl IShape for Circle {
+  func area(virtual self &IShape) float {
+    return 3.14;
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (impl_definition
+    (named_type
+      (identifier))
+    (named_type
+      (identifier))
+    (function_definition
+      (identifier)
+      (parameter_list
+        (self_parameter
+          (borrow_type
+            (named_type
+              (identifier)))))
+      (primitive_type)
+      (block
+        (return_statement
+          (float_literal))))))
+
+================================================================================
+Function with generic params
+================================================================================
+
+func identity<T>(x T) T {
+  return x;
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (generic_params
+      (type_param
+        (identifier)))
+    (parameter_list
+      (named_parameter
+        (identifier)
+        (named_type
+          (identifier))))
+    (named_type
+      (identifier))
+    (block
+      (return_statement
+        (identifier)))))
+
+================================================================================
+Extern attribute
+================================================================================
+
+extern func getch() int;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (extern_attribute)
+    (identifier)
+    (parameter_list)
+    (primitive_type)))
+
+================================================================================
+Extern attribute with C name
+================================================================================
+
+extern("vale_strlen") func strlen(s str) int;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (extern_attribute
+      (string_literal))
+    (identifier)
+    (parameter_list
+      (named_parameter
+        (identifier)
+        (primitive_type)))
+    (primitive_type)))

@@ -1,0 +1,15 @@
+#DeriveStructDrop
+struct Foo { x int; }
+
+#!DeriveStructDrop
+struct Bar { x int; }
+
+#DeriveAnonymousSubstruct
+struct Baz { x int; }
+
+#DeriveInterfaceDrop
+interface IFoo { func method(virtual self &IFoo) void; }
+
+abstract func abstractFn(virtual self &IFoo) void;
+pure func pureFn(x int) int { return x; }
+extern func extFn() int;

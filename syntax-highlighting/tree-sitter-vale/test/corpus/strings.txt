@@ -1,0 +1,107 @@
+================================================================================
+Simple string
+================================================================================
+
+func main() void {
+  s = "hello";
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (string_literal)))))
+
+================================================================================
+String with escape sequences
+================================================================================
+
+func main() void {
+  s = "hello\nworld\t!";
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (string_literal
+          (string_escape)
+          (string_escape))))))
+
+================================================================================
+String with interpolation
+================================================================================
+
+func main() void {
+  s = "hello {name}!";
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (string_literal
+          (string_interpolation
+            (identifier)))))))
+
+================================================================================
+Empty string
+================================================================================
+
+func main() void {
+  s = "";
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (string_literal)))))
+
+================================================================================
+String concatenation
+================================================================================
+
+func main() void {
+  s = "hello" + " " + "world";
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameter_list)
+    (primitive_type)
+    (block
+      (let_statement
+        (identifier)
+        (binary_expression
+          (binary_expression
+            (string_literal)
+            (string_literal))
+          (string_literal))))))
