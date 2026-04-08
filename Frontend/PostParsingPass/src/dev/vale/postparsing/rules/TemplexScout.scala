@@ -232,13 +232,6 @@ class TemplexScout(
 
 
               resultRuneS
-//              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-//              ruleBuilder +=
-//                rules.PackSR(
-//                  evalRange(range),
-//                  resultRuneS,
-//                  members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
-//              resultRuneS
             }
             case StaticSizedArrayPT(rangeP, mutability, variability, size, element) => {
               val rangeS = evalRange(rangeP)
@@ -295,17 +288,6 @@ class TemplexScout(
                   resultRuneS,
                   templateRuneS,
                   elements.map(translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, _)))
-//              ruleBuilder +=
-//                rules.CallSR(
-//                  evalRange(range),
-//                  resultRuneS,
-//                  templateRuneS,
-//                  Vector(packRuneS))
-//              ruleBuilder +=
-//                rules.PackSR(
-//                  evalRange(range),
-//                  packRuneS,
-//                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
               resultRuneS
             }
           }
@@ -326,8 +308,6 @@ class TemplexScout(
     typeP match {
       case NameOrRunePT(NameP(range, nameOrRune)) if env.allDeclaredRunes().contains(CodeRuneS(nameOrRune)) => {
         val resultRuneS = rules.RuneUsage(PostParser.evalRange(env.file, range), CodeRuneS(nameOrRune))
-        //        ruleBuilder += ValueLeafSR(range, resultRuneS, EnvRuneLookupSR(CodeRuneS(nameOrRune)))
-        //        resultRuneS
         resultRuneS
       }
       case nonRuneTemplexP => {

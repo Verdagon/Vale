@@ -11,7 +11,7 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vregionmut, vwat}
 import dev.vale.highertyping._
-import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
+import dev.vale.solver.{FailedSolve, Step}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
@@ -352,8 +352,8 @@ class StructCompilerGenericArgsLayer(
         envs, coutputs, solver,
         // Each step happens after the solver has done all it possibly can. Sometimes this can lead
         // to races, see RRBFS.
-        (solver) => {
-          TemplataCompiler.getFirstUnsolvedIdentifyingRune(structA.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
+        (solverState) => {
+          TemplataCompiler.getFirstUnsolvedIdentifyingRune(structA.genericParameters, (rune) => solverState.getConclusion(rune).nonEmpty) match {
             case None => false
             case Some((genericParam, index)) => {
               val placeholderPureHeight = vregionmut(None)
@@ -361,12 +361,21 @@ class StructCompilerGenericArgsLayer(
               val templata =
                 templataCompiler.createPlaceholder(
                   coutputs, outerEnv, structTemplateId, genericParam, index, allRuneToType, placeholderPureHeight, true)
-              solver.manualStep(Map(genericParam.rune.rune -> templata))
+
+              { // solver.manualStep(Map(genericParam.rune.rune -> templata))
+//                val step = Step[IRulexSR, IRuneS, ITemplataT[ITemplataType]](false, Vector(), Vector(), Map())
+//                Map(genericParam.rune.rune -> templata).foreach({ case (rune, conclusion) =>
+//                  solverState.concludeRune(rune, conclusion).getOrDie()
+//                })
+//                solverState.addStep(step)
+                solverState.commitStep[Nothing](false, Vector(), Map(genericParam.rune.rune -> templata), Vector()).getOrDie()
+              }
+
               true
             }
           }
         }) match {
-        case Err(f @ FailedCompilerSolve(_, _, err)) => {
+        case Err(f @ FailedSolve(_, _, _, _, err)) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f))
         }
         case Ok(true) =>
@@ -453,8 +462,8 @@ class StructCompilerGenericArgsLayer(
         envs, coutputs, solver,
         // Each step happens after the solver has done all it possibly can. Sometimes this can lead
         // to races, see RRBFS.
-        (solver) => {
-          TemplataCompiler.getFirstUnsolvedIdentifyingRune(interfaceA.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
+        (solverState) => {
+          TemplataCompiler.getFirstUnsolvedIdentifyingRune(interfaceA.genericParameters, (rune) => solverState.getConclusion(rune).nonEmpty) match {
             case None => false
             case Some((genericParam, index)) => {
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
@@ -462,12 +471,20 @@ class StructCompilerGenericArgsLayer(
               val templata =
                 templataCompiler.createPlaceholder(
                   coutputs, outerEnv, interfaceTemplateId, genericParam, index, interfaceA.runeToType, placeholderPureHeight, true)
-              solver.manualStep(Map(genericParam.rune.rune -> templata))
+
+              { // solver.manualStep(Map(genericParam.rune.rune -> templata))
+                solverState.commitStep[Nothing](false, Vector(), Map(genericParam.rune.rune -> templata), Vector()).getOrDie()
+//                solverState.addStep(step)
+//                step.conclusions.foreach({ case (rune, conclusion) =>
+//                  solverState.concludeRune(solverState.getCanonicalRune(rune), conclusion)
+//                })
+              }
+
               true
             }
           }
         }) match {
-        case Err(f @ FailedCompilerSolve(_, _, err)) => {
+        case Err(f @ FailedSolve(_, _, _, _, err)) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f))
         }
         case Ok(true) =>

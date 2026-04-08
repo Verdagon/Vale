@@ -1,0 +1,45 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Volumes/V/Sylvan/.claude/hooks/check-scala-comments/target/release/check-scala-comments",
+            "timeout": 10000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Volumes/V/Sylvan/.claude/hooks/guardian-client.sh || exit 2"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob|Grep|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"decision\":\"allow\"}'",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Volumes/V/Sylvan/Luz/hooks/validate-readonly/target/release/validate-readonly",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -16,7 +16,8 @@ case class ProgramA(
     functions: Vector[FunctionA],
     exports: Vector[ExportAsA],
     imports: Vector[ImportS]) {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+  override def hashCode(): Int = vcurious()
 
   def lookupFunction(name: INameS) = {
     val matches = functions.filter(_.name == name)
