@@ -51,6 +51,7 @@ case class BadStringChar(stringBeginPos: Int, pos: Int) extends IParseError { ov
 case class BadFunctionName(pos: Int) extends IParseError { override def errorId: String = "P1005"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class BadParamEnd(pos: Int) extends IParseError { override def errorId: String = "P1005"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ForgotSetKeyword(pos: Int) extends IParseError { override def errorId: String = "P1005"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class FuncBoundWithoutWhere(pos: Int) extends IParseError { override def errorId: String = "P1001"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class BadBinaryFunctionName(pos: Int) extends IParseError { override def errorId: String = "P1005"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class BadTemplateCallee(pos: Int) extends IParseError { override def errorId: String = "P1005"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class UnknownTupleOrSubExpression(pos: Int) extends IParseError { override def errorId: String = "P1005"; override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
