@@ -468,10 +468,4 @@ case class PrototypeT[+T <: IFunctionNameT](
   def paramTypes: Vector[CoordT] = id.localName.parameters
   def toSignature: SignatureT = SignatureT(id)
 
-  id.initSteps.foreach({
-    case StructTemplateNameT(_) => {
-      vwat() // See ZXCVCXZ
-    }
-    case _ =>
-  })
 }

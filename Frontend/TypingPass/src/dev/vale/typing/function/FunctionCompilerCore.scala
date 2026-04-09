@@ -258,8 +258,14 @@ class FunctionCompilerCore(
       }
 
     val IdT(packageCoord, initSteps, funcEnvName) = fullEnv.id
+    val hasSelfParam = params2.exists(param2 => {
+      param2.name match {
+        case CodeVarNameT(s) if s == keywords.self => true
+        case _ => false
+      }
+    })
     initSteps.lastOption match {
-      case Some(StructTemplateNameT(_)) => {
+      case Some(StructTemplateNameT(_)) if hasSelfParam => {
         // DO NOT SUBMIT make into a proper error
         val selfParam =
           vassertSome(

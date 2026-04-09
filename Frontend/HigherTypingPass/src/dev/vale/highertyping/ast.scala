@@ -234,7 +234,7 @@ case class InterfaceA(
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   internalMethods.foreach(internalMethod => {
-    vassert(genericParameters == internalMethod.genericParameters)
+    vassert(genericParameters.map(_.copy(inherited = true)) == internalMethod.genericParameters)
   })
 }
 

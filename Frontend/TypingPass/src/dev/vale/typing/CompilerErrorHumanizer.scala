@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.solver.{FailedSolve, RuleError, SolveIncomplete, SolverErrorHumanizer}
+import dev.vale.solver.{FailedSolve, RuleError, SolveIncomplete, SolverConflict, SolverErrorHumanizer}
 import dev.vale.typing.types._
 import dev.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining, linesBetween}
 import dev.vale.highertyping.FunctionA
@@ -514,6 +514,21 @@ object CompilerErrorHumanizer {
             humanizeRune(rune) + " = " + humanizeTemplata(codeMap, CoordTemplataT(coord))
           }).mkString(", ")
       }
+      case InternalSolverError(range, err) => {
+        err match {
+          case SolverConflict(rune, previousConclusion, newConclusion) => {
+            "Internal solver conflict on rune " + humanizeRune(rune) + ": " +
+              humanizeTemplata(codeMap, previousConclusion) + " vs " +
+              humanizeTemplata(codeMap, newConclusion)
+          }
+          case RuleError(innerErr) => {
+            "Internal solver rule error: " + humanizeRuleError(codeMap, linesBetween, lineRangeContaining, lineContaining, innerErr)
+          }
+          case SolveIncomplete() => {
+            "Internal solver error: solve incomplete"
+          }
+        }
+      }
     }
   }
 
@@ -776,6 +791,12 @@ object CompilerErrorHumanizer {
       case StructTemplateNameT(humanName) => humanName.str
       case InterfaceTemplateNameT(humanName) => humanName.str
       case p @ NonKindNonRegionPlaceholderNameT(index, rune) => p.toString // DO NOT SUBMIT
+      case PredictedFunctionTemplateNameT(humanName) => humanName.str
+      case PredictedFunctionNameT(template, templateArgs, parameters) => {
+        humanizeName(codeMap, template) +
+          humanizeGenericArgs(codeMap, templateArgs, None) +
+          "(" + parameters.map(CoordTemplataT).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
+      }
     }
   }
 

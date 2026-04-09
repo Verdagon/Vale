@@ -657,7 +657,7 @@ class FunctionCompilerSolvingLayer(
 
     val runedEnv =
       addRunedDataToNearEnv(
-        nearEnv, function.genericParameters.filter(!_.inherited).map(_.rune.rune),
+        nearEnv, function.genericParameters.map(_.rune.rune),
         inferences,
         instantiationBoundParams.runeToCitizenRuneToReachablePrototype.values.flatMap(_.citizenRuneToReachablePrototype.values).toVector.map(PrototypeTemplataT(_)))
 

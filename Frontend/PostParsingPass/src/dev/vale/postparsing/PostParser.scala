@@ -520,7 +520,7 @@ class PostParser(
       val rune = DenizenDefaultRegionRuneS(exportName)
       runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
-        GenericParameterS(regionRange, RuneUsage(regionRange, rune), vimpl(), RegionGenericParameterTypeS(ReadWriteRegionS), None)
+        GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
       (regionRange, ContextRegionRune(rune), implicitRegionGenericParam)
     }
 

@@ -219,7 +219,7 @@ class AnonymousInterfaceMacro(
 
     val structGenericParams =
       interfaceA.genericParameters ++
-        memberRunes.map(mr => GenericParameterS(mr.range, mr, vimpl(), CoordGenericParameterTypeS(vregionmut(None), true, false), None))
+        memberRunes.map(mr => GenericParameterS(mr.range, mr, false, CoordGenericParameterTypeS(vregionmut(None), true, false), None))
 
     interfaceA.internalMethods.zip(memberRunes).zipWithIndex.foreach({ case ((internalMethod, memberRune), methodIndex) =>
       val methodRuneToType =

@@ -1474,12 +1474,10 @@ class Instantiator(
             } else {
               if (opts.sanityCheck) {
                 val desiredFuncSuperTemplateName = TemplataCompiler.getSuperTemplate(desiredPrototypeT.id)
-                println("Looking for: " + desiredFuncSuperTemplateName) // DO NOT SUBMIT
                 val funcT =
                   vassertOne(
                     hinputs.functions
                         .filter(funcT => {
-                          println("Candidate: " + TemplataCompiler.getSuperTemplate(funcT.header.id)) // DO NOT SUBMIT
                           TemplataCompiler.getSuperTemplate(funcT.header.id) == desiredFuncSuperTemplateName
                         }))
                 vassert(runeToBoundArgsForCall.runeToFunctionBoundArg.size == funcT.instantiationBoundParams.runeToBoundPrototype.size)

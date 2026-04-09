@@ -185,7 +185,7 @@ case class InterfaceS(
     // // .init because every method has a default region as the last region param.
     // vassert(genericParams == internalMethod.genericParams.init)
     // Take this out when we have regions
-    vassert(genericParams == internalMethod.genericParams)
+    vassert(genericParams.map(_.copy(inherited = true)) == internalMethod.genericParams)
   })
 
 }

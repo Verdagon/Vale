@@ -1,6 +1,6 @@
 package dev.vale.testvm
 
-import dev.vale.{Interner, Keywords, PackageCoordinate, PackageCoordinateMap, StrI, finalast, vimpl}
+import dev.vale.{Interner, Keywords, PackageCoordinate, PackageCoordinateMap, StrI, finalast}
 import dev.vale.finalast._
 import dev.vale.finalast._
 import dev.vale.von.{VonArray, VonInt, VonMember, VonObject, VonStr}
@@ -86,7 +86,7 @@ class VivemTests extends FunSuite with Matchers {
       PackageCoordinate.BUILTIN(interner, keywords),
       PackageH(
         Vector.empty, Vector.empty, Vector(addExtern), Vector.empty, Vector.empty, Map(), Map(),
-        vimpl(), Map()))//Map(vimpl() -> HamutsFunctionExtern("__vbi_addI32", addPrototype, vimpl())), Map()))
+        Map(addPrototype -> HamutsFunctionExtern("__vbi_addI32", addPrototype, SimpleId(Vector(SimpleIdStep("", Vector()), SimpleIdStep("__vbi_addI32", Vector()))))), Map()))
     packages.put(
       PackageCoordinate.TEST_TLD(interner, keywords),
       PackageH(
