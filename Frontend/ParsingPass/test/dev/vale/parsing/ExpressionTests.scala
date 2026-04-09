@@ -640,6 +640,24 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
   }
 
 
+  test("Iso construction expression") {
+    compileExpressionExpect("'Marine()") shouldHave {
+      case TransmigratePE(_, None, FunctionCallPE(_, _, LookupPE(LookupNameP(NameP(_, StrI("Marine"))), None), Vector())) =>
+    }
+  }
+
+  test("Iso local variable declaration") {
+    compileStatementExpect("m 'Marine = 'Marine();") shouldHave {
+      case LetPE(_, PatternPP(_, Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("m"))), _)), Some(InterpretedPT(_, None, Some(RegionRunePT(_, None)), NameOrRunePT(NameP(_, StrI("Marine"))))), None), TransmigratePE(_, None, _)) =>
+    }
+  }
+
+  test("Iso borrow reference declaration") {
+    compileStatementExpect("r &'Marine = &m;") shouldHave {
+      case LetPE(_, PatternPP(_, Some(DestinationLocalP(LocalNameDeclarationP(NameP(_, StrI("r"))), _)), Some(InterpretedPT(_, Some(OwnershipPT(_, BorrowP)), Some(RegionRunePT(_, None)), NameOrRunePT(NameP(_, StrI("Marine"))))), None), AugmentPE(_, BorrowP, LookupPE(LookupNameP(NameP(_, StrI("m"))), None))) =>
+    }
+  }
+
 //  // See https://github.com/ValeLang/Vale/issues/108
 //  test("Calling with space") {
 //    compile(CombinatorParsers.expression(true),

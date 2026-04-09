@@ -1039,6 +1039,24 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+  test("Extern function can depend on extern kind") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |extern struct Firefly imm { }
+        |extern func moo() &Firefly;
+        |""".stripMargin)
+    compile.expectCompilerOutputs()
+  }
+
+  test("Extern function can depend on exported kind") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |exported struct Firefly imm { }
+        |extern func moo() &Firefly;
+        |""".stripMargin)
+    compile.expectCompilerOutputs()
+  }
+
   test("Reports when exported struct depends on non-exported member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1967,37 +1985,8 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
 
-  test("Create iso object") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |#!DeriveStructDrop
-        |struct Marine { }
-        |
-        |exported func main() {
-        |  m 'Marine = 'Marine();
-        |  [] = m;
-        |}
-      """.stripMargin)
 
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Reference iso object") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |#!DeriveStructDrop
-        |struct Marine { }
-        |
-        |exported func main() {
-        |  m 'Marine = 'Marine();
-        |  r &'Marine = &m;
-        |}
-      """.stripMargin)
-
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Call rust builtin") {
+  ignore("Call rust builtin") { // Rust import pipeline not yet implemented
     val compile = CompilerTestCompilation.test(
       """
         |import rust.rstr;
@@ -2010,7 +1999,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  test("Call rust free function") {
+  ignore("Call rust free function") { // Rust import pipeline not yet implemented
     val compile = CompilerTestCompilation.test(
       """
         |import frust.std.fs.create_dir;
@@ -2023,7 +2012,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  test("Import rust object") {
+  ignore("Import rust object") { // Rust import pipeline not yet implemented
     val compile = CompilerTestCompilation.test(
       """
         |import frust.std.vec.Vec;

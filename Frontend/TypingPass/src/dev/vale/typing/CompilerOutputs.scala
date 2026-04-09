@@ -76,8 +76,8 @@ case class CompilerOutputs() {
 
   private val kindExports: mutable.ArrayBuffer[KindExportT] = mutable.ArrayBuffer()
   private val functionExports: mutable.ArrayBuffer[FunctionExportT] = mutable.ArrayBuffer()
-//  private val kindExterns: mutable.ArrayBuffer[KindExternT] = mutable.ArrayBuffer()
-//  private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
+  private val kindExterns: mutable.ArrayBuffer[KindExternT] = mutable.ArrayBuffer()
+  private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
 
   // When we call a function, for example this one:
   //   abstract func drop<T>(virtual opt Opt<T>) where func drop(T)void;
@@ -461,13 +461,13 @@ case class CompilerOutputs() {
     functionExports += FunctionExportT(range, function, exportId, exportedName)
   }
 
-//  def addKindExtern(kind: KindT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
-//    kindExterns += KindExternT(kind, packageCoord, exportedName)
-//  }
-//
-//  def addFunctionExtern(range: RangeS, externPlaceholderedId: IdT[ExternNameT], function: PrototypeT[IFunctionNameT], exportedName: StrI): Unit = {
-//    functionExterns += FunctionExternT(range, externPlaceholderedId, function, exportedName)
-//  }
+  def addKindExtern(kind: KindT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
+    kindExterns += KindExternT(kind, packageCoord, exportedName)
+  }
+
+  def addFunctionExtern(range: RangeS, externPlaceholderedId: IdT[ExternNameT], function: PrototypeT[IFunctionNameT], exportedName: StrI): Unit = {
+    functionExterns += FunctionExternT(range, externPlaceholderedId, function, exportedName)
+  }
 
   def deferCompilingFunctionBody(devf: DeferredEvaluatingFunctionBody): Unit = {
     deferredFunctionBodyCompiles.put(devf.prototypeT, devf)
@@ -602,10 +602,10 @@ case class CompilerOutputs() {
   def getFunctionExports: Vector[FunctionExportT] = {
     functionExports.toVector
   }
-//  def getKindExterns: Vector[KindExternT] = {
-//    kindExterns.toVector
-//  }
-//  def getFunctionExterns: Vector[FunctionExternT] = {
-//    functionExterns.toVector
-//  }
+  def getKindExterns: Vector[KindExternT] = {
+    kindExterns.toVector
+  }
+  def getFunctionExterns: Vector[FunctionExternT] = {
+    functionExterns.toVector
+  }
 }

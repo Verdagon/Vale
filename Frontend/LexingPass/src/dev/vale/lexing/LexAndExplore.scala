@@ -62,11 +62,10 @@ object LexAndExplore {
 
 //        println(s"Processing ${neededPackageCoord}")
 
-//        if (neededPackageCoord.module.str == "rust") {
-//          // DO NOT SUBMIT
-//          // Module rust is special, we generate things for it in a later stage.
-//          // Do nothing.
-//        } else {
+        if (neededPackageCoord.module.str == "rust") {
+          // Module rust is special, we skip it here so syntax highlighting
+          // (which invokes the lexer) doesn't crash on rust imports.
+        } else {
           val filepathsAndContents =
             resolver.resolve(neededPackageCoord) match {
               case None => {
@@ -148,7 +147,7 @@ object LexAndExplore {
             val file = fileHandler(fileCoord, code, commentsRanges, resultAcc)
             filesAcc.add(file)
           })
-//        }
+        }
       }
 
       Ok(filesAcc)
