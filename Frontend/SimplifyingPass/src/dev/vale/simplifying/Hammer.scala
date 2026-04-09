@@ -278,6 +278,7 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //      hamuts.addKindExtern(kindH, packageCoordinate, exportName)
 //    })
 
+    // Per @SMLRZ, extern IDs are simplified to Rust paths via NameHammer.simplifyId.
     kindExterns.foreach({ case (struct, KindExternI(_)) =>
       val exportName = mangleStruct(struct.id)
       val exportSimplifiedId = NameHammer.simplifyId(struct.id)

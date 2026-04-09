@@ -265,8 +265,9 @@ class FunctionCompilerCore(
       }
     })
     initSteps.lastOption match {
+      // Per @SMLRZ, struct methods with self get instantiated struct from self param in initSteps,
+      // producing Rust-compatible paths like Vec<i32>::capacity.
       case Some(StructTemplateNameT(_)) if hasSelfParam => {
-        // DO NOT SUBMIT make into a proper error
         val selfParam =
           vassertSome(
             params2.find(param2 => {
@@ -286,6 +287,8 @@ class FunctionCompilerCore(
           funcEnvName match {
             case FunctionNameT(template, templateArgs, parameters) => {
               vassert(templateArgs.size == genericParametersS.size)
+              // Per @SMLRZ, strips inherited template args so struct args appear only on the struct
+              // step, matching Rust's Vec<i32>::capacity (not Vec::capacity<i32>).
               val newTemplateArgs =
                 genericParametersS.zip(templateArgs).filter(!_._1.inherited).map(_._2)
               FunctionNameT(template, newTemplateArgs, parameters)

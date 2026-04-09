@@ -234,6 +234,7 @@ case class InterfaceA(
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   internalMethods.foreach(internalMethod => {
+    // Per @SMLRZ, internal methods get parent's params with inherited=true.
     vassert(genericParameters.map(_.copy(inherited = true)) == internalMethod.genericParameters)
   })
 }
@@ -289,7 +290,7 @@ case class FunctionA(
 
     rules: Vector[IRulexSR],
 
-    lift: Boolean,
+    lift: Boolean, // See @SMLRZ for lift rules
 
     body: IBodyS
 ) {

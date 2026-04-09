@@ -1330,7 +1330,7 @@ void doRustyThings(
   for (auto[packageCoord, package] : program->packages) {
     if (packageCoord->projectName == "rust") { // DO NOT SUBMIT just lookup?
       for (auto [prototype, externFunc]: package->functionToExtern) {
-        std::string rustFuncStr = rustifySimpleId(externFunc->simpleId, true);
+        std::string rustFuncStr = rustifySimpleId(externFunc->simpleId, true); // Per @SMLRZ
         prototypeToRustFuncStr.emplace(externFunc->prototype, rustFuncStr);
         divinationInput << "#pragma rsfn " << rustFuncStr << std::endl;
       }
@@ -1339,7 +1339,7 @@ void doRustyThings(
   for (auto[packageCoord, package] : program->packages) {
     if (packageCoord->projectName == "rust") { // DO NOT SUBMIT but we cant just lookup because there are multiple packages under rust
       for (auto [externName, externKind]: package->kindToExtern) {
-        std::string rustKindStr = rustifySimpleId(externKind->simpleId, true);
+        std::string rustKindStr = rustifySimpleId(externKind->simpleId, true); // Per @SMLRZ
         kindToRustKindStr.emplace(externKind->kind, rustKindStr);
         divinationInput << "#pragma rsuse " << rustKindStr << std::endl;
       }

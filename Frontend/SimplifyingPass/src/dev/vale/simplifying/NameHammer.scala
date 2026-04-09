@@ -76,6 +76,9 @@ object NameHammer {
           simplifyName(localName))
   }
 
+  // Per @SMLRZ, only handles StructNameI (instantiated with type args). StructTemplateNameI (bare
+  // template) would crash. Function IDs must contain instantiated struct names so the downstream
+  // Rust path includes type args (e.g. Vec<i32>::capacity, not Vec::capacity).
   def simplifyName(name: INameI[cI]): SimpleIdStep = {
     name match {
       case StructNameI(StructTemplateNameI(humanName), templateArgs) => {

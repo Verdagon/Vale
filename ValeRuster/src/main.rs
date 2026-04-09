@@ -1254,6 +1254,7 @@ fn instantiate_func(
           .iter()
           .map(|x| type_rust_str_to_info.get(x).unwrap())
           .collect::<Vec<&TypeInfo>>();
+  // Per @SMLRZ, drop identified by last path step. Path has type args on struct step (e.g. Vec<i32>::drop).
   let is_drop =
     match info.canonical_type.steps.last().unwrap() {
       ParsedType::Value { name, .. } => name == "drop",
@@ -1540,6 +1541,7 @@ fn parse_full_type<'a>(
   }
 }
 
+// Per @SMLRZ, parses Rust paths with type args on type steps (e.g. Vec<i32>::capacity).
 fn parse_full_type_inner<'a>(
   concrete_primitives: &HashSet<String>,
   replacements: &HashMap<String, ParsedFullType>,

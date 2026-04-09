@@ -6,7 +6,8 @@
 
 std::string rustifySimpleIdStep(SimpleIdStep* simpleIdStep);
 
-// TODO: optimize: use a string builder
+// Per @SMLRZ, produces Rust paths like Vec<i32>::capacity directly from SimpleId structure.
+// Type args are rendered on each step (e.g. Vec<i32>) matching Rust's path conventions.
 std::string rustifySimpleId(SimpleId* simpleId, bool ignoreFirst) {
   bool ignoreNext = ignoreFirst;
   std::string stepsStr;

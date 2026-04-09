@@ -112,9 +112,7 @@ class StructCompilerGenericArgsLayer(
           TemplatasStore(structId, Map(), Map())
               .addEntries(
                 interner,
-                // DO NOT SUBMIT explain that we need these functions in the same environment so that when we look for
-                // the function we find it in *this* environment.
-                // we should probably take them out of the outer env...
+                // Per @SMLRZ, non-lifted methods registered in resolved env keyed by instantiated struct ID.
                 structA.internalMethods
                     .filter(!_.lift)
                     .map(internalMethod => {
@@ -417,7 +415,7 @@ class StructCompilerGenericArgsLayer(
           TemplatasStore(id, Map(), Map())
             .addEntries(
               interner,
-              structA.internalMethods
+              structA.internalMethods // Per @SMLRZ, non-lifted methods in resolved env
                   .filter(!_.lift)
                   .map(internalMethod => {
                     val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)

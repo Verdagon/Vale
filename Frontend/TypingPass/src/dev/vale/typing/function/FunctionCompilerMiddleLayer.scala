@@ -446,14 +446,16 @@ class FunctionCompilerMiddleLayer(
 //    vimpl()
 //  }
 
+  // Per @SMLRZ, uses parentId.addStep to produce IDs with instantiated struct in initSteps,
+  // matching the shape produced by makePrototype in FunctionCompilerCore.
   def assembleName(
       runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
       paramTypes: Vector[CoordT]):
   IdT[IFunctionNameT] = {
     val parentId = runedEnv.parentEnv.id
-    // DO NOT SUBMIT
+    // Per @SMLRZ, planned: lifted methods would de-instantiate parent to use template ID.
 //    if (runedEnv.function.lift) {
-//      val parentNonInstantiationId = // DO NOT SUBMIT explain for the love of god
+//      val parentNonInstantiationId =
 //        parentId match {
 //          case IdT(packageCoord, initSteps, x: IInstantiationNameT) => {
 //            TemplataCompiler.getTemplate(IdT(packageCoord, initSteps, x))

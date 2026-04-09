@@ -140,18 +140,12 @@ class StructCompilerCore(
         // We need to defer all these functions until after the structs and interfaces are done.
         coutputs.deferCompilingFunction(
           DeferredEvaluatingFunction(
-            outerEnv.id.addStep(name),
+            outerEnv.id.addStep(name), // Per @SMLRZ, outer env functions get template-level scoping
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
                 coutputs, parentRanges, callLocation,
                 FunctionTemplataT(
-////                  // This is outerEnv because innerEnv has struct-placeholdered things, and
-////                  // we don't want to compile a function with someone else's placeholders.
-////                  outerEnv,
-//                  structRunesEnv, // DO NOT SUBMIT its weird that runesenv has stuff and innerenv has nothing
-                  // If we're lifting, its in its own environment. If not, it gets the struct's runes and stuff.
-//                  if (functionA.lift) outerEnv else structInnerEnv,
-                  structInnerEnv,
+                  structInnerEnv, // Per @SMLRZ, compiled in inner env (instantiated struct ID)
                   functionA))
             }))
       }
@@ -166,16 +160,12 @@ class StructCompilerCore(
         // We need to defer all these functions until after the structs and interfaces are done.
         coutputs.deferCompilingFunction(
           DeferredEvaluatingFunction(
-            outerEnv.id.addStep(name),
+            outerEnv.id.addStep(name), // Per @SMLRZ, registered under outer env ID
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
                 coutputs, parentRanges, callLocation,
                 FunctionTemplataT(
-                  ////                  // This is outerEnv because innerEnv has struct-placeholdered things, and
-                  ////                  // we don't want to compile a function with someone else's placeholders.
-                  ////                  outerEnv,
-                  //                  structRunesEnv, // DO NOT SUBMIT its weird that runesenv has stuff and innerenv has nothing
-                  // If we're lifting, its in its own environment. If not, it gets the struct's runes and stuff.
+                  // Per @SMLRZ, lifted methods go to outerEnv; non-lifted stay in structInnerEnv.
                   if (functionA.lift) outerEnv else structInnerEnv,
                   functionA))
             }))

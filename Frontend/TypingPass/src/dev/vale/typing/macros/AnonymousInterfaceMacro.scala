@@ -219,7 +219,7 @@ class AnonymousInterfaceMacro(
 
     val structGenericParams =
       interfaceA.genericParameters ++
-        memberRunes.map(mr => GenericParameterS(mr.range, mr, false, CoordGenericParameterTypeS(vregionmut(None), true, false), None))
+        memberRunes.map(mr => GenericParameterS(mr.range, mr, false, CoordGenericParameterTypeS(vregionmut(None), true, false), None)) // Per @SMLRZ, not inherited — substruct's own member runes
 
     interfaceA.internalMethods.zip(memberRunes).zipWithIndex.foreach({ case ((internalMethod, memberRune), methodIndex) =>
       val methodRuneToType =
@@ -400,7 +400,7 @@ class AnonymousInterfaceMacro(
     val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, lift, body) = method
 
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
-    val genericParams =
+    val genericParams = // Per @SMLRZ, preserves inherited flag during rune remapping
       struct.genericParameters
           .map({ case GenericParameterS(range, RuneUsage(runeRange, rune), inherited, tyype, default) =>
             GenericParameterS(range, RuneUsage(runeRange, inheritedMethodRune(interface, method, rune)), inherited, tyype, default)

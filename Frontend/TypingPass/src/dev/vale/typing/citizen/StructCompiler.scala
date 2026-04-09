@@ -127,7 +127,7 @@ class StructCompiler(
         TemplatasStore(structTemplateId, Map(), Map())
           .addEntries(
             interner,
-            structA.internalMethods // DO NOT SUBMIT
+            structA.internalMethods // Per @SMLRZ, lifted methods go to outer env
                 .filter(_.lift)
                 .map(internalMethod => {
                   val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)

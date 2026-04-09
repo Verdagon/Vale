@@ -339,7 +339,7 @@ object PostParser {
 //        case _ => (None, None)
 //      }
 
-    val genericParamS =
+    val genericParamS = // Per @SMLRZ, user-declared generic params are not inherited
       GenericParameterS(genericParamRangeS, runeS, false, genericParamTypeS, defaultS)
     genericParamS
   }
@@ -424,7 +424,7 @@ class PostParser(
       val rune = DenizenDefaultRegionRuneS(implName)
       vregionmut() // Put back in when we have regions
       // runeToExplicitType += ((rune, RegionTemplataType()))
-      val implicitRegionGenericParam =
+      val implicitRegionGenericParam = // Per @SMLRZ, not inherited
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
       (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
     }
@@ -519,7 +519,7 @@ class PostParser(
       val regionRange = RangeS(rangeS.end, rangeS.end)
       val rune = DenizenDefaultRegionRuneS(exportName)
       runeToExplicitType += ((rune, RegionTemplataType()))
-      val implicitRegionGenericParam =
+      val implicitRegionGenericParam = // Per @SMLRZ, not inherited
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
       (regionRange, ContextRegionRune(rune), implicitRegionGenericParam)
     }
@@ -590,7 +590,7 @@ class PostParser(
           val rune = DenizenDefaultRegionRuneS(structName)
           vregionmut() // Put back in when we have regions
           // headerRuneToExplicitType += ((rune, RegionTemplataType()))
-          val implicitRegionGenericParam =
+          val implicitRegionGenericParam = // Per @SMLRZ, not inherited
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
         }
@@ -677,7 +677,7 @@ class PostParser(
           ParentCitizen(
             false,
             structEnv,
-            genericParametersS.map(_.copy(inherited = true)), // DO NOT SUBMIT explain
+            genericParametersS.map(_.copy(inherited = true)), // Per @SMLRZ, struct's params marked inherited for internal methods
             headerRulesS,
             headerRuneToExplicitType.toMap),
           method)
@@ -869,7 +869,7 @@ class PostParser(
           ParentCitizen(
             true,
             interfaceEnv,
-            genericParametersS.map(_.copy(inherited = true)),
+            genericParametersS.map(_.copy(inherited = true)), // Per @SMLRZ, interface's params marked inherited
             rulesS,
             runeToExplicitType.toMap),
           method)

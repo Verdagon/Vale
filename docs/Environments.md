@@ -175,6 +175,8 @@ Cons:
 
 
 
+See @SMLRZ for the complete arcana on struct method lift rules and Rust path matching.
+
 If we have this:
 
 ```

@@ -110,12 +110,8 @@ class StructDropMacro(
         true,
         GeneratedBodyS(dropGeneratorId))
 
-    // DO NOT SUBMIT changed this, change the other macros too perhaps
-    val dropNameT = structName.copy(localName = nameTranslator.translateGenericFunctionName(dropFunctionA.name))
-//    start here // this is really all we can add at this point... we dont have an instantiated name or anything
-//    // to put it under at this point.
-//    // could we perhaps convert it to the instantiated citizen later on or something?
-//    // or maybe not prefix it with the template? that might be better. DO NOT SUBMIT
+    // Per @SMLRZ, drop functions are not lifted — they stay nested under the struct via addStep.
+    val dropNameT = structName.addStep(nameTranslator.translateGenericFunctionName(dropFunctionA.name))
     Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
   }
 

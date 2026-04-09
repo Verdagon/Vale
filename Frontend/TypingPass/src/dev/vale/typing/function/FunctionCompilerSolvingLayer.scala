@@ -655,7 +655,7 @@ class FunctionCompilerSolvingLayer(
         case Ok(c) => c
       }
 
-    val runedEnv =
+    val runedEnv = // Per @SMLRZ, all runes added (no inherited filter) so interface methods retain template args
       addRunedDataToNearEnv(
         nearEnv, function.genericParameters.map(_.rune.rune),
         inferences,

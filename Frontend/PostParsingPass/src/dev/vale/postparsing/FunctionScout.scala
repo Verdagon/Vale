@@ -20,6 +20,7 @@ import dev.vale._
 
 import scala.collection.immutable.{List, Range}
 
+// Per @SMLRZ, parent type determines lift behavior and inherited generic params.
 sealed trait IFunctionParent
 
 case class FunctionNoParent() extends IFunctionParent
@@ -31,6 +32,7 @@ case class ParentCitizen(
   interfaceRules: Vector[IRulexSR],
   interfaceRuneToExplicitType: Map[IRuneS, ITemplataType]
 ) extends IFunctionParent {
+  // Per @SMLRZ, params from parent citizen must be marked inherited=true.
   interfaceGenericParams.foreach(x => vassert(x.inherited))
 }
 
@@ -183,7 +185,7 @@ class FunctionScout(
           vassert(!runeToExplicitType.exists(_._1 == rune))
           vregionmut() // Put this back in with regions
           // runeToExplicitType += ((rune, RegionTemplataType()))
-          val implicitRegionGenericParam =
+          val implicitRegionGenericParam = // Per @SMLRZ, not inherited — this is the function's own region param
             GenericParameterS(
               regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
@@ -494,7 +496,7 @@ class FunctionScout(
 //                      None,
 //                      Vector(),
 //                      None),
-                    GenericParameterS(
+                    GenericParameterS( // Per @SMLRZ, not inherited — closure coord rune is the function's own
                       param.pattern.range,
                       coordRune,
                       false,
@@ -509,8 +511,7 @@ class FunctionScout(
 
     val totalParamsS = maybeClosureParam.toVector ++ explicitParamsS ++ magicParams;
 
-    // DO NOT SUBMIT explain all this
-    // DO NOT SUBMIT mention that we're making quite an assumption here.
+    // Per @SMLRZ, lift is determined by the `self` keyword for struct methods; macros bypass this.
     val lift =
         attrsP.collect({ case LiftableAttributeP(_) => }).nonEmpty ||
         (maybeParent match {
@@ -621,11 +622,10 @@ class FunctionScout(
           })
     vregionmut() // dont filter regions out
 
-    // DO NOT SUBMIT
-//    postParser.checkIdentifiability(
-//      rangeS,
-//      genericParametersS.map(_.rune.rune),
-//      rulesArray)
+    postParser.checkIdentifiability(
+      rangeS,
+      genericParametersS.map(_.rune.rune),
+      rulesArray)
 
     val tyype = TemplateTemplataType(genericParametersS.map(_.tyype.tyype), FunctionTemplataType())
 
