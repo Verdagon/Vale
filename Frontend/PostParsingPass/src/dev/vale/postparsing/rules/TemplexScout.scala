@@ -28,6 +28,8 @@ class TemplexScout(
     runeS
   }
 
+  // Per @ICIPCRZ, these rules are filtered out before identifiability checking
+  // and preprocessed into initial knowns by the OverloadResolver.
   def addRuneParentEnvLookupRule(
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],

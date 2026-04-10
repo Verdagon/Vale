@@ -2046,7 +2046,7 @@ class CompilerTests extends FunSuite with Matchers {
       """
         |extern struct Vec<T> imm {
         |  extern func with_capacity(c i64) Vec<T>;
-        |  extern func capacity(v Vec<T>) i64;
+        |  extern func capacity(self Vec<T>) i64;
         |}
         |exported func main() i64 {
         |  v = Vec<int>.with_capacity(42i64);
@@ -2061,7 +2061,7 @@ class CompilerTests extends FunSuite with Matchers {
       """
         |extern struct Vec<T> imm {
         |  extern func with_capacity(c i64) Vec<T>;
-        |  extern func capacity(v Vec<T>) i64;
+        |  extern func capacity(self Vec<T>) i64;
         |}
         |exported func main() i64 {
         |  v = Vec<int>.with_capacity(42i64);

@@ -291,7 +291,7 @@ class FunctionCompilerCore(
               // step, matching Rust's Vec<i32>::capacity (not Vec::capacity<i32>).
               val newTemplateArgs =
                 genericParametersS.zip(templateArgs).filter(!_._1.inherited).map(_._2)
-              FunctionNameT(template, newTemplateArgs, parameters)
+              interner.intern(FunctionNameT(template, newTemplateArgs, parameters))
             }
             case other => vimpl(other)
           }

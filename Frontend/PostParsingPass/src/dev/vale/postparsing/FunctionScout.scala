@@ -591,22 +591,17 @@ class FunctionScout(
         case x => vimpl(x.toString)
       })
 
-    // Filter out any RuneParentEnvLookupSR rules, we don't want these methods to look up these runes
-    // from the environment. See MKRFA.
+    // Per @ICIPCRZ, filter RuneParentEnvLookupSR rules for citizen methods because
+    // IdentifiabilitySolver.solveRule hits vimpl() for them. See also MKRFA.
     val rulesArray =
       maybeParent match {
         case FunctionNoParent() => unfilteredRulesArray
         case ParentFunction(_) => unfilteredRulesArray
-        case ParentCitizen(isInterface, _, _, _, _) => {
-          if (isInterface) {
-            unfilteredRulesArray.filter({
-              case RuneParentEnvLookupSR(_, _) => false
-              case _ => true
-            })
-          } else {
-            // DO NOT SUBMIT investigate this inconsistency
-            unfilteredRulesArray
-          }
+        case ParentCitizen(_, _, _, _, _) => {
+          unfilteredRulesArray.filter({
+            case RuneParentEnvLookupSR(_, _) => false
+            case _ => true
+          })
         }
       }
 
@@ -622,9 +617,11 @@ class FunctionScout(
           })
     vregionmut() // dont filter regions out
 
+    // Per @ICIPCRZ, include parent citizen runes as identifying because they're provided
+    // at the call site via struct type args (e.g. Vec<int>.method()).
     postParser.checkIdentifiability(
       rangeS,
-      genericParametersS.map(_.rune.rune),
+      genericParametersS.map(_.rune.rune) ++ extraGenericParamsFromParentS.map(_.rune.rune),
       rulesArray)
 
     val tyype = TemplateTemplataType(genericParametersS.map(_.tyype.tyype), FunctionTemplataType())

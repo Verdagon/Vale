@@ -60,8 +60,9 @@ object IdentifiabilitySolver {
       case MaybeCoercingLookupSR(range, rune, _) => Vector(Vector())
       case LookupSR(range, rune, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => {
-        // This Vector() literally means nothing can solve this puzzle.
-        // It needs to be passed in via identifying rune.
+        // Nothing can solve this puzzle — it needs to be passed in via identifying rune.
+        // Per @ICIPCRZ, these rules are filtered out before reaching the solver, and
+        // parent runes are instead passed as identifying runes directly.
         Vector()
       }
       case MaybeCoercingCallSR(range, resultRune, templateRune, args) => {
@@ -171,7 +172,7 @@ object IdentifiabilitySolver {
         solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        vimpl()
+        vimpl() // Per @ICIPCRZ, these rules should be filtered out before reaching the solver.
 //        (env(RuneNameS(rune.rune)), vassertSome(stepState.getConclusion(rune.rune))) match {
 //          case (true, true) =>
 //          case (TemplateTemplataType(Vector(), true), true) =>
