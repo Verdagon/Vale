@@ -135,7 +135,7 @@ Even if compilation were fixed, these hit `vimpl()` at the end.
 
 ---
 
-## G. Solver conflicts / generic inference failures (6 remaining, 1 fixed)
+## G. Solver conflicts / generic inference failures (5 remaining, 2 fixed)
 
 Core type solver bugs where the solver produces contradictory conclusions.
 
@@ -145,7 +145,7 @@ Core type solver bugs where the solver produces contradictory conclusions.
 | Diff iter | IntegrationTests | `own` vs `share` ownership on same `KindPlaceholderT` — `HashSet<K Ref imm>` has `imm` but `HashSetDiffIterator<X>` doesn't propagate it |
 | Call Array<> without element type | IntegrationTests | `mut` vs `imm` mutability conflict in array construction |
 | ~~Test interface default generic argument in type~~ | typing.AfterRegionsTests | **FIXED.** Default generic param rules were added to the solver eagerly and unconditionally, conflicting with arg-inferred values. `assembleCallSiteRules` eagerly added `LiteralSR(_211, 5)` which combined with the hoisted `EqualsSR(H, _211)` forced `H=5` before argument inference ran. Fixed by removing eager default addition from `assembleCallSiteRules` and adding incremental default logic to `solveForResolving` — defaults now fire only for runes that remain unsolved after argument inference. See DRSINI. |
-| Test returning empty seq | IntegrationTests | Can't solve rune `_2112` for empty tuple `Tup0` |
+| ~~Test returning empty seq~~ | IntegrationTests | **FIXED.** Two combined issues. (1) Solver deadlock: `TuplePT` lowering unconditionally emitted `MaybeCoercingLookupSR + MaybeCoercingCallSR`, but for zero-arg tuples the pre-processor carve-out at `RuneTypeSolver.scala:441` refused to seed `Tup0`'s ambiguous templata type. Fixed in `TemplexScout.scala` by branching `TuplePT` on `elements.isEmpty` and emitting a single `MaybeCoercingLookupSR` for empty tuples (matching how bare zero-arg kind templates like `Spaceship` are handled). (2) VM leak: once compilation succeeded, `main() ()` returned a `Tup0{}` struct whose reference was `OwnH` (because `Tup0` was a default-mutable struct), and Vivem's `cleanup` does nothing for `OwnH` at end-of-program. Fixed by adding `imm` to `tup0.vale` (`struct Tup0 imm { }`), which makes the return reference Share and routes it through the existing StructHT destructure+dealloc path. See `investigations/test_returning_empty_seq.md` and `investigations/test_returning_empty_seq_vm_leak.md`. |
 | Make array without type | IntegrationTests | "Must specify element for arrays" — inference for element type from lambda not working |
 | Borrowing toArray | IntegrationTests | Can't solve runes `_51111111111, E` for generic array with borrow references |
 
@@ -196,18 +196,18 @@ Core type solver bugs where the solver produces contradictory conclusions.
 | D. Lex-time errors instead of postparsing | 0 | 2 fixed | Done |
 | E. Prot rule 3 components | 0 | 1 commented out | Done (dead syntax) |
 | F. Wrong error type / missing behavior | 2 | 4 fixed, 1 commented out | Remaining: blocked (H) + high (generics) |
-| G. Solver conflicts | 6 | 1 fixed | High (core inference) |
+| G. Solver conflicts | 5 | 2 fixed | High (core inference) |
 | H. Deep `vimpl()` in compiler | 4 | 0 | High (core feature) |
 | I. Weak reference checks | 0 | 3 fixed | Done |
 | J. Infinite recursion | 1 | 0 | High |
-| **Total remaining** | **23** | | |
-| **Recovered so far** | **19** | | 16 fixed + 2 commented out + 1 moved to postparsing |
+| **Total remaining** | **22** | | |
+| **Recovered so far** | **20** | | 17 fixed + 2 commented out + 1 moved to postparsing |
 
 ### All recovered tests (19 total)
 
 **Previously recovered (10):** Reports when ownership doesnt match, Detects sending non-citizen to citizen, Accidentally mention type rune, Call bound with wrong arguments, Ambiguous call, Reports when non-kind interface in impl, Reports when non-kind struct in impl, Cant make non-weakable extend a weakable, Cant make weakable extend a non-weakable, Cant make weak ref to non-weakable
 
-**This session (8):**
+**This session (9):**
 - Forgetting set when changing (C, fixed)
 - Report leaving out semicolon (C, fixed)
 - Func with func bound with missing 'where' (C, fixed)
@@ -216,3 +216,4 @@ Core type solver bugs where the solver produces contradictory conclusions.
 - Reports when two functions with same signature (F, commented out — needs signature-level duplicate detection)
 - Prototype rule to get return type (E, commented out — dead `Prot[...]` syntax)
 - Test interface default generic argument in type (G, fixed — DRSINI: defaults now incremental not initial)
+- Test returning empty seq (G, fixed — empty-tuple `TuplePT` lowering skips the redundant call rule; `Tup0` marked `imm` to route through share-dealloc)

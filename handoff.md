@@ -1,6 +1,6 @@
 # Handoff: Category G Solver Conflicts
 
-Six tests fail because the type solver produces contradictory or incomplete conclusions
+Five tests fail because the type solver produces contradictory or incomplete conclusions
 when resolving generic types. All tests are in
 `Frontend/IntegrationTests/test/dev/vale/AfterRegionsIntegrationTests.scala`.
 
@@ -54,6 +54,30 @@ argument-inferred values. The fix moved defaults to incremental callbacks so the
 for unsolved runes. See `docs/arcana/DefaultRulesShouldBeIncrementalNotInitial-DRSINI.md`
 for the full writeup — it's a good model for how to investigate and document solver bugs.
 
+### Recent example: "Test returning empty seq"
+
+Another category G fix, worth reading for methodology. This handoff originally pointed at
+`CompilerSolver.scala`'s `LookupSR` handling ("probably a missing name registration or
+lookup path"). That guess was wrong: the failure was actually in HigherTypingPass's
+`RuneTypeSolver` pre-processing carve-out (`RuneTypeSolver.scala:441`), which refused to
+seed the templata type for `Tup0` because its shape
+(`TemplateTemplataType(Vector(), KindTemplataType())`) is ambiguous between
+"use as a kind" and "call with zero args." The fix was to simplify the `TuplePT` lowering
+so empty tuples emit a single `MaybeCoercingLookupSR` (matching how every other zero-arg
+kind template is already handled) instead of a lookup + explicit call pair that
+deadlocked on the carve-out.
+
+Once compilation succeeded, a second, separate bug surfaced: Vivem's end-of-program
+`cleanup` does nothing for `OwnH` references, and `main()` returned a default-mutable
+`Tup0{}` whose ref was `OwnH`, so the allocation leaked. Fixed by marking `Tup0` as
+`imm` in `tup0.vale`. Full writeups in `investigations/test_returning_empty_seq.md`
+and `investigations/test_returning_empty_seq_vm_leak.md`.
+
+**Methodology lesson:** read the stack trace before trusting this handoff's pointer. The
+top of the error may originate in a different compiler pass than the one the handoff
+guessed. In this case, `expectAstrouts` (HigherTypingPass) was on the stack, not any
+typing-pass solver function.
+
 ### Lessons from quest.md
 
 Read the "Lessons learned" section in `quest.md` (starts around line 33). Key points:
@@ -66,34 +90,9 @@ Read the "Lessons learned" section in `quest.md` (starts around line 33). Key po
 
 ---
 
-## The six failing tests
+## The five failing tests
 
-### 1. Test returning empty seq
-
-**Line:** 51. **Error:** "Couldn't solve some runes: _2112"
-
-```vale
-export () as Tup0;
-exported func main() () {
-  return ();
-}
-```
-
-**What happens:** The return type `()` is an empty tuple (`Tup0`). The solver creates a
-lookup rule `_2112 = "Tup0"` and a call rule `_2111 = _2112<>` (instantiate Tup0 with no
-args). Neither rule fires — `_2112` stays unsolved.
-
-**Where to look:** The `LookupSR` rule for `"Tup0"` is not resolving. This could be because
-`Tup0` isn't in the environment, or the solver can't find it via the lookup delegate. Check
-`CompilerSolver.scala`'s handling of `LookupSR` and `MaybeCoercingLookupSR` to see how
-type names are resolved. Also check whether `export () as Tup0` correctly registers the
-name.
-
-**Likely difficulty:** Medium. Probably a missing name registration or lookup path.
-
----
-
-### 2. Make array without type
+### 1. Make array without type
 
 **Line:** 186. **Error:** "Internal error: Must specify element for arrays."
 
@@ -118,7 +117,7 @@ an initial known.
 
 ---
 
-### 3. Call Array<> without element type
+### 2. Call Array<> without element type
 
 **Line:** 172. **Error:** "Couldn't solve some runes: _1215, _7111, E, _7111.kind"
 
@@ -144,7 +143,7 @@ type) is unsolved.
 
 ---
 
-### 4. Borrowing toArray
+### 3. Borrowing toArray
 
 **Line:** 199. **Error:** "Couldn't solve some runes: _51111111111, E"
 
@@ -155,10 +154,10 @@ func toArray<E>(list &List<E>) []<mut>&E {
 ```
 
 **What happens:** Inside `toArray`, the expression `[]&E(list.len(), { list.get(_) })` tries
-to create a runtime-sized array of `&E`. The solver can't determine E. The rule
+to create a runtime-sized array of `&E`. The solver can't determine `E`. The rule
 `_51111111111 = &E` and `inherit E` are present but neither fires.
 
-**Where to look:** The `inherit E` rule should bring E from the function's outer scope
+**Where to look:** The `inherit E` rule should bring `E` from the function's outer scope
 (where it's determined by the `list &List<E>` parameter). Check how `RuneParentEnvLookupSR`
 (the "inherit" rule) works in `CompilerSolver.scala`. Also check whether `&E` as an array
 element type creates the right rules.
@@ -166,9 +165,166 @@ element type creates the right rules.
 **Likely difficulty:** Medium. The `inherit` mechanism might not be working for this case,
 or the rules for `[]&E(...)` might not be set up correctly.
 
+#### Background: what this test is actually testing
+
+Vale generic functions have generic parameters (here, `E`) that are scoped to the
+function's template. When code *inside* the function body references `E` (for example,
+the array literal type `[]<mut>&E`), the compiler sets up a nested solve context for
+that expression. The inner context doesn't automatically see `E`'s value from the
+outer context. Instead, the rule generator emits a `RuneParentEnvLookupSR` (the
+"inherit" rule) that says: "look up rune `E` by name in the parent environment when
+solving this inner context."
+
+So two things need to work correctly here:
+
+1. The **inherit mechanism**: `RuneParentEnvLookupSR(_, E)` fires, finds the outer `E`
+   (which is a `KindPlaceholderT` produced by the outer function's generic-param
+   setup), and commits it to the inner solver's conclusions for `E`.
+2. The **`&E` lowering**: the templex `&E` produces rules like
+   `AugmentSR(_5111, BorrowP, _1234)` where `_1234` is an inner rune equated with
+   `E` via some other rule. Once `E` is inherited, those chain.
+
+If `E` never gets a conclusion, step 1 is broken. If `E` *does* get a conclusion but
+`_51111111111` (the `&E` composite rune) doesn't, step 2 is broken.
+
+#### Files and line numbers worth reading first
+
+- `Frontend/PostParsingPass/src/dev/vale/postparsing/rules/rules.scala` — search for
+  `case class RuneParentEnvLookupSR`. Find the case class definition to understand the
+  rule's fields.
+- `Frontend/PostParsingPass/src/dev/vale/postparsing/RuneTypeSolver.scala:141-149` and
+  `289-299` — puzzle and solveRule for `RuneParentEnvLookupSR` at the rune-type-solver
+  level (only types, not values).
+- `Frontend/TypingPass/src/dev/vale/typing/infer/CompilerSolver.scala` — search for
+  `RuneParentEnvLookupSR`. This is the typing-pass handler — where the rule actually
+  resolves the inherited rune's *value* (not just its type). Read both the case in
+  `advanceInfer` (around line 852) and the preprocessing at
+  `InferCompiler.scala`'s initial-rule-registration path.
+- `Frontend/TypingPass/src/dev/vale/typing/InferCompiler.scala` — search for
+  `RuneParentEnvLookupSR` and `parentEnv`. This file orchestrates nested solves.
+- `Frontend/TypingPass/src/dev/vale/typing/ArrayCompiler.scala` — search for `[]` array
+  construction expression handling. `[]<mut>&E(...)` compilation goes through here.
+
+#### Suggested first hour
+
+**Step 1: Establish a baseline trace.** Run the test and capture the full solver
+output:
+
+```bash
+cd Frontend
+sbt 'testOnly dev.vale.AfterRegionsIntegrationTests -- -t "Borrowing toArray"' 2>&1 \
+  | tee /tmp/borrowing-toarray.txt
+```
+
+Then in a *separate* step, inspect the file:
+
+```bash
+grep -nE "(error|FAILED|Couldn't|Unsolved|Steps:|added rule)" /tmp/borrowing-toarray.txt \
+  | head -80
+```
+
+Read the printed solver trace. It lists every rule that was added and every rule that
+fired, in order. The unsolved rules and runes at the bottom are your target.
+
+**Step 2: Confirm which solver is failing.** The stack trace in the error output
+tells you which compiler pass threw. If it says `HigherTypingPass.expectAstrouts`,
+you're dealing with the rune-*type* solver (only figures out shapes). If it says
+anything from `typing/` or `InferCompiler`, you're in the typing-pass solver (figures
+out values). These are different solvers with different rule handlers — don't mix
+them up. For "Borrowing toArray" the error is likely in the typing-pass solver (the
+rune names like `_51111111111` and the composite `.kind` suffix pattern are
+typing-pass-style), but verify from the stack trace before assuming.
+
+**Step 3: Add the minimum set of printlns.**
+
+- In `CompilerSolver.scala`'s `RuneParentEnvLookupSR` handler (search for it), print
+  the rune name, what it found in the parent env (or `None`), and the committed
+  conclusion.
+- In `SimpleSolverState.commitStep` (`Frontend/Solver/src/dev/vale/solver/SimpleSolverState.scala:113`),
+  print every `(rune, conclusion)` as it's added.
+- In `SimpleSolverState.getNextSolvable` (line 155), print the rule it picks next.
+
+Re-run the test. From the prints, you'll see which rules fire, which don't, and
+specifically: does the `RuneParentEnvLookupSR` for `E` fire? If no, the rule
+isn't being scheduled — check its puzzle. If yes but it returns nothing from the
+parent env, the parent-env lookup mechanism is broken for this shape. If yes and it
+returns `E`'s value but `_51111111111` still doesn't solve, the `&E` rule chain is
+the bug.
+
+**Step 4: Read a past investigation as a model.** The session before this one fixed
+"Test returning empty seq," which was a similar "a rule that should fire doesn't
+because its inputs aren't known" bug. Read:
+
+- `investigations/test_returning_empty_seq.md`
+- `investigations/test_returning_empty_seq_vm_leak.md`
+
+Especially the first one, because it walks through: observed failure → puzzle
+deadlock analysis → pre-processing carve-out → the specific reason the rule didn't
+fire → chosen fix. Mirror that structure in your own writeup at
+`investigations/borrowing_to_array.md` as you go.
+
+#### Vocabulary cheat sheet
+
+- **Rune** — a named type-variable slot. `_5111`, `E`, `K`, `_1234.kind`.
+- **Conclusion** — the concrete value (or type) the solver figures out for a rune.
+- **Rule** — a constraint relating runes. Examples: `LookupSR` (look up a name),
+  `EqualsSR` (two runes are equal), `AugmentSR` (coord with ownership modifier),
+  `RuneParentEnvLookupSR` (inherit from outer env).
+- **Puzzle** — what inputs a rule needs before it can fire. Each rule declares one
+  or more puzzles; the solver schedules a rule as soon as any of its puzzles is
+  satisfied.
+- **`MaybeCoercing*` rules** — rules that preserve Kind↔Coord ambiguity until the
+  expected type is known. They get *explicified* to concrete `LookupSR`/`CallSR`
+  plus `CoerceToCoordSR` by `HigherTypingPass.explicifyLookups`.
+- **`KindPlaceholderT`** — the typing-pass representation of an unknown generic
+  param (like `E` inside `toArray`'s body).
+- **Placeholder names (`Kind$foo.E`, `Int$foo.N`)** — a placeholder whose kind is
+  `E`, scoped to the denizen `foo`. The prefix (`Kind$`, `Int$`) tells you the
+  placeholder's templata type.
+- **Inherit rule** — colloquial name for `RuneParentEnvLookupSR`.
+- **Denizen** — a top-level nameable thing (struct, interface, function). Runes and
+  placeholders are scoped to a denizen.
+
+#### How to know you're on the right track
+
+- You can describe, in one sentence, which rule failed to fire and why.
+- You can point to a specific line where the bug manifests (e.g., "the puzzle for
+  `RuneParentEnvLookupSR` requires X known, but X is never supplied by anyone in this
+  rule set").
+- Your proposed fix, explained out loud, lists which other tests it could affect
+  and why it won't break them.
+
+#### How to know you're off-track
+
+- You're inventing new rule types or new pre-processing phases before you've
+  confirmed that existing rules aren't firing due to scheduling, not semantics.
+  (The empty-seq fix taught us: architecture changes are usually overkill; the bug
+  is usually one carve-out or one asymmetric lowering.)
+- You've made a change but you don't know *why* the failing test was failing. If
+  the test now passes but you can't explain mechanistically what was wrong before,
+  your change is probably masking rather than fixing.
+- You've deleted or bypassed a check (a `vassert`, a carve-out) to make the rule
+  fire. Those checks usually exist for a reason — understand it first.
+
+#### What to hand back
+
+When you're done, produce:
+
+1. A file `investigations/borrowing_to_array.md` mirroring
+   `investigations/test_returning_empty_seq.md`'s structure: reproduction, root
+   cause, alternatives considered, chosen fix, verification.
+2. Updated `quest.md` row for "Borrowing toArray" — strike through, add a short
+   explanation, bump the Category G count ("4 remaining, 3 fixed").
+3. Updated `quest.md` Summary table and session-recovered list.
+4. Updated `handoff.md` — remove the "Borrowing toArray" section, renumber,
+   update the suggested investigation order, and add a new "Recent example"
+   paragraph alongside DRSINI and the empty-seq example.
+5. The code change itself, with a commit message that references the investigation
+   file.
+
 ---
 
-### 5. Test overload set
+### 4. Test overload set
 
 **Line:** 78. **Error:** Solver conflict on `_41111.kind`: was `(overloads: myfunc)` but now
 concluding `void`.
@@ -199,7 +355,7 @@ interaction between the solver, overload resolver, and function call compilation
 
 ---
 
-### 6. Diff iter
+### 5. Diff iter
 
 **Line:** 128. **Error:** Solver conflict on rune X: "was Kind$diff_iter.K but now
 concluding Kind$diff_iter.K" (they look the same but differ in ownership).
@@ -240,18 +396,17 @@ different ownership in different contexts.
 
 ## Suggested investigation order
 
-1. **Test returning empty seq** — simplest test code, clear error, likely a missing lookup
-2. **Borrowing toArray** — clear "inherit" rule issue, self-contained function
-3. **Make array without type** / **Call Array<> without element type** — related issues,
+1. **Borrowing toArray** — clear "inherit" rule issue, self-contained function
+2. **Make array without type** / **Call Array<> without element type** — related issues,
    tackle together
-4. **Diff iter** — ownership propagation, more complex
-5. **Test overload set** — overload set coercion, most complex
+3. **Diff iter** — ownership propagation, more complex
+4. **Test overload set** — overload set coercion, most complex
 
 ## How to run a single test
 
 ```bash
 cd Frontend
-sbt 'testOnly dev.vale.AfterRegionsIntegrationTests -- -t "Test returning empty seq"'
+sbt 'testOnly dev.vale.AfterRegionsIntegrationTests -- -t "Borrowing toArray"'
 ```
 
 For faster iteration, use `compile` first to check for build errors:
