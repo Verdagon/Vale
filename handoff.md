@@ -54,9 +54,9 @@ argument-inferred values. The fix moved defaults to incremental callbacks so the
 for unsolved runes. See `docs/arcana/DefaultRulesShouldBeIncrementalNotInitial-DRSINI.md`
 for the full writeup — it's a good model for how to investigate and document solver bugs.
 
-### Recent example: Borrowing toArray (partial — G→H)
+### Recent example: Borrowing toArray (partial — MKRFA fixed, two other blockers remain)
 
-Another case worth studying for methodology. Handoff originally pointed at `RuneParentEnvLookupSR`
+Worth studying for methodology. Handoff originally pointed at `RuneParentEnvLookupSR`
 semantics as the suspect. That direction was right, but the root cause was structural rather than
 semantic: three `ArrayCompiler` expression entry points
 (`evaluateRuntimeSizedArrayFromCallable`, `evaluateStaticSizedArrayFromValues`,
@@ -68,10 +68,21 @@ unpreprocessed rules fired silently with empty conclusions. `E` was never seeded
 &E` stalled.
 
 Fix: copy the MKRFA fold from `OverloadResolver.scala:311-325` inline into all three
-`ArrayCompiler` methods. Test advances from category G (solver conflict) to category H
-(instantiator's `KindPlaceholderT` → `KindTemplataI` substitution at `Instantiator.scala:3174`
-uses `vimpl()` for ownership composition, so `Array<mut, &E>` + `E:=int` yields `Array<mut, i32>`
-instead of `Array<mut, &int>`). Full writeup in `investigations/borrowing_to_array.md`.
+`ArrayCompiler` methods. `toArray`'s body now compiles with the correct `Array<mut, &E>` return
+type. The test still fails, but for **two other, independent** reasons:
+
+1. **`AugmentSR` collapses `&T` on immutable `T`** at `CompilerSolver.scala:891-917` (inner-known
+   path). When `l.toArray()` resolves with `E:=int`, the handler hits
+   `case MutabilityTemplataT(ImmutableT) => innerCoord.ownership` at line 900 — it deliberately
+   drops the `&` augment because int is immutable, collapsing `&int` to `share int`. Pre-regions
+   Vale semantics; the "regions" feature is supposed to preserve the borrow on immutable elements.
+
+2. **No `Array.get` function exists.** `l.toArray().get(1)` is UFCS sugar for `get(arr, 1)`, and
+   the stdlib has no such function (canonical array access is `arr[i]`; no `get` file in
+   `Frontend/Tests/test/main/resources/array/`). Even if (1) were fixed, this would still block.
+
+The test is effectively dual-blocked on a regions-semantics change to `AugmentSR` *and* either a
+stdlib addition or a test change. Full writeup in `investigations/borrowing_to_array.md`.
 
 **Methodology lessons:**
 - The structural clue came from the trace: `inherit E` appeared in the fired-rules list but had
@@ -83,6 +94,12 @@ instead of `Array<mut, &int>`). Full writeup in `investigations/borrowing_to_arr
   only expression-level rule sources that invoke the solver directly. Declaration-scoped solvers
   (struct/interface/function/impl) can't hit this because their rule sources never emit
   `RuneParentEnvLookupSR`.
+- **Don't guess categorization before verifying.** My first attempt categorized the residual
+  failure as category-H (instantiator) based on the error type looking like a coord-ownership
+  issue and quest.md having a known `Instantiator.scala:3174` vimpl. Instrumenting the
+  instantiator's `translateCoord` produced zero prints — the error happens in the typing pass,
+  before the instantiator runs. Adding a println to `getMaybeReturnType` showed the borrow was
+  already gone in the typing pass. Always confirm which pass owns the failure before naming it.
 - Future improvement queued: extract the MKRFA fold into an `InferCompiler` helper (now 4 inline
   copies); tighten the no-op handler to `vwat()` so future violations fail loudly.
 
@@ -185,20 +202,41 @@ func toArray<E>(list &List<E>) []<mut>&E {
 }
 ```
 
-**Status:** The category-G root cause (MKRFA preprocessing missing in `ArrayCompiler`) has
+**Status:** The category-G MKRFA cause (preprocessing missing in `ArrayCompiler`) has
 been fixed — see `investigations/borrowing_to_array.md`. `toArray`'s body now compiles with
-the correct return type `Array<mut, &E>`. The test still fails, but for a category-H reason
-at the call site: `Instantiator.scala:3174` uses `vimpl()` for ownership composition when
-substituting a `KindPlaceholderT` via `KindTemplataI`, so `E := int` into `Array<mut, &E>`
-yields `Array<mut, i32>` (losing the `&`). Same bug that blocks "Upcasting in a generic
-function", "Map function", "Method call on generic data", "Impl rule". Fix that one
-site and this test should pass too.
+the correct return type `Array<mut, &E>`. The test still fails, but for two other blockers
+that are NOT category-H (instantiator is not involved — verified by instrumentation).
 
-**Where to look now:** `Instantiator.scala:3174` and its surrounding ownership-composition
-logic. Compare to the working `CoordTemplataI` case just above (line 3160-3166) which uses
-`composeOwnerships`. The `KindTemplataI` branch likely needs a similar path that derives the
-inner ownership from the substituted kind's mutability and composes it with the outer
-ownership — see the existing pattern at lines 3182-3209 for kinds that aren't placeholders.
+**Remaining blockers:**
+
+1. **`AugmentSR` drops the `&` on immutable elements in the typing pass.** At
+   `CompilerSolver.scala:891-917` (inner-known path), line 900 has:
+   ```scala
+   case MutabilityTemplataT(ImmutableT) => innerCoord.ownership
+   ```
+   When `l.toArray()` resolves with `E:=int`, the solver fires `AugmentSR(outer, BorrowP, E)`.
+   Inner is `CoordT(own, ..., IntT)`; `int` is immutable; the handler returns `own` (the
+   inner's ownership) instead of applying `BorrowP`. So `&int` collapses to `share int` at
+   solve-time in the typing pass, and `getMaybeReturnType` then returns
+   `Array<mut, share int>` — the `&` is lost before the instantiator or monomorphization
+   ever runs. Pre-regions Vale design; the "regions" feature is supposed to preserve the
+   borrow. **This is a semantic design decision**, not a missing implementation — fixing it
+   means deciding that `&T` where T is immutable stays as a borrow (potentially gated on a
+   region flag), then reworking line 900 and downstream consumers that currently assume
+   "immutable implies share".
+
+2. **No `Array.get` function exists.** `l.toArray().get(1)` is UFCS sugar for `get(arr, 1)`.
+   The stdlib has `func get(&List<E>, int) &E` and `Some.get()`, but nothing for
+   `Array<...>`. Vale's canonical array access is `arr[i]`. The error's 7 candidates are all
+   `List.get` / `Opt.get`. Even if (1) above were resolved, the test would still fail here.
+   Either the stdlib needs an `Array.get`, or the test needs to use `[1]` indexing.
+
+**Where to look:**
+- For (1): `CompilerSolver.scala:891-917` (the `AugmentSR` inner-known path) and how
+  callers expect the "immutable implies share" behavior. Search for similar immutable-coercion
+  logic to understand the blast radius of changing it.
+- For (2): `Frontend/Tests/test/main/resources/array/` — potential place to add a `get`
+  function file, modeled on existing files in that directory. Or change the test.
 
 #### Background: what this test is actually testing
 
