@@ -54,6 +54,38 @@ argument-inferred values. The fix moved defaults to incremental callbacks so the
 for unsolved runes. See `docs/arcana/DefaultRulesShouldBeIncrementalNotInitial-DRSINI.md`
 for the full writeup — it's a good model for how to investigate and document solver bugs.
 
+### Recent example: Borrowing toArray (partial — G→H)
+
+Another case worth studying for methodology. Handoff originally pointed at `RuneParentEnvLookupSR`
+semantics as the suspect. That direction was right, but the root cause was structural rather than
+semantic: three `ArrayCompiler` expression entry points
+(`evaluateRuntimeSizedArrayFromCallable`, `evaluateStaticSizedArrayFromValues`,
+`evaluateStaticSizedArrayFromCallable`) each hardcoded `val initialKnowns = Vector()` and handed
+rules straight to the solver without running the **MKRFA preprocessing** (look up each
+`RuneParentEnvLookupSR` rune in `callingEnv`, emit an `InitialKnown`, strip the rule). The
+solver's handler for that rule at `CompilerSolver.scala:852` is a defensive no-op, so
+unpreprocessed rules fired silently with empty conclusions. `E` was never seeded; `_51111111111 =
+&E` stalled.
+
+Fix: copy the MKRFA fold from `OverloadResolver.scala:311-325` inline into all three
+`ArrayCompiler` methods. Test advances from category G (solver conflict) to category H
+(instantiator's `KindPlaceholderT` → `KindTemplataI` substitution at `Instantiator.scala:3174`
+uses `vimpl()` for ownership composition, so `Array<mut, &E>` + `E:=int` yields `Array<mut, i32>`
+instead of `Array<mut, &int>`). Full writeup in `investigations/borrowing_to_array.md`.
+
+**Methodology lessons:**
+- The structural clue came from the trace: `inherit E` appeared in the fired-rules list but had
+  no conclusion indented beneath it (compare to other rules that do). That told us the rule
+  "fired" but produced no value — pointing at the no-op handler.
+- The handler's comment *"This rule does nothing, it was actually preprocessed"* made the missing
+  preprocessing obvious once the clue was followed.
+- A single-round audit of other nested-solver call sites showed the vulnerable pattern is narrow:
+  only expression-level rule sources that invoke the solver directly. Declaration-scoped solvers
+  (struct/interface/function/impl) can't hit this because their rule sources never emit
+  `RuneParentEnvLookupSR`.
+- Future improvement queued: extract the MKRFA fold into an `InferCompiler` helper (now 4 inline
+  copies); tighten the no-op handler to `vwat()` so future violations fail loudly.
+
 ### Recent example: "Test returning empty seq"
 
 Another category G fix, worth reading for methodology. This handoff originally pointed at
@@ -143,9 +175,9 @@ type) is unsolved.
 
 ---
 
-### 3. Borrowing toArray
+### 3. Borrowing toArray (G-cause fixed, now H-blocked)
 
-**Line:** 199. **Error:** "Couldn't solve some runes: _51111111111, E"
+**Line:** 199. **Original error (pre-fix):** "Couldn't solve some runes: _51111111111, E"
 
 ```vale
 func toArray<E>(list &List<E>) []<mut>&E {
@@ -153,17 +185,20 @@ func toArray<E>(list &List<E>) []<mut>&E {
 }
 ```
 
-**What happens:** Inside `toArray`, the expression `[]&E(list.len(), { list.get(_) })` tries
-to create a runtime-sized array of `&E`. The solver can't determine `E`. The rule
-`_51111111111 = &E` and `inherit E` are present but neither fires.
+**Status:** The category-G root cause (MKRFA preprocessing missing in `ArrayCompiler`) has
+been fixed — see `investigations/borrowing_to_array.md`. `toArray`'s body now compiles with
+the correct return type `Array<mut, &E>`. The test still fails, but for a category-H reason
+at the call site: `Instantiator.scala:3174` uses `vimpl()` for ownership composition when
+substituting a `KindPlaceholderT` via `KindTemplataI`, so `E := int` into `Array<mut, &E>`
+yields `Array<mut, i32>` (losing the `&`). Same bug that blocks "Upcasting in a generic
+function", "Map function", "Method call on generic data", "Impl rule". Fix that one
+site and this test should pass too.
 
-**Where to look:** The `inherit E` rule should bring `E` from the function's outer scope
-(where it's determined by the `list &List<E>` parameter). Check how `RuneParentEnvLookupSR`
-(the "inherit" rule) works in `CompilerSolver.scala`. Also check whether `&E` as an array
-element type creates the right rules.
-
-**Likely difficulty:** Medium. The `inherit` mechanism might not be working for this case,
-or the rules for `[]&E(...)` might not be set up correctly.
+**Where to look now:** `Instantiator.scala:3174` and its surrounding ownership-composition
+logic. Compare to the working `CoordTemplataI` case just above (line 3160-3166) which uses
+`composeOwnerships`. The `KindTemplataI` branch likely needs a similar path that derives the
+inner ownership from the substituted kind's mutability and composes it with the outer
+ownership — see the existing pattern at lines 3182-3209 for kinds that aren't placeholders.
 
 #### Background: what this test is actually testing
 
@@ -396,11 +431,13 @@ different ownership in different contexts.
 
 ## Suggested investigation order
 
-1. **Borrowing toArray** — clear "inherit" rule issue, self-contained function
-2. **Make array without type** / **Call Array<> without element type** — related issues,
-   tackle together
-3. **Diff iter** — ownership propagation, more complex
-4. **Test overload set** — overload set coercion, most complex
+1. **Make array without type** / **Call Array<> without element type** — related issues,
+   tackle together. May now benefit from the MKRFA fix landed for "Borrowing toArray" but
+   likely still need generator-lambda element-type inference.
+2. **Diff iter** — ownership propagation, more complex
+3. **Test overload set** — overload set coercion, most complex
+4. **Borrowing toArray** — category-G cause fixed; now blocked by category-H
+   instantiator bug (`Instantiator.scala:3174`). Fix category H and this passes.
 
 ## How to run a single test
 
