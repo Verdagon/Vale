@@ -315,3 +315,10 @@ Your `import rust.std.vec.Vec;` line was parsed but the generated `.vale` file n
 - **Every build rebuilds Rust's core/std/alloc.** `-Zbuild-std` recompiles the stdlib to get the right panic strategy. Expect 10–15s added to every build even for trivial programs.
 - **No incremental reflection.** ValeRuster regenerates the `.vale` binding every build. For many imports this adds up.
 - **The pinned nightly is a moving target.** When you bump the `rust-toolchain.toml`, you likely also need to bump `rustdoc-types` in `ValeRuster/Cargo.toml` to match the new JSON format, and possibly touch Divination if the cbuild surface changed. See the commit message on `rust-toolchain.toml` for context.
+
+## See also
+
+- [../arcana/ClangArchDerivedFromRustTriple-CADFRTZ.md](../arcana/ClangArchDerivedFromRustTriple-CADFRTZ.md) — why `-arch` matters when running under Rosetta.
+- [../arcana/DivinationStdoutToLogFileNotPipe-DSLFNPZ.md](../arcana/DivinationStdoutToLogFileNotPipe-DSLFNPZ.md) — why Divination's output lands in a file.
+- [../arcana/RustResolverPrecedesGenericResolver-RRPGRZ.md](../arcana/RustResolverPrecedesGenericResolver-RRPGRZ.md) — resolver chain ordering detail.
+- [../migration/rust-interop.md](../migration/rust-interop.md) — known ephemeral limitations.

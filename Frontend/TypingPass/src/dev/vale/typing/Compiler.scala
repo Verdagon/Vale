@@ -198,10 +198,10 @@ class Compiler(
 
           if (accum.elementsReversed.nonEmpty) {
             val rootDenizenEnv = env.originalCallingEnv.rootCompilingDenizenEnv
-            // Per @SMLRZ, use denizenTemplateId (pre-lift template path) so the prefix check
-            // works for both lifted and non-lifted functions. For a lifted function like
-            // `drop(self Ok<T,E>)`, id is `[Ok<T,E>, drop(args)]` but templateId stays `[drop]`,
-            // matching the placeholder's namePrefix which was built before lifting.
+            // Per @SMLRZ and @PNBDTZ, use denizenTemplateId (pre-lift template path) so the
+            // prefix check works for both lifted and non-lifted functions. For a lifted function
+            // like `drop(self Ok<T,E>)`, id is `[Ok<T,E>, drop(args)]` but templateId stays
+            // `[drop]`, matching the placeholder's namePrefix which was built before lifting.
             val originalCallingEnvTemplateName = rootDenizenEnv.denizenTemplateId
             accum.elementsReversed.foreach(placeholderName => {
               // There should only ever be placeholders from the original calling environment, we should

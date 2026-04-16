@@ -505,3 +505,12 @@ The workaround: derive the triple inside `invoke_clang` from the already-passed 
 - **Caching of `cargo cbuild`.** Each build re-runs `-Zbuild-std` and rebuilds std/core/alloc (10–15 seconds). cargo does its own caching based on source hashes, so repeated builds should be fast after the first — but `rm -rf build/` starts from zero.
 - **Non-macOS targets.** The `-arch` logic covers Darwin; Linux and Windows go through but haven't been tested. cbuild should handle other targets given the triple-detection in Divination.
 - **Divination's own toolchain pin.** Divination lives in a separate repo and would benefit from its own `rust-toolchain.toml` matching this one, so its build doesn't drift.
+
+## See also
+
+- [../reasoning/rust-interop.md](../reasoning/rust-interop.md) — alternatives considered for each design decision (hook point, pre-scan, redirect, Opt<str>, OWPFRD).
+- [../arcana/PlaceholdersNamedByDenizenTemplate-PNBDTZ.md](../arcana/PlaceholdersNamedByDenizenTemplate-PNBDTZ.md) — why the OWPFRD sanity check uses pre-lift `templateId`.
+- [../arcana/RustResolverPrecedesGenericResolver-RRPGRZ.md](../arcana/RustResolverPrecedesGenericResolver-RRPGRZ.md) — resolver chain ordering.
+- [../arcana/DivinationStdoutToLogFileNotPipe-DSLFNPZ.md](../arcana/DivinationStdoutToLogFileNotPipe-DSLFNPZ.md) — Backend's file redirect and the pipe-deadlock bug.
+- [../arcana/ClangArchDerivedFromRustTriple-CADFRTZ.md](../arcana/ClangArchDerivedFromRustTriple-CADFRTZ.md) — Coordinator's `-arch` derivation.
+- [../migration/rust-interop.md](../migration/rust-interop.md) — ephemeral limitations and bootstrap compiler workarounds.

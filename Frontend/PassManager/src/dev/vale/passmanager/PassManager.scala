@@ -333,8 +333,8 @@ object PassManager {
         keywords,
         Vector(PackageCoordinate.BUILTIN(interner, keywords)) ++ packageCoords,
         Builtins.getCodeMap(interner, keywords)
-          // Rust fallback first: resolvePackageContents below always returns Some(Map.empty)
-          // for packages it can't find, which would short-circuit this fallback.
+          // Per @RRPGRZ, rust fallback first: resolvePackageContents below always returns
+          // Some(Map.empty) for packages it can't find, which would short-circuit this fallback.
           .or(packageCoord => resolveRustPackageContents(rustBindingsDir, packageCoord))
           .or(packageCoord => resolvePackageContents(interner, allInputs, packageCoord)),
         passmanager.FullCompilationOptions(

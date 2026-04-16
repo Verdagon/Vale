@@ -14,9 +14,10 @@ func invoke_clang(
   // Rust interop: empty when disabled. Points at the dir containing rust_deps.h (cbindgen output).
   rust_include_dir str)
 Subprocess {
-  // Derive the Rust target triple from rust_include_dir. Divination's cbuild writes its
-  // output to `<rust_output_dir>/target/<triple>/release/`, so the parent directory name
-  // of rust_include_dir IS the triple (e.g. "aarch64-apple-darwin", "x86_64-apple-darwin").
+  // Per @CADFRTZ, derive the Rust target triple from rust_include_dir instead of accepting
+  // it as a separate parameter. Divination's cbuild writes its output to
+  // `<rust_output_dir>/target/<triple>/release/`, so the parent directory name of
+  // rust_include_dir IS the triple (e.g. "aarch64-apple-darwin", "x86_64-apple-darwin").
   rust_target_triple =
       if rust_include_dir == "" {
         ""
@@ -53,9 +54,9 @@ Subprocess {
     args.add("-L" + libc_path./("lib").str());
   }
 
-  // Match clang's -arch to the Rust static library's architecture. Without this, a
-  // Rosetta-translated parent (x86_64 valec on an arm64 Mac) silently causes clang to
-  // emit x86_64 output, which then fails to link against an arm64 .a. Only Darwin uses
+  // Per @CADFRTZ, match clang's -arch to the Rust static library's architecture. Without
+  // this, a Rosetta-translated parent (x86_64 valec on an arm64 Mac) silently causes clang
+  // to emit x86_64 output, which then fails to link against an arm64 .a. Only Darwin uses
   // -arch this way; Linux/Windows use different mechanisms and don't need it here.
   if (not windows) and rust_target_triple != "" {
     if rust_target_triple == "aarch64-apple-darwin" {

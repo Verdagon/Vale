@@ -1372,9 +1372,10 @@ void doRustyThings(
 
   std::string sizesFilePath = globalState->opt->rustOutputDir + "/sizes.txt";
 
-  // Redirect Divination's stdout/stderr to a log file. cargo cbuild produces ~MB of output
-  // (rebuilding core/std/alloc) which would otherwise flood the parent's stdout pipe and
-  // can deadlock callers like the Coordinator that capture this process's output.
+  // Per @DSLFNPZ, redirect Divination's stdout/stderr to a log file. cargo cbuild produces
+  // ~MB of output (rebuilding core/std/alloc) which would otherwise flood the parent's
+  // stdout pipe and deadlock callers like the Coordinator that capture this process's
+  // output (Vale stdlib's Subprocess reads via blocking fgetc char-at-a-time).
   std::string divinationLogPath = globalState->opt->rustOutputDir + "/divination.log";
 
   std::stringstream rusterCmd;
