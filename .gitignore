@@ -17,6 +17,14 @@ stdout.txt
 test_integration.sh
 test_output/
 
+# Rust interop build artifacts. cargo-c's cbuild writes to `clibthing/` via --destdir,
+# and cargo itself writes to `target/`; both appear at any depth in the tree.
+clibthing/
+target/
+# Stray sbt artifacts at the repo root (sbt belongs inside Frontend/, but occasionally
+# someone runs it from the top level by mistake).
+/project/
+
 # Claude Code
 */.claude/settings.local.json
 */.claude/worktrees/
