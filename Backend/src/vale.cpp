@@ -1350,6 +1350,17 @@ void doRustyThings(
   std::cout << "Using divination input:" << std::endl;
   std::cout << divinationInputStr << std::endl;
 
+  // Check Rust interop config — all three paths must be provided when there's rust work to do.
+  if (!divinationInputStr.empty()) {
+    if (globalState->opt->divinationPath.empty() ||
+        globalState->opt->rustCargoToml.empty() ||
+        globalState->opt->rustOutputDir.empty()) {
+      std::cerr << "Rust interop required but missing one of: "
+                   "--divination_path, --rust_cargo_toml, --rust_output_dir" << std::endl;
+      exit(1);
+    }
+  }
+
   std::string rustExternsFilename = "rust_externs.h";
   std::ofstream rustExternsFile(rustExternsFilename);
   if (!rustExternsFile.is_open()) {
@@ -1359,21 +1370,28 @@ void doRustyThings(
   rustExternsFile << divinationInputStr;
   rustExternsFile.close();
 
-  std::string sizesFilePath = "/Volumes/V/Catter/build/rust/sizes.txt";
+  std::string sizesFilePath = globalState->opt->rustOutputDir + "/sizes.txt";
+
+  // Redirect Divination's stdout/stderr to a log file. cargo cbuild produces ~MB of output
+  // (rebuilding core/std/alloc) which would otherwise flood the parent's stdout pipe and
+  // can deadlock callers like the Coordinator that capture this process's output.
+  std::string divinationLogPath = globalState->opt->rustOutputDir + "/divination.log";
 
   std::stringstream rusterCmd;
-  rusterCmd << "/Volumes/V/Divination/target/debug/Divination"; // DO NOT SUBMIT
+  rusterCmd << globalState->opt->divinationPath;
   rusterCmd << " --crate std";
-  rusterCmd << " --cargo_toml /Volumes/V/Catter/Dependencies.toml";
-  rusterCmd << " --output_dir /Volumes/V/Catter/build/rust";
+  rusterCmd << " --cargo_toml " << globalState->opt->rustCargoToml;
+  rusterCmd << " --output_dir " << globalState->opt->rustOutputDir;
   rusterCmd << " --output_sizes " << sizesFilePath;
   rusterCmd << " --input_file " << rustExternsFilename;
   rusterCmd << " instantiate";
+  rusterCmd << " > " << divinationLogPath << " 2>&1";
   std::string rusterCmdStr = rusterCmd.str();
   std::cout << "Running Divination: " << rusterCmdStr << std::endl;
+  std::cout << "  (output → " << divinationLogPath << ")" << std::endl;
   int exitCode = std::system(rusterCmdStr.c_str());
   if (exitCode != 0) {
-    std::cerr << "Error running Divination!" << std::endl;
+    std::cerr << "Error running Divination! See " << divinationLogPath << " for details." << std::endl;
     exit(1);
   }
 
