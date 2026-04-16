@@ -198,20 +198,11 @@ class Compiler(
 
           if (accum.elementsReversed.nonEmpty) {
             val rootDenizenEnv = env.originalCallingEnv.rootCompilingDenizenEnv
-            val originalCallingEnvTemplateName =
-              rootDenizenEnv.id match {
-                case IdT(packageCoord, initSteps, x: ITemplateNameT) => {
-                  IdT(packageCoord, initSteps, x)
-                }
-                // When we compile a generic function, we populate some placeholders for its template
-                // args. Then, we start compiling its body expressions. At that point, we're in an
-                // environment that has a FullName with placeholders in it.
-                // That's what we'll see in this case.
-                case IdT(packageCoord, initSteps, x: IInstantiationNameT) => {
-                  IdT(packageCoord, initSteps, x.template)
-                }
-                case other => vfail(other)
-              }
+            // Per @SMLRZ, use denizenTemplateId (pre-lift template path) so the prefix check
+            // works for both lifted and non-lifted functions. For a lifted function like
+            // `drop(self Ok<T,E>)`, id is `[Ok<T,E>, drop(args)]` but templateId stays `[drop]`,
+            // matching the placeholder's namePrefix which was built before lifting.
+            val originalCallingEnvTemplateName = rootDenizenEnv.denizenTemplateId
             accum.elementsReversed.foreach(placeholderName => {
               // There should only ever be placeholders from the original calling environment, we should
               // *never* mix placeholders from two environments.
