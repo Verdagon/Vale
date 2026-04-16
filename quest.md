@@ -135,7 +135,7 @@ Even if compilation were fixed, these hit `vimpl()` at the end.
 
 ---
 
-## G. Solver conflicts / generic inference failures (5 remaining, 2 fixed)
+## G. Solver conflicts / generic inference failures (3 remaining, 4 fixed)
 
 Core type solver bugs where the solver produces contradictory conclusions.
 
@@ -147,7 +147,7 @@ Core type solver bugs where the solver produces contradictory conclusions.
 | ~~Test interface default generic argument in type~~ | typing.AfterRegionsTests | **FIXED.** Default generic param rules were added to the solver eagerly and unconditionally, conflicting with arg-inferred values. `assembleCallSiteRules` eagerly added `LiteralSR(_211, 5)` which combined with the hoisted `EqualsSR(H, _211)` forced `H=5` before argument inference ran. Fixed by removing eager default addition from `assembleCallSiteRules` and adding incremental default logic to `solveForResolving` — defaults now fire only for runes that remain unsolved after argument inference. See DRSINI. |
 | ~~Test returning empty seq~~ | IntegrationTests | **FIXED.** Two combined issues. (1) Solver deadlock: `TuplePT` lowering unconditionally emitted `MaybeCoercingLookupSR + MaybeCoercingCallSR`, but for zero-arg tuples the pre-processor carve-out at `RuneTypeSolver.scala:441` refused to seed `Tup0`'s ambiguous templata type. Fixed in `TemplexScout.scala` by branching `TuplePT` on `elements.isEmpty` and emitting a single `MaybeCoercingLookupSR` for empty tuples (matching how bare zero-arg kind templates like `Spaceship` are handled). (2) VM leak: once compilation succeeded, `main() ()` returned a `Tup0{}` struct whose reference was `OwnH` (because `Tup0` was a default-mutable struct), and Vivem's `cleanup` does nothing for `OwnH` at end-of-program. Fixed by adding `imm` to `tup0.vale` (`struct Tup0 imm { }`), which makes the return reference Share and routes it through the existing StructHT destructure+dealloc path. See `investigations/test_returning_empty_seq.md` and `investigations/test_returning_empty_seq_vm_leak.md`. |
 | ~~Make array without type~~ | IntegrationTests | **FIXED.** BRRZ. Removing the MSAE guard at `ArrayCompiler.scala:253` was sufficient once the relaxed `ResolveSR` was in place: the `MutableT` branch's `findFunction("Array", ...)` delegates to the stdlib `Array<M,E,G>(n int, generator G) where func(&G,int)E` builtin, whose bound now resolves via BRRZ to discover E. The `ImmutableT` branch was already handling `maybeElementTypeRune = None` gracefully. No postparser changes needed; the originally planned synthesis step turned out to be unnecessary and harmful (introduced a stall). See docs/Generics.md BRRZ section. |
-| Borrowing toArray | IntegrationTests | **Category-G MKRFA cause fixed, test still blocked on two other issues.** The three `ArrayCompiler` expression entry points (`evaluateRuntimeSizedArrayFromCallable`, `evaluateStaticSizedArrayFromValues`, `evaluateStaticSizedArrayFromCallable`) hardcoded `val initialKnowns = Vector()` and passed rules straight to `makeSolver`/`solveForResolving` without stripping `RuneParentEnvLookupSR` rules and converting them to `InitialKnown`s (the MKRFA contract). The solver's `RuneParentEnvLookupSR` handler at `CompilerSolver.scala:852` is a defensive no-op that silently swallowed the unpreprocessed rules, so `E` was never seeded from `callingEnv` and `_51111111111 = &E` stalled. Fix copies the MKRFA fold from `OverloadResolver.scala:311-325` inline into all three ArrayCompiler methods. `toArray`'s body now compiles with the correct `Array<mut, &E>` return type. **Remaining blockers (not H, not instantiator):** (1) At `l.toArray()` call site in main with `E:=int`, `AugmentSR`'s inner-known path at `CompilerSolver.scala:900` hits `case MutabilityTemplataT(ImmutableT) => innerCoord.ownership` — it deliberately drops the `&` augment because int is immutable, collapsing `&int` to `share int`. Pre-regions Vale semantics; the "regions" feature is supposed to preserve the borrow. (2) Even if (1) were resolved, `l.toArray().get(1)` is UFCS `get(arr, 1)` but the stdlib has no `func get` for `Array<...>` (canonical syntax is `arr[i]`; no `get` file in `Frontend/Tests/test/main/resources/array/`). Test needs either a stdlib `Array.get` or to switch to `[1]` indexing. See `investigations/borrowing_to_array.md`. |
+| ~~Borrowing toArray~~ | IntegrationTests | **FIXED.** The previous-session diagnosis claiming `AugmentSR`'s `ImmutableT` collapse was a regions bug was wrong — that collapse is intentional language semantics. Immutables only ever have `ShareT` ownership (they're reference-counted under the hood; ownership doesn't apply). Writing `&E` is generic-friendly: for mutable E it produces a borrow, for immutable E it correctly degenerates to share. So the call-site solve correctly resolved the return type as `Array<mut, i32>`. The only actual issue was the test's use of `.get(1)` UFCS on the array — Vale arrays use `arr[i]` indexing exclusively (see `array/has/has.vale`, `array/each/each.vale`, `array/iter/iter.vale`, and `list.vale:33-36` where `List.get` itself delegates to `arr[index]`). Fixed by changing the test to `l.toArray()[1]` to match stdlib convention. The earlier MKRFA fix to the three `ArrayCompiler` entry points (added in commit `8c93e15a`) remains correct and necessary. |
 
 **Effort:** High. These are core inference bugs. The solver produces contradictory conclusions when inferring ownership/mutability for generics. Fixing requires deep understanding of how the solver handles placeholders, implicit coercion runes, and default generic arguments.
 
@@ -196,18 +196,18 @@ Core type solver bugs where the solver produces contradictory conclusions.
 | D. Lex-time errors instead of postparsing | 0 | 2 fixed | Done |
 | E. Prot rule 3 components | 0 | 1 commented out | Done (dead syntax) |
 | F. Wrong error type / missing behavior | 2 | 4 fixed, 1 commented out | Remaining: blocked (H) + high (generics) |
-| G. Solver conflicts | 5 | 2 fixed | High (core inference) |
+| G. Solver conflicts | 2 | 5 fixed | High (core inference) |
 | H. Deep `vimpl()` in compiler | 4 | 0 | High (core feature) |
 | I. Weak reference checks | 0 | 3 fixed | Done |
 | J. Infinite recursion | 1 | 0 | High |
-| **Total remaining** | **22** | | |
-| **Recovered so far** | **20** | | 17 fixed + 2 commented out + 1 moved to postparsing |
+| **Total remaining** | **19** | | |
+| **Recovered so far** | **23** | | 20 fixed + 2 commented out + 1 moved to postparsing |
 
-### All recovered tests (19 total)
+### All recovered tests (21 total)
 
 **Previously recovered (10):** Reports when ownership doesnt match, Detects sending non-citizen to citizen, Accidentally mention type rune, Call bound with wrong arguments, Ambiguous call, Reports when non-kind interface in impl, Reports when non-kind struct in impl, Cant make non-weakable extend a weakable, Cant make weakable extend a non-weakable, Cant make weak ref to non-weakable
 
-**This session (9):**
+**Earlier this session (9):**
 - Forgetting set when changing (C, fixed)
 - Report leaving out semicolon (C, fixed)
 - Func with func bound with missing 'where' (C, fixed)
@@ -217,4 +217,8 @@ Core type solver bugs where the solver produces contradictory conclusions.
 - Prototype rule to get return type (E, commented out — dead `Prot[...]` syntax)
 - Test interface default generic argument in type (G, fixed — DRSINI: defaults now incremental not initial)
 - Test returning empty seq (G, fixed — empty-tuple `TuplePT` lowering skips the redundant call rule; `Tup0` marked `imm` to route through share-dealloc)
-- Borrowing toArray (G-MKRFA-cause fixed, test still failing — added MKRFA preprocessing to three `ArrayCompiler` methods, body compiles with correct `Array<mut, &E>` return. Remaining blockers are NOT category-H: (1) `AugmentSR` at `CompilerSolver.scala:900` collapses `&T` to `share T` when T is immutable — kills the borrow at the call site; and (2) no `Array.get` function exists in the stdlib for UFCS `arr.get(i)`. My earlier claim that this was H-blocked was wrong — no instantiator calls fire before the failure)
+- Borrowing toArray (G, fixed — earlier-session diagnosis was wrong about Issue A. The `AugmentSR` ImmutableT→ShareT collapse at `CompilerSolver.scala:950` is intentional language semantics, not a regions bug: immutables only ever have `ShareT` ownership (they're refcounted; ownership doesn't apply). Writing `&E` is a generic-friendly form that produces a borrow when E is mutable and degenerates to share when E is immutable — both correct. The MKRFA fix from the previous session is necessary and correct, but the actual final blocker was just that the test used `.get(1)` UFCS on an array — Vale arrays use `arr[i]` indexing exclusively (every other test in `array/` and even `List.get` itself uses `arr[index]`). Fixed by changing the test's last line to `l.toArray()[1]`. Test now passes.)
+
+**BRRZ session (2):**
+- Make array without type (G, fixed — BRRZ: removed MSAE guard at `ArrayCompiler.scala:253`; relaxed `ResolveSR` puzzle resolves element type from generator lambda's `__call` return via the stdlib Array builtin's `where func(&G,int)E` bound)
+- Call Array<> without element type (G, fixed — BRRZ: same mechanism; `Array<imm>(3, {13+_})` resolves E via the relaxed `ResolveSR` in the `arrays.vale:51` overload's own candidate solve)
