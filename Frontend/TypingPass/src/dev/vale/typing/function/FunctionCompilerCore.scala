@@ -257,52 +257,9 @@ class FunctionCompilerCore(
         case other => vwat(other)
       }
 
-    val IdT(packageCoord, initSteps, funcEnvName) = fullEnv.id
-    val hasSelfParam = params2.exists(param2 => {
-      param2.name match {
-        case CodeVarNameT(s) if s == keywords.self => true
-        case _ => false
-      }
-    })
-    initSteps.lastOption match {
-      // Per @SMLRZ, struct methods with self get instantiated struct from self param in initSteps,
-      // producing Rust-compatible paths like Vec<i32>::capacity.
-      case Some(StructTemplateNameT(_)) if hasSelfParam => {
-        val selfParam =
-          vassertSome(
-            params2.find(param2 => {
-              param2.name match {
-                case CodeVarNameT(s) if s == keywords.self => true
-                case _ => false
-              }
-            }))
-        val selfStructId =
-          selfParam.tyype match {
-            case CoordT(ownership, region, StructTT(structId)) => structId
-            case _ => vwat() // Make a proper error
-          }
-        vassert(selfStructId.steps.startsWith(initSteps.init))
-
-        val newFuncName =
-          funcEnvName match {
-            case FunctionNameT(template, templateArgs, parameters) => {
-              vassert(templateArgs.size == genericParametersS.size)
-              // Per @SMLRZ, strips inherited template args so struct args appear only on the struct
-              // step, matching Rust's Vec<i32>::capacity (not Vec::capacity<i32>).
-              val newTemplateArgs =
-                genericParametersS.zip(templateArgs).filter(!_._1.inherited).map(_._2)
-              interner.intern(FunctionNameT(template, newTemplateArgs, parameters))
-            }
-            case other => vimpl(other)
-          }
-
-        val newId = selfStructId.addStep(newFuncName)
-        PrototypeT(newId, returnCoord)
-      }
-      case _ => {
-        PrototypeT(fullEnv.id, returnCoord)
-      }
-    }
+    // Per @SMLRZ, the env ID already has the correct shape (struct in initSteps, inherited
+    // args stripped) thanks to assembleName in FunctionCompilerMiddleLayer.
+    PrototypeT(fullEnv.id, returnCoord)
   }
 
   def finalizeHeader(

@@ -2073,6 +2073,8 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     val capacityFunc = coutputs.lookupFunction("capacity")
+    // Per @SMLRZ, inherited template args are stripped from the function name and
+    // the instantiated struct appears in initSteps: Vec<T>::capacity (not Vec::capacity<T>)
     capacityFunc.header.id match {
       case IdT(_,
       Vector(
@@ -2082,8 +2084,7 @@ class CompilerTests extends FunSuite with Matchers {
             CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))))),
       FunctionNameT(
         FunctionTemplateNameT(StrI("capacity"),_),
-        Vector(
-          CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),
+        Vector(),
         Vector(
           CoordT(ShareT,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))))))))) => {
         // Good

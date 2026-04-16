@@ -446,28 +446,43 @@ class FunctionCompilerMiddleLayer(
 //    vimpl()
 //  }
 
-  // Per @SMLRZ, uses parentId.addStep to produce IDs with instantiated struct in initSteps,
-  // matching the shape produced by makePrototype in FunctionCompilerCore.
+  // Per @SMLRZ, produces IDs with instantiated struct in initSteps for lifted struct methods,
+  // producing Rust-compatible paths like Vec<i32>::capacity.
   def assembleName(
       runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
       paramTypes: Vector[CoordT]):
   IdT[IFunctionNameT] = {
     val parentId = runedEnv.parentEnv.id
-    // Per @SMLRZ, planned: lifted methods would de-instantiate parent to use template ID.
-//    if (runedEnv.function.lift) {
-//      val parentNonInstantiationId =
-//        parentId match {
-//          case IdT(packageCoord, initSteps, x: IInstantiationNameT) => {
-//            TemplataCompiler.getTemplate(IdT(packageCoord, initSteps, x))
-//          }
-//          case other => other
-//        }
-//      parentNonInstantiationId.addStep(
-//        runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
-//    } else {
-      parentId.addStep(
-        runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
-//    }
+    val function = runedEnv.function
+
+    // Per @SMLRZ, for lifted struct methods with self, put the instantiated struct
+    // in initSteps and strip inherited template args from the function name.
+    val maybeSelfStructId =
+      if (!function.lift) {
+        None
+      } else {
+        function.params
+          .zip(paramTypes)
+          .collectFirst {
+            case (paramS, CoordT(_, _, StructTT(structId)))
+              if paramS.pattern.name.exists(c => c.name match {
+                case CodeVarNameS(name) if name == keywords.self => true
+                case _ => false
+              }) =>
+              structId
+          }
+      }
+
+    maybeSelfStructId match {
+      case Some(selfStructId) =>
+        val strippedTemplateArgs =
+          function.genericParameters.zip(runedEnv.templateArgs).filter(!_._1.inherited).map(_._2)
+        selfStructId.addStep(
+          runedEnv.id.localName.makeFunctionName(interner, keywords, strippedTemplateArgs, paramTypes))
+      case None =>
+        parentId.addStep(
+          runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
+    }
   }
 
   def makeNamedEnv(
