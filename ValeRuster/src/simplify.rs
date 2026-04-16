@@ -69,16 +69,9 @@ pub(crate) fn simplify_type(
                 }
                 GenericArgs::Parenthesized { inputs: _, output: _ } => {
                   unimplemented!();
-                  // let mut result = Vec::new();
-                  // for arg in inputs {
-                  //   result.push(
-                  //     simplify_type(crates, &item_index, generics, unimplemented!(), arg)?);
-                  // }
-                  // for _output in output {
-                  //   result.push(
-                  //     simplify_type(crates, &item_index, generics, unimplemented!(), output)?);
-                  // }
-                  // result
+                }
+                GenericArgs::ReturnTypeNotation => {
+                  unimplemented!();
                 }
               }
             } else {
@@ -104,6 +97,7 @@ pub(crate) fn simplify_type(
               Err(ResolveError::NotFound) => {
                 unimplemented!()
               }
+              Err(ResolveError::Unsupported(reason)) => return Err(SimplifyError::Unsupported(reason)),
               Err(ResolveFatal(e)) => return Err(SimplifyError::SimplifyFatal(e))
             }
           };
@@ -133,10 +127,10 @@ pub(crate) fn simplify_type(
           result
         }
       }
-      Type::BorrowedRef { mutable, type_, .. } => {
+      Type::BorrowedRef { is_mutable, type_, .. } => {
         let mut thing =
             simplify_type(crates, &item_index, defaulted_generic_runes, maybe_whitelist_type_uids, generics, type_crate_name, type_)?;
-        if *mutable {
+        if *is_mutable {
           thing.mut_ref = true;
         } else {
           thing.imm_ref = true;
@@ -215,7 +209,7 @@ pub(crate) fn simplify_type(
           let generic_bound = &generic_bounds[0];
           match generic_bound {
             GenericBound::TraitBound { trait_, generic_params, modifier } => {
-              let needle_start = "impl ".to_owned() + &trait_.name;
+              let needle_start = "impl ".to_owned() + &trait_.path;
               let matches =
                   generics.iter()
                       .filter(|(name, _)| name.starts_with(&needle_start))
@@ -227,6 +221,7 @@ pub(crate) fn simplify_type(
               match_.clone()
             }
             GenericBound::Outlives(_) => unimplemented!(),
+            GenericBound::Use(_) => unimplemented!(),
           }
         } else {
           unimplemented!();

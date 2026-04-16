@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
-use rustdoc_types::{Crate, Id, Import, Item, ItemEnum, Type};
+use rustdoc_types::{Crate, Id, Use, Item, ItemEnum, Type};
 use crate::ResolveError::{NotFound, ResolveFatal};
 use crate::{ResolveError, UId};
 
@@ -23,7 +23,7 @@ fn slice_id(
 }
 fn lifetime_id(
 ) -> UId {
-  UId{ crate_name: "".to_string(), id: Id("life".to_string()) }
+  UId{ crate_name: "".to_string(), id: Id(u32::MAX) }
 }
 pub(crate) fn primitive_id(
   primitive_name_to_uid: &HashMap<String, UId>,
@@ -50,7 +50,12 @@ pub(crate) fn is_primitive(
 }
 
 pub(crate) fn is_generic(id: &UId) -> bool {
-  id.crate_name == "$"
+  id.crate_name.starts_with("$")
+}
+
+pub(crate) fn generic_name(id: &UId) -> &str {
+  assert!(is_generic(id));
+  &id.crate_name[1..]
 }
 
 
@@ -89,6 +94,7 @@ pub fn resolve_uid(
                       return Err(ResolveError::NotFound);
                     }
                   }
+                  Err(ResolveError::Unsupported(reason)) => return Err(ResolveError::Unsupported(reason)),
                   Err(ResolveError::ResolveFatal(fatal)) => return Err(ResolveError::ResolveFatal(fatal))
                 };
           }
@@ -102,7 +108,7 @@ pub fn resolve_uid(
 
       match &tentative_item.inner {
         ItemEnum::ExternCrate { .. } => unimplemented!(),
-        ItemEnum::Import(import) => {
+        ItemEnum::Use(import) => {
           // When we do an import, we actually want the module the
           // import is referring to, not the import's id.
 
@@ -180,7 +186,7 @@ pub fn resolve_uid(
             }
           }
         },
-        ItemEnum::ForeignType => unimplemented!(),
+        ItemEnum::ExternType => unimplemented!(),
         _ => Ok(tentative_item_id.clone())
       }
     }
@@ -256,11 +262,12 @@ pub(crate) fn extend_and_resolve_uid(
               Err(ResolveError::NotFound) => {
                 unimplemented!()
               }
+              Err(ResolveError::Unsupported(reason)) => return Err(ResolveError::Unsupported(reason)),
               Err(ResolveFatal(e)) => return Err(ResolveFatal(e))
             };
         let found_child = lookup_uid(crates, &found_child_uid);
         match found_child.inner {
-          ItemEnum::Import(_) => {
+          ItemEnum::Use(_) => {
             println!("wat");
           }
           ItemEnum::Macro(_) => {} // skip
@@ -338,6 +345,7 @@ fn resolve_type_uid(
           Err(ResolveError::NotFound) => {
             unimplemented!();
           }
+          Err(ResolveError::Unsupported(_)) => unreachable!("resolve_uid never returns Unsupported"),
           Err(ResolveError::ResolveFatal(fatal)) => return Err(fatal)
         }
       }
@@ -382,7 +390,7 @@ pub(crate) fn get_expanded_direct_child_uids(
   let mut direct_child_uids: Vec<UId> = vec![];
   for direct_child_uid in unexpanded_direct_child_uids.clone() {
     match &lookup_uid(crates, &direct_child_uid).inner {
-      ItemEnum::Import(Import { id: Some(target_module_id), glob: true, .. }) => {
+      ItemEnum::Use(Use { id: Some(target_module_id), is_glob: true, .. }) => {
         // We treat glob imports as if we're directly importing
         // everything matching them.
         let target_module_uid =
@@ -452,6 +460,7 @@ pub(crate) fn include_impls_children(
           },
           Ok(None) => {}
           Err(ResolveError::NotFound) => unimplemented!(),
+          Err(ResolveError::Unsupported(_)) => unreachable!("get_impl_children never returns Unsupported"),
           Err(ResolveFatal(e)) => return Err(e)
         }
       }
@@ -535,14 +544,14 @@ pub(crate) fn get_unexpanded_direct_child_uids_exclude_impl_children(
 
 pub(crate) fn item_has_name(direct_child_item: &Item, name: &str) -> bool {
   match &direct_child_item.inner {
-    ItemEnum::Import(import) => {
-      import.name == name && !import.glob
+    ItemEnum::Use(import) => {
+      import.name == name && !import.is_glob
     }
     // When we import e.g.
     //   std::string::String::From<&str>::from as RustStringFromStrRef
     // we need to search for the "From" impl, thats what we're doing here.
     ItemEnum::Impl(impl_) => {
-      impl_.trait_.as_ref().map(|x| &x.name[..]) == Some(name)
+      impl_.trait_.as_ref().map(|x| &x.path[..]) == Some(name)
     }
     _ => {
       direct_child_item.name.as_ref().map(|x| &x[..]) == Some(name)
@@ -616,6 +625,7 @@ fn get_impl_children(
               let _ = resolve_uid(crates, &primitive_name_to_uid, &trait_unresolved_uid);
               unimplemented!();
             }
+            Err(ResolveError::Unsupported(_)) => unreachable!("resolve_uid never returns Unsupported"),
             Err(ResolveError::ResolveFatal(fatal)) => {
               return Err(ResolveError::ResolveFatal(fatal))
             }

@@ -1,6 +1,6 @@
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
-use rustdoc_types::{Crate, GenericArg, GenericArgs, Impl, Import, Item, ItemEnum, Type};
+use rustdoc_types::{Crate, GenericArg, GenericArgs, Impl, Use, Item, ItemEnum, Type};
 use crate::{resolve_id, ResolveError, UId};
 use crate::indexer::ItemIndex;
 use crate::ResolveError::{NotFound, ResolveFatal};
@@ -48,7 +48,8 @@ pub fn resolve(
                       return Err(ResolveError::NotFound);
                     }
                   }
-                  Err(ResolveError::ResolveFatal(fatal)) => return Err(ResolveError::ResolveFatal(fatal))
+                  Err(ResolveError::ResolveFatal(fatal)) => return Err(ResolveError::ResolveFatal(fatal)),
+                  Err(ResolveError::Unsupported(reason)) => return Err(ResolveError::Unsupported(reason)),
                 };
           }
           // We should only be overwriting the Vec::new() above
@@ -64,7 +65,7 @@ pub fn resolve(
 
       match &tentative_item.inner {
         ItemEnum::ExternCrate { .. } => unimplemented!(),
-        ItemEnum::Import(import) => {
+        ItemEnum::Use(import) => {
           // When we do an import, we actually want the module the
           // import is referring to, not the import's id.
 
@@ -121,9 +122,13 @@ pub fn resolve(
                   }
                 }
                 if maybe_found_child_ids.len() == 0 {
-                  unimplemented!();
+                  return Err(ResolveError::Unsupported(format!(
+                    "Couldn't resolve foreign path step '{}' in crate '{}'",
+                    next_foreign_crate_name, foreign_crate_root_name)));
                 } else if maybe_found_child_ids.len() > 1 {
-                  unimplemented!();
+                  return Err(ResolveError::Unsupported(format!(
+                    "Ambiguous foreign path step '{}' in crate '{}'",
+                    next_foreign_crate_name, foreign_crate_root_name)));
                 }
                 result_uid = maybe_found_child_ids.get(0).unwrap().clone();
               }
@@ -163,7 +168,7 @@ pub fn resolve(
           //     // get_child_ids(
           //     //   crates, &UId{crate_name: resolved_id.crate_name, id: path.id.clone() })?
         },
-        ItemEnum::ForeignType => unimplemented!(),
+        ItemEnum::ExternType => unimplemented!(),
         _ => {
 
           Ok(
@@ -257,13 +262,13 @@ pub fn extend_and_resolve(
         }
       }
 
-      let mut unnarrowed_imports: Vec<(UId, &Import)> = Vec::new();
+      let mut unnarrowed_imports: Vec<(UId, &Use)> = Vec::new();
       let mut unfiltered_unnarrowed_others: Vec<(UId, &Item)> = Vec::new();
       let mut unnarrowed_impls: Vec<(UId, &Impl)> = Vec::new();
       for (item_uid, item) in found_items {
         match &item.inner {
           ItemEnum::Impl(impl_) => unnarrowed_impls.push((item_uid.clone(), impl_)),
-          ItemEnum::Import(import_) => unnarrowed_imports.push((item_uid.clone(), import_)),
+          ItemEnum::Use(import_) => unnarrowed_imports.push((item_uid.clone(), import_)),
           _ => unfiltered_unnarrowed_others.push((item_uid.clone(), item)),
         }
       }
@@ -289,12 +294,13 @@ pub fn extend_and_resolve(
                     Err(ResolveError::NotFound) => {
                       unimplemented!();
                     }
+                    Err(ResolveError::Unsupported(reason)) => return Err(ResolveError::Unsupported(reason)),
                     Err(ResolveError::ResolveFatal(fatal)) => return Err(ResolveFatal(fatal))
                   };
               let import_item =
                   resolve_id::lookup_uid(crates, &resolved_import_uid);
               match &import_item.inner {
-                ItemEnum::Import(_) | ItemEnum::TypeAlias(_) => panic!("Resolve didn't work!"),
+                ItemEnum::Use(_) | ItemEnum::TypeAlias(_) => panic!("Resolve didn't work!"),
                 ItemEnum::Impl(impl_) => {
                   unnarrowed_impls.push((resolved_import_uid, impl_));
                 }
@@ -312,7 +318,7 @@ pub fn extend_and_resolve(
             let mut unnarrowed_others: Vec<(UId, &Item)> = Vec::new();
             for (item_uid, item) in unfiltered_unnarrowed_others {
               match &item.inner {
-                ItemEnum::Import(_) | ItemEnum::TypeAlias(_) => panic!("Resolve didn't work!"),
+                ItemEnum::Use(_) | ItemEnum::TypeAlias(_) => panic!("Resolve didn't work!"),
                 ItemEnum::Impl(_impl_) => panic!("Impl shouldnt be in this list"),
                 ItemEnum::Module(_) | ItemEnum::Struct(_) | ItemEnum::Trait(_) | ItemEnum::Function(_) | ItemEnum::Enum(_) => {
                   unnarrowed_others.push((item_uid, &item));
@@ -460,6 +466,7 @@ fn impl_from_matches_generic_args(
               args
             }
             GenericArgs::Parenthesized { .. } => unimplemented!(),
+            GenericArgs::ReturnTypeNotation => unimplemented!(),
           }
         } else {
           &empty
@@ -523,13 +530,13 @@ fn match_generic_arg_type(
     }
     (
       SimpleType { imm_ref: true, valtype: inner_arg, ..},
-      Type::BorrowedRef { mutable: false, type_: inner_param, .. }
+      Type::BorrowedRef { is_mutable: false, type_: inner_param, .. }
     ) => {
       match_generic_arg_valtype(crates, item_index, generics, inner_arg, inner_param, current_height + 1)
     }
     (
       SimpleType { mut_ref: true, valtype: inner_arg, ..},
-      Type::BorrowedRef { mutable: true, type_: inner_param, .. }
+      Type::BorrowedRef { is_mutable: true, type_: inner_param, .. }
     ) => {
       match_generic_arg_valtype(crates, item_index, generics, inner_arg, inner_param, current_height + 1)
     }
@@ -585,7 +592,7 @@ fn match_generic_arg_valtype(
     }
     (
       _,
-      Type::ResolvedPath(rustdoc_types::Path { name: generic_param_name, args: _generic_params, .. })
+      Type::ResolvedPath(rustdoc_types::Path { path: generic_param_name, args: _generic_params, .. })
     ) => {
       if is_primitive(&item_index.primitive_uid_to_name, &generic_arg.id) {
         return None;

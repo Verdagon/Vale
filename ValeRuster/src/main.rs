@@ -27,7 +27,7 @@ use regex::Regex;
 use rustdoc_types::{Crate, Function, GenericArg, GenericArgs, GenericParamDefKind, Generics, Id, Impl, Item, ItemEnum, Struct, Type};
 use crate::indexer::ItemIndex;
 use crate::ParsedType::ImplCast;
-use crate::resolve_id::{extend_and_resolve_uid, is_generic, is_primitive, is_special_primitive, lookup_uid, resolve_uid, str_id, tuple_id};
+use crate::resolve_id::{extend_and_resolve_uid, generic_name, is_generic, is_primitive, is_special_primitive, lookup_uid, resolve_uid, str_id, tuple_id};
 use crate::ResolveError::ResolveFatal;
 use itertools::Itertools;
 use crate::simplify::{SimpleType, SimpleValType, simplify_type, SimplifyError};
@@ -124,6 +124,10 @@ fn main() -> Result<(), anyhow::Error> {
               .long("input_file")
               .help("File to read from, intead of stdin.")
               .action(ArgAction::Set))
+          .arg(Arg::new("type")
+              .long("type")
+              .help("A single dotted type path to generate bindings for (e.g. std.vec.Vec). When set, overrides --input_file and stdin.")
+              .action(ArgAction::Set))
           .arg(Arg::new("output_sizes")
               .long("output_sizes")
               .help("File to output size information to.")
@@ -169,9 +173,13 @@ fn main() -> Result<(), anyhow::Error> {
   let maybe_output_sizes_path = root_matches.get_one::<String>("output_sizes");
 
   let maybe_input_file_path = root_matches.get_one::<String>("input_file");
+  let maybe_single_type = root_matches.get_one::<String>("type");
 
   let mut input_lines: Vec<String> = Vec::new();
-  if let Some(input_file_path) = maybe_input_file_path {
+  if let Some(single_type) = maybe_single_type {
+    // Synthesize a single import line so the list subcommand's existing regex picks it up.
+    input_lines.push(format!("import rust.{}", single_type));
+  } else if let Some(input_file_path) = maybe_input_file_path {
     let file = File::open(input_file_path)?;
     let reader = io::BufReader::new(file);
     for line_res in reader.lines() {
@@ -201,9 +209,11 @@ fn main() -> Result<(), anyhow::Error> {
 
       let mut undeduped_types_to_find: Vec<String> = Vec::new();
 
-      if let Some(input_file_path) = maybe_input_file_path {
-        if !input_file_path.ends_with(".vale") {
-          panic!("Input file doesn't end with .vale!");
+      if maybe_single_type.is_none() {
+        if let Some(input_file_path) = maybe_input_file_path {
+          if !input_file_path.ends_with(".vale") {
+            panic!("Input file doesn't end with .vale!");
+          }
         }
       }
       for line in input_lines {
@@ -233,6 +243,9 @@ fn main() -> Result<(), anyhow::Error> {
               Ok(x) => x,
               Err(ResolveError::NotFound) => {
                 return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Not found: {}", step_str)))); // DO NOT SUBMIT
+              }
+              Err(ResolveError::Unsupported(reason)) => {
+                return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Unsupported top-level type '{}': {}", step_str, reason))));
               }
               Err(ResolveError::ResolveFatal(fatal)) => return Err(fatal),
             });
@@ -284,7 +297,7 @@ fn main() -> Result<(), anyhow::Error> {
           }
           ItemEnum::Module(_) => unimplemented!(),
           ItemEnum::ExternCrate { .. } => unimplemented!(),
-          ItemEnum::Import(_) => unimplemented!(),
+          ItemEnum::Use(_) => unimplemented!(),
           ItemEnum::Union(_) => unimplemented!(),
           ItemEnum::StructField(_) => unimplemented!(),
           ItemEnum::Variant(_) => unimplemented!(),
@@ -293,10 +306,9 @@ fn main() -> Result<(), anyhow::Error> {
           ItemEnum::TraitAlias(_) => unimplemented!(),
           ItemEnum::Impl(_) => unimplemented!(),
           ItemEnum::TypeAlias(_) => unimplemented!(),
-          ItemEnum::OpaqueTy(_) => unimplemented!(),
-          ItemEnum::Constant(_) => unimplemented!(),
+          ItemEnum::Constant { .. } => unimplemented!(),
           ItemEnum::Static(_) => unimplemented!(),
-          ItemEnum::ForeignType => unimplemented!(),
+          ItemEnum::ExternType => unimplemented!(),
           ItemEnum::Macro(_) => unimplemented!(),
           ItemEnum::ProcMacro(_) => unimplemented!(),
           ItemEnum::Primitive(_) => unimplemented!(),
@@ -339,7 +351,7 @@ fn valify_concrete(
       match &gen.kind {
         GenericParamDefKind::Lifetime { .. } => unimplemented!(),
         GenericParamDefKind::Const { .. } => unimplemented!(),
-        GenericParamDefKind::Type { bounds, default, synthetic } => {
+        GenericParamDefKind::Type { bounds, default, is_synthetic } => {
           if bounds.len() > 0 {
             continue; // DO NOT SUBMIT
           }
@@ -391,7 +403,7 @@ fn valify_concrete(
     //   eprintln!(
     //     "Skipping {} impl {}: {}",
     //     struct_item.name.as_ref().unwrap_or(&"".to_owned()),
-    //     impl_.trait_.as_ref().map(|x| &x.name).unwrap_or(&"".to_owned()),
+    //     impl_.trait_.as_ref().map(|x| &x.path).unwrap_or(&"".to_owned()),
     //     "Impl has generics");
     //   continue;
     // }
@@ -405,7 +417,7 @@ fn valify_concrete(
             &format!(
               "  // Skipping {} impl: {}\n",
               // struct_item.name.as_ref().unwrap_or(&"".to_owned()),
-              impl_.trait_.as_ref().map(|x| &x.name).unwrap_or(&"".to_owned()),
+              impl_.trait_.as_ref().map(|x| &x.path).unwrap_or(&"".to_owned()),
               reason);
       }
       Err(SimplifyError::SimplifyFatal(err)) => Err(err).unwrap() // DO NOT SUBMIT
@@ -430,7 +442,7 @@ fn valify_impl(
 
   let struct_name =
     match &impl_.for_ {
-      Type::ResolvedPath(path) => &path.name,
+      Type::ResolvedPath(path) => &path.path,
       Type::BorrowedRef { .. } => {
         return Err(Unsupported("Impl for borrowed struct unsupported".to_string()));
       },
@@ -454,7 +466,7 @@ fn valify_impl(
   let trait_name =
     match &impl_.trait_ {
       None => "(self)",
-      Some(trait_) => &trait_.name,
+      Some(trait_) => &trait_.path,
     };
   eprintln!("Considering {} impl {}...", struct_name, trait_name);
 
@@ -477,6 +489,7 @@ fn valify_impl(
                     match &**x {
                       GenericArgs::AngleBracketed { args, .. } => args,
                       GenericArgs::Parenthesized { .. } => unimplemented!(),
+                      GenericArgs::ReturnTypeNotation => unimplemented!(),
                     }
                   })
                   .unwrap_or(&empty);
@@ -499,7 +512,7 @@ fn valify_impl(
                       return Err(Unsupported("Encountered generic arg Array".to_owned()))
                     }
                     Type::ResolvedPath(path) => {
-                      return Err(Unsupported(format!("Encountered generic arg nested ResolvedPath {}", path.name)))
+                      return Err(Unsupported(format!("Encountered generic arg nested ResolvedPath {}", path.path)))
                     }
                     Type::DynTrait(_) => unimplemented!(),
                     Type::Primitive(_) => {
@@ -545,7 +558,7 @@ fn valify_impl(
       match &struct_generic_param.kind {
         GenericParamDefKind::Lifetime { .. } => unimplemented!(),
         GenericParamDefKind::Const { .. } => unimplemented!(),
-        GenericParamDefKind::Type { bounds, default, synthetic } => {
+        GenericParamDefKind::Type { bounds, default, is_synthetic } => {
           default.is_some()
         }
       };
@@ -626,9 +639,14 @@ fn valify_impl(
 fn generic_id(
   name: String,
 ) -> UId {
+  use std::collections::hash_map::DefaultHasher;
+  use std::hash::{Hash, Hasher};
+  let mut hasher = DefaultHasher::new();
+  name.hash(&mut hasher);
   UId {
-    crate_name: "$".to_owned(),
-    id: Id(name),
+    // Store the generic param name after "$" so we can extract it later
+    crate_name: format!("${}", name),
+    id: Id(hasher.finish() as u32),
   }
 }
 
@@ -681,7 +699,7 @@ fn valify_method(
       "(";
 
   let mut params_inner_str = "".to_owned();
-  for (param_name, param_type) in &method.decl.inputs {
+  for (param_name, param_type) in &method.sig.inputs {
     if params_inner_str.len() > 0 {
       params_inner_str += ", ";
     }
@@ -695,7 +713,7 @@ fn valify_method(
 
   result += ")";
 
-  if let Some(output) = &method.decl.output {
+  if let Some(output) = &method.sig.output {
     let output_simplified =
         simplify_type(crates, item_index, defaulted_generic_runes, Some(&whitelist_type_uids), &generics, &method_uid.crate_name, output)?;
     result += " ";
@@ -732,7 +750,7 @@ fn valify_simple_valtype(
   if is_primitive(&item_index.primitive_uid_to_name, uid) {
     if is_special_primitive(&item_index.primitive_name_to_uid, &uid) {
       if is_generic(uid) {
-        return uid.id.0.clone()
+        return generic_name(uid).to_string()
       } else if uid == &tuple_id(&item_index.primitive_name_to_uid) {
         let mut inner_str = "".to_owned();
         for x in &valtype.generic_args {
@@ -791,7 +809,7 @@ fn valify_simple_valtype(
 fn filter_defaulted_generics(generics: &Generics) -> usize {
   generics.params.iter().filter(|x| {
     match &x.kind {
-      GenericParamDefKind::Type { bounds, default, synthetic } => {
+      GenericParamDefKind::Type { bounds, default, is_synthetic } => {
         default.is_none()
       }
       GenericParamDefKind::Lifetime { .. } => unimplemented!(),
@@ -889,6 +907,9 @@ fn determine_public_type(
             // Also, this seems like it has something to do with Module's is_stripped
             // field, but there's not really a good way to use that to help, AFAICT.
             continue;
+          }
+          Err(ResolveError::Unsupported(reason)) => {
+            return Err(anyhow::anyhow!("Unsupported type: {}", reason));
           }
           Err(ResolveError::ResolveFatal(fatal)) => return Err(fatal)
         }
@@ -1084,6 +1105,7 @@ pub extern "C" fn rust_StrLen(str_c: rust_str_ref) -> usize {
 #[derive(Debug)]
 enum ResolveError {
   NotFound,
+  Unsupported(String),
   ResolveFatal(anyhow::Error)
 }
 
