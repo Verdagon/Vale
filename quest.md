@@ -1,8 +1,10 @@
-# Quest: Fix the 12 Remaining AfterRegions Regressions
+# Quest: Fix the 10 Remaining AfterRegions Regressions
 
-**Status:** 47 AfterRegions tests total → 28 pass / 12 fail / 7 ignored. All 12 failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 7 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
+**Status:** 47 AfterRegions tests total → 30 pass / 10 fail / 7 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 7 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
 
-**This document** groups the 12 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Families 1 and 2 together account for 8 of the 12 — invest there for the biggest unblock.
+**This document** groups the 10 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Family 1 (CFWG impl-bound propagation, 6 tests) is the biggest remaining unblock.
+
+**Resolved:** Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. See notes below.
 
 ## How to verify current state
 
@@ -14,7 +16,7 @@ sbt 'testOnly dev.vale.AfterRegionsIntegrationTests dev.vale.typing.AfterRegions
 grep -E "Tests: succeeded|FAILED \*\*\*" /tmp/quest-status.txt
 ```
 
-Expect `Tests: succeeded 28, failed 12, canceled 0, ignored 7, pending 0` and exactly the 12 failing tests enumerated below.
+Expect `Tests: succeeded 30, failed 10, canceled 0, ignored 7, pending 0` and exactly the 10 failing tests enumerated below.
 
 ## Vocabulary
 
@@ -223,58 +225,15 @@ exported func main() {
 
 ---
 
-# Family 2: Anonymous-param lambda inference (2 tests)
+# Family 2: Anonymous-param lambda inference (2 tests) — RESOLVED
 
-## The shared root cause
+Both tests were originally introduced as aspirational at the templates→generics transition commit (Sept 2022), already bearing `vimpl()` markers waiting on a design decision about how lambdas should be specialized. @LAGTNGZ settled that decision: lambdas are templates, not generics — specialized per call site with arg types baked into `LambdaCallFunctionTemplateNameT`, rather than compiled once with abstract placeholders like top-level generics.
 
-The lambda syntaxes `(_) => body` (magic-param) and `(a, b) => body` (plain multi-param) rely on the postparser synthesizing an implicit rune for each untyped parameter and lifting it into `FunctionS.genericParams`. The current code synthesizes the rune but doesn't lift it, so lambdas end up with `genericParams.size == 0`. Per @LAGTNGZ, lambdas compile through the typing pass's templated-closure path (not the Instantiator), but that path still reads `function.genericParameters` to build its per-call-site solve — without the runes there, two call sites with different arg types can't differentiate.
+The tests' original assertions predated that decision and were subtly wrong under it:
+- Test 2.1 asserted `lambda.function.genericParams.size == 1`. Under LAGTNGZ the compiler works end-to-end with size 0, but for architectural hygiene — keeping the `_`-vs-`<T>` distinction contained in the postparser — the postparser now lifts each untyped lambda param's synthesized coord rune into `genericParams`. Later passes see a uniform `FunctionS` shape regardless of origin.
+- Test 2.2 asserted `lambdaFuncs.size == 2` but filtered by `FunctionTemplateNameT(StrI("__call"), _)` — the pre-LAGTNGZ case class. The actual lambda-call name class is `LambdaCallFunctionNameT`, and the typing pass was already producing the two expected entries per-call-site; the test just couldn't see them.
 
-Specifically:
-- `(_) => body` is supposed to generate exactly 1 generic param (the `_` placeholder's type). The new system counts 0.
-- Calling a lambda twice with different types (`lam(1, 2); lam(3.0, 4.0)`) is supposed to produce 2 distinct `LambdaCallFunctionNameT` entries in `CompilerOutputs.functions`. The new system produces 0 because the per-call-site solve has no rune to bind each call's arg types to.
-
-Both gaps are in rune-identification in the postparser — once the runes are in `genericParams`, the typing pass's templated-closure path handles specialization naturally per LAGTNGZ.
-
-## What fixing this family requires
-
-1. **Postparser fix** — in `FunctionScout.scoutFunction`, when scouting a lambda body, detect `MagicParamLookupPE` references and generate one generic param per unique magic-param index. The comment at `FunctionScout.scala:254` already says "they might be anonymous params like in `(_) => { true }`"; the logic needs to use that knowledge to populate generic params.
-
-2. **Instantiator fix** — when stamping a lambda function for a specific call site, ensure distinct types at distinct call sites produce distinct instantiations. Currently they collapse.
-
-**Scope estimate:** Medium (2–3 days). Two self-contained subsystems. Verify against the pre-refactor reference tests (`PostParsingParametersTests.scala:120` has the verbatim original of test 2.1).
-
-**Unblocks:** Both tests in this family. Probably also incidentally unblocks some lambda-related functionality elsewhere in the compiler.
-
-## The 2 tests in detail
-
-### 2.1 Test one-anonymous-param lambda identifying runes
-
-**File:** `Frontend/PostParsingPass/test/dev/vale/postparsing/AfterRegionsErrorTests.scala:70`
-
-**Test shape:**
-```vale
-exported func main() int {
-  do((_) => { true })
-}
-```
-
-Asserts `lambda.function.genericParams.size shouldEqual 1`. Currently gets 0.
-
-**Historical status:** Regression. This is a verbatim copy of `PostParsingParametersTests.scala:120` — a test that was passing in the template era. Magic-param lambda syntax and rune identification predate the refactor by years; the refactor lost the wiring.
-
-**Fix:** Postparser logic to count magic-param indices and create corresponding generic params. Compare current `FunctionScout.scala` behavior with the pre-refactor version at `git show 05996eb7^:Frontend/PostParsingPass/src/dev/vale/postparsing/FunctionScout.scala` to see what was removed/changed.
-
-### 2.2 Test two instantiations of anonymous-param lambda
-
-**File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:198`
-
-**Test shape:** Uses a named lambda `lam = (a, b) => { a == b }` invoked twice with different types. Asserts `lambdaFuncs.size shouldEqual 2`. Currently gets 0.
-
-**Note:** Despite the test name, the lambda uses `(a, b) =>`, not `(_) =>`. This tests plain multi-param monomorphization, which is pre-existing functionality.
-
-**Historical status:** Regression. Multi-param lambdas worked in templates.
-
-**Fix:** Instantiator per-call-type specialization for lambdas. When lam is called with different arg types, produce distinct `lambdaFunc` entries in the output.
+**Fix landed:** postparser lift in `FunctionScout.scala` (one-line add to `genericParametersS` assembly); test 2.1 now checks the lift and rune bookkeeping; test 2.2 now uses `coutputs.lookupLambdasIn("main")` and asserts the two `LambdaCallFunctionTemplateNameT.paramTypes` tuples differ. See `docs/arcana/LambdasAreGenericTemplatesNotGenerics-LAGTNGZ.md` for the design, and `docs/historical/family2_handoff.md` for the investigation trail.
 
 ---
 
@@ -481,17 +440,7 @@ If you want the most progress per unit effort:
 
 **Side benefit:** May also unblock the ignored `Generic interface anonymous subclass` and `IRBFPTIPT` tests if the machinery generalizes.
 
-## Phase 2: Family 2 (anonymous-param lambdas)
-
-**Target:** 2 tests — Test one-anonymous-param lambda identifying runes, Test two instantiations of anonymous-param lambda.
-
-**Approach:** Postparser fix for magic-param rune counting + instantiator fix for per-call-type lambda specialization. Reference: `PostParsingParametersTests.scala:120` has a verbatim pre-refactor working version of test 2.1; use it as ground truth for expected behavior.
-
-**Estimate:** 2–3 days.
-
-**Risk:** Contained. Lambda monomorphization is a self-contained subsystem.
-
-## Phase 3: Family 3 (Map function)
+## Phase 2: Family 3 (Map function)
 
 **Target:** 1 test.
 
@@ -501,7 +450,7 @@ If you want the most progress per unit effort:
 
 **Risk:** Low. Single well-identified vimpl.
 
-## Phase 4: Family 4 (design questions)
+## Phase 3: Family 4 (design questions)
 
 **Target:** 3 tests — imm tuple access, Can turn a borrow coord into an owning coord, Report when downcasting to interface.
 
