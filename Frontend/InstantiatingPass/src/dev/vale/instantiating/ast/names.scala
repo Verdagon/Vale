@@ -385,6 +385,7 @@ case class FunctionTemplateNameI[+R <: IRegionsModeI](
 //  }
 }
 
+// Per @LAGTNGZ, instantiator-side mirror; paramTypes stays baked in (specialization happened upstream).
 case class LambdaCallFunctionTemplateNameI[+R <: IRegionsModeI](
   codeLocation: CodeLocationS,
   paramTypes: Vector[CoordT]
@@ -531,6 +532,7 @@ case class InterfaceNameI[+R <: IRegionsModeI](
   vpass()
 }
 
+// Per @LAGTNGZ, closure struct isn't parameterized; one struct corresponds to many LambdaCallFunctionNameIs.
 case class LambdaCitizenTemplateNameI[+R <: IRegionsModeI](
   codeLocation: CodeLocationS
 ) extends IStructTemplateNameI[R] {

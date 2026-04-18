@@ -79,6 +79,7 @@ class FunctionScout(
       }
     }
 
+    // Per @LAGTNGZ, LambdaDeclarationNameS is what steers downstream into the templated-closure path.
     val funcName =
       maybeParent match {
         case FunctionNoParent() | ParentInterface(_, _, _, _) => {
@@ -487,6 +488,7 @@ class FunctionScout(
 
     val totalParamsS = maybeClosureParam.toVector ++ explicitParamsS ++ magicParams;
 
+    // Per @LAGTNGZ, genericParametersS is load-bearing for lambdas too — the templated path's per-call solve reads it.
     vregionmut() // Put back in regions
     val genericParametersS =
       (extraGenericParamsFromParentS ++

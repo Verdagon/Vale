@@ -10,6 +10,7 @@ import scala.collection.mutable
 
 
 class NameTranslator(interner: Interner) {
+  // Per @LAGTNGZ, this lambda-only builder bakes call-site arg coords into the template name.
   def translateGenericTemplateFunctionName(
     functionName: IFunctionDeclarationNameS,
     params: Vector[CoordT]):
@@ -22,6 +23,7 @@ class NameTranslator(interner: Interner) {
     }
   }
 
+  // Per @LAGTNGZ, lambdas use the templated builder above; this one rejects them via vfail.
   def translateGenericFunctionName(functionName: IFunctionDeclarationNameS): IFunctionTemplateNameT = {
     functionName match {
       case LambdaDeclarationNameS(codeLocation) => {

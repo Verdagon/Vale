@@ -328,6 +328,7 @@ case class FunctionA(
 //  vassert((knowableRunes -- runeToType.keySet).isEmpty)
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 
+  // Per @LAGTNGZ, isLight is the dispatcher: light = generic path, non-light (closure) = template path.
   def isLight(): Boolean = {
     body match {
       case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => true

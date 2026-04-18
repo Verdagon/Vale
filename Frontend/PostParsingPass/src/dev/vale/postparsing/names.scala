@@ -25,6 +25,7 @@ trait ICitizenDeclarationNameS extends INameS {
 //case class FreeImpreciseNameS() extends IImpreciseNameS {
 //
 //}
+// Per @LAGTNGZ, this name (vs FunctionNameS) flags a function as a lambda for the templated-closure path.
 case class LambdaDeclarationNameS(
 //  parentName: INameS,
   codeLocation: CodeLocationS

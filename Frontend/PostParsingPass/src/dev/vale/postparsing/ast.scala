@@ -393,6 +393,7 @@ case class FunctionS(
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
+  // Per @LAGTNGZ; note FunctionCompiler actually consults the higher-typing AST's isLight, not this one.
   def isLight(): Boolean = {
     body match {
       case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => false

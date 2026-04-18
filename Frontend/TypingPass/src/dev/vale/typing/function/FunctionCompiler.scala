@@ -141,6 +141,7 @@ class FunctionCompiler(
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
   // func main():Int{main()}
+  // Per @LAGTNGZ, the vfail below is for lambdas: the template path needs concrete argTypes per site.
   def evaluateGenericFunctionFromNonCall(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -179,6 +180,7 @@ class FunctionCompiler(
     })
   }
 
+  // Per @LAGTNGZ, the isLight branch routes top-level functions through the generic path and closures through the template path.
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT, // See CSSNCE
@@ -219,6 +221,7 @@ class FunctionCompiler(
 
   }
 
+  // Per @LAGTNGZ, the isLight branch routes top-level functions through the generic path and closures through the template path.
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
