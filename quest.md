@@ -1,10 +1,10 @@
-# Quest: Fix the 10 Remaining AfterRegions Regressions
+# Quest: Fix the 9 Remaining AfterRegions Regressions
 
-**Status:** 47 AfterRegions tests total → 30 pass / 10 fail / 7 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 7 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
+**Status:** 47 AfterRegions tests total → 31 pass / 9 fail / 7 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 7 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
 
-**This document** groups the 10 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Family 1 (CFWG impl-bound propagation, 6 tests) is the biggest remaining unblock.
+**This document** groups the 9 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Family 1 (CFWG impl-bound propagation, 6 tests) is the biggest remaining unblock.
 
-**Resolved:** Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. See notes below.
+**Resolved:** Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. Family 4.1 (imm tuple access, 1 test) — `vfail()` overcorrection removed, test passes as-written. See notes below.
 
 ## How to verify current state
 
@@ -16,7 +16,7 @@ sbt 'testOnly dev.vale.AfterRegionsIntegrationTests dev.vale.typing.AfterRegions
 grep -E "Tests: succeeded|FAILED \*\*\*" /tmp/quest-status.txt
 ```
 
-Expect `Tests: succeeded 30, failed 10, canceled 0, ignored 7, pending 0` and exactly the 10 failing tests enumerated below.
+Expect `Tests: succeeded 31, failed 9, canceled 0, ignored 7, pending 0` and exactly the 9 failing tests enumerated below.
 
 ## Vocabulary
 
@@ -339,6 +339,89 @@ val dispatcherPlaceholderIdToSuppliedTemplata =
     })
 ```
 
+## Layer 4 — attempted patch (2026-04-24, prototyped and reverted)
+
+The rough shape above was prototyped end-to-end on 2026-04-24, verified working, and **reverted** pending Instantiator owner review. Documenting it here so the next attempt has a known-good starting point.
+
+### What was attempted
+
+Single edit in `Frontend/InstantiatingPass/src/dev/vale/instantiating/Instantiator.scala`, `translateOverride`'s `dispatcherPlaceholderIdToSuppliedTemplata` build (lines 654-678 in pre-patch source), splitting on the dispatcher placeholder's rune shape:
+
+```scala
+val dispatcherPlaceholderIdToSuppliedTemplata =
+  dispatcherIdT.localName.templateArgs
+    .map(dispatcherPlaceholderTemplata => {
+      val dispatcherPlaceholderId =
+        TemplataCompiler.getPlaceholderTemplataId(dispatcherPlaceholderTemplata)
+      // Split on the dispatcher placeholder's rune shape: an impl-mimicked placeholder
+      // reads its concrete value from the instantiated impl's templateArgs, a fresh
+      // dispatcher-owned placeholder (one minted for an abstract generic the impl's
+      // self-interface doesn't pin, like R in map<T, R>) reads from the abstract's
+      // instantiated templateArgs. Everything downstream is origin-agnostic.
+      val (dispatcherIndex, dispatcherRune) =
+        dispatcherPlaceholderId match {
+          case IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(idx, rn))) => (idx, rn)
+          case IdT(_, _, NonKindNonRegionPlaceholderNameT(idx, rn)) => (idx, rn)
+          case other => vwat(other)
+        }
+      val templataC =
+        dispatcherRune match {
+          case DispatcherRuneFromImplS(_) => {
+            val implPlaceholder =
+              vassertSome(
+                implPlaceholderToDispatcherPlaceholder
+                    .find(_._2 == dispatcherPlaceholderTemplata))._1
+            val implIndex =
+              implPlaceholder match {
+                case IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(idx, _))) => idx
+                case IdT(_, _, NonKindNonRegionPlaceholderNameT(idx, _)) => idx
+                case other => vwat(other)
+              }
+            implIdC.localName.templateArgs(implIndex)
+          }
+          case _ => {
+            // Fresh dispatcher-owned placeholder: its index is the position in the
+            // abstract's genericParameters (set by FunctionCompilerSolvingLayer's
+            // dispatcher flatMap), which matches abstractFuncPrototypeC.id.localName.templateArgs
+            // per AFCTD.
+            abstractFuncPrototypeC.id.localName.templateArgs(dispatcherIndex)
+          }
+        }
+      // ... existing trailing logic (vregionmut wrapping, asInstanceOf, etc.)
+      dispatcherPlaceholderId -> vregionmut(templataC.asInstanceOf[ITemplataI[sI]])
+    })
+```
+
+No new imports needed — `DispatcherRuneFromImplS` is already in scope via `import dev.vale.postparsing._`.
+
+### Verification (clean — would have shipped)
+
+- **Map function (targeted):** PASS, was vassertSome panic
+- **Full AfterRegions:** 31/9/7 (was 30/10/7), Family 3 resolved
+- **Broader sanity** (CompilerGenericsTests, CompilerVirtualTests, CompilerLambdaTests, ClosureTests, IntegrationTestsA/B/C): 125/0, no regressions
+
+### Why reverted (not because it's wrong)
+
+The owner of Instantiator wants to land Instantiator changes personally and didn't have brainpower this session to fully understand the patch. The patch makes symptoms disappear, but four architectural smells surfaced during review and weren't resolved:
+
+1. **Asymmetric rune representation.** Impl-mimicked dispatcher placeholders carry a `DispatcherRuneFromImplS(innerRune)` wrapper. Fresh ones carry a bare `CodeRuneS("R")` — indistinguishable at a glance from a top-level user-written rune. Cleanup: introduce a sibling `DispatcherRuneFromAbstractS(innerRune: IRuneS)` in `postparsing/names.scala` (right next to `DispatcherRuneFromImplS` and `CaseRuneFromImplS`); mint fresh placeholders with that wrapper in `FunctionCompilerSolvingLayer`'s dispatcher flatMap; `translateOverride`'s match becomes symmetric `DispatcherRuneFromImplS(_)` / `DispatcherRuneFromAbstractS(_)` / catch-all `vwat`.
+
+2. **Implicit position convention vs explicit map.** The impl-mimicked path uses an explicit map (`implPlaceholderToDispatcherPlaceholder`). The fresh-placeholder path relies on a convention — "dispatcher fresh-placeholder's `index` field equals abstract's `genericParameters` position equals `abstractFuncPrototypeC.id.localName.templateArgs` position" — three implicit links per AFCTD. Cleanup: extend `OverrideT` (or whatever struct carries the dispatcher → override metadata) with `abstractPlaceholderToDispatcherPlaceholder`, populated in EdgeCompiler at the same time Layer 3 appends fresh placeholders. `translateOverride` then does no positional arithmetic — just two explicit map lookups.
+
+3. **Thin test coverage.** `map<T, R>` is the only test in the entire suite that exercises the fresh-placeholder path. The patch makes it pass but doesn't prove the mechanism is correct for `mapPair<A, B, C>`, abstracts with `R` in struct fields, abstracts with `R` behind a generic struct (`Vec<R>`), etc. We got lucky that map's `R` appears only in signature-position uses. Investment: write 2–3 more abstracts with self-unreachable generics in `genericvirtuals/` and run them through this pipeline before declaring the path trustworthy.
+
+4. **Stale dispatcher path predates Dec-2022 incremental-placeholdering migration.** The investigation doc flagged this: sibling phases (`evaluateGenericFunctionFromNonCall`, `StructCompilerGenericArgsLayer`) were migrated in commit `960e0eec` to the incremental-solve model with `getFirstUnsolvedIdentifyingRune` + `commitStep`. The dispatcher path (`evaluateGenericVirtualDispatcherFunctionForPrototype`) was not migrated in that commit. Layer 1's vimpl removal patches the pre-migration shape in place rather than aligning with siblings. Cleanup: bigger refactor, doesn't directly help (1) or (2) but removes "two ages of code" weirdness.
+
+### Recommended order for the next attempt
+
+1. **Land Layer 4 verbatim** (the patch above) — proves the path works end-to-end, gets Map function green.
+2. **Cheap cleanup: smell (1)** — introduce `DispatcherRuneFromAbstractS`, mint fresh placeholders with it, simplify the match. Mostly mechanical, strict improvement.
+3. **Medium cleanup: smell (2)** — explicit `abstractPlaceholderToDispatcherPlaceholder` map. Removes positional fragility.
+4. **Test investment: smell (3)** — `mapPair`, `R`-in-struct-field, `R`-behind-`Vec`. Stress the fresh-placeholder pathway before trusting it elsewhere.
+5. **Defer smell (4)** — incremental-placeholdering migration is a distraction from the AfterRegions quest. Note it in arcana for whoever picks up the next big dispatcher refactor.
+
+Documentation debt to queue: `docs/Generics.md` §§ AFCTD/OMCNAGP don't cover the "abstract generic not pinned by self-interface" case. Once Layer 4 lands, an arcana for the cross-cutting pipeline (postparser → FunctionCompilerSolvingLayer → EdgeCompiler → Instantiator.translateOverride) would be a natural follow-up — propose an acronym ending in Z.
+
 ## Historical status
 
 Regression. Lived in `IntegrationTestsA.scala` since 2020-06, green for ~2 years, parked in AfterRegions during the Sep-Dec 2022 refactor work that introduced the dispatcher architecture.
@@ -371,22 +454,17 @@ These three tests were each passing in production for months or years (between 2
 
 Fixing them is less about compiler work and more about resolving the design questions. Not mechanical fixes.
 
-## 4.1 imm tuple access
+## 4.1 imm tuple access — RESOLVED (2026-04-24)
 
 **File:** `Frontend/IntegrationTests/test/dev/vale/AfterRegionsIntegrationTests.scala:72`
 
-**Test shape:** Accesses fields of an immutable tuple.
+**Resolution:** Removed `vfail()`, test passes as-written. No compiler change needed. AfterRegions integration baseline moved 30 → 31 passing.
 
-**Current state:** Starts with `vfail() // these tuples are actually mutable`.
+**Diagnosis:** The author's disabling comment "these tuples are actually mutable" was a complaint about the test *name*, not its *code*. The test body is `t = (true, 42); return t.1;` — it exercises tuple field access by integer index. That works fine under the current Builtins state (`Tup2<T0, T1>` declared `mut`, fields share-able primitives). The test name "imm tuple access" was aspirational — written in 2021-04-15 when variadic `Tup<T RefList>` may have inferred imm-when-all-fields-imm-able, then disabled at `c1f24496` (2022-09-05, the "Milano case" fix) when that variadic Tup was replaced with the manually-mut `Tup2<T0, T1>` we have today.
 
-**Historical status:** Regression. Added 2021-04-15 in the regions refactor merge; passing for ~16 months. Disabled at `c1f24496` (2022-09-05) — the "Milano case" fix — with the accompanying comment indicating the test's tuples weren't actually immutable as the test name implied.
+**Why this was overcorrection:** The disabling reasoning conflates "the underlying struct is mut" with "the test is broken." The test code never actually verifies imm-ness — there's no operation in `(true, 42).1` that distinguishes mut from imm. So the test passes regardless of whether `Tup2` is mut or imm.
 
-**What fixing requires:**
-- Investigate the "Milano case" commit to understand what changed about tuple mutability
-- Decide: should the test's tuple construction actually produce immutable tuples? If yes, make it happen. If no, reframe or delete the test.
-- The BRRZ session's fix to `Test returning empty seq` touched `Tup0` and made it `imm` — there may be adjacent work worth looking at.
-
-**Scope:** Short investigation (half a day) followed by either a narrow fix or a test rewrite.
+**What it doesn't test (still open as a separate question):** Whether tuples should be imm-when-all-fields-imm-able, the way `Tup0 imm { }` is unconditionally imm. No test in the suite currently probes this; if it becomes a real language feature later, this test's name is already accurate for that future world. No action needed today.
 
 ## 4.2 Can turn a borrow coord into an owning coord
 
