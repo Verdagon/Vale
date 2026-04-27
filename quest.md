@@ -1,10 +1,10 @@
-# Quest: Fix the 9 Remaining AfterRegions Regressions
+# Quest: Fix the 8 Remaining AfterRegions Regressions
 
-**Status:** 47 AfterRegions tests total → 31 pass / 9 fail / 7 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 7 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
+**Status:** 48 AfterRegions tests total → 32 pass / 8 fail / 8 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 8 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
 
-**This document** groups the 9 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Family 1 (CFWG impl-bound propagation, 6 tests) is the biggest remaining unblock.
+**This document** groups the 8 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Family 1 (CFWG impl-bound propagation, 6 tests) is the biggest remaining unblock.
 
-**Resolved:** Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. Family 4.1 (imm tuple access, 1 test) — `vfail()` overcorrection removed, test passes as-written. See notes below.
+**Resolved:** Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. Family 4.1 (imm tuple access, 1 test) — `vfail()` overcorrection removed, test passes as-written. Family 4.2 (borrow→owning coord coercion, 1 test) — `vimpl()` removed, test rewritten around `^&SomeStruct` to faithfully exercise the named coercion. See notes below.
 
 ## How to verify current state
 
@@ -16,7 +16,7 @@ sbt 'testOnly dev.vale.AfterRegionsIntegrationTests dev.vale.typing.AfterRegions
 grep -E "Tests: succeeded|FAILED \*\*\*" /tmp/quest-status.txt
 ```
 
-Expect `Tests: succeeded 31, failed 9, canceled 0, ignored 7, pending 0` and exactly the 9 failing tests enumerated below.
+Expect `Tests: succeeded 32, failed 8, canceled 0, ignored 8, pending 0` and exactly the 8 failing tests enumerated below.
 
 ## Vocabulary
 
@@ -466,22 +466,36 @@ Fixing them is less about compiler work and more about resolving the design ques
 
 **What it doesn't test (still open as a separate question):** Whether tuples should be imm-when-all-fields-imm-able, the way `Tup0 imm { }` is unconditionally imm. No test in the suite currently probes this; if it becomes a real language feature later, this test's name is already accurate for that future world. No action needed today.
 
-## 4.2 Can turn a borrow coord into an owning coord
+## 4.2 Can turn a borrow coord into an owning coord — RESOLVED (2026-04-26)
 
-**File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:143`
+**File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:175`
 
-**Test shape:** (blocked by initial `vimpl()`) — the name suggests a test where a value typed as `&X` is re-typed as `^X` (owning).
+**Resolution:** Removed `vimpl()` and rewrote the test body around `^&SomeStruct` (own-coercion applied to a concrete borrow coord) to faithfully exercise the named property. No compiler change. AfterRegions baseline moved 31 → 32 passing.
 
-**Current state:** `vimpl()` at top, with author comment "not sure this test ever really tested what it was supposed to."
+**Diagnosis:** The original body was structurally broken — `func bork<T>(x T) ^T { return SomeStruct(); }` cannot typecheck for arbitrary T because the body's concrete `SomeStruct()` doesn't match the placeholder kind in `^T`'s computed return-type coord. The author's `vimpl()` was guarding against a real type error, not just an unfinished design. The author's comment "perhaps we wanted a `&SomeStruct()` instead?" pointed in the right direction (the test name promises borrow→own coercion), but a simple call-site change wasn't enough — the body's coherence problem also needed fixing.
 
-**Historical status:** Regression. Added 2021-11-20 in "Passes all tests in Templar except a region one!"; passing for ~9 months. Disabled at `ab3cf9e6` (2022-08-21) with the skeptical comment.
+**The rewrite shape:**
+```vale
+import v.builtins.panicutils.*;
 
-**What fixing requires:**
-- Read the test body to see what operation it attempts. The author wasn't sure it tested its named intent.
-- Decide: is "turning a borrow into an owning coord" a meaningful operation in the new regions-aware type system? What would that even mean — a move? A shallow copy? Region-crossing?
-- Either implement the operation (if it's a real language feature) or rewrite the test (if it was testing something else).
+struct SomeStruct { }
 
-**Scope:** Design discussion, then either a language-feature implementation or a test rewrite. If the former, multi-day.
+func inner<T>() T { panic("never"); }
+
+func bork() ^&SomeStruct {
+  return inner<^&SomeStruct>();
+}
+```
+
+Why this works: `^&SomeStruct` is the named property as a direct type expression — own-coercion applied to a concrete borrow coord. AugmentSR's mutable-kind branch (`CompilerSolver.scala:957-962`) sees a known borrow inner and concludes the outer as `CoordT(OwnT, _, SomeStruct)`. `inner<T>() T { panic(...); }` is a generic helper whose body type-checks for any T (the panic body satisfies any return type via `__Never`). bork's body calls `inner<^&SomeStruct>()`, forcing the type system to commit `^&SomeStruct` to a coord that bork can return. No generic-vs-instantiation puzzle (bork is non-generic), no drop-bound issues (no param to drop), no body kind-mismatch.
+
+**Things that didn't work, captured for the record:**
+- **Removing only `vimpl()` from the original test body:** body fails kind-mismatch at typecheck (`Couldn't convert SomeStruct to expected return type Kind$bork.T`).
+- **Changing only the call site to `bork(&SomeStruct())`:** same body kind-mismatch — body type-checking happens once with placeholder T, independent of any call site.
+- **The user's `inner<^T>()` rewrite with original `func bork<T>(x T) ^T`** + drop bound: body typechecks ✓ but the test is then "T inferred from own input is own" + "^T can be computed at body-typecheck time"; doesn't actually exercise the borrow→own coercion. Also stalls on `where func drop(T)void` for T = &SomeStruct since the auto-derived drop only covers own.
+- **Generic without param** (`bork<T>() ^T` with `bork<&SomeStruct>()` at call site): compiles, but `lookupFunction("bork")` returns the generic header where T is a placeholder defaulting to OwnT — neither a BorrowT nor a refined OwnT assertion is meaningful at the generic level.
+
+**Historical status:** Regression. Added 2021-11-20 in "Passes all tests in Templar except a region one!"; passing for ~9 months. Disabled at `ab3cf9e6` (2022-08-21). The `vimpl()` was honest — the test body never made sense as a generic. The named property (own-coercion of a borrow coord) was always real, just wasn't being expressed in a runnable form.
 
 ## 4.3 Report when downcasting to interface
 
