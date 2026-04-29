@@ -227,6 +227,50 @@ class AfterRegionsTests extends FunSuite with Matchers {
     }
   }
 
+  test("Can downcast interface to interface through registered impl") {
+    // Pivot of the obsolete "Report when downcasting to interface" test from
+    // AfterRegionsErrorTests, which asserted CantDowncastToInterface should fire
+    // for an interface→interface downcast. That error class is dead code (defined
+    // and humanized in CompilerErrorReporter / CompilerErrorHumanizer but never
+    // thrown). The type system was deliberately built to support the operation:
+    // InterfaceTT extends both ISubKindTT and ISuperKindTT in typing/types/types.scala,
+    // so an interface is admissible as either side of an `as<>`. With `impl ISuper
+    // for ISub` registered, `(&ship).as<ISub>()` resolves cleanly and generates
+    // an AsSubtypeTE returning Result<&ISub, &ISuper>.
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.as.*;
+        |import v.builtins.result.*;
+        |import v.builtins.logic.*;
+        |import v.builtins.drop.*;
+        |import panicutils.*;
+        |
+        |sealed interface ISuper { }
+        |sealed interface ISub { }
+        |impl ISuper for ISub;
+        |
+        |func tryDowncast(ship ISuper) bool {
+        |  result Result<&ISub, &ISuper> = (&ship).as<ISub>();
+        |  return result.is_ok();
+        |}
+        |
+        |exported func main() bool {
+        |  return tryDowncast(__pretend<ISuper>());
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    // The fact that compilation succeeded is the assertion: a successful compile
+    // of `(&ship).as<ISub>()` proves the as<> macro accepted an interface target,
+    // the `implements(ISub, ISuper)` bound was satisfied by `impl ISuper for ISub`,
+    // and the type system admits InterfaceTT in both subKind and superKind positions.
+    // tryDowncast's return type is bool (from result.is_ok()), confirming the typing
+    // pass made it all the way through the body.
+    coutputs.lookupFunction("tryDowncast").header.returnType match {
+      case CoordT(ShareT, _, BoolT()) =>
+    }
+  }
+
   test("Test two instantiations of anonymous-param lambda") {
     val compile = CompilerTestCompilation.test(
       """

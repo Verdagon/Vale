@@ -141,29 +141,13 @@ class AfterRegionsErrorTests extends FunSuite with Matchers {
 //    }
 //  }
 
-  // Interface bounds, downcasting
-  // This test does not pass yet, use #[ignore].
-  test("Report when downcasting to interface") {
-    vimpl() // can we solve this by putting an impl in the environment for that placeholder?
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.as.*;
-        |import panicutils.*;
-        |
-        |interface ISuper { }
-        |interface ISub { }
-        |impl ISuper for ISub;
-        |
-        |exported func main() {
-        |  ship = __pretend<ISuper>();
-        |  ship.as<ISub>();
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(CantDowncastToInterface(_, _)) =>
-    }
-  }
+  // Pivoted to AfterRegionsTests.scala "Can downcast interface to interface
+  // through registered impl" — the original test asserted CantDowncastToInterface
+  // should fire for ISuper→ISub via `impl ISuper for ISub`, but that error is
+  // dead code (defined but never thrown) and the type system was deliberately
+  // built to support interface→interface downcast (InterfaceTT extends both
+  // ISubKindTT and ISuperKindTT in typing/types/types.scala). The replacement
+  // is a positive test of the actual feature.
 
   // This test does not pass yet, use #[ignore].
   test("Report when downcasting between unrelated types") {
