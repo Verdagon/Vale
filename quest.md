@@ -15,19 +15,23 @@ The `rustinterop-merged` branch is **not** release-worthy yet:
 
 `FunctionCompilerSolvingLayer.assembleKnownTemplatas` had `KindPlaceholderTemplateNameT(0, rune)` hard-coded; loosened to `(_, rune)` so all placeholder indices match. Leftover from `79805fad` ("Extern struct methods work!").
 
-### Fix #2 — Macro-generated drop routes through `assembleName`'s self-struct path (this commit)
+### Fix #2 — Macro-generated drop routes through `assembleName`'s self-struct path
 
 `StructDropMacro` now names its parameter `keywords.self` (was `keywords.thiss`). With `lift = true` already set, this is the missing piece that makes `FunctionCompilerMiddleLayer.assembleName`'s self-detection succeed (it requires both flags). The drop body uses `ArgLookupTE(0, ...)` — positional, not by name — so the rename is body-safe. The function now flows through `selfStructId.addStep(funcName)` uniformly with user-written `func drop<T>(self XSome<T>) void`. `selfStructId` is always in instantiation form (`StructNameT(template, [placeholders])` — non-generic structs just have an empty placeholder vector), so generic and non-generic structs are handled by the same code with no special-casing on arity. @SMLRZ doc updated accordingly: lines 80–83 used to claim "Generated drop functions are not lifted; they use `addStep`; drop functions don't have a `self` parameter (they use `thiss`)" — that contradicted line 87 of the same doc which says the function ID must contain `StructNameI` not bare `StructTemplateNameI` or `NameHammer.simplifyName` crashes. The contradiction was the bug; the doc now reflects the new uniform routing.
 
 Closes the dominant cluster from Fix #1's downstream (48× `vwat()` at `Instantiator.assemblePlaceholderMap`).
 
-## Remaining failures (after Fix #2, still 0/198)
+### Fix #3 — `assembleKnownTemplatas` accepts non-Coord placeholders (this commit)
 
-1. **`vimpl()` at `FunctionCompilerSolvingLayer.assembleKnownTemplatas` second arm** — `assembleKnownTemplatas` has only a `CoordTemplataT(_, _, KindPlaceholderT(...))` arm, so non-Coord placeholders (Int, Mutability, Variability — e.g. `StaticSizedArrayIter<N, M, V, E>`'s `N`/`M`/`V`) fall through to `vimpl()`. Same WIP-leftover provenance as Fix #1 (commit 79805fad). Re-routing macro-generated drops through `assembleName` (Fix #2) made this code path reachable for more inputs, surfacing the gap.
+Fix #2 made the `StructNameT` arm of `assembleKnownTemplatas` reachable for more inputs (the macro-generated drop's prefix is now an instantiation form), which surfaced a sibling WIP-leftover in the same function: it only had a `CoordTemplataT(_, _, KindPlaceholderT(...))` arm. For citizens with Int/Mutability/Variability generic params (e.g. `StaticSizedArrayIter<N, M, V, E>`), those parameters appear as `PlaceholderTemplataT(_, IntegerTemplataType)` and similar — not wrapped in `CoordTemplataT(CoordT(...))` — and fell to `vimpl()`. Added a parallel arm matching `PlaceholderTemplataT(IdT(_, _, NonKindNonRegionPlaceholderNameT(_, rune)), _)`. Same WIP-leftover provenance as Fix #1 (commit 79805fad).
 
-2. **`vassertSome "Expected non-empty"` at `Instantiator.scala:3195`** (`translateCoord`). The substitutions map is missing a placeholder it expects to find. Need full stack trace and which substitutions table is being consulted.
+## Remaining failures (after Fixes #1–3, still 0/198)
 
-3. **`vimpl()` at `FunctionCompilerClosureOrLightLayer.scala:231`** — fires on `AnonymousSubstructNameT(_, [CoordTemplataT(_, _, KindPlaceholderT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, AnonymousSubstructMemberRuneS(...)))))])`. Triggered by tests like `upcastif.vale`. Likely another WIP-leftover for anonymous-substruct dispatch.
+1. **`vassertSome "Expected non-empty"` at `Instantiator.scala:3195`** (`translateCoord`). The substitutions map is missing a placeholder it expects to find. Need full stack trace and which substitutions table is being consulted. Dominant remaining cluster (~14 occurrences).
+
+2. **`vimpl()` at `FunctionCompilerClosureOrLightLayer.scala:231`** — fires on `AnonymousSubstructNameT(_, [CoordTemplataT(_, _, KindPlaceholderT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, AnonymousSubstructMemberRuneS(...)))))])`. Triggered by tests like `upcastif.vale`. Likely another WIP-leftover for anonymous-substruct dispatch (~5 occurrences).
+
+3. **`Assertion failed! IdT(...)`** — same site as #2 with the same `AnonymousSubstructMemberRuneS` shape. Same root cause (~5 occurrences).
 
 ## `FrontendRust` build error
 
@@ -42,9 +46,8 @@ error[E0046]: not all trait items implemented, missing: `new`
 
 ### Step 1 — Backend test suite green (Scala Frontend)
 
-1. Apply the macro `thiss` → `self` rename and @SMLRZ doc update — addresses cluster #1 above.
-2. Investigate cluster #2 (anonymous-substruct dispatch). Likely needs a new match arm.
-3. Capture full stack traces for cluster #3 and identify the missing key.
+1. Capture full stack traces for the dominant `vassertSome` cluster at `Instantiator.scala:3195` and identify the missing substitution key.
+2. Investigate the `AnonymousSubstructMemberRuneS` cluster at `FunctionCompilerClosureOrLightLayer.scala:231`. Likely needs a new match arm — same WIP-leftover provenance as Fixes #1/#3.
 
 For each: prefer fixing the upstream cause (so the assertion is genuinely reachable only on bugs) over relaxing the assertion. Verify with `cd Backend && bash test.sh` until `Passed N/198` climbs. Target: 198/198.
 

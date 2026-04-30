@@ -279,6 +279,9 @@ class FunctionCompilerSolvingLayer(
           case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(_,rune)))))), arg) => {
             InitialKnown(RuneUsage(rangeS, rune), arg)
           }
+          case (PlaceholderTemplataT(IdT(_,_,NonKindNonRegionPlaceholderNameT(_,rune)),_), arg) => {
+            InitialKnown(RuneUsage(rangeS, rune), arg)
+          }
           case (genericParam, explicitArg) => {
             vimpl()
 //            InitialKnown(genericParam.rune, explicitArg)
