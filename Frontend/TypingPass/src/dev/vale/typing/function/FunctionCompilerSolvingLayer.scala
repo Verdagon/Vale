@@ -276,7 +276,7 @@ class FunctionCompilerSolvingLayer(
       case IdT(packageCoord, initSteps, n @ StructNameT(_, templateArgs)) => {
         val structDef = coutputs.lookupStruct(IdT(packageCoord, initSteps, n))
         structDef.instantiatedCitizen.id.localName.templateArgs.zip(templateArgs).map({
-          case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,rune)))))), arg) => {
+          case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(_,rune)))))), arg) => {
             InitialKnown(RuneUsage(rangeS, rune), arg)
           }
           case (genericParam, explicitArg) => {
