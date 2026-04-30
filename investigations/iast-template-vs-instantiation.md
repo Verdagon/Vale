@@ -1,4 +1,11 @@
 # I-AST template-vs-instantiation mismatch on lifted struct methods (non-generic structs)
+
+**STATUS: RESOLVED.** `StructDropMacro` changed to use `keywords.self` (instead of
+`keywords.thiss`) so `assembleName` routes the macro-generated drop through the same
+lifted self-struct path as user-written drops. @SMLRZ doc updated to invert the
+obsolete "drops are not lifted, use thiss" wording. The original
+`Instantiator.scala:1032 vwat` no longer fires.
+
 ## Symptom
 
 `Instantiator.scala#assemblePlaceholderMap` panics with `vwat()` when called as

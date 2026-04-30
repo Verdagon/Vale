@@ -11,7 +11,7 @@ The `lift: Boolean` field on `FunctionS`/`FunctionA` controls whether a struct's
 - `TypingPass/.../citizen/StructCompilerCore.scala:178` — environment selection: `if (functionA.lift) outerEnv else structInnerEnv`
 - `TypingPass/.../citizen/StructCompilerGenericArgsLayer.scala:118-119` — non-lifted methods registered in resolved env
 - `TypingPass/.../citizen/StructCompiler.scala:130-134` — lifted methods registered in outer env
-- `TypingPass/.../macros/citizen/StructDropMacro.scala:113` — drop function generation (bypasses FunctionScout, uses `addStep`)
+- `TypingPass/.../macros/citizen/StructDropMacro.scala:113` — drop function generation: bypasses FunctionScout, sets `lift = true` and names the parameter `self` so `assembleName` routes it through the same lifted struct-method path as user-written drops
 - `SimplifyingPass/.../NameHammer.scala:79-89` — `simplifyName` handles `StructNameI` (instantiated), crashes on `StructTemplateNameI`
 - `Backend/src/utils/rustify.cpp:25-44` — `rustifySimpleIdStep` emits type args as `<i32>` on each path step
 
@@ -77,10 +77,11 @@ The `self` keyword rule was chosen over a type-based rule (checking if any param
 
 Functions created by macros (e.g. `StructDropMacro`) construct `FunctionS`/`FunctionA` directly and set `lift` themselves. They do NOT go through `FunctionScout`'s lift detection logic.
 
-**Generated drop functions are not lifted.** They use `addStep` to nest under the struct's namespace. This is correct because:
-- Drop functions don't have a `self` parameter (they use `thiss`)
-- Drop is an implementation detail of the struct, not a user-facing method
-- For extern structs, ValeRuster generates `extern func drop(self Vec<T>)` as a separate extern method — the macro-generated drop is for Vale-side structs only
+**Generated drop functions ARE lifted, just like user-written drops.** They set `lift = true` and name their first parameter `self`, so `assembleName` takes the same self-struct path it takes for user-written `func drop(self Vec<T>)`. That path uses the self param's `StructTT.id` as the prefix — `StructNameT(template, [placeholders])` for both generic and non-generic structs (non-generic just has empty placeholders) — and `addStep`s the function name onto it. This produces the `StructNameI` prefix that downstream passes require (see "`NameHammer.simplifyName` only handles `StructNameI`" below).
+
+This wasn't always the case. Pre-Group-G the macro used `thiss` as the param name and the comment claimed drops were "not lifted" — but that produced bare `StructTemplateNameT` in the function ID's initSteps, which was inconsistent with the user-written-drop shape and crashed the Instantiator's `assemblePlaceholderMap` (typed-AST has `StructNameT(template, [])` for non-generic struct prefixes everywhere else, so the simplified-AST mismatch was lethal).
+
+For extern structs, ValeRuster generates `extern func drop(self Vec<T>)` as a separate extern method — the macro-generated drop is for Vale-side structs only.
 
 ## `NameHammer.simplifyName` only handles `StructNameI`
 

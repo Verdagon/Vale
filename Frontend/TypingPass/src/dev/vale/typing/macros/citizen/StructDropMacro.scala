@@ -103,14 +103,20 @@ class StructDropMacro(
             false,
             AtomSP(
               range(-1340),
-              Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)), false)),
+              Some(CaptureS(interner.intern(CodeVarNameS(keywords.self)), false)),
               Some(use(-64002, selfCoordRune)), None))),
         Some(use(-64002, voidCoordRune)),
         rules.buildArray().toVector,
         true,
         GeneratedBodyS(dropGeneratorId))
 
-    // Per @SMLRZ, drop functions are not lifted — they stay nested under the struct via addStep.
+    // Per @SMLRZ, the macro-generated drop uses `self` (not `thiss`) and `lift = true` so
+    // FunctionCompilerMiddleLayer.assembleName routes it through the same lifted path as
+    // user-written struct methods. That path takes the self param's StructTT.id (which is
+    // always in instantiation form — StructNameT(template, [placeholders]) for both generic
+    // and non-generic structs, with non-generic just having empty placeholders) and uses
+    // addStep on it. This produces the StructNameI prefix that NameHammer.simplifyName
+    // requires (per @SMLRZ line 87).
     val dropNameT = structName.addStep(nameTranslator.translateGenericFunctionName(dropFunctionA.name))
     Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
   }

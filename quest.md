@@ -11,21 +11,23 @@ The `rustinterop-merged` branch is **not** release-worthy yet:
 
 ## What's done
 
-### Fix #1 (this commit)
+### Fix #1 — `assembleKnownTemplatas` index match
 
-`FunctionCompilerSolvingLayer.assembleKnownTemplatas` for the `StructNameT` case had `KindPlaceholderTemplateNameT(0, rune)` hard-coded. A struct's `instantiatedCitizen.id.localName.templateArgs` is a vector of placeholders at indices `0, 1, 2, …`, so any struct with ≥2 generic params hit `vimpl()` on its second placeholder. Every test program pulls in stdlib types like `Tup2`/`Tup3`/`Result`/`HashMap`, so the `vimpl` fired during compilation of nearly every program. Loosened to `KindPlaceholderTemplateNameT(_, rune)` since the index is redundant — the position is established by the zip.
+`FunctionCompilerSolvingLayer.assembleKnownTemplatas` had `KindPlaceholderTemplateNameT(0, rune)` hard-coded; loosened to `(_, rune)` so all placeholder indices match. Leftover from `79805fad` ("Extern struct methods work!").
 
-The literal `0` was introduced wholesale in commit `79805fad` ("Extern struct methods work!"), which contained multiple "DO NOT SUBMIT" markers and `vimpl()` placeholders alongside this one. The commented-out fallback `InitialKnown(genericParam.rune, explicitArg)` cannot typecheck (`ITemplataT` has no `.rune`), confirming the index-`0` was prototyping with a single-generic-param case and never generalized.
+### Fix #2 — Macro-generated drop routes through `assembleName`'s self-struct path (this commit)
 
-## Remaining failures (after Fix #1, still 0/198)
+`StructDropMacro` now names its parameter `keywords.self` (was `keywords.thiss`). With `lift = true` already set, this is the missing piece that makes `FunctionCompilerMiddleLayer.assembleName`'s self-detection succeed (it requires both flags). The drop body uses `ArgLookupTE(0, ...)` — positional, not by name — so the rename is body-safe. The function now flows through `selfStructId.addStep(funcName)` uniformly with user-written `func drop<T>(self XSome<T>) void`. `selfStructId` is always in instantiation form (`StructNameT(template, [placeholders])` — non-generic structs just have an empty placeholder vector), so generic and non-generic structs are handled by the same code with no special-casing on arity. @SMLRZ doc updated accordingly: lines 80–83 used to claim "Generated drop functions are not lifted; they use `addStep`; drop functions don't have a `self` parameter (they use `thiss`)" — that contradicted line 87 of the same doc which says the function ID must contain `StructNameI` not bare `StructTemplateNameI` or `NameHammer.simplifyName` crashes. The contradiction was the bug; the doc now reflects the new uniform routing.
 
-The dominant cluster is now downstream:
+Closes the dominant cluster from Fix #1's downstream (48× `vwat()` at `Instantiator.assemblePlaceholderMap`).
 
-1. **48× `vwat()` at `Instantiator.assemblePlaceholderMap`** (Instantiator.scala:1032). Documented in `investigations/iast-template-vs-instantiation.md`. Diagnosis: macro-generated drops on non-generic structs produce a function id whose initSteps contains a bare `StructTemplateNameT(...)` (template form) instead of `StructNameT(template, Vector())` (instantiation form). The macro registers drops via `structName.addStep(funcName)` where `structName.localName` is the bare template name, and `assembleName`'s self-detection skips the lifted path because the macro names the parameter `keywords.thiss` (= "this") rather than `keywords.self`. Recommended fix: rename `thiss` → `self` in the macro to align with user-written drops, which already use the lifted path correctly. Doc-update will also be required (@SMLRZ doc currently has self-contradicting prescriptions).
+## Remaining failures (after Fix #2, still 0/198)
 
-2. **5× `vimpl()` at `FunctionCompilerClosureOrLightLayer.scala:231`** — `evaluateGenericLightFunctionFromNonCall`, hit on `AnonymousSubstructNameT(...)` IDs containing `KindPlaceholderTemplateNameT(0, AnonymousSubstructMemberRuneS(...))`. Triggered by tests like `upcastif.vale` and `interfacemutreturnexport/test.vale`. Likely the same kind of unfinished pattern as Fix #1 but for anonymous-substruct-method dispatch.
+1. **`vimpl()` at `FunctionCompilerSolvingLayer.assembleKnownTemplatas` second arm** — `assembleKnownTemplatas` has only a `CoordTemplataT(_, _, KindPlaceholderT(...))` arm, so non-Coord placeholders (Int, Mutability, Variability — e.g. `StaticSizedArrayIter<N, M, V, E>`'s `N`/`M`/`V`) fall through to `vimpl()`. Same WIP-leftover provenance as Fix #1 (commit 79805fad). Re-routing macro-generated drops through `assembleName` (Fix #2) made this code path reachable for more inputs, surfacing the gap.
 
-3. **6× `vassertSome` "Expected non-empty"** — somewhere in monomorphization unwrapping an `Option`. Need to capture full stack trace.
+2. **`vassertSome "Expected non-empty"` at `Instantiator.scala:3195`** (`translateCoord`). The substitutions map is missing a placeholder it expects to find. Need full stack trace and which substitutions table is being consulted.
+
+3. **`vimpl()` at `FunctionCompilerClosureOrLightLayer.scala:231`** — fires on `AnonymousSubstructNameT(_, [CoordTemplataT(_, _, KindPlaceholderT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, AnonymousSubstructMemberRuneS(...)))))])`. Triggered by tests like `upcastif.vale`. Likely another WIP-leftover for anonymous-substruct dispatch.
 
 ## `FrontendRust` build error
 
