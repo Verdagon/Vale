@@ -1,10 +1,12 @@
-# Quest: Fix the 7 Remaining AfterRegions Regressions
+# Quest: Fix the 5 Remaining AfterRegions Regressions
 
-**Status:** 48 AfterRegions tests total → 33 pass / 7 fail / 8 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 8 ignored tests are aspirational/never-worked features; they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
+**Status:** 51 AfterRegions tests total → 36 pass / 3 fail / 12 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 10 ignored tests are aspirational/never-worked features (or deprioritized — see CFWG note below); they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
 
-**This document** groups the 7 regressions by root cause, explains why each is broken, and sketches what fixing each would require. Family 1 (CFWG impl-bound propagation, 6 tests) is the biggest remaining unblock.
+**This document** groups the remaining regressions by root cause, explains why each is broken, and sketches what fixing each would require.
 
-**Resolved:** Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. Family 4.1 (imm tuple access, 1 test) — `vfail()` overcorrection removed, test passes as-written. Family 4.2 (borrow→owning coord coercion, 1 test) — `vimpl()` removed, test rewritten around `^&SomeStruct` to faithfully exercise the named coercion. Family 4.3 (interface→interface downcast, 1 test) — pivoted from negative test (asserting unsupported) to positive test (asserting supported); the original error class `CantDowncastToInterface` is dead code and the type system was deliberately built to allow the operation. See notes below.
+**Deprioritized:** CFWG (Concept Functions With Generics) — passing a bare function name (`OverloadSetT`) through a generic with a `where func(&F, …)` bound. Tests 1.5 ("Test overload set"), 1.6 ("Tests overload set and concept function"), and a minimal repro ("Pass overload set into placeholder parameter (@POSIPP)") have all been marked `ignore` because users can use lambdas instead in this case. The mechanism described below is still the right design when CFWG is picked up; it's just not blocking.
+
+**Resolved:** Family 1.1 (Method call on generic data, 1 test) — fixed via Solution C in `OverloadResolver.getPlaceholderImplBoundEnvs` per @BDPFWDZ. Family 1.2 (Impl rule, 1 test) — same fix; test source updated to `&T` borrow form so no drop bound is needed. Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. Family 4.1 (imm tuple access, 1 test) — `vfail()` overcorrection removed, test passes as-written. Family 4.2 (borrow→owning coord coercion, 1 test) — `vimpl()` removed, test rewritten around `^&SomeStruct` to faithfully exercise the named coercion. Family 4.3 (interface→interface downcast, 1 test) — pivoted from negative test (asserting unsupported) to positive test (asserting supported); the original error class `CantDowncastToInterface` is dead code and the type system was deliberately built to allow the operation. See notes below.
 
 ## How to verify current state
 
@@ -16,7 +18,7 @@ sbt 'testOnly dev.vale.AfterRegionsIntegrationTests dev.vale.typing.AfterRegions
 grep -E "Tests: succeeded|FAILED \*\*\*" /tmp/quest-status.txt
 ```
 
-Expect `Tests: succeeded 33, failed 7, canceled 0, ignored 8, pending 0` and exactly the 7 failing tests enumerated below.
+Expect `Tests: succeeded 36, failed 3, canceled 0, ignored 12, pending 0` and exactly the 3 failing tests enumerated below.
 
 ## Vocabulary
 
@@ -30,9 +32,9 @@ Shared across all families. See `docs/Generics.md` for full treatment.
 
 ---
 
-# Family 1: Impl-bound propagation into overload resolution (6 tests)
+# Family 1: Impl-bound propagation into overload resolution (2 tests remaining; CFWG deprioritized)
 
-> **Junior-engineer handoff:** `investigations/family1_handoff.md` — read top-to-bottom before touching code. Contains full vocabulary, file map, suggested attack plan in 8 phases, and 8 pitfalls earlier sessions hit. Multi-day project (3–7 days), wide blast radius.
+> **Junior-engineer handoff:** `investigations/family1_handoff.md` — read top-to-bottom before touching code. The original handoff doc covered all 6 Family 1 tests. Tests 1.1 and 1.2 are now resolved; the doc is updated with their resolution notes. Tests 1.5, 1.6, and a new minimal repro @POSIPP are now `ignore`d as deprioritized — users can use lambdas instead. Remaining work is the test-design followups for 1.3 and 1.4. The CFWG-specific design notes below are still relevant if/when this is picked up.
 
 ## The shared root cause
 
@@ -40,28 +42,26 @@ In the template system, writing `x.launch()` on a generic-typed `x: T` Just Work
 
 In the generic system, `x.launch()` has to type-check against an abstract `T`. The programmer declares bounds: `where implements(T, IShip)` (meaning: any `T` passed must implement `IShip`) or `where func launch(&T)void` (meaning: there must be a function named `launch` taking `&T`). The compiler is supposed to use those bounds to validate the call: "does IShip have `launch`? Yes. Does the `implements` bound guarantee T has IShip's methods? Yes. So `x.launch()` type-checks."
 
-**The gap:** the machinery for bounds-informing-overload-search exists partially (see `NBIFP` in `Generics.md:489+` and the existing plumbing in `FunctionCompilerSolvingLayer.scala:555-557`) but doesn't cover all cases. Specifically:
+**Resolved for impl-bound case (1.1, 1.2):** Solution C in `OverloadResolver.getPlaceholderImplBoundEnvs` follows each placeholder param's `IsaTemplataT` bound to its super-interface's outer env at lookup time. The interface's abstract method becomes a candidate; the inner per-call-site solve verifies T isa IShip via the same IsaTemplataT through `ImplCompiler.isParent`; the call resolves; the instantiator monomorphizes; the backend dispatches virtually. Per @BDPFWDZ, methods stay where declared (in the interface's outer env) and the resolver walks to find them. Integration test: `AfterRegionsIntegrationTests."Interface Method call on impl-bounded generic dispatches through interface"`.
 
-- `where implements(T, Interface)` doesn't propagate into the overload resolution for method calls on `T` (the `No ancestors satisfy call` failure).
-- `where func(&F, &T)void` with F being an `OverloadSetT` hits the `functor1.vale` hack, which has hardcoded "drop" in its where clause — works only when the overload set is named `drop`.
-- The `CFWG` (Concept Functions With Generics) design described in `docs/Generics.md:201` is the intended solution but hasn't been implemented. Three rule types (`ResolveSR`, `CallSiteFuncSR`, `DefinitionFuncSR`) exist but aren't wired up to perform the overload→prototype coercion the doc describes.
+**Remaining gap (1.5, 1.6) — DEPRIORITIZED:** the CFWG (Concept Functions With Generics) flavor — `where func(&F, &T)void` with F being an `OverloadSetT` has no mechanism to coerce the OverloadSet into a concrete prototype during bound discharge. The `CFWG` design described in `docs/Generics.md:201` is the intended solution. Three rule types (`ResolveSR`, `CallSiteFuncSR`, `DefinitionFuncSR`) exist but aren't wired to perform the overload→prototype coercion the doc describes. **Workaround:** users can pass a lambda instead of a bare function name. 1.5 and 1.6 have both been marked `ignore`. A minimal repro is `AfterRegionsIntegrationTests."Pass overload set into placeholder parameter (@POSIPP)"` — strips out the `array.each` plumbing and exercises only the bare-name-through-generic path.
 
-## What fixing this family requires
+> **`functor1.vale` was vestigial.** It's been deleted (along with its line in `Builtins.scala`). The 36/5/8 AfterRegions split and the 199/199 wider suite (CompilerTests, CompilerVirtualTests, CompilerGenericsTests, IntegrationTestsA/B/C) were unchanged by removal — no test exercises the hardcoded-`drop` `__call(v void, …)` path end-to-end. The handoff lore about "it works only for `drop`" describes a path that nothing currently reaches; CFWG can be designed without legacy compatibility weight.
+
+## What fixing the remaining CFWG sub-family requires
 
 Broadly: **implement CFWG as described in `docs/Generics.md:201-258`.** The doc describes two alternative designs (prototype-based and placeholder-based); either is viable. Concretely:
 
-1. Rework `functor1.vale` to not hardcode "drop" — the current `where F Prot = func drop(P1)R` only resolves for the drop overload set. Replace with a mechanism that uses the calling context's overload-set name.
-2. Implement `OverloadSetT → Prot` coercion in the solver — when a function parameter expects a callable `F` and the argument is an `OverloadSetT`, the solver should pick the overload matching the required signature and substitute the resulting prototype.
-3. Wire `where implements(T, Interface)` into `OverloadResolver.scala`'s overload search — when resolving `x.launch()` where `x: T`, check bounds-declared impls before rejecting with "No ancestors satisfy call". The current filter at `EdgeCompiler.scala:421-428` strips nested-type-arg bounds (that's the IRBFPTIPT gap for the ignored Diff iter test, but the same machinery location).
-4. Coordinate with existing BRRZ work (`docs/arcana/BoundReturnResolution-BRRZ.md`) — BRRZ already relaxed `ResolveSR` to discover return types from name+params; extending it to interact with impl bounds is a natural follow-on.
+1. Implement `OverloadSetT → Prot` coercion in the solver — when a function parameter expects a callable `F` and the argument is an `OverloadSetT`, the solver should pick the overload matching the required signature and substitute the resulting prototype.
+2. Coordinate with existing BRRZ work (`docs/arcana/BoundReturnResolution-BRRZ.md`) — BRRZ already relaxed `ResolveSR` to discover return types from name+params; extending it to interact with overload-set coercion is a natural follow-on.
 
-**Scope estimate:** Multi-day project (3–7 days). Touches `CompilerSolver.scala`, `OverloadResolver.scala`, `InferCompiler.scala`, `EdgeCompiler.scala`, `FunctionCompilerSolvingLayer.scala`, `functor1.vale` (or its replacement), plus new documentation. Run the full AfterRegions suite after every non-trivial change; bound-propagation changes have wide blast radius.
+**Scope estimate:** Multi-day project. Touches `CompilerSolver.scala`, `InferCompiler.scala`, plus new documentation. Run the full AfterRegions suite after every non-trivial change; bound-propagation changes have wide blast radius.
 
-**Unblocks:** All 6 tests in this family, plus potentially the ignored IRBFPTIPT and Generic-interface-anonymous-subclass tests if the machinery is generalized enough.
+**Unblocks:** Both CFWG tests (1.5, 1.6).
 
-## The 6 tests in detail
+## The 6 tests in detail (1.1, 1.2 resolved)
 
-### 1.1 Method call on generic data
+### 1.1 Method call on generic data — RESOLVED
 
 **File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:22`
 
@@ -94,11 +94,9 @@ The solver tries to find a `launch` for `T`. The candidate `func launch(self &Ra
 
 **Historical status:** Regression. In templates, this worked because `launchGeneric` was expanded per call site with T=Raza, and the resulting body had `x.launch()` on a concrete `&Raza`, which trivially resolved.
 
-**Fix:** Wire impl bounds into `OverloadResolver` overload search. When a rejection is "Bad super kind in isa" and the caller's bounds include `implements(T, SomeInterface)`, check whether the rejected candidate is a method on SomeInterface, and if so, accept the candidate.
+**RESOLVED:** Solution C — `OverloadResolver.getPlaceholderImplBoundEnvs` walks each placeholder param's `IsaTemplataT` bound to its super-interface's outer env at lookup time. The abstract `launch(virtual self &IShip)` becomes a candidate; the inner per-call-site solve verifies T isa IShip via `ImplCompiler.isParent`; the call resolves. Test body now asserts the call site in main resolves to `launchGeneric<Raza>` and `launchGeneric`'s body has a `FunctionCallTE` for `launch`. Per @BDPFWDZ.
 
-**Also watch for:** Test ends with `vimpl()` after `expectCompilerOutputs()` (category B at time of earlier tracking). Once compilation works, the test body's `vimpl()` will also need replacing with real assertions.
-
-### 1.2 Impl rule
+### 1.2 Impl rule — RESOLVED
 
 **File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:170`
 
@@ -119,6 +117,8 @@ func genericGetFuel<T>(x T) int where implements(T, IShip) {
 **Root cause:** Identical to Method call on generic data. Same family, same fix.
 
 **Historical status:** Regression. The underlying feature (calling interface methods on generic-typed values) worked in templates.
+
+**RESOLVED:** Same Solution C fix as 1.1. Test source updated from `x T` (owned, requires drop bound) to `x &T` (borrow, no drop bound needed) — the test was previously checking `templateArgs.last` against Firefly under the assumption that the typing pass would monomorphize, but per the current generics architecture monomorphization happens in the instantiator. Test now asserts the placeholder T appears in the template's id, and that main's body has a `FunctionCallTE` resolving to `genericGetFuel<Firefly>`. Per @BDPFWDZ.
 
 ### 1.3 Reports error (virtual dispatch error reporting)
 
@@ -166,9 +166,11 @@ Even if the anonymous subclass machinery worked, this test has a **design flaw**
 
 **Historical status:** Regression-in-family-1 + test-design bug.
 
-### 1.5 Test overload set
+### 1.5 Test overload set — DEPRIORITIZED (now `ignore`)
 
-**File:** `Frontend/IntegrationTests/test/dev/vale/AfterRegionsIntegrationTests.scala:78`
+**File:** `Frontend/IntegrationTests/test/dev/vale/AfterRegionsIntegrationTests.scala:133`
+
+**Status:** Marked `ignore` because users can use a lambda instead of a bare function name as a workaround. Same as new minimal repro `"Pass overload set into placeholder parameter (@POSIPP)"` at line 149 of the same file. Notes below preserved for when CFWG is picked up.
 
 **Test shape:**
 ```vale
@@ -181,30 +183,21 @@ exported func main() int {
 }
 ```
 
-**Current failure:** `Couldn't find a suitable function __call((overloads: myfunc), i32)` because the only `__call` candidate is the `functor1.vale` hack with hardcoded "drop".
+**Current failure:** `Couldn't find a suitable function __call((overloads: myfunc), i32). No function with that name exists.` There is no `__call` candidate for an OverloadSet receiver (the prior fallback, `functor1.vale`'s `__call(v void, …) where F Prot = func drop(P1)R`, was deleted as vestigial — it never matched anything except a hypothetical hardcoded-`drop` path no test exercised).
 
-**Root cause:** The `each` function in `array/each/each.vale` has `where func(&F,&T)void`. To satisfy this bound with `F=OverloadSetT(myfunc)` and `T=i32`, the solver looks up `__call(F, T)`. The functor1.vale __call has:
-
-```vale
-func __call<P1 Ref, R Ref>(v void, param P1) R
-where F Prot = func drop(P1)R {
-  F(param)
-}
-```
-
-Two problems:
-- The `v void` first param conflicts with the OverloadSet being passed as arg 0 (`_41111.kind: was (overloads: myfunc) but now concluding void`)
-- The `drop` literal in the where clause is hardcoded — the rule emits `resolve-func StrI(drop)(...)` — so this builtin only resolves for the `drop` overload set, not `myfunc`
+**Root cause:** The `each` function in `array/each/each.vale` has `where func(&F,&T)void`. To satisfy this bound with `F=OverloadSetT(myfunc)` and `T=i32`, the solver tries to resolve the bound by calling `__call(F, T)`. There's no mechanism to coerce the OverloadSet kind into a concrete prototype that matches the bound's signature.
 
 **Historical status:** Regression. Added 2022-04 in `IntegrationTestsA.scala` and was green for months before being parked in AfterRegions during the refactor.
 
-**Fix:** This is the canonical CFWG case (`docs/Generics.md:201`). The functor1.vale hack is explicitly acknowledged in its own comment: *"It's not particularly great because it's got that `drop` name hardcoded in there. Hopefully soon we can upgrade our generics system to not need this, see CFWG."*
+**Fix:** This is the canonical CFWG case (`docs/Generics.md:201`). Implement OverloadSet→Prot coercion at bound discharge — likely in the BRRZ-style mid-solve real-lookup pattern (use `delegate.resolveFunction` against the OverloadSet's `overloadsEnv` with the bound's signature, bind F's prototype to the result).
 
 See the shared Family 1 fix description above.
 
-### 1.6 Tests overload set and concept function
+### 1.6 Tests overload set and concept function — DEPRIORITIZED (now `ignore`)
 
-**File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:57`
+**File:** `Frontend/TypingPass/test/dev/vale/typing/AfterRegionsTests.scala:72`
+
+**Status:** Marked `ignore` for the same reason as 1.5 — users can use a lambda instead of a bare function name. Notes below preserved for when CFWG is picked up.
 
 **Test shape:**
 ```vale
@@ -219,7 +212,7 @@ exported func main() {
 
 **Current failure:** `Couldn't find a suitable function __call((overloads: print), str). No function with that name exists.`
 
-**Root cause:** Identical to 1.5 — `where func(&F,&X)void` triggers `__call((overloads: print), str)` lookup, which fails for the same CFWG reason (hardcoded "drop" in functor1.vale).
+**Root cause:** Identical to 1.5 — `where func(&F,&X)void` triggers `__call((overloads: print), str)` lookup, which fails for the same CFWG reason (no OverloadSet→Prot coercion exists at bound discharge).
 
 **Historical caveat:** Earlier sessions claimed this test "passes" because `expectCompilerOutputs()` (typing-pass-only) succeeded. But `evalForKind()` (full pipeline) fails. The typing pass tolerates the unresolved bound; later phases don't.
 
@@ -554,7 +547,7 @@ If you want the most progress per unit effort:
 
 **Target:** 6 tests — Method call on generic data, Impl rule, Reports error, Lambda is incompatible anonymous interface (first step), Test overload set, Tests overload set and concept function.
 
-**Approach:** Implement CFWG per `docs/Generics.md:201`. Rework `functor1.vale`, add OverloadSet→Prot coercion in the solver, and wire `implements` bounds into `OverloadResolver`. Coordinate with existing BRRZ work.
+**Approach:** Implement CFWG per `docs/Generics.md:201`. Add OverloadSet→Prot coercion in the solver and wire `implements` bounds into `OverloadResolver`. Coordinate with existing BRRZ work. (`functor1.vale` was deleted as vestigial — no compatibility shim to preserve.)
 
 **Estimate:** 3–7 days.
 
@@ -618,5 +611,5 @@ All three sub-tests resolved without compiler changes. See the Family 4 section 
 
 **For stdlib patterns:**
 - `Frontend/Tests/test/main/resources/array/each/each.vale` — the `each` function whose where-clause is at the heart of Family 1 tests 1.5 and 1.6.
-- `Frontend/Builtins/src/dev/vale/resources/functor1.vale` — the hardcoded-"drop" hack that Family 1 needs to replace.
+- ~~`Frontend/Builtins/src/dev/vale/resources/functor1.vale`~~ — deleted as vestigial; no test exercised it. CFWG no longer has a legacy shim to preserve.
 - `Frontend/Tests/test/main/resources/programs/genericvirtuals/mapFunc.vale` — the map-function source underlying Family 3.
