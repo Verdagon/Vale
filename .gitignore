@@ -23,7 +23,6 @@ test_output/
 Rabble
 .DS_Store
 FrontendRust/zen/logs
-Luz
 Guardian
 guardian-cache
 target
