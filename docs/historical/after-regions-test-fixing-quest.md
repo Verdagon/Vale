@@ -1,14 +1,26 @@
-# Quest: Fix the 5 Remaining AfterRegions Regressions
+# Quest Complete: AfterRegions Test Recovery
 
-**Status:** 52 AfterRegions tests total → 38 pass / 0 fail / 14 ignored. Most remaining failures are **regressions** (capabilities that worked in the template system, broken during the templates→generics refactor or the preceding monomorphization-prep work of Aug–Sep 2022). The 13 ignored tests are aspirational/never-worked features (or deprioritized — see CFWG and 1.3 notes below); they're parked and not counted here. Historical record of what was tried and learned: `docs/historical/after-regions-fixing-tests-quest.md`.
+**Final state:** 52 AfterRegions tests → **38 pass / 0 fail / 14 ignored**. All AfterRegions tests now pass or are deliberately deferred. Wider regression sweep at **199/199** (CompilerTests, CompilerVirtualTests, CompilerGenericsTests, IntegrationTestsA/B/C). The original 5-regression quest is closed.
 
-**This document** groups the remaining regressions by root cause, explains why each is broken, and sketches what fixing each would require.
+This document was the active quest tracker; it is preserved here as the closing record. Per-family sections below capture what was diagnosed, what was fixed, and (for the deferred items) what's left and where the next attempt picks up. The earlier-phase historical record (covering the 28 → 33 recovery sessions before this branch's work) lives at `docs/historical/after-regions-fixing-tests-quest.md`.
 
-**Deprioritized:** CFWG (Concept Functions With Generics) — passing a bare function name (`OverloadSetT`) through a generic with a `where func(&F, …)` bound. Tests 1.5 ("Test overload set"), 1.6 ("Tests overload set and concept function"), and a minimal repro ("Pass overload set into placeholder parameter (@POSIPP)") have all been marked `ignore` because users can use lambdas instead in this case. The mechanism described below is still the right design when CFWG is picked up; it's just not blocking.
+## Resolved (the original 5 active regressions, plus three Family 4 design-question tests)
 
-**Resolved:** Family 1.1 (Method call on generic data, 1 test) — fixed via Solution C in `OverloadResolver.getPlaceholderImplBoundEnvs` per @BDPFWDZ. Family 1.2 (Impl rule, 1 test) — same fix; test source updated to `&T` borrow form so no drop bound is needed. Family 1.4 (Lambda is incompatible anonymous interface, 1 test) — test was doubly-broken (source returned `int` matching the interface, so nothing to mismatch; also asserted `BodyResultDoesntMatch` which is unreachable on this path). Pivoted: lambda body now returns `bool` to create a real int/bool mismatch, assertion changed to expect the realistic `CouldntFindFunctionToCallT(... ReturnTypeConflictInConclusionResolve(int, bool))` that fires at the substruct's `__call`-bound check during inference. Companion success-test added in `AfterRegionsTests.scala`. See `investigations/family1_4_body_result_doesnt_match_unreachable.md`. Family 2 (anonymous-param lambdas, 2 tests) — fixed via postparser lift to match @LAGTNGZ. Family 4.1 (imm tuple access, 1 test) — `vfail()` overcorrection removed, test passes as-written. Family 4.2 (borrow→owning coord coercion, 1 test) — `vimpl()` removed, test rewritten around `^&SomeStruct` to faithfully exercise the named coercion. Family 4.3 (interface→interface downcast, 1 test) — pivoted from negative test (asserting unsupported) to positive test (asserting supported); the original error class `CantDowncastToInterface` is dead code and the type system was deliberately built to allow the operation. See notes below.
+- **Family 1.1** (Method call on generic data) — Solution C in `OverloadResolver.getPlaceholderImplBoundEnvs` per @BDPFWDZ.
+- **Family 1.2** (Impl rule) — same fix; test source updated to `&T` borrow form so no drop bound is needed.
+- **Family 1.4** (Lambda is incompatible anonymous interface) — test was doubly-broken. Source returned `int` matching the interface (nothing to mismatch); assertion expected `BodyResultDoesntMatch`, which is structurally unreachable on this path (lambda body has `maybeExplicitReturnCoord = None` per @LAGTNGZ; the forwarder *would* trigger it but is gated behind constructor inference, which fails earlier at the substruct's `__call` bound check). Pivoted: lambda now returns `bool`, assertion expects the realistic `CouldntFindFunctionToCallT(... ReturnTypeConflictInConclusionResolve(int, bool))`. Companion success-test added in `AfterRegionsTests.scala`. See `investigations/family1_4_body_result_doesnt_match_unreachable.md`.
+- **Family 2** (anonymous-param lambdas, 2 tests) — postparser lift to match @LAGTNGZ.
+- **Family 4.1** (imm tuple access) — `vfail()` overcorrection removed, test passes as-written.
+- **Family 4.2** (borrow→owning coord coercion) — `vimpl()` removed, test rewritten around `^&SomeStruct` to faithfully exercise the named coercion.
+- **Family 4.3** (interface→interface downcast) — pivoted from negative test (asserting unsupported) to positive test (asserting supported); the original error class `CantDowncastToInterface` is dead code and the type system was deliberately built to allow the operation.
 
-## How to verify current state
+## Deferred (now `ignore`d; deliberately deprioritized or pending owner review)
+
+- **Family 1.3** (Reports error: imm interface + imm struct mutability mismatch) — real bug (impl-time mutability check needed), but the obvious fix broke `IFunction1.anonymous` because interface and substruct carry placeholder M's whose IdTs differ but conceptually refer to the same impl-level M. Needs substitution-based comparison. See `investigations/reports_error_1_3.md`.
+- **Family 1.5 / 1.6 / @POSIPP** (CFWG — passing a bare function name `OverloadSetT` through a generic with a `where func(&F, …)` bound) — deprioritized because users can use lambdas instead. Design lives at `docs/Generics.md:201`.
+- **Family 3** (Map function: generic virtual dispatcher with abstract generics not in self-interface) — three layers of fixes already on this branch (`FunctionCompilerSolvingLayer` vimpl removal, `optutils.vale` `getOr` rewrite, `EdgeCompiler` fresh-placeholder inclusion). The final Layer 4 patch in `Instantiator.translateOverride` was prototyped, verified clean, and reverted pending Instantiator-owner review. See `investigations/family3_map_function.md` and the Family 3 section below.
+
+## How to verify final state
 
 From the repo root:
 
@@ -233,7 +245,7 @@ Includes collapsed call tree, instrumentation findings, architectural audit vs `
 
 ## What's already landed (2026-04-17 session)
 
-Three layered changes sit on the `vale-after-regions` branch. All non-regressing (full AfterRegions suite stays at **28 pass / 12 fail / 7 ignored** — the same 12 by name). Map function still fails, but further down the pipeline each time.
+Three layered changes sit on the `vale-after-regions` branch. All non-regressing — when documented they kept the suite at 28 pass / 12 fail / 7 ignored (snapshot from when those layers landed; the suite has since reached 38/0/14 with the unrelated Family 1.x and 4.x work). Map function still fails, but further down the pipeline each time.
 
 ### Layer 1 — `FunctionCompilerSolvingLayer.scala:493` (the original Family 3 fix)
 
@@ -520,35 +532,13 @@ Sealed interfaces (so `#!DeriveInterfaceDrop` provides the own-drop), `import v.
 
 ---
 
-# Suggested order of attack
+# If you pick up the deferred items
 
-If you want the most progress per unit effort:
+The quest is closed at 38/0/14. If a future session wants to advance from here, the three deferred buckets are independent of each other:
 
-## Phase 1: Family 1 (impl-bound propagation)
-
-**Target:** 6 tests — Method call on generic data, Impl rule, Reports error, Lambda is incompatible anonymous interface (first step), Test overload set, Tests overload set and concept function.
-
-**Approach:** Implement CFWG per `docs/Generics.md:201`. Add OverloadSet→Prot coercion in the solver and wire `implements` bounds into `OverloadResolver`. Coordinate with existing BRRZ work. (`functor1.vale` was deleted as vestigial — no compatibility shim to preserve.)
-
-**Estimate:** 3–7 days.
-
-**Risk:** Wide blast radius. Run the full test suite (not just AfterRegions) after every non-trivial change. Bounds changes can silently affect every function call in the codebase.
-
-**Side benefit:** May also unblock the ignored `Generic interface anonymous subclass` and `IRBFPTIPT` tests if the machinery generalizes.
-
-## Phase 2: Family 3 (Map function)
-
-**Target:** 1 test.
-
-**Approach:** Replace the `vimpl()` at `FunctionCompilerSolvingLayer.scala:493` with placeholder creation for generic virtual dispatcher params. Model on how regular generic functions create `KindPlaceholderT` instances.
-
-**Estimate:** 1–2 days.
-
-**Risk:** Low. Single well-identified vimpl.
-
-## Phase 3: Family 4 (design questions) — RESOLVED
-
-All three sub-tests resolved without compiler changes. See the Family 4 section above for per-test resolution notes.
+1. **Family 3 / Map function** — smallest unit of work. Land Layer 4 (the patch is documented inline at the Family 3 section, with verification details). Blocked on Instantiator-owner review.
+2. **Family 1.3** — needs substitution-based equality for impl-level placeholders so the impl-mutability check doesn't false-positive on `IFunction1.anonymous`. See `investigations/reports_error_1_3.md`.
+3. **CFWG (1.5/1.6/@POSIPP)** — multi-day. Implement OverloadSet→Prot coercion per `docs/Generics.md:201`. Lambda workaround means this isn't blocking real users.
 
 ---
 
@@ -566,19 +556,19 @@ All three sub-tests resolved without compiler changes. See the Family 4 section 
 
 6. **Named blocker codes — don't re-investigate.** When a test sits in a named-blocker bucket (CFWG, IRBFPTIPT, MKRFA, BRRZ), recognize the code and work at that level. Don't re-derive what the blocker is. CFWG is `docs/Generics.md:201`; IRBFPTIPT smoking gun is `EdgeCompiler.scala:421-423`.
 
-7. **Scalatest's `ignore(...)` is the right tool** for tests that document roadmap but shouldn't run. Two of the 7 ignored tests had `// This test does not pass yet, use #[ignore].` comments sitting there unapplied — the suggestion had been there all along.
+7. **Scalatest's `ignore(...)` is the right tool** for tests that document roadmap but shouldn't run. Several tests across this quest had `// This test does not pass yet, use #[ignore].` comments sitting there unapplied — the suggestion had been there all along.
 
 ---
 
 # Cross-references
 
 **For active work:**
-- `investigations/family1_handoff.md` — junior-engineer handoff for Family 1 (the remaining 6+1 failing tests). Required reading before starting Family 1 work.
+- `investigations/family1_handoff.md` — junior-engineer handoff for Family 1. Originally written when 6+1 tests were failing; tests 1.1, 1.2, 1.4 are now resolved and 1.5/1.6/@POSIPP are deprioritized (see in-doc updates). Still useful for the remaining deferred 1.3 followup.
 - `investigations/family3_map_function.md` — full investigation doc for Family 3 (Map function), with the architectural diagnosis Layers 1–3 already landed and Layer 4 sketched.
 - `investigations/deferred-solving-across-def-callsite.md` — architectural exploration that came out of the Family 4.1 follow-up. Two design alternatives (deferred-solving / lift-to-generic-param) for letting def-time solves be incomplete. Out of scope for current quest, queued as a future architectural cleanup.
 
 **For context on the test lifecycle:**
-- `docs/historical/after-regions-fixing-tests-quest.md` — full historical record of what was tried for each test across all recovery sessions. Read this before starting work on any of the remaining 7 — the "lessons learned" section is dense with gotchas from prior sessions.
+- `docs/historical/after-regions-fixing-tests-quest.md` — earlier-phase historical record covering the 28 → 33 recovery sessions before this branch's work. Its "lessons learned" section is still dense with gotchas worth reading before any future deferred-item work.
 - `docs/historical/family2_handoff.md` — example of a junior-engineer handoff (Family 2, now resolved). Format reference for `family1_handoff.md`.
 
 **For the generics/regions architecture:**
