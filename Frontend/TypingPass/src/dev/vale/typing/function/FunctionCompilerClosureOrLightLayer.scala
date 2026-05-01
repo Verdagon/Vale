@@ -222,6 +222,7 @@ class FunctionCompilerClosureOrLightLayer(
         case IdT(_, Vector(), StructTemplateNameT(_)) => true
         case IdT(_, Vector(), InterfaceTemplateNameT(_)) => true
         case IdT(_, _, AnonymousSubstructTemplateNameT(_)) => true
+        case IdT(_, _, AnonymousSubstructNameT(_, _)) => false
         case IdT(_,Vector(FunctionNameT(_,Vector(),Vector()), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(_,_,_)),LambdaCitizenTemplateNameT(_)) => {
           true // DO NOT SUBMIT weird
         }

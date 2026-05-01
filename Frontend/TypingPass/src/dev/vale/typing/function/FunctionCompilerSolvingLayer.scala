@@ -288,6 +288,20 @@ class FunctionCompilerSolvingLayer(
           }
         })
       }
+      case IdT(packageCoord, initSteps, n @ AnonymousSubstructNameT(_, templateArgs)) => {
+        val structDef = coutputs.lookupStruct(IdT(packageCoord, initSteps, n))
+        structDef.instantiatedCitizen.id.localName.templateArgs.zip(templateArgs).map({
+          case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(_,rune)))))), arg) => {
+            InitialKnown(RuneUsage(rangeS, rune), arg)
+          }
+          case (PlaceholderTemplataT(IdT(_,_,NonKindNonRegionPlaceholderNameT(_,rune)),_), arg) => {
+            InitialKnown(RuneUsage(rangeS, rune), arg)
+          }
+          case (genericParam, explicitArg) => {
+            vimpl()
+          }
+        })
+      }
       case IdT(packageCoord, initSteps, n@FunctionNameT(_, templateArgs, _)) => {
         Vector() // DO NOT SUBMIT wouldnt this help for lambdas?
       }
