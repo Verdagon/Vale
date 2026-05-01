@@ -1,4 +1,5 @@
 import stdlib.os.*;
+import coordinator.platform.*;
 
 func invoke_clang(
   windows bool,
@@ -54,19 +55,14 @@ Subprocess {
     args.add("-L" + libc_path./("lib").str());
   }
 
-  // Per @CADFRTZ, match clang's -arch to the Rust static library's architecture. Without
-  // this, a Rosetta-translated parent (x86_64 valec on an arm64 Mac) silently causes clang
-  // to emit x86_64 output, which then fails to link against an arm64 .a. Only Darwin uses
-  // -arch this way; Linux/Windows use different mechanisms and don't need it here.
-  if (not windows) and rust_target_triple != "" {
-    if rust_target_triple == "aarch64-apple-darwin" {
-      args.add("-arch");
-      args.add("arm64");
-    } else if rust_target_triple == "x86_64-apple-darwin" {
-      args.add("-arch");
-      args.add("x86_64");
-    }
-    // Other triples (linux-gnu, etc.) don't need -arch.
+  // Per @CADFRTZ, force -arch arm64 on Darwin so a Rosetta-translated parent (x86_64 valec
+  // on an arm64 Mac) doesn't silently cause clang to emit x86_64 output that then fails to
+  // link against the arm64 build.o (or arm64 Rust .a). Linux/Windows don't use -arch this
+  // way. Hardcoded arm64 is adequate for our current Apple Silicon target; revisit if we
+  // need to support x86_64 mac builds again.
+  if IsDarwin() {
+    args.add("-arch");
+    args.add("arm64");
   }
 
   if (windows) {
