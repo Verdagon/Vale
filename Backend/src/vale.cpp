@@ -1350,15 +1350,20 @@ void doRustyThings(
   std::cout << "Using divination input:" << std::endl;
   std::cout << divinationInputStr << std::endl;
 
+  // No rust externs in this program — nothing for Divination to do, and the downstream
+  // kindToExtern/functionToExtern loops are no-ops. Skip the whole pipeline so we don't try
+  // to invoke an unconfigured Divination binary.
+  if (divinationInputStr.empty()) {
+    return;
+  }
+
   // Check Rust interop config — all three paths must be provided when there's rust work to do.
-  if (!divinationInputStr.empty()) {
-    if (globalState->opt->divinationPath.empty() ||
-        globalState->opt->rustCargoToml.empty() ||
-        globalState->opt->rustOutputDir.empty()) {
-      std::cerr << "Rust interop required but missing one of: "
-                   "--divination_path, --rust_cargo_toml, --rust_output_dir" << std::endl;
-      exit(1);
-    }
+  if (globalState->opt->divinationPath.empty() ||
+      globalState->opt->rustCargoToml.empty() ||
+      globalState->opt->rustOutputDir.empty()) {
+    std::cerr << "Rust interop required but missing one of: "
+                 "--divination_path, --rust_cargo_toml, --rust_output_dir" << std::endl;
+    exit(1);
   }
 
   std::string rustExternsFilename = "rust_externs.h";
