@@ -709,7 +709,9 @@ void makeDirectory(const std::string& dir, bool reuse) {
 }
 
 std::string makeIncludeDirectory(GlobalState* globalState) {
-  return globalState->opt->outputDir + "/include";
+  auto includeDirectory = globalState->opt->outputDir + "/include";
+  makeDirectory(includeDirectory, true);
+  return includeDirectory;
 }
 
 std::string makeModuleIncludeDirectory(const GlobalState *globalState, PackageCoordinate *packageCoord) {
