@@ -85,6 +85,8 @@ object TemplataCompiler {
     IdT(id.packageCoord, initSteps, lastStep)
   }
 
+  // The returned id is path-encoded (per @PASDZ): its initSteps carry the owning denizen's
+  // template id, so it's globally unique and usable as a substitutions-map key on its own.
   def getPlaceholderTemplataId(implPlaceholder: ITemplataT[ITemplataType]): IdT[IPlaceholderNameT] = {
     implPlaceholder match {
       case PlaceholderTemplataT(n, _) => n
