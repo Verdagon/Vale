@@ -17,7 +17,7 @@ import dev.vale.typing.{ast, _}
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
-import dev.vale.typing.env.{CitizenEnvironmentT, FunctionEnvEntry, IInDenizenEnvironmentT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironmentT, FunctionEnvEntry, IEnvironmentT, IInDenizenEnvironmentT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -33,6 +33,7 @@ class StructCompilerCore(
   delegate: IStructCompilerDelegate) {
 
   def compileStruct(
+    declaringEnv: IEnvironmentT,
     outerEnv: IInDenizenEnvironmentT,
     structInnerEnv: CitizenEnvironmentT[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
@@ -145,7 +146,10 @@ class StructCompilerCore(
               delegate.evaluateGenericFunctionFromNonCallForHeader(
                 coutputs, parentRanges, callLocation,
                 FunctionTemplataT(
-                  structInnerEnv, // Per @SMLRZ, compiled in inner env (instantiated struct ID)
+                  // UFCS: lifted/sibling methods compile as free functions — their parent
+                  // chain skips the citizen env so lookup walk-up doesn't surface the
+                  // struct's own bound declarations as duplicate candidates.
+                  declaringEnv,
                   functionA))
             }))
       }
@@ -154,6 +158,11 @@ class StructCompilerCore(
 
     structInnerEnv.templatas.entriesByNameT.foreach({
       case (name, FunctionEnvEntry(functionA)) => {
+        // structInnerEnv.templatas only contains non-lifted internal methods (per the
+        // !_.lift filter at StructCompilerGenericArgsLayer's runesEnv construction), so
+        // they all compile against structInnerEnv. Lifted methods and macro-generated
+        // siblings live in outerEnv.templatas and are handled by the loop above.
+        vassert(!functionA.lift)
         // These have to be deferred, otherwise some compiling functions won't have what we expect.
         // For example, MyShip.drop will expect to see the members of MyEngine, but we haven't compiled
         // MyEngine yet.
@@ -164,10 +173,7 @@ class StructCompilerCore(
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
                 coutputs, parentRanges, callLocation,
-                FunctionTemplataT(
-                  // Per @SMLRZ, lifted methods go to outerEnv; non-lifted stay in structInnerEnv.
-                  if (functionA.lift) outerEnv else structInnerEnv,
-                  functionA))
+                FunctionTemplataT(structInnerEnv, functionA))
             }))
       }
       case _ =>

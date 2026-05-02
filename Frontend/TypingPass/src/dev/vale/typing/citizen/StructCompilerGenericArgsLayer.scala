@@ -426,7 +426,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(structTemplateId, runesEnv)
 
-      core.compileStruct(outerEnv, runesEnv, coutputs, parentRanges, callLocation, structA)
+      core.compileStruct(declaringEnv, outerEnv, runesEnv, coutputs, parentRanges, callLocation, structA)
 
       uncheckedDefiningConclusions
     })
