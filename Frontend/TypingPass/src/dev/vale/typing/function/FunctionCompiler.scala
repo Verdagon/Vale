@@ -276,13 +276,14 @@ class FunctionCompiler(
     functionTemplata: FunctionTemplataT,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
-    args: Vector[CoordT]):
+    args: Vector[CoordT],
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   IResolveFunctionResult = {
     Profiler.frame(() => {
       val FunctionTemplataT(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(
         env, coutputs, callingEnv, callRange, callLocation, function, explicitTemplateArgs,
-        contextRegion, args.map(Some(_)))
+        contextRegion, args.map(Some(_)), extraInitialKnowns)
     })
   }
 

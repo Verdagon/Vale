@@ -497,14 +497,14 @@ class ExpressionCompiler(
           // most one entry. Phase 2 will iterate over all entries to support nested chains.
           val maybeContainer = containerLookups.headOption
 
-          val funcGroup =
+          val (funcGroup, extraInitialKnowns): (ReferenceExpressionTE, Vector[InitialKnown]) =
             maybeContainer match {
               case None => {
-                newGlobalFunctionGroupExpression(
+                (newGlobalFunctionGroupExpression(
                   nenv.snapshot,
                   // i suppose this can instead take on the region of whatever's expected?
                   nenv.defaultRegion,
-                  funcName)
+                  funcName), Vector.empty)
               }
               case Some((_, (firstRulesWithImplicitlyCoercingLookupsS, containerResultRune))) => {
 
@@ -593,44 +593,38 @@ class ExpressionCompiler(
                     case KindTemplataT(StructTT(id)) => id
                     case _ => vfail() // DO NOT SUBMIT
                   }
-                // One would think we'd grab the inner env, so that we can know what its templatas are.
-                // For example, if we have:
-                //   struct Vec<T> {
-                //     func new() Vec<T> { }
-                //   }
-                //   exported func main() {
-                //     v = Vec<int>.new();
-                //   }
-                // we'll be here for that `Vec<int>.new()` call.
-                // And one would think we'd want to grab the Vec<int>'s inner env so that we can resolve the `new`
-                // function from the env that already has T = int.
-                // HOWEVER, that's not how it works. The inner env does have a T... but it's a placeholder, not int.
-                // We still want the outer env though, so we can find that `new` function.
-                // DO NOT SUBMIT document?
 
-//                val structTemplateId = TemplataCompiler.getStructTemplate(structId)
+                // The container's positional template args (e.g. `<int>` in `Vec<int>.foo()`)
+                // get resolved here into InitialKnowns keyed by the *struct's* generic param
+                // runes. The struct's generic params live in placeholder form in
+                // structDef.instantiatedCitizen.id.localName.templateArgs — each placeholder
+                // carries the struct-side rune embedded. We zip those positionally with the
+                // callsite arg-runes (from explicitArgsByTemplate) and look up each callsite
+                // rune's resolved templata in templatasByRune.
+                //
+                // This is the explicit-callsite-template-args route (Phase 2). It replaces
+                // the previously-used `outerEnv.id.initId` walk-up in assembleKnownTemplatas.
+                val structDef = coutputs.lookupStruct(structId)
+                val containerName = containerLookups.head._1
+                val callsiteArgRunes = explicitArgsByTemplate.getOrElse(containerName, Vector())
+                val containerInitialKnowns: Vector[InitialKnown] =
+                  structDef.instantiatedCitizen.id.localName.templateArgs.zip(callsiteArgRunes).map({
+                    case (CoordTemplataT(CoordT(_, _, KindPlaceholderT(IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(_, rune)))))), callsiteArgRune) => {
+                      InitialKnown(RuneUsage(range, rune), vassertSome(templatasByRune.get(callsiteArgRune.rune)))
+                    }
+                    case (PlaceholderTemplataT(IdT(_, _, NonKindNonRegionPlaceholderNameT(_, rune)), _), callsiteArgRune) => {
+                      InitialKnown(RuneUsage(range, rune), vassertSome(templatasByRune.get(callsiteArgRune.rune)))
+                    }
+                    case (templateArg, _) => vimpl(templateArg.toString)
+                  }).toVector
+
                 val structResolvedEnv = coutputs.getResolvedEnvForType(structId)
-//                val structOuterEnv =
-//                  coutputs.getOuterEnvForType(range :: parentRanges, structTemplateId)
 
-//
-//                val patchedStructOuterEnv =
-//                  CitizenEnvironmentT(
-//                    structOuterEnv.globalEnv,
-//                    structOuterEnv,
-//                    structTemplateId,
-//                    structId,
-//                    TemplatasStore(structId, Map(), Map())
-//                      .addEntries(
-//                        interner,
-//                        templatasByRune.toVector
-//                          .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-
-                newGlobalFunctionGroupExpression(
+                (newGlobalFunctionGroupExpression(
                   structResolvedEnv,
                   // i suppose this can instead take on the region of whatever's expected?
                   nenv.defaultRegion,
-                  funcName)
+                  funcName), containerInitialKnowns)
               }
             }
 
@@ -645,7 +639,8 @@ class ExpressionCompiler(
               funcGroup,
               funcRules.toVector,
               explicitArgsByTemplate.getOrElse(funcName, Vector()).map(_.rune),
-              argsExprs2)
+              argsExprs2,
+              extraInitialKnowns)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, callLocation, callableExpr1, argsExprs1) => {

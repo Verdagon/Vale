@@ -37,7 +37,8 @@ class CallCompiler(
     callableExpr: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    givenArgsExprs2: Vector[ReferenceExpressionTE]):
+    givenArgsExprs2: Vector[ReferenceExpressionTE],
+    extraInitialKnowns: Vector[InitialKnown]):
   (ReferenceExpressionTE) = {
     callableExpr.result.coord.kind match {
       case NeverT(true) => vwat()
@@ -66,7 +67,8 @@ class CallCompiler(
             contextRegion,
             unconvertedArgsPointerTypes2,
             Vector.empty,
-            false) match {
+            false,
+            extraInitialKnowns) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
             case Ok(x) => x
           }
@@ -261,7 +263,8 @@ class CallCompiler(
     callableReferenceExpr2: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    argsExprs2: Vector[ReferenceExpressionTE]
+    argsExprs2: Vector[ReferenceExpressionTE],
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty
   ):
   (ReferenceExpressionTE) = {
     val callExpr =
@@ -275,7 +278,8 @@ class CallCompiler(
         callableReferenceExpr2,
         explicitTemplateArgRulesS,
         explicitTemplateArgRunesS,
-        argsExprs2)
+        argsExprs2,
+        extraInitialKnowns)
     (callExpr)
   }
 }

@@ -79,7 +79,7 @@ class FunctionCompilerSolvingLayer(
         function.runeToType,
         callRange,
         callLocation,
-        assembleKnownTemplatas(coutputs, vimpl(), function, explicitTemplateArgs),
+        assembleKnownTemplatas(function, explicitTemplateArgs),
         initialSends,
         Vector()
       ) match {
@@ -148,7 +148,7 @@ class FunctionCompilerSolvingLayer(
         function.runeToType,
         callRange,
         callLocation,
-        assembleKnownTemplatas(coutputs, declaringEnv, function, alreadySpecifiedTemplateArgs),
+        assembleKnownTemplatas(function, alreadySpecifiedTemplateArgs),
         initialSends,
         Vector()
       ) match {
@@ -212,7 +212,7 @@ class FunctionCompilerSolvingLayer(
         function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
-    val initialKnowns = assembleKnownTemplatas(coutputs, nearEnv, function, explicitTemplateArgs)
+    val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
     val CompleteDefineSolve(inferences, instantiationBoundParams) =
     // We could probably just solveForResolving (see DBDAR) but seems more future-proof to solveForDefining.
       inferCompiler.solveForDefining(
@@ -260,68 +260,14 @@ class FunctionCompilerSolvingLayer(
   }
 
   private def assembleKnownTemplatas(
-    coutputs: CompilerOutputs,
-    rangeS: RangeS,
-    id: IdT[INameT]):
-  Vector[InitialKnown] = {
-    (id.initNonPackageId() match {
-      case None => Vector()
-      case Some(initId) => {
-        assembleKnownTemplatas(coutputs, rangeS, initId)
-      }
-    }) ++
-    (id match {
-      case IdT(packageCoord, initSteps, PackageTopLevelNameT()) => Vector()
-      case IdT(packageCoord, initSteps, t: ITemplateNameT) => Vector()
-      case IdT(packageCoord, initSteps, n @ StructNameT(_, templateArgs)) => {
-        val structDef = coutputs.lookupStruct(IdT(packageCoord, initSteps, n))
-        structDef.instantiatedCitizen.id.localName.templateArgs.zip(templateArgs).map({
-          case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(_,rune)))))), arg) => {
-            InitialKnown(RuneUsage(rangeS, rune), arg)
-          }
-          case (PlaceholderTemplataT(IdT(_,_,NonKindNonRegionPlaceholderNameT(_,rune)),_), arg) => {
-            InitialKnown(RuneUsage(rangeS, rune), arg)
-          }
-          case (genericParam, explicitArg) => {
-            vimpl()
-//            InitialKnown(genericParam.rune, explicitArg)
-          }
-        })
-      }
-      case IdT(packageCoord, initSteps, n @ AnonymousSubstructNameT(_, templateArgs)) => {
-        val structDef = coutputs.lookupStruct(IdT(packageCoord, initSteps, n))
-        structDef.instantiatedCitizen.id.localName.templateArgs.zip(templateArgs).map({
-          case (CoordTemplataT(CoordT(_,_,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(_,rune)))))), arg) => {
-            InitialKnown(RuneUsage(rangeS, rune), arg)
-          }
-          case (PlaceholderTemplataT(IdT(_,_,NonKindNonRegionPlaceholderNameT(_,rune)),_), arg) => {
-            InitialKnown(RuneUsage(rangeS, rune), arg)
-          }
-          case (genericParam, explicitArg) => {
-            vimpl()
-          }
-        })
-      }
-      case IdT(packageCoord, initSteps, n@FunctionNameT(_, templateArgs, _)) => {
-        Vector() // DO NOT SUBMIT wouldnt this help for lambdas?
-      }
-      case IdT(_, _, LambdaCallFunctionNameT(_, _, _)) => {
-        Vector() // DO NOT SUBMIT wouldnt this help for lambdas?
-      }
-      case other => vimpl(other)
-    })
-  }
-
-  private def assembleKnownTemplatas(
-    coutputs: CompilerOutputs,
-    outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]]):
   Vector[InitialKnown] = {
-    // DO NOT SUBMIT doc and show example
-
-    assembleKnownTemplatas(coutputs, function.range, outerEnv.id.initId(interner)) ++
-    // I think these can be different lengths, and I'd imagine that'd be fine. DO NOT SUBMIT
+    // Master form: zip the function's generic parameters positionally with the explicit
+    // template args supplied by the callsite. The walk-up of `outerEnv.id.initId` that
+    // previously seeded T from ancestral citizen steps is gone; T binding for non-self
+    // internal methods (`Vec<int>.with_capacity(...)` etc.) now flows in via the explicit
+    // `extraInitialKnowns` channel that the callsite populates from the container chain.
     function.genericParameters.zip(explicitTemplateArgs).map({
       case (genericParam, explicitArg) => {
         InitialKnown(genericParam.rune, explicitArg)
@@ -393,7 +339,11 @@ class FunctionCompilerSolvingLayer(
     callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
-    args: Vector[Option[CoordT]]):
+    args: Vector[Option[CoordT]],
+    // Extra InitialKnowns supplied by the callsite — typically from container template args
+    // in syntax like `Vec<int>.with_capacity(...)`. These bind parent-citizen runes that
+    // can't be derived from the function's own arguments. See OutsideLoadSE / Phase 2.
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   (IResolveFunctionResult) = {
     val function = outerEnv.function
     // Check preconditions
@@ -410,7 +360,8 @@ class FunctionCompilerSolvingLayer(
     val rules = callSiteRules
     val runeToType = function.runeToType
     val invocationRange = callRange
-    val initialKnowns = assembleKnownTemplatas(coutputs, outerEnv, function, explicitTemplateArgs)
+    val initialKnowns =
+      assembleKnownTemplatas(function, explicitTemplateArgs) ++ extraInitialKnowns
     if (function.name.toString.contains("with_capacity")) {
       System.err.println("WC_DEBUG outerEnv.id=" + outerEnv.id)
       System.err.println("WC_DEBUG callingEnv.id=" + callingEnv.id)
@@ -620,9 +571,10 @@ class FunctionCompilerSolvingLayer(
     val paramAndReturnRunes =
       (function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)).distinct.toVector
 
-    // This is to add stuff from a parent struct DO NOT SUBMIT explain better
-    // Note how its not feeding in any local things yet, those are incrementally added below.
-    val initialKnowns = assembleKnownTemplatas(coutputs, nearEnv, function, Vector())
+    // Non-call/deferred body compile — no callsite, so no explicit args and no
+    // extraInitialKnowns. Generic params bind to placeholders via the dedicated
+    // placeholder mechanism elsewhere; this seed is empty.
+    val initialKnowns = assembleKnownTemplatas(function, Vector())
 
     val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT(DefaultRegionT))
     val solver =

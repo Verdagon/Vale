@@ -102,7 +102,8 @@ class OverloadResolver(
     contextRegion: RegionT,
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironmentT],
-    exact: Boolean):
+    exact: Boolean,
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   Result[StampFunctionSuccess, FindFunctionFailure] = {
     Profiler.frame(() => {
       findPotentialFunction(
@@ -116,7 +117,8 @@ class OverloadResolver(
         contextRegion,
         args,
         extraEnvsToLookIn,
-        exact) match {
+        exact,
+        extraInitialKnowns) match {
         case Err(e) => return Err(e)
         case Ok(potentialBanner) => {
           Ok(StampFunctionSuccess(potentialBanner.prototype, Map()))
@@ -236,7 +238,8 @@ class OverloadResolver(
     contextRegion: RegionT,
     args: Vector[CoordT],
     candidate: ICalleeCandidate,
-    exact: Boolean):
+    exact: Boolean,
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   Result[AttemptedCandidate, IFindFunctionFailureReason] = {
     candidate match {
       case FunctionCalleeCandidate(ft@FunctionTemplataT(declaringEnv, function)) => {
@@ -363,7 +366,7 @@ class OverloadResolver(
                   } else {
                     // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                     functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                      coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, RegionT(DefaultRegionT), args) match {
+                      coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, RegionT(DefaultRegionT), args, extraInitialKnowns) match {
                       case (ResolveFunctionFailure(reason)) => Err(FindFunctionResolveFailure(reason))
                       case (ResolveFunctionSuccess(prototype, conclusions)) => {
                         paramsMatch(coutputs, callingEnv, callRange, callLocation, args, prototype.prototype.paramTypes, exact) match {
@@ -456,7 +459,8 @@ class OverloadResolver(
     contextRegion: RegionT,
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironmentT],
-    exact: Boolean):
+    exact: Boolean,
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   Result[AttemptedCandidate, FindFunctionFailure] = {
     // This is here for debugging, so when we dont find something we can see what envs we searched
     val searchedEnvs = new Accumulator[SearchedEnvironment]()
@@ -468,7 +472,7 @@ class OverloadResolver(
       candidates.map(candidate => {
         attemptCandidateBanner(
           env, coutputs, callRange, callLocation, explicitTemplateArgRulesS,
-          explicitTemplateArgRunesS, contextRegion, args, candidate, exact)
+          explicitTemplateArgRunesS, contextRegion, args, candidate, exact, extraInitialKnowns)
           .mapError(e => (candidate -> e))
       })
     val (successes, failedToReason) = Result.split(attempted)

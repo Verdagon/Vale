@@ -162,14 +162,15 @@ class FunctionCompilerClosureOrLightLayer(
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
     contextRegion: RegionT,
-    args: Vector[Option[CoordT]]):
+    args: Vector[Option[CoordT]],
+    extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   (IResolveFunctionResult) = {
     checkNotClosure(function);
 
     val outerEnvId = parentEnv.id.addStep(nameTranslator.translateGenericFunctionName(function.name))
     val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvId, false)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromCallForPrototype(
-      outerEnv, coutputs, callingEnv, callRange, callLocation, explicitTemplateArgs, contextRegion, args)
+      outerEnv, coutputs, callingEnv, callRange, callLocation, explicitTemplateArgs, contextRegion, args, extraInitialKnowns)
   }
 
   def evaluateGenericVirtualDispatcherFunctionForPrototype(
