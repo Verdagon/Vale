@@ -199,6 +199,16 @@ These tests **are** the Phase 0 guard. The dual-home fix only rescues the smoke-
 
 Note: the original Phase 0 plan called for adding a new pure-Vale test in this shape. Investigation found that (a) any pure-Vale internal method whose T appears only in the return type fails at HigherTyping ("Couldn't solve some runes: T") because the rune-type-solver can't determine T's type without rules referencing it, and (b) the existing `extern struct Vec<T>` tests already cover the same typing-pass path. So the existing two tests stand as the Phase 0 baseline; no new test added.
 
+## Follow-up: tighten `ExternFunctionNameI` humanizer
+
+`InstantiatedHumanizer.humanizeName` renders `ExternFunctionNameI(humanName, templateArgs, parameters)` as just `humanName.str` — drops the templateArgs and parameters. Compare `FunctionNameIX` (the non-extern variant), which renders both via `humanizeGenericArgs`. This means every monomorphization of e.g. `Vec<T>.new` renders to the same string `"Vec.new"` in `IdH.fullyQualifiedName`.
+
+Currently this is fine because:
+- Vivem dispatches by the rendered name and the stub disambiguates via the full `ref: PrototypeH` (which still has templateArgs in `ref.id.localName`).
+- Real Backend uses `RustShapeProjector` (a separate rendering path) for link-time symbol resolution, producing distinct names like `Vec<i32>::new`.
+
+The two consumers, two views arrangement works for the immediate refactor. But the lossy humanizer is fragile — if any future consumer reads `fullyQualifiedName` expecting type info, it'd silently collide across instantiations. Cleanup: have `ExternFunctionNameI`'s humanizer include templateArgs (mirror `FunctionNameIX`'s shape), update Vivem stub keys accordingly. Out of scope for the current refactor; tracked here.
+
 ## Arcana to write this session
 
 - Arcana documenting why the callsite explicit-template-args carrier is a `Map[IImpreciseNameS, Map[IRuneS, ITemplata]]` (template-id → rune → templata) rather than a flat `Vector[ITemplata]`. The reason: default arguments. With `Outer<Q, P = List<Q>>`, a callsite `Outer<i32>.Inner<bool>` provides Q but elides P. A flat vector can't represent the hole at P's position without sentinel/positional metadata; the Map represents it naturally as a missing inner-Map entry, and the default mechanism fills it. Same shape composes with future `Vec<i32>.foo` overload-set values and typed aliases (`alias Bytes: Something = Vec<u8>`).
