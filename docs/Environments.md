@@ -96,13 +96,13 @@ For that, let's have a way to lazily dispatch newcomers and any children to the 
 
 When we get to an environment, let's:
 
- 1. Call all contained denizens' macros, they'll generate more denizens, call all their denizens' macros, and so on until we're done.
+ 1. Call all contained denizens' macros, they'll generate more denizens, call all their denizens' macros, and so on until we're done. (NOTE FROM LATER: we don't actually do this (yet?))
     * We want to delay compilation of any contained interface until all the macros have a chance to add any virtual methods for it.
     * We also want to delay compilation of any siblings until then too, because they might want to other things in the same environment.
  2. After all macros are done generating, assemble the IEnvironment. **This is the "outer env".**
  3. Compile each denizen, giving it the outer env.
     * Someday, if we want to generate more entries, thats fine, but other denizens probably won't be able to see them. That's kind of what happens with closures too.
- 3. When we're compiling an interface, look for any virtual functions in the environment. Include them in the internal methods.
+ 3. When we're compiling an interface, look for any virtual functions in the environment. Include them in the internal methods. (V: this might need updating now that structs have internal methods too for vale/rust interop)
  4. Someday, if any macros generated any sub-environments, recurse and do all of these steps on that sub-environment.
 
 We'll want to call the macros on all public global-scoped denizens before compiling anything, because when we compile things, they'll want to access them. In other words, do step 1 on *all* global scope environments first.

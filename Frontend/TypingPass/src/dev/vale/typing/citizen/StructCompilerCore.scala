@@ -33,7 +33,6 @@ class StructCompilerCore(
   delegate: IStructCompilerDelegate) {
 
   def compileStruct(
-    declaringEnv: IEnvironmentT,
     outerEnv: IInDenizenEnvironmentT,
     structInnerEnv: CitizenEnvironmentT[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
@@ -135,48 +134,16 @@ class StructCompilerCore(
 
     outerEnv.templatas.entriesByNameT.foreach({
       case (name, FunctionEnvEntry(functionA)) => {
-        // These have to be deferred, otherwise some compiling functions won't have what we expect.
-        // For example, MyShip.drop will expect to see the members of MyEngine, but we haven't compiled
-        // MyEngine yet.
-        // We need to defer all these functions until after the structs and interfaces are done.
         coutputs.deferCompilingFunction(
           DeferredEvaluatingFunction(
-            outerEnv.id.addStep(name), // Per @SMLRZ, outer env functions get template-level scoping
+            outerEnv.id.addStep(name),
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
                 coutputs, parentRanges, callLocation,
-                FunctionTemplataT(
-                  // UFCS: lifted/sibling methods compile as free functions — their parent
-                  // chain skips the citizen env so lookup walk-up doesn't surface the
-                  // struct's own bound declarations as duplicate candidates.
-                  declaringEnv,
-                  functionA))
+                FunctionTemplataT(outerEnv, functionA))
             }))
       }
       case _ => vcurious()
-    })
-
-    structInnerEnv.templatas.entriesByNameT.foreach({
-      case (name, FunctionEnvEntry(functionA)) => {
-        // structInnerEnv.templatas only contains non-lifted internal methods (per the
-        // !_.lift filter at StructCompilerGenericArgsLayer's runesEnv construction), so
-        // they all compile against structInnerEnv. Lifted methods and macro-generated
-        // siblings live in outerEnv.templatas and are handled by the loop above.
-        vassert(!functionA.lift)
-        // These have to be deferred, otherwise some compiling functions won't have what we expect.
-        // For example, MyShip.drop will expect to see the members of MyEngine, but we haven't compiled
-        // MyEngine yet.
-        // We need to defer all these functions until after the structs and interfaces are done.
-        coutputs.deferCompilingFunction(
-          DeferredEvaluatingFunction(
-            outerEnv.id.addStep(name), // Per @SMLRZ, registered under outer env ID
-            (coutputs) => {
-              delegate.evaluateGenericFunctionFromNonCallForHeader(
-                coutputs, parentRanges, callLocation,
-                FunctionTemplataT(structInnerEnv, functionA))
-            }))
-      }
-      case _ =>
     })
 
     val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structInnerEnv.templatas)

@@ -121,8 +121,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.genericParams match {
       case Vector(
-        GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),_,CoordGenericParameterTypeS(None,_,false),None),
-        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),_,CoordGenericParameterTypeS(None,_,false),None)
+        GenericParameterS(_,RuneUsage(_,mp1b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None),
+        GenericParameterS(_,RuneUsage(_,mp2b @ MagicParamRuneS(_)),CoordGenericParameterTypeS(None,_,false),None)
         // Put this back in when we have regions
         // , _
         ) => {
@@ -539,23 +539,4 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  test("Lift methods correctly") {
-    val programS =
-      compile(
-        """
-          |extern struct Vec<T> imm {
-          |  extern func with_capacity(c i64) Vec<T>;
-          |  extern func capacity(self Vec<T>) i64;
-          |}
-        """.stripMargin)
-    val struct = vassertOne(programS.structs)
-
-    // Per @SMLRZ, no self param means not lifted
-    val withCapacityFunc = struct.internalMethods(0)
-    vassert(!withCapacityFunc.lift)
-
-    // Per @SMLRZ, self param triggers lift
-    val capacityFunc = struct.internalMethods(1)
-    vassert(capacityFunc.lift)
-  }
 }

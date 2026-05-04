@@ -185,8 +185,7 @@ case class InterfaceS(
     // // .init because every method has a default region as the last region param.
     // vassert(genericParams == internalMethod.genericParams.init)
     // Take this out when we have regions
-    // Per @SMLRZ, internal methods get parent's params with inherited=true.
-    vassert(genericParams.map(_.copy(inherited = true)) == internalMethod.genericParams)
+    vassert(genericParams == internalMethod.genericParams.take(genericParams.size))
   })
 
 }
@@ -322,12 +321,9 @@ case class OtherGenericParameterTypeS(tyype: ITemplataType) extends IGenericPara
   }
 }
 
-// Per @SMLRZ, `inherited` marks params from parent citizen. Inherited params are stripped from
-// the function's templateArgs downstream so struct args appear on the struct step of the Rust path.
 case class GenericParameterS(
   range: RangeS,
   rune: RuneUsage,
-  inherited: Boolean,
   tyype: IGenericParameterTypeS,
   default: Option[GenericParameterDefaultS])
 
@@ -358,8 +354,6 @@ case class FunctionS(
   maybeRetCoordRune: Option[RuneUsage],
 
   rules: Vector[IRulexSR],
-
-  lift: Boolean, // See @SMLRZ for lift rules
 
   body: IBodyS
 ) {

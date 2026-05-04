@@ -278,7 +278,10 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //      hamuts.addKindExtern(kindH, packageCoordinate, exportName)
 //    })
 
-    // Per @SMLRZ, extern IDs are simplified to Rust paths via NameHammer.simplifyId.
+    // Extern IDs are simplified to Rust paths via NameHammer.simplifyId. The typing pass
+    // produces UFCS-flat function ids (citizen-inherited args duplicated on the leaf);
+    // RustShapeProjector strips those leading args so each generic arg renders at exactly
+    // one structural level — Vec<i32>::with_capacity(i64), not Vec<i32>::with_capacity<i32>(i64).
     kindExterns.foreach({ case (struct, KindExternI(_)) =>
       val exportName = mangleStruct(struct.id)
       val exportSimplifiedId = NameHammer.simplifyId(struct.id)
@@ -287,8 +290,9 @@ class Hammer(interner: Interner, keywords: Keywords) {
     })
 
     functionExterns.foreach({ case FunctionExternI(prototype) =>
-      val exportName = mangleFunc(prototype.id)
-      val exportSimplifiedId = NameHammer.simplifyId(prototype.id)
+      val projectedId = RustShapeProjector.projectFunctionId(prototype.id)
+      val exportName = mangleFunc(projectedId)
+      val exportSimplifiedId = NameHammer.simplifyId(projectedId)
       val prototypeH = typeHammer.translatePrototype(hinputs, hamuts, prototype)
       hamuts.addFunctionExtern(prototypeH, exportSimplifiedId, exportName)
     })

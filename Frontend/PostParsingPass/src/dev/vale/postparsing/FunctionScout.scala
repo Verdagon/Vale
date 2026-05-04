@@ -31,10 +31,7 @@ case class ParentCitizen(
   interfaceGenericParams: Vector[GenericParameterS],
   interfaceRules: Vector[IRulexSR],
   interfaceRuneToExplicitType: Map[IRuneS, ITemplataType]
-) extends IFunctionParent {
-  // Per @SMLRZ, params from parent citizen must be marked inherited=true.
-  interfaceGenericParams.foreach(x => vassert(x.inherited))
-}
+) extends IFunctionParent
 
 case class ParentFunction(
   parentStackFrame: StackFrame
@@ -185,9 +182,9 @@ class FunctionScout(
           vassert(!runeToExplicitType.exists(_._1 == rune))
           vregionmut() // Put this back in with regions
           // runeToExplicitType += ((rune, RegionTemplataType()))
-          val implicitRegionGenericParam = // Per @SMLRZ, not inherited — this is the function's own region param
+          val implicitRegionGenericParam =
             GenericParameterS(
-              regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
+              regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, maybeRegionName)) => {
@@ -496,10 +493,9 @@ class FunctionScout(
 //                      None,
 //                      Vector(),
 //                      None),
-                    GenericParameterS( // Per @SMLRZ, not inherited — closure coord rune is the function's own
+                    GenericParameterS(
                       param.pattern.range,
                       coordRune,
-                      false,
                       CoordGenericParameterTypeS(None, true, false),
                       None))
                 })
@@ -511,52 +507,14 @@ class FunctionScout(
 
     val totalParamsS = maybeClosureParam.toVector ++ explicitParamsS ++ magicParams;
 
-    // Per @SMLRZ, lift is determined by the `self` keyword for struct methods; macros bypass this.
-    val lift =
-        attrsP.collect({ case LiftableAttributeP(_) => }).nonEmpty ||
-        (maybeParent match {
-          case FunctionNoParent() => true // Free functions are lifted by default
-          case ParentFunction(parentStackFrame) => {
-            // Closures are lifted by default
-            // DO NOT SUBMIT thats weird
-            true
-          }
-          case ParentCitizen(isInterface, parentEnv, _, _, _) => {
-            if (isInterface) {
-              // Interface methods are lifted by default
-              true
-            } else {
-              // It's liftable if there's a self parameter, see DO NOT SUBMIT get name of section ZXCVCXZ from docs
-              paramsP.flatMap(_.pattern).flatMap(_.destination).map(_.decl).exists({
-                case LocalNameDeclarationP(NameP(_, self)) if self == keywords.self => true
-                case _ => false
-              })
-//              val allMentionedGenericParams = getAllMentionedNamesAndRunes(paramsP)
-//              val (declaredRunesPresentInParams, declaredRunesMissingFromParams) =
-//                U.filterOut[IRuneS, CodeRuneS](
-//                  (extraGenericParamsFromParentS.map(_.rune.rune) ++
-//                        functionUserSpecifiedGenericParametersS.map(_.rune.rune)).toArray,
-//                    {
-//                      case c @ CodeRuneS(name) if allMentionedGenericParams.contains(name) => c
-//                    })
-//              if (declaredRunesMissingFromParams.nonEmpty) {
-//                // If there's any declared runes that are missing from the params list, then this can't be lifted.
-//                false
-//              } else {
-//                true
-//              }
-            }
-          }
-        })
-
     vregionmut() // Put back in regions
     val genericParametersS =
       (
-        (if (lift) extraGenericParamsFromParentS else Vector()) ++
+        extraGenericParamsFromParentS ++
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS)
           .filter({
-            case GenericParameterS(_, _, _, RegionGenericParameterTypeS(_), _) => false
+            case GenericParameterS(_, _, RegionGenericParameterTypeS(_), _) => false
             case _ => true
           })
 
@@ -637,7 +595,6 @@ class FunctionScout(
         totalParamsS,
         maybeRetCoordRune,
         rulesArray,
-        lift,
         maybeBody1)
     (functionS, variableUses)
   }

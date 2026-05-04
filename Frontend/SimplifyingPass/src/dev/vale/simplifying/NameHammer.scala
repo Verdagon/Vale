@@ -76,17 +76,21 @@ object NameHammer {
           simplifyName(localName))
   }
 
-  // Per @SMLRZ, only handles StructNameI (instantiated with type args). StructTemplateNameI (bare
-  // template) would crash. Function IDs must contain instantiated struct names so the downstream
-  // Rust path includes type args (e.g. Vec<i32>::capacity, not Vec::capacity).
+  // Under the UFCS-flat typing-pass model, citizen steps in initSteps are template-form
+  // (no per-step args), and all type args live on the leaf function step. The Rust-shape
+  // projection (RustShapeProjector) re-attaches args to the citizen step for Rust output.
   def simplifyName(name: INameI[cI]): SimpleIdStep = {
     name match {
-      case StructNameI(StructTemplateNameI(humanName), templateArgs) => {
+      case StructNameI(StructTemplateNameI(humanName), templateArgs) =>
         SimpleIdStep(humanName.str, templateArgs.map(simplifyTemplata))
-      }
-      case ExternFunctionNameI(humanName, templateArgs, parameters) => {
+      case StructTemplateNameI(humanName) =>
+        SimpleIdStep(humanName.str, Vector())
+      case InterfaceNameI(InterfaceTemplateNameI(humanName), templateArgs) =>
         SimpleIdStep(humanName.str, templateArgs.map(simplifyTemplata))
-      }
+      case InterfaceTemplateNameI(humanName) =>
+        SimpleIdStep(humanName.str, Vector())
+      case ExternFunctionNameI(humanName, templateArgs, parameters) =>
+        SimpleIdStep(humanName.str, templateArgs.map(simplifyTemplata))
       case other => vimpl(other)
     }
   }

@@ -219,7 +219,7 @@ class AnonymousInterfaceMacro(
 
     val structGenericParams =
       interfaceA.genericParameters ++
-        memberRunes.map(mr => GenericParameterS(mr.range, mr, false, CoordGenericParameterTypeS(vregionmut(None), true, false), None)) // Per @SMLRZ, not inherited — substruct's own member runes
+        memberRunes.map(mr => GenericParameterS(mr.range, mr, CoordGenericParameterTypeS(vregionmut(None), true, false), None))
 
     interfaceA.internalMethods.zip(memberRunes).zipWithIndex.foreach({ case ((internalMethod, memberRune), methodIndex) =>
       val methodRuneToType =
@@ -397,13 +397,13 @@ class AnonymousInterfaceMacro(
     methodIndex: Int):
   FunctionA = {
     val structType = struct.tyype
-    val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, lift, body) = method
+    val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, body) = method
 
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
-    val genericParams = // Per @SMLRZ, preserves inherited flag during rune remapping
+    val genericParams =
       struct.genericParameters
-          .map({ case GenericParameterS(range, RuneUsage(runeRange, rune), inherited, tyype, default) =>
-            GenericParameterS(range, RuneUsage(runeRange, inheritedMethodRune(interface, method, rune)), inherited, tyype, default)
+          .map({ case GenericParameterS(range, RuneUsage(runeRange, rune), tyype, default) =>
+            GenericParameterS(range, RuneUsage(runeRange, inheritedMethodRune(interface, method, rune)), tyype, default)
           })
 
     val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
@@ -542,7 +542,6 @@ class AnonymousInterfaceMacro(
       newParams,
       Some(inheritedReturnRune),
       rules.buildArray().toVector,
-      lift,
       CodeBodyS(
         BodySE(
           methodRange,

@@ -339,8 +339,8 @@ object PostParser {
 //        case _ => (None, None)
 //      }
 
-    val genericParamS = // Per @SMLRZ, user-declared generic params are not inherited
-      GenericParameterS(genericParamRangeS, runeS, false, genericParamTypeS, defaultS)
+    val genericParamS =
+      GenericParameterS(genericParamRangeS, runeS, genericParamTypeS, defaultS)
     genericParamS
   }
 }
@@ -425,7 +425,7 @@ class PostParser(
       vregionmut() // Put back in when we have regions
       // runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam = // Per @SMLRZ, not inherited
-        GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
+        GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
       (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
     }
 
@@ -520,7 +520,7 @@ class PostParser(
       val rune = DenizenDefaultRegionRuneS(exportName)
       runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam = // Per @SMLRZ, not inherited
-        GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
+        GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
       (regionRange, ContextRegionRune(rune), implicitRegionGenericParam)
     }
 
@@ -591,7 +591,7 @@ class PostParser(
           vregionmut() // Put back in when we have regions
           // headerRuneToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam = // Per @SMLRZ, not inherited
-            GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
+            GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRangeP, regionName)) => {
@@ -677,7 +677,7 @@ class PostParser(
           ParentCitizen(
             false,
             structEnv,
-            genericParametersS.map(_.copy(inherited = true)), // Per @SMLRZ, struct's params marked inherited for internal methods
+            genericParametersS,
             headerRulesS,
             headerRuneToExplicitType.toMap),
           method)
@@ -822,7 +822,7 @@ class PostParser(
           vregionmut() // Put this back in when we have regions
           // runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
-            GenericParameterS(regionRange, RuneUsage(regionRange, rune), false, RegionGenericParameterTypeS(ReadWriteRegionS), None)
+            GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, rune, Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRangeP, regionName)) => {
@@ -869,7 +869,7 @@ class PostParser(
           ParentCitizen(
             true,
             interfaceEnv,
-            genericParametersS.map(_.copy(inherited = true)), // Per @SMLRZ, interface's params marked inherited
+            genericParametersS,
             rulesS,
             runeToExplicitType.toMap),
           method)

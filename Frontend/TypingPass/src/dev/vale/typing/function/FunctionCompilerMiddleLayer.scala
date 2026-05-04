@@ -180,7 +180,7 @@ class FunctionCompilerMiddleLayer(
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
 
-    val functionId = assembleName(runedEnv, paramTypes2)
+    val functionId = assembleName(runedEnv.id, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionId)
     coutputs.lookupFunction(needleSignature) match {
       case Some(FunctionDefinitionT(header, _, _)) => {
@@ -446,43 +446,16 @@ class FunctionCompilerMiddleLayer(
 //    vimpl()
 //  }
 
-  // Per @SMLRZ, produces IDs with instantiated struct in initSteps for lifted struct methods,
-  // producing Rust-compatible paths like Vec<i32>::capacity.
+  // UFCS-flat: function id is templateName with the leaf swapped for the instantiated form.
+  // Type args all live on the leaf step. The Rust-shape projection (Vec<i32>::push form)
+  // happens later in the SimplifyingPass.
   def assembleName(
-      runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT,
+      templateName: IdT[IFunctionTemplateNameT],
+      templateArgs: Vector[ITemplataT[ITemplataType]],
       paramTypes: Vector[CoordT]):
   IdT[IFunctionNameT] = {
-    val parentId = runedEnv.parentEnv.id
-    val function = runedEnv.function
-
-    // Per @SMLRZ, for lifted struct methods with self, put the instantiated struct
-    // in initSteps and strip inherited template args from the function name.
-    val maybeSelfStructId =
-      if (!function.lift) {
-        None
-      } else {
-        function.params
-          .zip(paramTypes)
-          .collectFirst {
-            case (paramS, CoordT(_, _, StructTT(structId)))
-              if paramS.pattern.name.exists(c => c.name match {
-                case CodeVarNameS(name) if name == keywords.self => true
-                case _ => false
-              }) =>
-              structId
-          }
-      }
-
-    maybeSelfStructId match {
-      case Some(selfStructId) =>
-        val strippedTemplateArgs =
-          function.genericParameters.zip(runedEnv.templateArgs).filter(!_._1.inherited).map(_._2)
-        selfStructId.addStep(
-          runedEnv.id.localName.makeFunctionName(interner, keywords, strippedTemplateArgs, paramTypes))
-      case None =>
-        parentId.addStep(
-          runedEnv.id.localName.makeFunctionName(interner, keywords, runedEnv.templateArgs, paramTypes))
-    }
+    templateName.copy(
+      localName = templateName.localName.makeFunctionName(interner, keywords, templateArgs, paramTypes))
   }
 
   def makeNamedEnv(
@@ -500,7 +473,7 @@ class FunctionCompilerMiddleLayer(
       variables,
       isRootCompilingDenizen,
       defaultRegion) = runedEnv
-    val id = assembleName(runedEnv, paramTypes)
+    val id = assembleName(templateId, templateArgs, paramTypes)
     FunctionEnvironmentT(
       globalEnv,
       parentEnv,

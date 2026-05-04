@@ -994,7 +994,7 @@ class ExpressionCompiler(
 
           (expr2, returnsFromContainerExpr)
         }
-        case FunctionSE(functionS @ FunctionS(range, name, _, _, _, _, _, _, _, _, _)) => {
+        case FunctionSE(functionS @ FunctionS(range, name, _, _, _, _, _, _, _, _)) => {
           val callExpr2 = evaluateClosure(coutputs, nenv, range :: parentRanges, outerCallLocation, region, name, functionS)
           (callExpr2, Set())
         }
@@ -1990,7 +1990,7 @@ class ExpressionCompiler(
     parentRanges: List[RangeS],
     functionS: FunctionS):
   FunctionA = {
-    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, lift, bodyS) = functionS
+    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, bodyS) = functionS
 
 //    def lookupType(x: IImpreciseNameS) = {
 //      x match {
@@ -2051,7 +2051,6 @@ class ExpressionCompiler(
       paramsS,
       maybeRetCoordRune,
       ruleBuilder.toVector,
-      lift,
       bodyS)
   }
 

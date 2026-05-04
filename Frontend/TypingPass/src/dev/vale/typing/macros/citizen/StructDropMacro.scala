@@ -103,20 +103,12 @@ class StructDropMacro(
             false,
             AtomSP(
               range(-1340),
-              Some(CaptureS(interner.intern(CodeVarNameS(keywords.self)), false)),
+              Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)), false)),
               Some(use(-64002, selfCoordRune)), None))),
         Some(use(-64002, voidCoordRune)),
         rules.buildArray().toVector,
-        true,
         GeneratedBodyS(dropGeneratorId))
 
-    // Per @SMLRZ, the macro-generated drop uses `self` (not `thiss`) and `lift = true` so
-    // FunctionCompilerMiddleLayer.assembleName routes it through the same lifted path as
-    // user-written struct methods. That path takes the self param's StructTT.id (which is
-    // always in instantiation form — StructNameT(template, [placeholders]) for both generic
-    // and non-generic structs, with non-generic just having empty placeholders) and uses
-    // addStep on it. This produces the StructNameI prefix that NameHammer.simplifyName
-    // requires (per @SMLRZ line 87).
     val dropNameT = structName.addStep(nameTranslator.translateGenericFunctionName(dropFunctionA.name))
     Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
   }
@@ -157,7 +149,6 @@ class StructDropMacro(
         LookupSR(RangeS.internal(interner, -1672162), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropVK)), interner.intern(CodeNameS(keywords.void))),
         CoerceToCoordSR(RangeS.internal(interner, -1672162), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropVK))),
         CoerceToCoordSR(RangeS.internal(interner, -1672162), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1K)))),
-      true,
       GeneratedBodyS(dropGeneratorId))
   }
 

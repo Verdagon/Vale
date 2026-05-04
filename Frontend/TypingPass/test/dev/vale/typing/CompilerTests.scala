@@ -2073,8 +2073,10 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     val capacityFunc = coutputs.lookupFunction("capacity")
-    // Per @SMLRZ, inherited template args are stripped from the function name and
-    // the instantiated struct appears in initSteps: Vec<T>::capacity (not Vec::capacity<T>)
+    // Under the UFCS-flat typing-pass model: Vec<T> appears as the parent step (because
+    // the method compiles against structInnerEnv whose id is the instantiated form), and
+    // T appears on the function step too as an inherited rune. The Rust-shape projection
+    // step (RustShapeProjector) strips the inherited args at the SimplifyingPass boundary.
     capacityFunc.header.id match {
       case IdT(_,
       Vector(
@@ -2084,7 +2086,7 @@ class CompilerTests extends FunSuite with Matchers {
             CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))))),
       FunctionNameT(
         FunctionTemplateNameT(StrI("capacity"),_),
-        Vector(),
+        _,
         Vector(
           CoordT(ShareT,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))))))))) => {
         // Good

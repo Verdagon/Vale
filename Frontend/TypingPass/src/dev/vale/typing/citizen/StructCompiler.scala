@@ -127,12 +127,14 @@ class StructCompiler(
         TemplatasStore(structTemplateId, Map(), Map())
           .addEntries(
             interner,
-            structA.internalMethods // Per @SMLRZ, lifted methods go to outer env
-                .filter(_.lift)
-                .map(internalMethod => {
-                  val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
-                  (functionName -> FunctionEnvEntry(internalMethod))
-                }) ++
+            // Internal methods registered in the citizen's outer namespace so param-env
+            // UFCS lookup (e.g. `v.capacity()` where `v: Vec<i32>`) can find them. They
+            // compile against this outerEnv so their parent chain is the citizen template
+            // env (matching the master single-loop pattern).
+            structA.internalMethods.map(internalMethod => {
+              val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
+              (functionName -> FunctionEnvEntry(internalMethod))
+            }) ++
             // Merge in any things from the global environment that say they're part of this
             // structs's namespace (see IMRFDI and CODME).
             // StructFreeMacro will put a free function here.
