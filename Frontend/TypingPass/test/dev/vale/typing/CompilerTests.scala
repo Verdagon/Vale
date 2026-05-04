@@ -2073,22 +2073,28 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     val capacityFunc = coutputs.lookupFunction("capacity")
-    // Under the UFCS-flat typing-pass model: Vec<T> appears as the parent step (because
-    // the method compiles against structInnerEnv whose id is the instantiated form), and
-    // T appears on the function step too as an inherited rune. The Rust-shape projection
-    // step (RustShapeProjector) strips the inherited args at the SimplifyingPass boundary.
+    // Under the UFCS-flat typing-pass model post-@SMLRZ-rollback:
+    //   - initSteps carries the struct's *template* (StructTemplateNameT(Vec)), not the
+    //     instantiated form — type args don't sit on the parent step.
+    //   - The function's own templateArgs carry T (as a parent-inherited rune that the
+    //     callsite supplies via the explicit container-template-args channel; see
+    //     ICIPCRZ + @PNBDTZ).
+    //   - The placeholder for T is owned by the function (rooted at [Vec, capacity]),
+    //     not by the citizen — placeholders flatten under the function whose generic
+    //     params they instantiate.
+    //   - Param `self Vec<T>` resolves to a StructTT instantiation whose templateArgs
+    //     reference the same function-rooted placeholder.
+    // The Rust-shape projection (RustShapeProjector) re-attaches T to the Vec step at
+    // the SimplifyingPass→Backend boundary for output rendering.
     capacityFunc.header.id match {
       case IdT(_,
-      Vector(
-        StructNameT(
-          StructTemplateNameT(StrI("Vec")),
-          Vector(
-            CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))))),
+      Vector(StructTemplateNameT(StrI("Vec"))),
       FunctionNameT(
         FunctionTemplateNameT(StrI("capacity"),_),
-        _,
         Vector(
-          CoordT(ShareT,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec"))),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))))))))) => {
+          CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec")), FunctionTemplateNameT(StrI("capacity"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T"))))))))),
+        Vector(
+          CoordT(ShareT,RegionT(DefaultRegionT),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Vec")),Vector(CoordTemplataT(CoordT(OwnT,RegionT(DefaultRegionT),KindPlaceholderT(IdT(_,Vector(StructTemplateNameT(StrI("Vec")), FunctionTemplateNameT(StrI("capacity"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("T")))))))))))))))) => {
         // Good
       }
     }
