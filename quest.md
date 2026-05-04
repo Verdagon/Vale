@@ -188,6 +188,17 @@ cd Backend && bash test.sh --clang_path /usr/bin/clang 2>&1 | tee /tmp/suite.txt
 grep "Done!" /tmp/suite.txt
 ```
 
+## Phase 0 baseline (refactor regression bar)
+
+Two existing tests in `Frontend/IntegrationTests/test/dev/vale/IntegrationTestsA.scala` exercise the qualified-call-to-internal-method syntax (`Vec<int>.X(...)`) that the explicit-container-template-args refactor is fixing. **Both currently fail** on `refactor-rollback-smlrz` after the dual-home stopgap:
+
+- **`Extern rust Vec`** (line ~340) — `Vec<int>.new()` (qualified call to self-less internal method, T only in return). Fails at `Instantiator.translateCollapsedFunction:1780` with `vfail()` — `newHeader.toPrototype != desiredPrototypeC`. Same root cause as the dual-PrototypeT issue, surfaced one phase later.
+- **`Extern rust Vec capacity`** (line ~357) — `Vec<int>.with_capacity(42i64)` plus `Vec<int>.capacity(v)` (qualified call to self-having internal method). Fails earlier with the dual-PrototypeT assertion: the same logical method has two `PrototypeT` shapes (one with `StructTemplateNameT(Vec)` in initSteps, one with `StructNameT(Vec, [int])`) — the dual-home stopgap creates both and downstream code asserts they should be the same.
+
+These tests **are** the Phase 0 guard. The dual-home fix only rescues the smoke-test path (UFCS `v.capacity()`, no qualified self-having call) — it doesn't satisfy the stricter Vivem instantiation pipeline that integration tests run through. Phase 1+2 must make both tests green; that's the bar.
+
+Note: the original Phase 0 plan called for adding a new pure-Vale test in this shape. Investigation found that (a) any pure-Vale internal method whose T appears only in the return type fails at HigherTyping ("Couldn't solve some runes: T") because the rune-type-solver can't determine T's type without rules referencing it, and (b) the existing `extern struct Vec<T>` tests already cover the same typing-pass path. So the existing two tests stand as the Phase 0 baseline; no new test added.
+
 ## Arcana to write this session
 
 - Arcana documenting why the callsite explicit-template-args carrier is a `Map[IImpreciseNameS, Map[IRuneS, ITemplata]]` (template-id → rune → templata) rather than a flat `Vector[ITemplata]`. The reason: default arguments. With `Outer<Q, P = List<Q>>`, a callsite `Outer<i32>.Inner<bool>` provides Q but elides P. A flat vector can't represent the hole at P's position without sentinel/positional metadata; the Map represents it naturally as a missing inner-Map entry, and the default mechanism fills it. Same shape composes with future `Vec<i32>.foo` overload-set values and typed aliases (`alias Bytes: Something = Vec<u8>`).
