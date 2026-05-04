@@ -1,7 +1,7 @@
 package dev.vale.postparsing
 
 import dev.vale.postparsing.patterns.PatternScout
-import dev.vale.postparsing.rules.{ContextRegionRune, IContextRegion, IRulexSR, IntLiteralSL, IsoContextRegion, LiteralSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
+import dev.vale.postparsing.rules.{ContextRegionRune, IContextRegion, IRulexSR, IntLiteralSL, IsoContextRegion, LiteralSR, MaybeCoercingCallSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
 import dev.vale.parsing.ast._
 import dev.vale.parsing.{ast, _}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
@@ -266,7 +266,7 @@ class ExpressionScout(
               case (prevExpr, partSE) => {
                 val addCallRange = RangeS(prevExpr.range.end, partSE.range.begin)
                 val callableExpr =
-                  vale.postparsing.OutsideLoadSE(addCallRange, None, Vector(), interner.intern(CodeNameS(keywords.plus)), None, LoadAsBorrowP)
+                  vale.postparsing.OutsideLoadSE(addCallRange, Map(), Vector(), interner.intern(CodeNameS(keywords.plus)), Map(), LoadAsBorrowP)
                 FunctionCallSE(addCallRange, lidb.child().consume(), callableExpr, Vector(prevExpr, partSE))
               }
             })
@@ -297,7 +297,7 @@ class ExpressionScout(
           (stackFrame0, NormalResult(BreakSE(evalRange(range))), noVariableUses, noVariableUses)
         }
         case NotPE(range, innerPE) => {
-          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), None, Vector(), interner.intern(CodeNameS(keywords.not)), None, LoadAsBorrowP)
+          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), Map(), Vector(), interner.intern(CodeNameS(keywords.not)), Map(), LoadAsBorrowP)
 
           val (stackFrame1, innerSE, innerSelfUses, innerChildUses) =
             scoutExpressionAndCoerce(stackFrame0, lidb.child(), innerPE, UseP)
@@ -309,7 +309,7 @@ class ExpressionScout(
           (stackFrame1, result, innerSelfUses, innerChildUses)
         }
         case RangePE(range, beginPE, endPE) => {
-          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), None, Vector(), interner.intern(CodeNameS(keywords.range)), None, LoadAsBorrowP)
+          val callableSE = vale.postparsing.OutsideLoadSE(evalRange(range), Map(), Vector(), interner.intern(CodeNameS(keywords.range)), Map(), LoadAsBorrowP)
 
           val loadBeginAs =
             beginPE match {
@@ -403,10 +403,10 @@ class ExpressionScout(
           val callableSE =
             vale.postparsing.OutsideLoadSE(
               evalRange(range),
-              None,
+              Map(),
               Vector(),
               interner.intern(CodeNameS(namePE.str)),
-              None,
+              Map(),
               LoadAsBorrowP)
 
           val (stackFrame1, leftSE, leftSelfUses, leftChildUses) =
@@ -902,60 +902,71 @@ class ExpressionScout(
   OutsideLoadSE = {
     val OutsideLookupResult(rangeS, maybeContext, templateName, maybeTemplateArgs) = o
 
-    val maybeContainerTemplateRulesAndResultRune =
-      maybeContext match {
-        case None => None
-        case Some(contextPT) => {
-          val ruleBuilder = ArrayBuffer[IRulexSR]()
-          val resultRune =
-            templexScout.translateTemplex(
-              stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, contextPT)
-          Some((ruleBuilder.toVector, resultRune))
-  //        val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-  //        ruleBuilder += rules.MaybeCoercingLookupSR(rangeS, templateRuneS, templateNameS)
-  //        val maybeTemplateArgRunes =
-  //          maybeTemplateArgs.map(templateArgs => {
-  //            templateArgs.map(templateArgPT => {
-  //              templexScout.translateTemplex(
-  //                stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
-  //            })
-  //          })
-  //        ruleBuilder +=
-  //            rules.MaybeCoercingCallSR(
-  //              rangeS,
-  //              resultRuneS,
-  //              templateRuneS,
-  //              maybeTemplateArgRunes.toVector.flatten)
-
-        }
-      }
-
     val templateNameS = interner.intern(CodeNameS(templateName))
 
-//    val outerSteps =
-//      maybeContext match {
-//        case Some(context) => coerceOutsideLookupResultStep(stackFramePE, lidb, context)
-//        case None => Vector()
-//      }
-    val ruleBuilder = ArrayBuffer[IRulexSR]()
-
-    val maybeTemplateArgRunes =
-      maybeTemplateArgs.map(templateArgs => {
-        templateArgs.map(templateArgPT => {
+    // Container chain: for each container in the syntactic prefix, record its rules + result
+    // rune (so TypingPass can rune-type-solve and extract the structId) and its positional
+    // template args (so the solver gets InitialKnowns for the container's generic params).
+    // Today only single-container (`Vec<int>.foo`) is parseable; nested chains will walk
+    // recursively here.
+    val containerLookupsBuilder = mutable.LinkedHashMap[IImpreciseNameS, (Vector[IRulexSR], RuneUsage)]()
+    val explicitArgsByTemplateBuilder = mutable.LinkedHashMap[IImpreciseNameS, Vector[RuneUsage]]()
+    maybeContext match {
+      case None =>
+      case Some(contextPT) => {
+        val containerRulesBuilder = ArrayBuffer[IRulexSR]()
+        val containerResultRune =
           templexScout.translateTemplex(
-            stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
-        })
-      })
+            stackFramePE.parentEnv, lidb.child(), containerRulesBuilder, stackFramePE.contextRegion, contextPT)
+        // Today the only context shape is `CallPT(NameOrRunePT(name), args)` (built at
+        // ExpressionScout.scala:448), so we recover the container's name from there. When nested
+        // chains are added this becomes a recursive walk producing multiple entries.
+        contextPT match {
+          case CallPT(_, NameOrRunePT(NameP(_, containerHumanName)), _) => {
+            val containerName = interner.intern(CodeNameS(containerHumanName))
+            val containerRules = containerRulesBuilder.toVector
+            containerLookupsBuilder(containerName) = (containerRules, containerResultRune)
+            // The arg-runes were generated by translateTemplex's recursive walk into the
+            // CallPT's args; they're referenced by the MaybeCoercingCallSR rule that ties
+            // together the container template + args + result rune. Extract them by finding
+            // that rule. Same physical runes the container's resolution uses internally —
+            // ensures consistent rune identity across the rules and explicitArgsByTemplate.
+            val containerArgRunes =
+              containerRules.collectFirst {
+                case MaybeCoercingCallSR(_, resultRune, _, argRunes) if resultRune.rune == containerResultRune.rune => argRunes
+              }.getOrElse(Vector())
+            if (containerArgRunes.nonEmpty) {
+              explicitArgsByTemplateBuilder(containerName) = containerArgRunes
+            }
+          }
+          case _ => vimpl()
+        }
+      }
+    }
 
+    // Function-level explicit template args (e.g., the `<i32>` in `f<i32>()` or
+    // `Vec<int>.foo<i32>()`). Their rules go in the function-level `rules` field.
+    val funcRulesBuilder = ArrayBuffer[IRulexSR]()
+    maybeTemplateArgs match {
+      case None =>
+      case Some(templateArgs) => {
+        val funcArgRunes =
+          templateArgs.map(templateArgPT => {
+            templexScout.translateTemplex(
+              stackFramePE.parentEnv, lidb.child(), funcRulesBuilder, stackFramePE.contextRegion, templateArgPT)
+          })
+        if (funcArgRunes.nonEmpty) {
+          explicitArgsByTemplateBuilder(templateNameS) = funcArgRunes
+        }
+      }
+    }
 
-//    val stepsS =
-//      coerceOutsideLookupResultStep(stackFramePE, lidb, o)
     vale.postparsing.OutsideLoadSE(
         rangeS,
-        maybeContainerTemplateRulesAndResultRune,
-        ruleBuilder.toVector,
+        containerLookupsBuilder.toMap,
+        funcRulesBuilder.toVector,
         templateNameS,
-        maybeTemplateArgRunes,
+        explicitArgsByTemplateBuilder.toMap,
         loadAsP)
   }
 

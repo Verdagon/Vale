@@ -484,7 +484,7 @@ class ExpressionCompiler(
           vassert(nenv.functionEnvironment.id.localName.parameters(index) == paramCoord)
           (ArgLookupTE(index, paramCoord), Set())
         }
-        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, maybeContainerTemplateRulesAndArgRunes, funcRules, funcName, funcMaybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
+        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, containerLookups, funcRules, funcName, explicitArgsByTemplate, callableTargetOwnership), argsExprs1) => {
           //          vassert(callableTargetOwnership == PointConstraintP(Some(ReadonlyP)))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(
@@ -493,8 +493,12 @@ class ExpressionCompiler(
               nenv.defaultRegion,
               argsExprs1)
 
+          // Today only single-container chains are parseable, so containerLookups has at
+          // most one entry. Phase 2 will iterate over all entries to support nested chains.
+          val maybeContainer = containerLookups.headOption
+
           val funcGroup =
-            maybeContainerTemplateRulesAndArgRunes match {
+            maybeContainer match {
               case None => {
                 newGlobalFunctionGroupExpression(
                   nenv.snapshot,
@@ -502,7 +506,7 @@ class ExpressionCompiler(
                   nenv.defaultRegion,
                   funcName)
               }
-              case Some((firstRulesWithImplicitlyCoercingLookupsS, containerResultRune)) => {
+              case Some((_, (firstRulesWithImplicitlyCoercingLookupsS, containerResultRune))) => {
 
                 // DO NOT SUBMIT dedup from patterncompiler
 
@@ -640,26 +644,7 @@ class ExpressionCompiler(
               region,
               funcGroup,
               funcRules.toVector,
-              funcMaybeTemplateArgs.toVector.flatMap(_.map(_.rune)),
-              argsExprs2)
-          (callExpr2, returnsFromArgs)
-        }
-        case FunctionCallSE(range, callLocation, OutsideLoadSE(_, maybeContainerTemplateRulesAndResultRune, rules, name, maybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
-//          val OutsideLoadStepS(name, rules, templateArgTemplexesS) = vassertOne(lookupSteps)
-//          vassert(callableTargetOwnership == PointConstraintP(None))
-          val (argsExprs2, returnsFromArgs) =
-            evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life + 0, parentRanges, callLocation, region, argsExprs1)
-          val callExpr2 =
-            callCompiler.evaluatePrefixCall(
-              coutputs,
-              nenv,
-              life + 1,
-              range :: parentRanges,
-              callLocation,
-              region,
-              newGlobalFunctionGroupExpression(nenv.snapshot, RegionT(DefaultRegionT), name),
-              rules.toVector,
-              maybeTemplateArgs.toVector.flatMap(_.map(_.rune)),
+              explicitArgsByTemplate.getOrElse(funcName, Vector()).map(_.rune),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
@@ -757,7 +742,7 @@ class ExpressionCompiler(
             }
           (lookupExpr1, Set())
         }
-        case OutsideLoadSE(range, maybeContainerTemplateRulesAndResultRune, rules, name, maybeTemplateArgs, targetOwnership) => {
+        case OutsideLoadSE(range, _, _, name, _, targetOwnership) => {
 //          val OutsideLoadStepS(name, rules, None) = vassertOne(lookupSteps)
           // Note, we don't get here if we're about to call something with this, that's handled
           // by a different case.

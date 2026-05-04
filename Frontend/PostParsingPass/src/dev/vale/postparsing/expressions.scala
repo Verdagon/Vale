@@ -281,12 +281,34 @@ case class LocalLoadSE(range: RangeS, name: IVarNameS, targetOwnership: LoadAsP)
 
 // Loads a non-local. In well formed code, this will be a function, but the user also likely
 // tried to access a variable they forgot to declare.
+//
+// `name` is the function being called.
+//
+// `containerLookups` carries, for each container template in the syntactic prefix, the rules
+// describing that container's templex and the rune that resolves to its kind. For
+// `Vec<int>.foo()`, it's `Map(Vec -> (Vec-resolution-rules, vec_result_rune))`. TypingPass uses
+// these to run the rune-type-solver and extract each container's structId. For nested chains
+// (`Outer<i32>.Inner<bool>.spork()`), each container has its own entry. For free function calls
+// with no container, the map is empty.
+//
+// `explicitArgsByTemplate` maps each template in the syntactic chain (function and/or any
+// container) to the positional template args the user supplied. For `Vec<int>.with_capacity()`,
+// it's `Map(Vec -> [int_rune])` (no entry for `with_capacity`, since the user wrote no `<...>`).
+// For `Vec<int>.foo<bool>()`, it's `Map(Vec -> [int_rune], foo -> [bool_rune])`. Templates
+// without explicit args are absent. TypingPass resolves the imprecise names to template ids and
+// zips each Vector positionally with that template's genericParameters to form InitialKnowns
+// for the solver. Defaults are filled in by missing inner-Map entries (per the planned refactor;
+// see quest.md "Arcana to write this session").
+//
+// `rules` carries function-level arg rules (the rules constructed by templexScout for the
+// runes referenced in `explicitArgsByTemplate(name)`). Container-level rules live in
+// `containerLookups` so the per-container rune-type-solve can use only its own rules.
 case class OutsideLoadSE(
   range: RangeS,
-  maybeContainerTemplateRulesAndResultRune: Option[(Vector[IRulexSR], RuneUsage)],
+  containerLookups: Map[IImpreciseNameS, (Vector[IRulexSR], RuneUsage)],
   rules: Vector[IRulexSR],
   name: IImpreciseNameS,
-  maybeTemplateArgs: Option[Vector[RuneUsage]],
+  explicitArgsByTemplate: Map[IImpreciseNameS, Vector[RuneUsage]],
   targetOwnership: LoadAsP
 ) extends IExpressionSE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
