@@ -297,8 +297,8 @@ case class LocalLoadSE(range: RangeS, name: IVarNameS, targetOwnership: LoadAsP)
 // For `Vec<int>.foo<bool>()`, it's `Map(Vec -> [int_rune], foo -> [bool_rune])`. Templates
 // without explicit args are absent. TypingPass resolves the imprecise names to template ids and
 // zips each Vector positionally with that template's genericParameters to form InitialKnowns
-// for the solver. Defaults are filled in by missing inner-Map entries (per the planned refactor;
-// see quest.md "Arcana to write this session").
+// for the solver. Defaults are filled in by missing inner-Map entries. See @ETAKBTZ for why
+// this carrier is map-shaped (keyed by template) rather than a flat Vector.
 //
 // `rules` carries function-level arg rules (the rules constructed by templexScout for the
 // runes referenced in `explicitArgsByTemplate(name)`). Container-level rules live in

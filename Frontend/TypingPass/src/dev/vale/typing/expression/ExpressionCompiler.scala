@@ -579,8 +579,12 @@ class ExpressionCompiler(
                 // callsite arg-runes (from explicitArgsByTemplate) and look up each callsite
                 // rune's resolved templata in templatasByRune.
                 //
-                // This is the explicit-callsite-template-args route (Phase 2). It replaces
-                // the previously-used `outerEnv.id.initId` walk-up in assembleKnownTemplatas.
+                // This is the typing-pass half of the @ETAKBTZ carrier: convert the
+                // postparser's positional Map[IImpreciseNameS, Vector[RuneUsage]] into
+                // rune-keyed InitialKnowns using the resolved struct's placeholder structure.
+                // Replaces the previously-used `outerEnv.id.initId` walk-up in
+                // assembleKnownTemplatas. See @ICIPCRZ for the identifiability predicate
+                // this satisfies at runtime.
                 val structDef = coutputs.lookupStruct(structId)
                 val containerName = containerLookups.head._1
                 val callsiteArgRunes = explicitArgsByTemplate.getOrElse(containerName, Vector())

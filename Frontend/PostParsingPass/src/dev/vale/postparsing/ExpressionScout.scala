@@ -908,7 +908,8 @@ class ExpressionScout(
     // rune (so TypingPass can rune-type-solve and extract the structId) and its positional
     // template args (so the solver gets InitialKnowns for the container's generic params).
     // Today only single-container (`Vec<int>.foo`) is parseable; nested chains will walk
-    // recursively here.
+    // recursively here. The map shape (keyed by template, not flat Vector) is the postparser
+    // half of the @ETAKBTZ carrier — see expressions.scala's OutsideLoadSE doc comment.
     val containerLookupsBuilder = mutable.LinkedHashMap[IImpreciseNameS, (Vector[IRulexSR], RuneUsage)]()
     val explicitArgsByTemplateBuilder = mutable.LinkedHashMap[IImpreciseNameS, Vector[RuneUsage]]()
     maybeContext match {

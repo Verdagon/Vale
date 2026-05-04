@@ -268,6 +268,7 @@ class FunctionCompilerSolvingLayer(
     // previously seeded T from ancestral citizen steps is gone; T binding for non-self
     // internal methods (`Vec<int>.with_capacity(...)` etc.) now flows in via the explicit
     // `extraInitialKnowns` channel that the callsite populates from the container chain.
+    // See @ETAKBTZ for the carrier shape.
     function.genericParameters.zip(explicitTemplateArgs).map({
       case (genericParam, explicitArg) => {
         InitialKnown(genericParam.rune, explicitArg)
@@ -342,7 +343,9 @@ class FunctionCompilerSolvingLayer(
     args: Vector[Option[CoordT]],
     // Extra InitialKnowns supplied by the callsite — typically from container template args
     // in syntax like `Vec<int>.with_capacity(...)`. These bind parent-citizen runes that
-    // can't be derived from the function's own arguments. See OutsideLoadSE / Phase 2.
+    // can't be derived from the function's own arguments. Populated at the call site by
+    // ExpressionCompiler from `OutsideLoadSE.explicitArgsByTemplate`; see @ETAKBTZ for the
+    // carrier shape and @ICIPCRZ for the identifiability predicate this satisfies.
     extraInitialKnowns: Vector[InitialKnown] = Vector.empty):
   (IResolveFunctionResult) = {
     val function = outerEnv.function
