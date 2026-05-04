@@ -211,7 +211,7 @@ The two consumers, two views arrangement works for the immediate refactor. But t
 
 ## Arcana to write this session
 
-- Arcana documenting why the callsite explicit-template-args carrier is a `Map[IImpreciseNameS, Map[IRuneS, ITemplata]]` (template-id → rune → templata) rather than a flat `Vector[ITemplata]`. The reason: default arguments. With `Outer<Q, P = List<Q>>`, a callsite `Outer<i32>.Inner<bool>` provides Q but elides P. A flat vector can't represent the hole at P's position without sentinel/positional metadata; the Map represents it naturally as a missing inner-Map entry, and the default mechanism fills it. Same shape composes with future `Vec<i32>.foo` overload-set values and typed aliases (`alias Bytes: Something = Vec<u8>`).
+- ~~Arcana documenting the explicit-template-args carrier shape~~ — landed as `Frontend/docs/arcana/ExplicitTemplateArgsKeyedByTemplate-ETAKBTZ.md` (@ETAKBTZ).
 
 ## Investigation docs
 
