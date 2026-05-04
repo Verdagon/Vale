@@ -290,7 +290,7 @@ class Hammer(interner: Interner, keywords: Keywords) {
     })
 
     functionExterns.foreach({ case FunctionExternI(prototype) =>
-      val projectedId = RustShapeProjector.projectFunctionId(prototype.id)
+      val projectedId = RustShapeProjector.projectFunctionId(hinputs, prototype.id)
       val exportName = mangleFunc(projectedId)
       val exportSimplifiedId = NameHammer.simplifyId(projectedId)
       val prototypeH = typeHammer.translatePrototype(hinputs, hamuts, prototype)

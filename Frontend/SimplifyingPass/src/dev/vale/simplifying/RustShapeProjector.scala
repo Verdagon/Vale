@@ -4,41 +4,90 @@ import dev.vale.instantiating.ast._
 
 // Projects a UFCS-flat function id into Rust's "args-on-the-type" shape.
 //
-// The typing pass produces ids where the citizen step in initSteps is the instantiated
-// form (StructNameI(template, [args])) — its templateArgs come from the struct's
-// instantiation context. The function's leaf step also carries those parent args,
-// since FunctionScout prepends extraGenericParamsFromParentS to the function's own
-// genericParameters.
+// The post-rollback typing pass produces ids where:
+//   - Each citizen step in initSteps is in *template* form (no per-step args), e.g.
+//     `StructTemplateNameI(Vec)`.
+//   - The function's leaf step carries the full chain of template args concatenated,
+//     in order: parent-citizen-1 args, ..., parent-citizen-n args, function's own args.
+//     This is because FunctionScout prepends `extraGenericParamsFromParentS` to each
+//     function's `genericParameters`, and the callsite's explicit-container-template-args
+//     channel feeds them positionally.
 //
-// For Rust output, we want each generic arg to appear at exactly one structural
-// level. The convention is: citizen-introduced args live on the citizen step; the
-// function's own args live on the leaf. So we strip the leading "parent-inherited"
-// args from the leaf — the count is the sum of templateArgs across all citizen
-// steps in initSteps.
+// For Rust output, we want each generic arg to appear at exactly one structural level:
+// each citizen template's args should ride on its own step (e.g. `Vec<i32>`, not
+// `Vec::with_capacity::<i32>`). So we walk initSteps left-to-right, look up each citizen
+// template's arity, peel that many args off the front of the leaf's templateArgs, and
+// rewrite the citizen step from `StructTemplateNameI(template)` to
+// `StructNameI(template, [peeled args])`. Whatever remains on the leaf is the function's
+// own template args.
 //
-//   In:  rust.vec.Vec<i32>::with_capacity<i32>(i64) → SimpleId after this drops
-//        the leaf's i32 → renders as Vec<i32>::with_capacity(i64).
+//   In:  [StructTemplateNameI(Vec), ExternFunctionNameI(with_capacity, [i32], [i64])]
+//        → After projection:
+//        [StructNameI(Vec, [i32]), ExternFunctionNameI(with_capacity, [], [i64])]
+//        Renders as `Vec<i32>::with_capacity(i64)` for Rust output.
 //
-//   Free function (no citizen step in initSteps) → no drop, renders unchanged.
+//   In:  [ExternFunctionNameI(free_fn, [i32], [])]  (no parent citizen step)
+//        → No change. Renders as `free_fn<i32>()`.
 object RustShapeProjector {
-  def projectFunctionId(id: IdI[cI, IFunctionNameI[cI]]): IdI[cI, IFunctionNameI[cI]] = {
+  def projectFunctionId(hinputs: HinputsI, id: IdI[cI, IFunctionNameI[cI]]): IdI[cI, IFunctionNameI[cI]] = {
     val IdI(packageCoord, initSteps, leaf) = id
-    val parentArgCount =
-      initSteps.collect({ case c: ICitizenNameI[cI] => c.templateArgs.size }).sum
-    if (parentArgCount == 0) {
-      id
-    } else {
-      val newLeaf = stripLeafTemplateArgs(leaf, parentArgCount)
-      IdI(packageCoord, initSteps, newLeaf)
+
+    // Build a lookup from citizen template id → arity. Every instantiation in hinputs
+    // contributes the same arity for its template (one entry per template wins).
+    val templateArity: Map[ICitizenTemplateNameI[cI], Int] =
+      (hinputs.structs.map(s => {
+        val name = s.instantiatedCitizen.id.localName
+        (name.template: ICitizenTemplateNameI[cI]) -> name.templateArgs.size
+      }) ++ hinputs.interfaces.map(i => {
+        val name = i.instantiatedCitizen.id.localName
+        (name.template: ICitizenTemplateNameI[cI]) -> name.templateArgs.size
+      })).toMap
+
+    val leafTemplateArgs = templateArgsOf(leaf)
+
+    // Walk initSteps; for each bare-template citizen step, peel that many args off
+    // the front of the remaining leaf args and rebuild the step in instantiated form.
+    var remaining = leafTemplateArgs
+    val newInitSteps = initSteps.map(step => projectStep(step, templateArity, remaining) match {
+      case (newStep, leftover) =>
+        remaining = leftover
+        newStep
+    })
+
+    val newLeaf = setTemplateArgs(leaf, remaining)
+    IdI(packageCoord, newInitSteps, newLeaf)
+  }
+
+  private def projectStep(
+    step: INameI[cI],
+    templateArity: Map[ICitizenTemplateNameI[cI], Int],
+    remainingLeafArgs: Vector[ITemplataI[cI]]
+  ): (INameI[cI], Vector[ITemplataI[cI]]) = {
+    step match {
+      case t: IStructTemplateNameI[cI] =>
+        val arity = templateArity.getOrElse(t, 0)
+        val (consumed, leftover) = remainingLeafArgs.splitAt(arity)
+        (StructNameI(t, consumed), leftover)
+      case t: IInterfaceTemplateNameI[cI] =>
+        val arity = templateArity.getOrElse(t, 0)
+        val (consumed, leftover) = remainingLeafArgs.splitAt(arity)
+        (InterfaceNameI(t, consumed), leftover)
+      case other => (other, remainingLeafArgs)
     }
   }
 
-  private def stripLeafTemplateArgs(leaf: IFunctionNameI[cI], n: Int): IFunctionNameI[cI] = {
+  private def templateArgsOf(leaf: IFunctionNameI[cI]): Vector[ITemplataI[cI]] = {
     leaf match {
-      case FunctionNameIX(template, templateArgs, parameters) =>
-        FunctionNameIX(template, templateArgs.drop(n), parameters)
-      case ExternFunctionNameI(humanName, templateArgs, parameters) =>
-        ExternFunctionNameI(humanName, templateArgs.drop(n), parameters)
+      case FunctionNameIX(_, templateArgs, _) => templateArgs
+      case ExternFunctionNameI(_, templateArgs, _) => templateArgs
+      case _ => Vector.empty
+    }
+  }
+
+  private def setTemplateArgs(leaf: IFunctionNameI[cI], templateArgs: Vector[ITemplataI[cI]]): IFunctionNameI[cI] = {
+    leaf match {
+      case FunctionNameIX(template, _, parameters) => FunctionNameIX(template, templateArgs, parameters)
+      case ExternFunctionNameI(humanName, _, parameters) => ExternFunctionNameI(humanName, templateArgs, parameters)
       case other => other
     }
   }
