@@ -565,33 +565,10 @@ class ExpressionCompiler(
                   }
 
 
-                //              val blark =
-                //                nenv.lookupNearestWithImpreciseName(firstName, Set(TemplataLookupContext)) match {
-                //                  case None => vimpl() // DO NOT SUBMIT
-                //                  case Some(sdt @ StructDefinitionTemplataT(_, _)) => sdt
-                //                  case Some(other) => vimpl()
-                //                }
-                //              val splork =
-                //                structCompiler.resolveStruct(
-                //                  coutputs,
-                //                  nenv.snapshot,
-                //                  range :: parentRanges,
-                //                  callLocation,
-                //                  blark,
-                //                  firstMaybeTemplateArgs.toVector.flatten.map(x => {
-                //                    nenv.snapshot.lookupNearestWithImpreciseName(interner.intern(RuneNameS(x.rune)), Set(TemplataLookupContext)) match {
-                //                      case Some(y) => y // DO NOT SUBMIT
-                //                      case _ => vimpl() // DO NOT SUBMIT
-                //                    }
-                //                  })) match {
-                //                  case ResolveSuccess(struct) => struct
-                //                  case _ => vimpl() // DO NOT SUBMIT
-                //                }
-                //
                 val structId =
                   vassertSome(templatasByRune.get(containerResultRune.rune)) match {
                     case KindTemplataT(StructTT(id)) => id
-                    case _ => vfail() // DO NOT SUBMIT
+                    case _ => vfail()
                   }
 
                 // The container's positional template args (e.g. `<int>` in `Vec<int>.foo()`)

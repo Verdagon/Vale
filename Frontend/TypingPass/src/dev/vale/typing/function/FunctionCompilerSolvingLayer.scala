@@ -362,15 +362,6 @@ class FunctionCompilerSolvingLayer(
     val invocationRange = callRange
     val initialKnowns =
       assembleKnownTemplatas(function, explicitTemplateArgs) ++ extraInitialKnowns
-    if (function.name.toString.contains("with_capacity")) {
-      System.err.println("WC_DEBUG outerEnv.id=" + outerEnv.id)
-      System.err.println("WC_DEBUG callingEnv.id=" + callingEnv.id)
-      System.err.println("WC_DEBUG explicitTemplateArgs=" + explicitTemplateArgs)
-      System.err.println("WC_DEBUG initialKnowns=" + initialKnowns)
-      System.err.println("WC_DEBUG initialSends=" + initialSends)
-      System.err.println("WC_DEBUG genericParameters=" + function.genericParameters.map(_.rune.rune))
-      System.err.println("WC_DEBUG rules=" + rules)
-    }
     val includeReachableBoundsForRunes =
       function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)
 
