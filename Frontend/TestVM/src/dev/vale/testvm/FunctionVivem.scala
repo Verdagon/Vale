@@ -101,9 +101,14 @@ object FunctionVivem {
       case """__vbi_modI64""" => VivemExterns.modI64(_, ref, _)
       case """TruncateI64ToI32""" => VivemExterns.truncateI64ToI32(_, ref, _)
       case """VecOuterNew""" => VivemExterns.newVec(_, ref, _)
-      case """Vec<i32>.new""" => VivemExterns.newVec(_, ref, _)
-      case """Vec<i32>.with_capacity""" => VivemExterns.newVecWithCapacity(_, ref, _)
-      case """Vec<i32>.capacity""" => VivemExterns.vecCapacity(_, ref, _)
+      // Internal extern methods. Under the post-@SMLRZ rollback the function's typed id
+      // has the struct's *template* in initSteps (StructTemplateNameT) — Rust-shape rendering
+      // (Vec<i32>::new) only happens at the SimplifyingPass→Backend boundary via
+      // RustShapeProjector. Vivem sees the typed id directly, so the stub keys are
+      // template-form ("Vec.new" rather than "Vec<i32>.new").
+      case """Vec.new""" => VivemExterns.newVec(_, ref, _)
+      case """Vec.with_capacity""" => VivemExterns.newVecWithCapacity(_, ref, _)
+      case """Vec.capacity""" => VivemExterns.vecCapacity(_, ref, _)
       case _ => vimpl(ref.id.fullyQualifiedName)
     }
   }

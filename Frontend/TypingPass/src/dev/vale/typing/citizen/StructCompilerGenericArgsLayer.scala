@@ -104,13 +104,13 @@ class StructCompilerGenericArgsLayer(
       val structOuterEnv = coutputs.getOuterEnvForType(callRange, structTemplateId)
 
       // structResolvedEnv is the per-instantiation env keyed by structId (e.g. Vec<int>).
-      // Internal methods registered here let `Vec<int>.with_capacity(...)` syntax find the
-      // FunctionTemplata locally in this instantiated env. The FunctionTemplata's outerEnv
-      // is then this structResolvedEnv (whose id contains StructNameT(Vec, [int])), so
-      // assembleKnownTemplatas's walk-up finds the StructNameT step and seeds T = int as an
-      // InitialKnown for the solver. Without this, `Vec<int>.X(...)` calls on internal
-      // methods that don't have a self param can't bind the inherited type args (matches
-      // baseline's @SMLRZ behavior, which used the lift flag to put non-self methods here).
+      // It carries the resolved inferences (T = int) keyed by RuneNameT so that lookups
+      // routed through this env see those bindings. Internal methods are NOT registered
+      // here anymore — they live solely in structOuterEnv (registered by StructCompiler).
+      // Lookups like `Vec<int>.with_capacity(...)` walk up from structResolvedEnv to
+      // structOuterEnv and find the function there. T binding for non-self internal
+      // methods now flows through the explicit-callsite-template-args channel (see
+      // ExpressionCompiler / Phase 2), not through the previous dual-home arrangement.
       val structResolvedEnv =
         CitizenEnvironmentT(
           structOuterEnv.globalEnv,
@@ -120,10 +120,6 @@ class StructCompilerGenericArgsLayer(
           TemplatasStore(structId, Map(), Map())
               .addEntries(
                 interner,
-                structA.internalMethods.map(internalMethod => {
-                  val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
-                  (functionName -> FunctionEnvEntry(internalMethod))
-                }) ++
                 inferences.toVector
                     .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
       coutputs.addTypeResolvedEnv(structId, structResolvedEnv)
