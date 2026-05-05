@@ -1,10 +1,33 @@
+use crate::utils::range::{RangeS, CodeLocationS};
+use crate::interner::Interner;
+use crate::postparsing::*;
+use crate::postparsing::names::*;
+use crate::postparsing::rules::rules::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::templata::templata::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::citizens::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::compiler_error_reporter::*;
+use crate::typing::compiler_outputs::*;
+use crate::typing::infer::compiler_solver::*;
+use crate::typing::infer_compiler::*;
+use crate::typing::overload_resolver::*;
+use crate::typing::compilation::TypingPassOptions;
+use crate::solver::solver::*;
+use crate::higher_typing::ast::*;
+use crate::higher_typing::ast::FunctionA;
+use crate::typing::citizen::struct_compiler::*;
+use crate::utils::code_hierarchy::FileCoordinate;
+
 /*
 package dev.vale.typing
 
 import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverErrorHumanizer}
+import dev.vale.solver.{FailedSolve, RuleError, SolveIncomplete, SolverErrorHumanizer}
 import dev.vale.typing.types._
 import dev.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining, linesBetween}
 import dev.vale.highertyping.FunctionA
@@ -24,6 +47,11 @@ import dev.vale.typing.types.CoordT
 import dev.vale.typing.citizen.ResolveFailure
 
 object CompilerErrorHumanizer {
+*/
+pub fn humanize<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, err: ICompileErrorT<'s, 't>) -> String {
+  panic!("Unimplemented: humanize");
+}
+/*
   def humanize(
       verbose: Boolean,
     codeMap: CodeLocationS => String,
@@ -102,16 +130,7 @@ object CompilerErrorHumanizer {
         }
         case CouldntEvaluatImpl(range, eff) => {
           "Couldn't evaluate impl statement:\n" +
-            humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, eff match {
-              case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
-                IncompleteSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-                  steps, unsolvedRules, unknownRunes, incompleteConclusions)
-              }
-              case FailedCompilerSolve(steps, unsolvedRules, error) => {
-                FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-                  steps, unsolvedRules, error)
-              }
-            })
+            humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, eff)
       }
         case BodyResultDoesntMatch(range, functionName, expectedReturnType, resultType) => {
           "Function " + printableName(codeMap, functionName) + " return type " + humanizeTemplata(codeMap, CoordTemplataT(expectedReturnType)) + " doesn't match body's result: " + humanizeTemplata(codeMap, CoordTemplataT(resultType))
@@ -204,16 +223,7 @@ object CompilerErrorHumanizer {
               (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
               (rule: IRulexSR) => rule.runeUsages.map(_.rune),
               PostParserErrorHumanizer.humanizeRule,
-              failedSolve match {
-                case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
-                  IncompleteSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-                    steps, unsolvedRules, unknownRunes, incompleteConclusions)
-                }
-                case FailedCompilerSolve(steps, unsolvedRules, error) => {
-                  FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-                    steps, unsolvedRules, error)
-                }
-              })
+              failedSolve)
           text
         }
         case HigherTypingInferError(range, err) => {
@@ -230,7 +240,11 @@ object CompilerErrorHumanizer {
     }).mkString("") +
     errorStrBody + "\n"
   }
-
+*/
+pub fn humanize_defining_error<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, err: IDefiningError<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_defining_error");
+}
+/*
   def humanizeDefiningError(
       verbose: Boolean,
       codeMap: CodeLocationS => String,
@@ -244,11 +258,15 @@ object CompilerErrorHumanizer {
         humanizeConclusionResolveError(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
       }
       case DefiningSolveFailedOrIncomplete(inner) => {
-        humanizeIncompleteOrFailedCompilerSolve(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
+        humanizeFailedSolve(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
       }
     }
   }
-
+*/
+pub fn humanize_resolve_failure<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, fff: ResolveFailure<'s, 't, KindT<'s, 't>>) -> String {
+  panic!("Unimplemented: humanize_resolve_failure");
+}
+/*
   def humanizeResolveFailure(
     verbose: Boolean,
     codeMap: CodeLocationS => String,
@@ -259,19 +277,12 @@ object CompilerErrorHumanizer {
   String = {
     val ResolveFailure(range, reason) = fff
     humanizeResolvingError(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, reason)
-
-    // humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, reason match {
-    //   case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
-    //     IncompleteSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-    //       steps, unsolvedRules, unknownRunes, incompleteConclusions)
-    //   }
-    //   case FailedCompilerSolve(steps, unsolvedRules, error) => {
-    //     FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-    //       steps, unsolvedRules, error)
-    //   }
-    // })
   }
-
+*/
+pub fn humanize_resolving_error<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, error: IResolvingError<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_resolving_error");
+}
+/*
   def humanizeResolvingError(
       verbose: Boolean,
       codeMap: CodeLocationS => String,
@@ -285,32 +296,31 @@ object CompilerErrorHumanizer {
         humanizeConclusionResolveError(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
       }
       case ResolvingSolveFailedOrIncomplete(inner) => {
-        humanizeIncompleteOrFailedCompilerSolve(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
+        humanizeFailedSolve(verbose, codeMap, linesBetween, lineRangeContaining, lineContaining, inner)
       }
       case other => vimpl(other)
     }
   }
-
-  def humanizeIncompleteOrFailedCompilerSolve(
+*/
+pub fn humanize_failed_solve<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, error: FailedSolve<IRulexSR<'s>, IRuneS<'s>, ITemplataT<'s, 't>, ITypingPassSolverError<'s, 't>>) -> String {
+  panic!("Unimplemented: humanize_failed_solve");
+}
+/*
+  def humanizeFailedSolve(
       verbose: Boolean,
       codeMap: CodeLocationS => String,
       linesBetween: (CodeLocationS, CodeLocationS) => Vector[RangeS],
       lineRangeContaining: (CodeLocationS) => RangeS,
       lineContaining: (CodeLocationS) => String,
-      error: IIncompleteOrFailedCompilerSolve):
+      error: FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]):
   String = {
-    humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, error match {
-      case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
-        IncompleteSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-          steps, unsolvedRules, unknownRunes, incompleteConclusions)
-      }
-      case FailedCompilerSolve(steps, unsolvedRules, error) => {
-        FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-          steps, unsolvedRules, error)
-      }
-    })
+    humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, error)
   }
-
+*/
+pub fn humanize_conclusion_resolve_error<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, error: IConclusionResolveError<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_conclusion_resolve_error");
+}
+/*
   def humanizeConclusionResolveError(
       verbose: Boolean,
       codeMap: CodeLocationS => String,
@@ -332,7 +342,11 @@ object CompilerErrorHumanizer {
       case other => vimpl(other)
     }
   }
-
+*/
+pub fn humanize_find_function_failure<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, invocation_range: Vec<RangeS<'s>>, fff: FindFunctionFailure<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_find_function_failure");
+}
+/*
   def humanizeFindFunctionFailure(
     verbose: Boolean,
     codeMap: CodeLocationS => String,
@@ -361,7 +375,11 @@ object CompilerErrorHumanizer {
         }).mkString("")
       })
   }
-
+*/
+pub fn humanize_banner(code_map: &dyn Fn(CodeLocationS) -> String, banner: FunctionBannerT) -> String {
+  panic!("Unimplemented: humanize_banner");
+}
+/*
   def humanizeBanner(
     codeMap: CodeLocationS => String,
     banner: FunctionBannerT):
@@ -371,7 +389,11 @@ object CompilerErrorHumanizer {
       case Some(x) => printableName(codeMap, x.function.name)
     }
   }
-
+*/
+fn printable_name(code_map: &dyn Fn(CodeLocationS) -> String, name: INameS) -> String {
+  panic!("Unimplemented: printable_name");
+}
+/*
   private def printableName(
     codeMap: CodeLocationS => String,
     name: INameS):
@@ -387,7 +409,11 @@ object CompilerErrorHumanizer {
 //      case DropNameS(_) => vimpl()
     }
   }
-
+*/
+fn printable_kind_name(kind: KindT) -> String {
+  panic!("Unimplemented: printable_kind_name");
+}
+/*
   private def printableKindName(kind: KindT): String = {
     kind match {
       case IntT(bits) => "i" + bits
@@ -397,13 +423,22 @@ object CompilerErrorHumanizer {
       case StructTT(f) => printableId(f)
     }
   }
+*/
+fn printable_id<'s, 't>(id: IdT<'s, 't>) -> String {
+  panic!("Unimplemented: printable_id");
+}
+/*
   private def printableId(id: IdT[INameT]): String = {
     id.localName match {
       case CitizenNameT(humanName, templateArgs) => humanName + (if (templateArgs.isEmpty) "" else "<" + templateArgs.map(_.toString.mkString) + ">")
       case x => x.toString
     }
   }
-
+*/
+fn printable_var_name(name: IVarNameT) -> String {
+  panic!("Unimplemented: printable_var_name");
+}
+/*
   private def printableVarName(
     name: IVarNameT):
   String = {
@@ -411,11 +446,19 @@ object CompilerErrorHumanizer {
       case CodeVarNameT(n) => n.str
     }
   }
-
+*/
+fn get_file(function_a: FunctionA) -> FileCoordinate {
+  panic!("Unimplemented: get_file");
+}
+/*
   private def getFile(functionA: FunctionA): FileCoordinate = {
     functionA.range.file
   }
-
+*/
+fn humanize_rejection_reason<'s, 't>(verbose: bool, code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, invocation_range: Vec<RangeS<'s>>, reason: IFindFunctionFailureReason<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_rejection_reason");
+}
+/*
   private def humanizeRejectionReason(
       verbose: Boolean,
     codeMap: CodeLocationS => String,
@@ -466,20 +509,15 @@ object CompilerErrorHumanizer {
       }
 //      case Outscored() => "Outscored!"
       case InferFailure(reason) => {
-        humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, reason match {
-          case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
-            IncompleteSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-              steps, unsolvedRules, unknownRunes, incompleteConclusions)
-          }
-          case FailedCompilerSolve(steps, unsolvedRules, error) => {
-            FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
-              steps, unsolvedRules, error)
-          }
-        })
+        humanizeCandidateAndFailedSolve(codeMap, linesBetween, lineRangeContaining, lineContaining, reason)
       }
     })
   }
-
+*/
+pub fn humanize_rule_error<'s, 't>(code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, error: ITypingPassSolverError<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_rule_error");
+}
+/*
   def humanizeRuleError(
     codeMap: CodeLocationS => String,
     linesBetween: (CodeLocationS, CodeLocationS) => Vector[RangeS],
@@ -563,13 +601,17 @@ object CompilerErrorHumanizer {
       }
     }
   }
-
+*/
+pub fn humanize_candidate_and_failed_solve<'s, 't>(code_map: &dyn Fn(CodeLocationS) -> String, lines_between: &dyn Fn(CodeLocationS, CodeLocationS) -> Vec<RangeS<'s>>, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS<'s>, line_containing: &dyn Fn(CodeLocationS) -> String, result: FailedSolve<IRulexSR<'s>, IRuneS<'s>, ITemplataT<'s, 't>, ITypingPassSolverError<'s, 't>>) -> String {
+  panic!("Unimplemented: humanize_candidate_and_failed_solve");
+}
+/*
   def humanizeCandidateAndFailedSolve(
     codeMap: CodeLocationS => String,
     linesBetween: (CodeLocationS, CodeLocationS) => Vector[RangeS],
     lineRangeContaining: (CodeLocationS) => RangeS,
     lineContaining: (CodeLocationS) => String,
-    result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]):
+    result: FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]):
   String = {
     val (text, lineBegins) =
       SolverErrorHumanizer.humanizeFailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError](
@@ -587,7 +629,11 @@ object CompilerErrorHumanizer {
         result)
     text
   }
-
+*/
+pub fn humanize_candidate(code_map: &dyn Fn(CodeLocationS) -> String, line_range_containing: &dyn Fn(CodeLocationS) -> RangeS, candidate: ICalleeCandidate) -> String {
+  panic!("Unimplemented: humanize_candidate");
+}
+/*
   def humanizeCandidate(
     codeMap: CodeLocationS => String,
     lineRangeContaining: (CodeLocationS) => RangeS,
@@ -610,7 +656,11 @@ object CompilerErrorHumanizer {
       }
     }
   }
-
+*/
+pub fn humanize_templata<'s, 't>(code_map: &dyn Fn(CodeLocationS) -> String, templata: ITemplataT<'s, 't>) -> String {
+  panic!("Unimplemented: humanize_templata");
+}
+/*
   def humanizeTemplata(
     codeMap: CodeLocationS => String,
     templata: ITemplataT[ITemplataType]):
@@ -663,7 +713,11 @@ object CompilerErrorHumanizer {
       case other => vimpl(other)
     }
   }
-
+*/
+fn humanize_coord(code_map: &dyn Fn(CodeLocationS) -> String, coord: CoordT) -> String {
+  panic!("Unimplemented: humanize_coord");
+}
+/*
   private def humanizeCoord(
       codeMap: CodeLocationS => String,
       coord: CoordT
@@ -680,7 +734,11 @@ object CompilerErrorHumanizer {
     val kindStr = humanizeKind(codeMap, kind, Some(region))
     ownershipStr + kindStr
   }
-
+*/
+fn humanize_kind(code_map: &dyn Fn(CodeLocationS) -> String, kind: KindT, containing_region: Option<RegionT>) -> String {
+  panic!("Unimplemented: humanize_kind");
+}
+/*
   private def humanizeKind(
       codeMap: CodeLocationS => String,
       kind: KindT,
@@ -718,7 +776,13 @@ object CompilerErrorHumanizer {
       }
     }
   }
-
+*/
+pub fn humanize_id<'s, 't, T: Copy + 't>(code_map: &dyn Fn(CodeLocationS) -> String, name: IdT<'s, 't>, containing_region: Option<RegionT>) -> String
+where 's: 't,
+{
+  panic!("Unimplemented: humanize_id");
+}
+/*
   def humanizeId[T <: INameT](
     codeMap: CodeLocationS => String,
     name: IdT[T],
@@ -731,7 +795,11 @@ object CompilerErrorHumanizer {
     }) +
       humanizeName(codeMap, name.localName, containingRegion)
   }
-
+*/
+pub fn humanize_name(code_map: &dyn Fn(CodeLocationS) -> String, name: INameT, containing_region: Option<RegionT>) -> String {
+  panic!("Unimplemented: humanize_name");
+}
+/*
   def humanizeName(
     codeMap: CodeLocationS => String,
     name: INameT,
@@ -822,10 +890,14 @@ object CompilerErrorHumanizer {
       }
       case StructTemplateNameT(humanName) => humanName.str
       case InterfaceTemplateNameT(humanName) => humanName.str
-      case p @ NonKindNonRegionPlaceholderNameT(index, rune) => p.toString // DO NOT SUBMIT
+      case NonKindNonRegionPlaceholderNameT(index, rune) => humanizeRune(rune)
     }
   }
-
+*/
+fn humanize_generic_args<'s, 't>(code_map: &dyn Fn(CodeLocationS) -> String, template_args: Vec<ITemplataT<'s, 't>>, containing_region: Option<RegionT>) -> String {
+  panic!("Unimplemented: humanize_generic_args");
+}
+/*
   private def humanizeGenericArgs(
     codeMap: CodeLocationS => String,
     templateArgs: Vector[ITemplataT[ITemplataType]],
@@ -846,7 +918,11 @@ object CompilerErrorHumanizer {
         ""
       })
   }
-
+*/
+pub fn humanize_signature(code_map: &dyn Fn(CodeLocationS) -> String, signature: SignatureT) -> String {
+  panic!("Unimplemented: humanize_signature");
+}
+/*
   def humanizeSignature(codeMap: CodeLocationS => String, signature: SignatureT): String = {
     humanizeId(codeMap, signature.id)
   }

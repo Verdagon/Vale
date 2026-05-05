@@ -1,3 +1,9 @@
+// mig: struct CompilerLambdaTests
+pub struct CompilerLambdaTests;
+
+// mig: impl CompilerLambdaTests
+impl CompilerLambdaTests {}
+
 /*
 package dev.vale.typing
 
@@ -21,13 +27,25 @@ import scala.io.Source
 
 class CompilerLambdaTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
-
+*/
+// mig: fn read_code_from_resource
+fn read_code_from_resource(resource_filename: &str) -> String {
+    panic!("Unimplemented: read_code_from_resource");
+}
+/*
   def readCodeFromResource(resourceFilename: String): String = {
     val is = Source.fromInputStream(getClass().getClassLoader().getResourceAsStream(resourceFilename))
     vassert(is != null)
     is.mkString("")
   }
-
+*/
+// mig: fn simple_lambda
+#[test]
+#[ignore]
+fn simple_lambda() {
+    panic!("Unmigrated test: simple_lambda");
+}
+/*
   test("Simple lambda") {
     val compile = CompilerTestCompilation.test(
       """
@@ -39,7 +57,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
     coutputs.lookupLambdaIn("main").header.returnType shouldEqual CoordT(ShareT, RegionT(), IntT.i32)
     coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, RegionT(), IntT.i32)
   }
-
+*/
+// mig: fn lambda_with_one_magic_arg
+#[test]
+#[ignore]
+fn lambda_with_one_magic_arg() {
+    panic!("Unmigrated test: lambda_with_one_magic_arg");
+} 
+/*
   test("Lambda with one magic arg") {
     val compile =
       CompilerTestCompilation.test(
@@ -55,7 +80,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
     coutputs.lookupLambdaIn("main").header.returnType shouldEqual
       CoordT(ShareT, RegionT(), IntT.i32)
   }
-
+*/
+// mig: fn lambda_is_reused
+#[test]
+#[ignore]
+fn lambda_is_reused() {
+    panic!("Unmigrated test: lambda_is_reused");
+} 
+/*
   test("Lambda is reused") {
     // Since we call it with an int both times, the template generic should only generate one generic.
 
@@ -74,7 +106,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
     val lambdas = coutputs.lookupLambdasIn("main")
     vassert(lambdas.size == 1)
   }
-
+*/
+// mig: fn lambda_called_with_different_types
+#[test]
+#[ignore]
+fn lambda_called_with_different_types() {
+    panic!("Unmigrated test: lambda_called_with_different_types");
+} 
+/*
   test("Lambda called with different types") {
     // Since we call it with an int both times, the template generic should only generate one generic.
 
@@ -93,7 +132,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
     val lambdas = coutputs.lookupLambdasIn("main")
     vassert(lambdas.size == 2)
   }
-
+*/
+// mig: fn curried_lambda
+#[test]
+#[ignore]
+fn curried_lambda() {
+    panic!("Unmigrated test: curried_lambda");
+} 
+/*
   test("Curried lambda") {
     val compile = CompilerTestCompilation.test(
       """
@@ -116,6 +162,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
 
 
   // Test that the lambda's arg is the right type, and the name is right
+*/
+// mig: fn lambda_with_a_type_specified_param
+#[test]
+#[ignore]
+fn lambda_with_a_type_specified_param() {
+    panic!("Unmigrated test: lambda_with_a_type_specified_param");
+} 
+/*
   test("Lambda with a type specified param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -136,7 +190,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main");
     Collector.only(main, { case FunctionCallTE(callee, _, _) if coutputs.nameIsLambdaIn(callee.id, "main") => })
   }
-
+*/
+// mig: fn tests_lambda_and_concept_function
+#[test]
+#[ignore]
+fn tests_lambda_and_concept_function() {
+    panic!("Unmigrated test: tests_lambda_and_concept_function");
+} 
+/*
   test("Tests lambda and concept function") {
     val compile = CompilerTestCompilation.test(
       """
@@ -154,7 +215,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn lambda_inside_different_function_with_same_name
+#[test]
+#[ignore]
+fn lambda_inside_different_function_with_same_name() {
+    panic!("Unmigrated test: lambda_inside_different_function_with_same_name");
+} 
+/*
   test("Lambda inside different function with same name") {
     // This originally didn't work because both helperFunc(:Int) and helperFunc(:Str)
     // made a closure struct called helperFunc:lam1, which collided.
@@ -177,7 +245,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn lambda_inside_template
+#[test]
+#[ignore]
+fn lambda_inside_template() {
+    panic!("Unmigrated test: lambda_inside_template");
+} 
+/*
   test("Lambda inside template") {
     // This originally didn't work because both helperFunc<int> and helperFunc<Str>
     // made a closure struct called helperFunc:lam1, which collided.
@@ -200,8 +275,14 @@ class CompilerLambdaTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
-
+*/
+// mig: fn curried_lambda_inside_template
+#[test]
+#[ignore]
+fn curried_lambda_inside_template() {
+    panic!("Unmigrated test: curried_lambda_inside_template");
+} 
+/*
   test("Curried lambda inside template") {
     val compile = CompilerTestCompilation.test(
       """import v.builtins.drop.*;

@@ -1,10 +1,29 @@
+use std::collections::HashMap;
+use crate::typing::compiler::Compiler;
+use crate::utils::range::RangeS;
+use crate::postparsing::ast::{LocationInDenizen, IRegionMutabilityS};
+use crate::postparsing::names::*;
+use crate::postparsing::rules::rules::*;
+use crate::postparsing::rune_type_solver::RuneTypeSolveError;
+use crate::postparsing::*;
+use crate::solver::solver::FailedSolve;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::expressions::ReferenceExpressionTE;
+use crate::typing::compiler_outputs::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::FunctionEnvironmentT;
+use crate::typing::function::function_compiler::StampFunctionSuccess;
+use crate::typing::names::names::*;
+use crate::typing::templata::templata::*;
+use crate::typing::types::types::*;
+
 /*
 package dev.vale.typing
 
 import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
-import dev.vale.solver.IIncompleteOrFailedSolve
+import dev.vale.solver.FailedSolve
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function._
 import dev.vale.typing.infer.ITypingPassSolverError
@@ -38,30 +57,89 @@ import scala.collection.immutable.List
 
 object OverloadResolver {
 
+*/
+pub enum IFindFunctionFailureReason<'s, 't> {
+    WrongNumberOfArguments { supplied: i32, expected: i32 },
+    WrongNumberOfTemplateArguments { supplied: i32, expected: i32 },
+    SpecificParamDoesntSend { index: i32, argument: CoordT<'s, 't>, parameter: CoordT<'s, 't> },
+    SpecificParamDoesntMatchExactly { index: i32, argument: CoordT<'s, 't>, parameter: CoordT<'s, 't> },
+    SpecificParamRegionDoesntMatch {
+        rune: IRuneS<'s>,
+        supplied_mutability: IRegionMutabilityS,
+        callee_mutability: IRegionMutabilityS,
+    },
+    SpecificParamVirtualityDoesntMatch { index: i32 },
+    Outscored,
+    RuleTypeSolveFailure { reason: RuneTypeSolveError<'s> },
+    InferFailure { reason: FailedSolve<IRulexSR<'s>, IRuneS<'s>, ITemplataT<'s, 't>, crate::typing::infer::compiler_solver::ITypingPassSolverError<'s, 't>> },
+    FindFunctionResolveFailure { reason: crate::typing::infer_compiler::IResolvingError<'s, 't> },
+    CouldntEvaluateTemplateError { reason: crate::typing::infer_compiler::IDefiningError<'s, 't> },
+}
+/*
   sealed trait IFindFunctionFailureReason
+*/
+/*
   case class WrongNumberOfArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason {
     vpass()
 
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   }
-  case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
   case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason {
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
     vpass()
   }
+*/
+/*
   case class SpecificParamRegionDoesntMatch(rune: IRuneS, suppliedMutability: IRegionMutabilityS, calleeMutability: IRegionMutabilityS) extends IFindFunctionFailureReason {
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
     vpass()
   }
-  case class SpecificParamVirtualityDoesntMatch(index: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class Outscored() extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class InferFailure(reason: IIncompleteOrFailedCompilerSolve) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class FindFunctionResolveFailure(reason: IResolvingError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class CouldntEvaluateTemplateError(reason: IDefiningError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class SpecificParamVirtualityDoesntMatch(index: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class Outscored() extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class InferFailure(reason: FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class FindFunctionResolveFailure(reason: IResolvingError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+*/
+/*
+  case class CouldntEvaluateTemplateError(reason: IDefiningError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
 
 
+*/
+pub struct FindFunctionFailure<'s, 't> {
+    pub name: IImpreciseNameS<'s>,
+    pub args: &'t [CoordT<'s, 't>],
+    pub rejected_callee_to_reason: &'t [(ICalleeCandidate<'s, 't>, IFindFunctionFailureReason<'s, 't>)],
+}
+/*
   case class FindFunctionFailure(
     name: IImpreciseNameS,
     args: Vector[CoordT],
@@ -69,9 +147,13 @@ object OverloadResolver {
     rejectedCalleeToReason: Iterable[(ICalleeCandidate, IFindFunctionFailureReason)]
   ) {
     vpass()
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   }
 
+*/
+pub struct EvaluateFunctionFailure2;
+/*
   case class EvaluateFunctionFailure2(
     name: IImpreciseNameS,
     args: Vector[CoordT],
@@ -79,10 +161,13 @@ object OverloadResolver {
     rejectedCalleeToReason: Iterable[(PrototypeT[IFunctionNameT], IFindFunctionFailureReason)]
   ) {
     vpass()
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   }
 }
 
+*/
+/*
 class OverloadResolver(
     opts: TypingPassOptions,
     interner: Interner,
@@ -92,6 +177,27 @@ class OverloadResolver(
     functionCompiler: FunctionCompiler) {
   val runeTypeSolver = new RuneTypeSolver(interner)
 
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn find_function(
+        &self,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        function_name: IImpreciseNameS<'s>,
+        explicit_template_arg_rules_s: &[&'s IRulexSR<'s>],
+        explicit_template_arg_runes_s: &[IRuneS<'s>],
+        context_region: RegionT,
+        args: &[CoordT<'s, 't>],
+        extra_envs_to_look_in: &[&'t IInDenizenEnvironmentT<'s, 't>],
+        exact: bool,
+    ) -> Result<StampFunctionSuccess<'s, 't>, FindFunctionFailure<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def findFunction(
     callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -129,6 +235,25 @@ class OverloadResolver(
     })
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn params_match(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        desired_params: &[CoordT<'s, 't>],
+        candidate_params: &[CoordT<'s, 't>],
+        exact: bool,
+    ) -> Result<(), IFindFunctionFailureReason<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def paramsMatch(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
@@ -161,11 +286,34 @@ class OverloadResolver(
     Ok(())
   }
 
+*/
+}
+
+pub struct SearchedEnvironment;
+/*
   case class SearchedEnvironment(
     needle: IImpreciseNameS,
     environment: IInDenizenEnvironmentT,
     matchingTemplatas: Vector[ITemplataT[ITemplataType]])
 
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_candidate_banners(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        range: &[RangeS<'s>],
+        function_name: IImpreciseNameS<'s>,
+        param_filters: &[CoordT<'s, 't>],
+        extra_envs_to_look_in: &[&'t IInDenizenEnvironmentT<'s, 't>],
+        searched_envs: &mut Vec<SearchedEnvironment>,
+        results: &mut Vec<ICalleeCandidate<'s, 't>>,
+    ) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def getCandidateBanners(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -183,6 +331,24 @@ class OverloadResolver(
       .foreach(e => getCandidateBannersInner(env, coutputs, range, functionName, searchedEnvs, results))
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_candidate_banners_inner(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        range: &[RangeS<'s>],
+        function_name: IImpreciseNameS<'s>,
+        searched_envs: &mut Vec<SearchedEnvironment>,
+        results: &mut Vec<ICalleeCandidate<'s, 't>>,
+    ) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def getCandidateBannersInner(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -222,11 +388,36 @@ class OverloadResolver(
     })
   }
 
+*/
+}
+
+pub struct AttemptedCandidate;
+/*
   case class AttemptedCandidate(
       // Pure and region will go here
       prototype: PrototypeT[IFunctionNameT]
   )
 
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn attempt_candidate_banner(
+        &self,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        explicit_template_arg_rules_s: &[&'s IRulexSR<'s>],
+        explicit_template_arg_runes_s: &[IRuneS<'s>],
+        context_region: RegionT,
+        args: &[CoordT<'s, 't>],
+        candidate: ICalleeCandidate<'s, 't>,
+        exact: bool,
+    ) -> Result<AttemptedCandidate, IFindFunctionFailureReason<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def attemptCandidateBanner(
     callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -426,6 +617,21 @@ class OverloadResolver(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_param_environments(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        range: &[RangeS<'s>],
+        param_filters: &[CoordT<'s, 't>],
+    ) -> Vec<&'t IInDenizenEnvironmentT<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // Gets all the environments for all the arguments.
   private def getParamEnvironments(coutputs: CompilerOutputs, range: List[RangeS], paramFilters: Vector[CoordT]):
   Vector[IInDenizenEnvironmentT] = {
@@ -439,6 +645,29 @@ class OverloadResolver(
     })
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn find_potential_function(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        function_name: IImpreciseNameS<'s>,
+        explicit_template_arg_rules_s: &[&'s IRulexSR<'s>],
+        explicit_template_arg_runes_s: &[IRuneS<'s>],
+        context_region: RegionT,
+        args: &[CoordT<'s, 't>],
+        extra_envs_to_look_in: &[&'t IInDenizenEnvironmentT<'s, 't>],
+        exact: bool,
+    ) -> Result<AttemptedCandidate, FindFunctionFailure<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // Checks to see if there's a function that *could*
   // exist that takes in these parameter types, and returns what the signature *would* look like.
   // Only considers when arguments match exactly.
@@ -485,6 +714,24 @@ class OverloadResolver(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_banner_param_scores(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        candidate: &'t PrototypeT<'s, 't>,
+        arg_types: &[CoordT<'s, 't>],
+    ) -> Option<Vec<bool>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // Returns either:
   // - None if banners incompatible
   // - Some(param to needs-conversion)
@@ -520,6 +767,24 @@ class OverloadResolver(
     result
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn narrow_down_callable_overloads(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        unfiltered_banners: &[AttemptedCandidate],
+        arg_types: &[CoordT<'s, 't>],
+    ) -> (AttemptedCandidate, HashMap<AttemptedCandidate, IFindFunctionFailureReason<'s, 't>>) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def narrowDownCallableOverloads(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
@@ -620,7 +885,7 @@ class OverloadResolver(
         throw CompileErrorExceptionT(
           CouldntNarrowDownCandidates(
             callRange,
-            vimpl()))
+            vimpl(duplicateBanners)))
         //            duplicateBanners.map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
       } else if (normalIndicesAndCandidates.size == 1) {
         normalIndicesAndCandidates.head._1
@@ -724,6 +989,24 @@ class OverloadResolver(
 //    }
 //  }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_array_generator_prototype(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        callable_te: ReferenceExpressionTE<'s, 't>,
+        context_region: RegionT,
+    ) -> &'t PrototypeT<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def getArrayGeneratorPrototype(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
@@ -745,6 +1028,25 @@ class OverloadResolver(
       }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_array_consumer_prototype(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        fate: &FunctionEnvironmentT<'s, 't>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        callable_te: ReferenceExpressionTE<'s, 't>,
+        element_type: CoordT<'s, 't>,
+        context_region: RegionT,
+    ) -> &'t PrototypeT<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def getArrayConsumerPrototype(
     coutputs: CompilerOutputs,
     fate: FunctionEnvironmentBoxT,
@@ -767,3 +1069,4 @@ class OverloadResolver(
   }
 }
 */
+}

@@ -1,3 +1,16 @@
+use crate::higher_typing::ast::{FunctionA, InterfaceA, StructA};
+use crate::postparsing::ast::{ICitizenAttributeS, IStructMemberS, LocationInDenizen};
+use crate::postparsing::names::IFunctionDeclarationNameS;
+use crate::typing::ast::ast::ICitizenAttributeT;
+use crate::typing::ast::citizens::{IStructMemberT, InterfaceDefinitionT, NormalStructMemberT};
+use crate::typing::compiler::Compiler;
+use crate::typing::compiler_outputs::CompilerOutputs;
+use crate::typing::env::environment::{CitizenEnvironmentT, IInDenizenEnvironmentT};
+use crate::typing::env::function_environment_t::NodeEnvironmentT;
+use crate::typing::templata::templata::FunctionTemplataT;
+use crate::typing::types::types::{MutabilityT, StructTT};
+use crate::utils::range::RangeS;
+
 /*
 package dev.vale.typing.citizen
 
@@ -32,7 +45,24 @@ class StructCompilerCore(
   keywords: Keywords,
   nameTranslator: NameTranslator,
   delegate: IStructCompilerDelegate) {
-
+*/
+/*
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn compile_struct_core(
+        &self,
+        outer_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        struct_runes_env: &'t CitizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        struct_a: &'s StructA<'s>,
+    ) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def compileStruct(
     outerEnv: IInDenizenEnvironmentT,
     structRunesEnv: CitizenEnvironmentT[IStructNameT, IStructTemplateNameT],
@@ -161,6 +191,19 @@ class StructCompilerCore(
     coutputs.addStruct(structDefT);
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn translate_citizen_attributes(
+        &self,
+        attrs: &[ICitizenAttributeS<'s>],
+    ) -> Vec<ICitizenAttributeT<'s>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttributeT] = {
     attrs.map({
       case SealedS => SealedT
@@ -170,6 +213,24 @@ class StructCompilerCore(
   }
 
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn compile_interface_core(
+        &self,
+        outer_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        interface_runes_env: &'t CitizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        interface_a: &'s InterfaceA<'s>,
+    ) -> &'t InterfaceDefinitionT<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // Takes a IEnvironment because we might be inside a:
   // struct<T> Thing<T> {
   //   t: T;
@@ -241,6 +302,21 @@ class StructCompilerCore(
     (interfaceDef2)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_struct_members(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        members: &[IStructMemberS<'s>],
+    ) -> Vec<IStructMemberT<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def makeStructMembers(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -249,6 +325,21 @@ class StructCompilerCore(
     members.map(makeStructMember(env, coutputs, _))
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_struct_member(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        member: IStructMemberS<'s>,
+    ) -> IStructMemberT<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def makeStructMember(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -282,6 +373,25 @@ class StructCompilerCore(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_closure_understruct_core(
+        &self,
+        containing_function_env: &'t NodeEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        name: IFunctionDeclarationNameS<'s>,
+        function_a: &'s FunctionA<'s>,
+        members: &[&'t NormalStructMemberT<'s, 't>],
+    ) -> (StructTT<'s, 't>, MutabilityT, FunctionTemplataT<'s, 't>) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // Makes a struct to back a closure
   def makeClosureUnderstruct(
     containingFunctionEnv: NodeEnvironmentT,
@@ -418,3 +528,4 @@ class StructCompilerCore(
   }
 }
 */
+}

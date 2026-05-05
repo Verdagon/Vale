@@ -1,3 +1,9 @@
+use crate::higher_typing::ast::*;
+use crate::typing::names::names::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::i_env_entry::*;
+use crate::typing::compiler::Compiler;
+
 /*
 package dev.vale.typing.macros.citizen
 
@@ -21,7 +27,11 @@ import dev.vale.typing.types._
 import dev.vale.typing.OverloadResolver
 
 import scala.collection.mutable
-
+*/
+// (Scala `class InterfaceDropMacro(interner, keywords, nameTranslator)` absorbed onto
+//  `Compiler`; the method body lives at
+//  `Compiler::get_interface_sibling_entries_interface_drop` below.)
+/*
 class InterfaceDropMacro(
   interner: Interner,
   keywords: Keywords,
@@ -29,7 +39,18 @@ class InterfaceDropMacro(
 ) extends IOnInterfaceDefinedMacro {
 
   val macroName: StrI = keywords.DeriveInterfaceDrop
-
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_interface_sibling_entries_interface_drop(
+        &self,
+        interface_name: IdT<'s, 't>,
+        interface_a: &'s InterfaceA<'s>,
+    ) -> Vec<(IdT<'s, 't>, IEnvEntryT<'s, 't>)> {
+        panic!("Unimplemented: get_interface_sibling_entries_interface_drop");
+    }
+/*
   override def getInterfaceSiblingEntries(interfaceName: IdT[INameT], interfaceA: InterfaceA): Vector[(IdT[INameT], FunctionEnvEntry)] = {
     def range(n: Int) = RangeS.internal(interner, n)
     def use(n: Int, rune: IRuneS) = RuneUsage(range(n), rune)
@@ -109,3 +130,4 @@ class InterfaceDropMacro(
   }
 }
 */
+}

@@ -12,7 +12,14 @@ import org.scalatest._
 import scala.collection.immutable.Set
 
 class CompilerVirtualTests extends FunSuite with Matchers {
-
+*/
+// mig: fn regular_interface_and_struct
+#[test]
+#[ignore]
+fn regular_interface_and_struct() {
+    panic!("Unmigrated test: regular_interface_and_struct");
+}
+/*
   test("Regular interface and struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -34,7 +41,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     val interface = coutputs.lookupInterface("Opt")
     interface.internalMethods
   }
-
+*/
+// mig: fn regular_open_interface_and_struct_no_anonymous_interface
+#[test]
+#[ignore]
+fn regular_open_interface_and_struct_no_anonymous_interface() {
+    panic!("Unmigrated test: regular_open_interface_and_struct_no_anonymous_interface");
+}
+/*
   test("Regular open interface and struct, no anonymous interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -61,7 +75,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
 //      }
 //    }).size shouldEqual 1
   }
-
+*/
+// mig: fn implementing_two_interfaces_causes_no_vdrop_conflict
+#[test]
+#[ignore]
+fn implementing_two_interfaces_causes_no_vdrop_conflict() {
+    panic!("Unmigrated test: implementing_two_interfaces_causes_no_vdrop_conflict");
+}
+/*
   test("Implementing two interfaces causes no vdrop conflict") {
     // See NIIRII
     val compile = CompilerTestCompilation.test(
@@ -83,7 +104,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn upcast
+#[test]
+#[ignore]
+fn upcast() {
+    panic!("Unmigrated test: upcast");
+}
+/*
   test("Upcast") {
     val compile = CompilerTestCompilation.test(
       """
@@ -98,7 +126,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn virtual_with_body
+#[test]
+#[ignore]
+fn virtual_with_body() {
+    panic!("Unmigrated test: virtual_with_body");
+}
+/*
   test("Virtual with body") {
     CompilerTestCompilation.test(
       """
@@ -112,7 +147,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
   }
-
+*/
+// mig: fn templated_interface_and_struct
+#[test]
+#[ignore]
+fn templated_interface_and_struct() {
+    panic!("Unmigrated test: templated_interface_and_struct");
+}
+/*
   test("Templated interface and struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -135,7 +177,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       })
     dropFuncNames.size shouldEqual 2
   }
-
+*/
+// mig: fn custom_drop_with_concept_function
+#[test]
+#[ignore]
+fn custom_drop_with_concept_function() {
+    panic!("Unmigrated test: custom_drop_with_concept_function");
+}
+/*
   test("Custom drop with concept function") {
     val compile = CompilerTestCompilation.test(
       """
@@ -157,19 +206,40 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn test_complex_interface
+#[test]
+#[ignore]
+fn test_complex_interface() {
+    panic!("Unmigrated test: test_complex_interface");
+}
+/*
   test("Test complex interface") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/templatedinterface.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn test_specializing_interface
+#[test]
+#[ignore]
+fn test_specializing_interface() {
+    panic!("Unmigrated test: test_specializing_interface");
+}
+/*
   test("Test specializing interface") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/specializeinterface.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn use_bound_from_struct
+#[test]
+#[ignore]
+fn use_bound_from_struct() {
+    panic!("Unmigrated test: use_bound_from_struct");
+}
+/*
   test("Use bound from struct") {
     // See NBIFP.
     // Without it, when it tries to compile (1), at (2) it tries to resolve BorkForwarder
@@ -199,7 +269,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn basic_interface_forwarder
+#[test]
+#[ignore]
+fn basic_interface_forwarder() {
+    panic!("Unmigrated test: basic_interface_forwarder");
+}
+/*
   test("Basic interface forwarder") {
     val compile = CompilerTestCompilation.test(
       """
@@ -229,7 +306,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn generic_interface_forwarder
+#[test]
+#[ignore]
+fn generic_interface_forwarder() {
+    panic!("Unmigrated test: generic_interface_forwarder");
+}
+/*
   test("Generic interface forwarder") {
     val compile = CompilerTestCompilation.test(
       """
@@ -259,7 +343,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn generic_interface_forwarder_with_bound
+#[test]
+#[ignore]
+fn generic_interface_forwarder_with_bound() {
+    panic!("Unmigrated test: generic_interface_forwarder_with_bound");
+}
+/*
   test("Generic interface forwarder with bound") {
     val compile = CompilerTestCompilation.test(
       """
@@ -292,7 +383,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn basic_interface_anonymous_subclass
+#[test]
+#[ignore]
+fn basic_interface_anonymous_subclass() {
+    panic!("Unmigrated test: basic_interface_anonymous_subclass");
+}
+/*
   test("Basic interface anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
@@ -308,7 +406,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn integer_is_compatible_with_interface_anonymous_substruct
+#[test]
+#[ignore]
+fn integer_is_compatible_with_interface_anonymous_substruct() {
+    panic!("Unmigrated test: integer_is_compatible_with_interface_anonymous_substruct");
+}
+/*
   test("Integer is compatible with interface anonymous substruct") {
     // We had a bug where the forwarder function was trying to solve the interface rules.
     // But the forwarder function is just:
@@ -332,7 +437,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn lambda_is_compatible_with_interface_anonymous_substruct
+#[test]
+#[ignore]
+fn lambda_is_compatible_with_interface_anonymous_substruct() {
+    panic!("Unmigrated test: lambda_is_compatible_with_interface_anonymous_substruct");
+}
+/*
   test("Lambda is compatible with interface anonymous substruct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -348,7 +460,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn implementing_a_non_generic_interface_call
+#[test]
+#[ignore]
+fn implementing_a_non_generic_interface_call() {
+    panic!("Unmigrated test: implementing_a_non_generic_interface_call");
+}
+/*
   test("Implementing a non-generic interface call") {
     val compile = CompilerTestCompilation.test(
       """
@@ -363,7 +482,14 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
+*/
+// mig: fn anonymous_substruct_8
+#[test]
+#[ignore]
+fn anonymous_substruct_8() {
+    panic!("Unmigrated test: anonymous_substruct_8");
+}
+/*
   test("Anonymous substruct 8") {
     val compile = CompilerTestCompilation.test(
       """

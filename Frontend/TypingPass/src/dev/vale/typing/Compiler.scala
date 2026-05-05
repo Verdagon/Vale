@@ -379,6 +379,31 @@ class Compiler(
               returnCoord))
         }
 
+        // Per @BRRZ, this is the real overload lookup invoked from inside the ResolveSR
+        // handler when the return rune isn't yet known. Mirrors the outer delegate's
+        // resolveFunction at line 455-477 below, but takes InferEnv so the solver-side
+        // delegate has a uniform shape with predictFunction/assemblePrototype.
+        override def resolveFunction(
+          envs: InferEnv,
+          state: CompilerOutputs,
+          range: List[RangeS],
+          name: StrI,
+          paramCoords: Vector[CoordT]):
+        Result[StampFunctionSuccess, FindFunctionFailure] = {
+          overloadResolver.findFunction(
+            envs.originalCallingEnv,
+            state,
+            range,
+            envs.callLocation,
+            interner.intern(CodeNameS(interner.intern(name))),
+            Vector.empty,
+            Vector.empty,
+            envs.contextRegion,
+            paramCoords,
+            Vector.empty,
+            true)
+        }
+
         override def assemblePrototype(
             envs: InferEnv,
           state: CompilerOutputs,
@@ -875,7 +900,7 @@ class Compiler(
             val packageEnv = PackageEnvironmentT.makeTopLevelEnvironment(globalEnv, packageId)
             // This makes it so anything starting with an underscore is compiled in the order
             // of their names.
-            // DO NOT SUBMIT better solution? order always?
+            // AFTERM: is there a better solution here? should we always order things?
             val (orderableEntries, unorderedEntries) =
                 U.filterOut[(INameT, IEnvEntry), (CitizenTemplateNameT, IEnvEntry)](
                   templatas.entriesByNameT.toArray,

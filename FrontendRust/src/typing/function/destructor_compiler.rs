@@ -1,3 +1,12 @@
+use crate::postparsing::ast::LocationInDenizen;
+use crate::typing::ast::expressions::ReferenceExpressionTE;
+use crate::typing::compiler::Compiler;
+use crate::typing::compiler_outputs::CompilerOutputs;
+use crate::typing::env::environment::IInDenizenEnvironmentT;
+use crate::typing::function::function_compiler::StampFunctionSuccess;
+use crate::typing::types::types::{CoordT, RegionT};
+use crate::utils::range::RangeS;
+
 /*
 package dev.vale.typing.function
 
@@ -26,12 +35,30 @@ import dev.vale.typing.names.PackageTopLevelNameT
 
 import scala.collection.immutable.List
 
+*/
+/*
 class DestructorCompiler(
     opts: TypingPassOptions,
     interner: Interner,
     keywords: Keywords,
     structCompiler: StructCompiler,
     overloadCompiler: OverloadResolver) {
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_drop_function(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        context_region: RegionT,
+        type_2: CoordT<'s, 't>,
+    ) -> StampFunctionSuccess<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def getDropFunction(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -48,7 +75,24 @@ class DestructorCompiler(
       case Ok(x) => x
     }
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn drop(
+        &self,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        context_region: RegionT,
+        undestructed_expr_2: &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def drop(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -85,3 +129,4 @@ class DestructorCompiler(
   }
 }
 */
+}

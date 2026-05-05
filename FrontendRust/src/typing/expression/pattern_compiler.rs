@@ -1,3 +1,20 @@
+use crate::typing::compiler::Compiler;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::patterns::patterns::AtomSP;
+use crate::postparsing::rules::rules::IRulexSR;
+use crate::postparsing::itemplatatype::ITemplataType;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::compiler_outputs::*;
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 /*
 package dev.vale.typing.expression
 
@@ -28,7 +45,8 @@ import dev.vale.typing.ast._
 import scala.collection.immutable.{List, Set}
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-
+*/
+/*
 class PatternCompiler(
     opts: TypingPassOptions,
 
@@ -40,6 +58,32 @@ class PatternCompiler(
     nameTranslator: NameTranslator,
     destructorCompiler: DestructorCompiler,
     localHelper: LocalHelper) {
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn translate_pattern_list_pattern(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        patterns_a: &[&'s AtomSP<'s>],
+        pattern_inputs_te: &[&'t ReferenceExpressionTE<'s, 't>],
+        region: RegionT,
+        after_patterns_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        self.iterate_translate_list_and_maybe_continue(
+            coutputs, nenv, life, parent_ranges, call_location,
+            &[], patterns_a, pattern_inputs_te, region,
+            after_patterns_success_continuation)
+    }
+/*
   // Note: This will unlet/drop the input expressions. Be warned.
   // patternInputsTE is a list of reference expression because they're coming in from
   // god knows where... arguments, the right side of a let, a variable, don't know!
@@ -69,6 +113,42 @@ class PatternCompiler(
     })
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn iterate_translate_list_and_maybe_continue(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        live_capture_locals: &[ILocalVariableT<'s, 't>],
+        patterns_a: &[&'s AtomSP<'s>],
+        pattern_inputs_te: &[&'t ReferenceExpressionTE<'s, 't>],
+        region: RegionT,
+        after_patterns_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        let names: Vec<_> = live_capture_locals.iter().map(|l| l.name()).collect();
+        let distinct: HashSet<_> = names.iter().collect();
+        assert!(names.len() == distinct.len());
+
+        match (patterns_a.is_empty(), pattern_inputs_te.is_empty()) {
+            (true, true) => after_patterns_success_continuation(coutputs, nenv, live_capture_locals),
+            (false, false) => {
+                panic!("implement: iterateTranslateListAndMaybeContinue — non-empty patterns");
+            }
+            _ => panic!("mismatched patterns and inputs"),
+        }
+    }
+/*
   def iterateTranslateListAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -105,6 +185,48 @@ class PatternCompiler(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn infer_and_translate_pattern(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        rules_with_implicitly_coercing_lookups_s: &[&'s IRulexSR<'s>],
+        rune_a_to_type_with_implicitly_coercing_lookups_s: &HashMap<IRuneS<'s>, ITemplataType<'s>>,
+        pattern: &'s AtomSP<'s>,
+        unconverted_input_expr: &'t ReferenceExpressionTE<'s, 't>,
+        region: RegionT,
+        after_patterns_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        // The rules are different depending on the incoming type.
+        // See Impl Rule For Upcasts (IRFU).
+        let converted_input_expr = match &pattern.coord_rune {
+            None => {
+                unconverted_input_expr
+            }
+            Some(_receiver_rune) => {
+                panic!("implement: infer_and_translate_pattern — Some(receiverRune) branch");
+            }
+        };
+
+        self.inner_translate_sub_pattern_and_maybe_continue(
+            coutputs, nenv, life, parent_ranges, call_location,
+            pattern, &[], converted_input_expr, region,
+            after_patterns_success_continuation)
+    }
+/*
   // Note: This will unlet/drop the input expression. Be warned.
   def inferAndTranslatePattern(
     coutputs: CompilerOutputs,
@@ -189,6 +311,33 @@ class PatternCompiler(
     })
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn inner_translate_sub_pattern_and_maybe_continue(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        pattern: &'s AtomSP<'s>,
+        previous_live_capture_locals: &[ILocalVariableT<'s, 't>],
+        input_expr: &'t ReferenceExpressionTE<'s, 't>,
+        region: RegionT,
+        after_sub_pattern_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def innerTranslateSubPatternAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -294,6 +443,33 @@ class PatternCompiler(
         }))
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn destructure_owning(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        initial_live_capture_locals: &[ILocalVariableT<'s, 't>],
+        input_expr: &'t ReferenceExpressionTE<'s, 't>,
+        list_of_maybe_destructure_member_patterns: &[&'s AtomSP<'s>],
+        region: RegionT,
+        after_destructure_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def destructureOwning(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -358,6 +534,33 @@ class PatternCompiler(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn destructure_non_owning_and_maybe_continue(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        live_capture_locals: &[ILocalVariableT<'s, 't>],
+        container_te: &'t ReferenceExpressionTE<'s, 't>,
+        list_of_maybe_destructure_member_patterns: &[&'s AtomSP<'s>],
+        region: RegionT,
+        after_destructure_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def destructureNonOwningAndMaybeContinue(
       coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -384,6 +587,35 @@ class PatternCompiler(
           coutputs, nenv, life + 1, range, callLocation, liveCaptureLocals, containerTE.result.coord, containerAliasingExprTE, 0, listOfMaybeDestructureMemberPatterns.toList, region, afterDestructureSuccessContinuation)))
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn iterate_destructure_non_owning_and_maybe_continue(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        live_capture_locals: &[ILocalVariableT<'s, 't>],
+        expected_container_coord: CoordT<'s, 't>,
+        container_aliasing_expr_te: &'t ReferenceExpressionTE<'s, 't>,
+        member_index: i32,
+        list_of_maybe_destructure_member_patterns: &[&'s AtomSP<'s>],
+        region: RegionT,
+        after_destructure_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def iterateDestructureNonOwningAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -462,6 +694,33 @@ class PatternCompiler(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn translate_destroy_struct_inner_and_maybe_continue(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        initial_live_capture_locals: &[ILocalVariableT<'s, 't>],
+        inner_patterns: &[&'s AtomSP<'s>],
+        input_struct_expr: &'t ReferenceExpressionTE<'s, 't>,
+        region: RegionT,
+        after_destroy_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def translateDestroyStructInnerAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -522,6 +781,33 @@ class PatternCompiler(
     Compiler.consecutive(Vector(destroyTE, restTE))
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_lets_for_own_and_maybe_continue(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        initial_live_capture_locals: &[ILocalVariableT<'s, 't>],
+        member_local_variables: &[ILocalVariableT<'s, 't>],
+        inner_patterns: &[&'s AtomSP<'s>],
+        region: RegionT,
+        after_lets_success_continuation: impl FnOnce(
+            &mut CompilerOutputs<'s, 't>,
+            &mut NodeEnvironmentBox<'s, 't>,
+            LocationInFunctionEnvironmentT<'s>,
+            &[ILocalVariableT<'s, 't>],
+        ) -> &'t ReferenceExpressionTE<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def makeLetsForOwnAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -560,6 +846,19 @@ class PatternCompiler(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn load_result_ownership(
+        &self,
+        member_ownership_in_struct: OwnershipT,
+    ) -> OwnershipT {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def loadResultOwnership(memberOwnershipInStruct: OwnershipT): OwnershipT = {
     memberOwnershipInStruct match {
       case OwnT => BorrowT
@@ -569,6 +868,25 @@ class PatternCompiler(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn load_from_struct(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        env: &'t IInDenizenEnvironmentT<'s, 't>,
+        load_range: RangeS<'s>,
+        region: RegionT,
+        container_alias: &'t ReferenceExpressionTE<'s, 't>,
+        struct_tt: StructTT<'s, 't>,
+        index: i32,
+    ) -> &'t AddressExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def loadFromStruct(
     coutputs: CompilerOutputs,
     env: IInDenizenEnvironmentT,
@@ -609,6 +927,24 @@ class PatternCompiler(
       variability)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn load_from_static_sized_array(
+        &self,
+        range: RangeS<'s>,
+        static_sized_array_t: StaticSizedArrayTT<'s, 't>,
+        local_coord: CoordT<'s, 't>,
+        struct_ownership: OwnershipT,
+        container_alias: &'t ReferenceExpressionTE<'s, 't>,
+        index: i32,
+    ) -> &'t AddressExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def loadFromStaticSizedArray(
       range: RangeS,
       staticSizedArrayT: StaticSizedArrayTT,
@@ -621,3 +957,4 @@ class PatternCompiler(
   }
 }
 */
+}

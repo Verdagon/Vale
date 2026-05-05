@@ -15,7 +15,29 @@ import dev.vale.typing.env.IEnvEntry
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata.ITemplataT
 import dev.vale.typing.types.InterfaceTT
+*/
 
+// Dispatch-tag enum replacing Scala's IFunctionBodyMacro trait; bodies live as
+// Compiler::generate_function_body_<suffix> methods.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FunctionBodyMacro {
+    LockWeak,
+    AsSubtype,
+    StructDrop,
+    StructConstructor,
+    AbstractBody,
+    SameInstance,
+    RsaLen,
+    RsaMutableNew,
+    RsaImmutableNew,
+    RsaDropInto,
+    RsaMutableCapacity,
+    RsaMutablePop,
+    RsaMutablePush,
+    SsaLen,
+    SsaDropInto,
+}
+/*
 trait IFunctionBodyMacro {
 //  def generatorId: String
 
@@ -31,19 +53,38 @@ trait IFunctionBodyMacro {
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE)
 }
-
+*/
+// Dispatch-tag enum replacing Scala's IOnStructDefinedMacro trait; bodies live on impl Compiler.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum OnStructDefinedMacro {
+    StructConstructor,
+    StructDrop,
+}
+/*
 trait IOnStructDefinedMacro {
   def getStructSiblingEntries(
     structName: IdT[INameT], structA: StructA):
   Vector[(IdT[INameT], IEnvEntry)]
 }
-
+*/
+// Dispatch-tag enum replacing Scala's IOnInterfaceDefinedMacro trait; bodies live on impl Compiler.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum OnInterfaceDefinedMacro {
+    AnonymousInterface,
+    InterfaceDrop,
+}
+/*
 trait IOnInterfaceDefinedMacro {
   def getInterfaceSiblingEntries(
     interfaceName: IdT[INameT], interfaceA: InterfaceA):
   Vector[(IdT[INameT], IEnvEntry)]
 }
-
+*/
+// Dispatch-tag enum replacing Scala's IOnImplDefinedMacro trait; bodies live on impl Compiler.
+// (No concrete implementors in the current codebase — Scala initializes this map empty.)
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum OnImplDefinedMacro {}
+/*
 trait IOnImplDefinedMacro {
   def getImplSiblingEntries(implName: IdT[INameT], implA: ImplA):
   Vector[(IdT[INameT], IEnvEntry)]

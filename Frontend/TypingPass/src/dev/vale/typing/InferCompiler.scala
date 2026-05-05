@@ -149,7 +149,7 @@ class InferCompiler(
     includeReachableBoundsForRunes: Vector[IRuneS]):
   Result[CompleteDefineSolve, IDefiningError] = {
     val solver =
-      makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
+      makeSolverState(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
     continue(envs, coutputs, solver) match {
       case Ok(()) =>
       case Err(e) => return Err(DefiningSolveFailedOrIncomplete(e))
@@ -168,6 +168,11 @@ class InferCompiler(
 
   // The difference between solveForDefining and solveForResolving is whether we declare the function bounds that the
   // rules mention, see DBDAR.
+  // Per @DRSINI, defaults are added incrementally for unsolved runes rather than eagerly.
+  //
+  // ⚠ Same MKRFA caller contract as makeSolver above. Expression-level `rules` must have
+  // RuneParentEnvLookupSR preprocessed into `initialKnowns` before this call (see
+  // OverloadResolver.scala:311-325). Unenforced; violations are silent.
   def solveForResolving(
       envs: InferEnv, // See CSSNCE
       coutputs: CompilerOutputs,
@@ -175,14 +180,35 @@ class InferCompiler(
       runeToType: Map[IRuneS, ITemplataType],
       invocationRange: List[RangeS],
       callLocation: LocationInDenizen,
+      genericParameters: Vector[GenericParameterS],
       initialKnowns: Vector[InitialKnown],
       initialSends: Vector[InitialSend]):
   Result[CompleteResolveSolve, IResolvingError] = {
     val solver =
-      makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
-    continue(envs, coutputs, solver) match {
-      case Ok(()) =>
-      case Err(e) => return Err(ResolvingSolveFailedOrIncomplete(e))
+      makeSolverState(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
+    incrementallySolve(
+      envs, coutputs, solver,
+      (solverState) => {
+        TemplataCompiler.getFirstUnsolvedIdentifyingRune(
+          genericParameters,
+          (rune) => solverState.getConclusion(rune).nonEmpty) match {
+          case None => false
+          case Some((genericParam, _)) => {
+            genericParam.default match {
+              case Some(defaultRules) => {
+                solverState.commitStep[ITypingPassSolverError](
+                  false, Vector(), Map(), defaultRules.rules).getOrDie()
+                true
+              }
+              case None => false
+            }
+          }
+        }
+      }) match {
+      case Err(f @ FailedSolve(_, _, _, _, _)) =>
+        return Err(ResolvingSolveFailedOrIncomplete(f))
+      case Ok(true) =>
+      case Ok(false) =>
     }
     checkResolvingConclusionsAndResolve(
       envs, coutputs, invocationRange, callLocation, runeToType, rules, Vector(), solver)
@@ -198,8 +224,7 @@ class InferCompiler(
       initialSends: Vector[InitialSend]):
   Result[Map[IRuneS, ITemplataT[ITemplataType]], FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]] = {
     val solverState =
-      makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
-    // DO NOT SUBMIT rename makeSolver to makeSolverState
+      makeSolverState(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
     continue(envs, coutputs, solverState) match {
       case Ok(()) =>
       case Err(e) => return Err(e)
@@ -208,7 +233,17 @@ class InferCompiler(
   }
 
 
-  def makeSolver(
+  // Per @ECSIIOSZ, each call-site in source is resolved by a fresh SimpleSolverState built here;
+  // the caller is responsible for the per-call-site setup contract (MKRFA preprocessing, SROACSD
+  // filtering, CSSNCE env threading, DRSINI incremental defaults).
+  // ⚠ CALLER CONTRACT: if `initialRules` come from an expression-level postparser output,
+  // they must have had RuneParentEnvLookupSR rules stripped into `initialKnowns` before
+  // being passed here (the MKRFA contract — see OverloadResolver.scala:311-325 for the
+  // canonical fold). This is NOT enforced at the type level; violations produce silent
+  // "couldn't solve" errors at dependent rules rather than faulting at the MKRFA rule.
+  // See docs/refactor-thoughts/mkrfa-protocol-leak.md for the queued enforcement work
+  // (extract shared helper + replace the no-op handler with vwat).
+  def makeSolverState(
     envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     initialRules: Vector[IRulexSR],
@@ -243,7 +278,7 @@ class InferCompiler(
           })
 
       val solver =
-        compilerSolver.makeSolver(invocationRange, envs, state, rules, runeToType, alreadyKnown)
+        compilerSolver.makeSolverState(invocationRange, envs, state, rules, runeToType, alreadyKnown)
       solver
     })
   }
@@ -396,6 +431,9 @@ class InferCompiler(
     }
   }
 
+  // Counter to @BDPFWDZ: this harvests bound prototypes from citizen-typed param inner envs
+  // for the caller to push into its near-env. Pull-aligned replacement is to walk the citizen's
+  // env at lookup time instead.
   def checkDefiningConclusionsAndResolve(
       envs: InferEnv, // See CSSNCE
       state: CompilerOutputs,
@@ -692,6 +730,8 @@ class InferCompiler(
         Ok(())
       }
       case it @ StructDefinitionTemplataT(_, _) => {
+        // Per @DRSINI, passes partial args (only written template args, not defaults).
+        // resolveStruct adds defaults incrementally via solveForResolving for unsolved runes.
         delegate.resolveStruct(callingEnv, state, range :: ranges, callLocation, it, args.toVector) match {
           case ResolveSuccess(kind, _) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
@@ -699,6 +739,8 @@ class InferCompiler(
         Ok(())
       }
       case it @ InterfaceDefinitionTemplataT(_, _) => {
+        // Per @DRSINI, passes partial args (only written template args, not defaults).
+        // resolveInterface adds defaults incrementally via solveForResolving for unsolved runes.
         delegate.resolveInterface(callingEnv, state, range :: ranges, callLocation, it, args.toVector) match {
           case ResolveSuccess(kind, _) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
@@ -743,7 +785,10 @@ class InferCompiler(
 }
 
 object InferCompiler {
-  // Some rules should be excluded from the call site, see SROACSD.
+  // Per @SROACSD, DefinitionFuncSR and DefinitionCoordIsaSR are excluded from
+  // call-site solves so that ResolveSR and its siblings can't see callee-internal
+  // prototype declarations. @BRRZ depends on this filter: the relaxed ResolveSR's
+  // real-lookup branch assumes no sibling DefinitionFuncSR in the same solve.
   def includeRuleInCallSiteSolve(rule: IRulexSR): Boolean = {
     rule match {
       case DefinitionFuncSR(_, _, _, _, _) => false
@@ -752,7 +797,9 @@ object InferCompiler {
     }
   }
 
-  // Some rules should be excluded from the call site, see SROACSD.
+  // Per @SROACSD, ResolveSR, CallSiteFuncSR, and CallSiteCoordIsaSR are excluded
+  // from definition solves — a function's own definition should not resolve
+  // its callers' prototypes.
   def includeRuleInDefinitionSolve(rule: IRulexSR): Boolean = {
     rule match {
       case CallSiteCoordIsaSR(_, _, _, _) => false

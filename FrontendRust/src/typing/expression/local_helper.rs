@@ -1,3 +1,22 @@
+use crate::postparsing::ast::LocationInDenizen;
+use crate::typing::compiler::Compiler;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::expressions::*;
+use crate::postparsing::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::citizens::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::env::i_env_entry::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::templata::templata::*;
+use crate::typing::compiler_outputs::*;
+use crate::parsing::ast::*;
+use crate::interner::Interner;
+
 /*
 package dev.vale.typing.expression
 
@@ -21,13 +40,21 @@ import dev.vale.typing.ast._
 import dev.vale.typing.names.TypingPassTemporaryVarNameT
 
 import scala.collection.immutable.List
-
+*/
+/*
 class LocalHelper(
     opts: TypingPassOptions,
     interner: Interner,
     nameTranslator: NameTranslator,
     destructorCompiler: DestructorCompiler) {
-
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_temporary_local(&self, nenv: &mut NodeEnvironmentBox<'s, 't>, life: LocationInFunctionEnvironmentT<'s>, coord: CoordT<'s, 't>) -> ReferenceLocalVariableT<'s, 't> {
+        panic!("Unimplemented: make_temporary_local");
+    }
+/*
   def makeTemporaryLocal(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironmentT,
@@ -39,6 +66,15 @@ class LocalHelper(
     rlv
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_temporary_local_defer(&self, coutputs: &CompilerOutputs<'s, 't>, nenv: &mut NodeEnvironmentBox<'s, 't>, range: &[RangeS<'s>], call_location: LocationInDenizen<'s>, life: LocationInFunctionEnvironmentT<'s>, context_region: RegionT, r: ReferenceExpressionTE<'s, 't>, target_ownership: OwnershipT) -> DeferTE<'s, 't> {
+        panic!("Unimplemented: make_temporary_local");
+    }
+/*
   // This makes a borrow ref, but can easily turn that into a weak
   // separately.
   def makeTemporaryLocal(
@@ -68,12 +104,37 @@ class LocalHelper(
     (DeferTE(letExpr2, destructExpr2))
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn unlet_local_without_dropping(&self, nenv: &mut NodeEnvironmentBox<'s, 't>, local_var: &ILocalVariableT<'s, 't>) -> UnletTE<'s, 't> {
+        nenv.mark_local_unstackified(local_var.name());
+        UnletTE { variable: *local_var }
+    }
+/*
   def unletLocalWithoutDropping(nenv: NodeEnvironmentBox, localVar: ILocalVariableT):
   (UnletTE) = {
     nenv.markLocalUnstackified(localVar.name)
     UnletTE(localVar)
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn unlet_and_drop_all(&self, coutputs: &mut CompilerOutputs<'s, 't>, nenv: &mut NodeEnvironmentBox<'s, 't>, range: &[RangeS<'s>], call_location: LocationInDenizen<'s>, context_region: RegionT, variables: &[&ILocalVariableT<'s, 't>]) -> Vec<&'t ReferenceExpressionTE<'s, 't>> {
+        variables.iter().map(|variable| {
+            let unlet = self.unlet_local_without_dropping(nenv, variable);
+            let unlet_ref = &*self.typing_interner.alloc(ReferenceExpressionTE::Unlet(unlet));
+            let snapshot = nenv.snapshot(self.typing_interner);
+            let snapshot_env = &*self.typing_interner.alloc(IInDenizenEnvironmentT::Node(snapshot));
+            self.drop(snapshot_env, coutputs, range, call_location, context_region, unlet_ref)
+        }).collect()
+    }
+/*
   def unletAndDropAll(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -90,6 +151,15 @@ class LocalHelper(
     })
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn unlet_all_without_dropping(&self, coutputs: &CompilerOutputs<'s, 't>, nenv: &mut NodeEnvironmentBox<'s, 't>, range: &[RangeS<'s>], variables: &[&ILocalVariableT<'s, 't>]) -> Vec<ReferenceExpressionTE<'s, 't>> {
+        panic!("Unimplemented: unlet_all_without_dropping");
+    }
+/*
   def unletAllWithoutDropping(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -99,6 +169,15 @@ class LocalHelper(
     variables.map(variable => unletLocalWithoutDropping(nenv, variable))
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_user_local_variable(&self, coutputs: &CompilerOutputs<'s, 't>, nenv: &mut NodeEnvironmentBox<'s, 't>, range: &[RangeS<'s>], local_variable_a: &LocalS<'s>, reference_type2: CoordT<'s, 't>) -> ILocalVariableT<'s, 't> {
+        panic!("Unimplemented: make_user_local_variable");
+    }
+/*
   // A user local variable is one that the user can address inside their code.
   // Users never see the names of non-user local variables, so they can't be
   // looked up.
@@ -132,6 +211,16 @@ class LocalHelper(
     localVar
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn maybe_borrow_soft_load(&self, coutputs: &CompilerOutputs<'s, 't>, expr2: &ExpressionTE<'s, 't>) -> ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: maybe_borrow_soft_load");
+    }
+/*
   def maybeBorrowSoftLoad(
       coutputs: CompilerOutputs,
       expr2: ExpressionT):
@@ -142,6 +231,15 @@ class LocalHelper(
     }
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn soft_load(&self, nenv: &mut NodeEnvironmentBox<'s, 't>, load_range: &[RangeS<'s>], a: &AddressExpressionTE<'s, 't>, load_as_p: LoadAsP, region: RegionT) -> ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: soft_load");
+    }
+/*
   def softLoad(
       nenv: NodeEnvironmentBox,
       loadRange: List[RangeS],
@@ -205,12 +303,31 @@ class LocalHelper(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn borrow_soft_load(&self, coutputs: &CompilerOutputs<'s, 't>, expr2: &AddressExpressionTE<'s, 't>) -> ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: borrow_soft_load");
+    }
+/*
   def borrowSoftLoad(coutputs: CompilerOutputs, expr2: AddressExpressionTE):
   ReferenceExpressionTE = {
     val ownership = getBorrowOwnership(coutputs, expr2.result.coord.kind)
     ast.SoftLoadTE(expr2, ownership)
   }
 
+*/
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_borrow_ownership(&self, coutputs: &CompilerOutputs<'s, 't>, kind: &KindT<'s, 't>) -> OwnershipT {
+        panic!("Unimplemented: get_borrow_ownership");
+    }
+/*
   def getBorrowOwnership(coutputs: CompilerOutputs, kind: KindT):
   OwnershipT = {
     kind match {
@@ -265,6 +382,22 @@ class LocalHelper(
 }
 
 object LocalHelper {
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn determine_if_local_is_addressible(
+        &self,
+        mutability: ITemplataT<'s, 't>,
+        local_a: &'s LocalS<'s>,
+    ) -> bool {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+    /* Guardian: disable-all */
+}
+/*
   // See ClosureTests for requirements here
   def determineIfLocalIsAddressible(mutability: ITemplataT[MutabilityTemplataType], localA: LocalS): Boolean = {
     mutability match {
@@ -277,6 +410,19 @@ object LocalHelper {
     }
   }
 
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn determine_local_variability(
+        &self,
+        local_a: &'s LocalS<'s>,
+    ) -> VariabilityT {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+    /* Guardian: disable-all */
+}
+/*
   def determineLocalVariability(localA: LocalS): VariabilityT = {
     if (localA.selfMutated != NotUsed || localA.childMutated != NotUsed) {
       VaryingT

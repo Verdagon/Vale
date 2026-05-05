@@ -1,3 +1,12 @@
+use crate::utils::range::RangeS;
+
+use crate::typing::types::types::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::compiler_outputs::*;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::typing::compiler::Compiler;
+
 /*
 package dev.vale.typing
 
@@ -22,7 +31,12 @@ import scala.collection.immutable.List
 //import dev.vale.carpenter.CovarianceCarpenter
 import dev.vale.postparsing._
 
+*/
+// deleted: delegate trait removed per god-struct refactor (Compiler now holds all methods directly)
+/*
 trait IConvertHelperDelegate {
+*/
+/*
   def isParent(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
@@ -34,9 +48,27 @@ trait IConvertHelperDelegate {
 }
 
 
+*/
+/*
 class ConvertHelper(
     opts: TypingPassOptions,
     delegate: IConvertHelperDelegate) {
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn convert_exprs(
+        &self,
+        env: &IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        source_exprs: Vec<ReferenceExpressionTE<'s, 't>>,
+        target_pointer_types: Vec<CoordT<'s, 't>>,
+    ) -> Vec<ReferenceExpressionTE<'s, 't>> {
+        panic!("Unimplemented: convert_exprs");
+    }
+/*
   def convertExprs(
       env: IInDenizenEnvironmentT,
       coutputs: CompilerOutputs,
@@ -60,6 +92,28 @@ class ConvertHelper(
   }
 
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn convert(
+        &self,
+        env: &IInDenizenEnvironmentT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        source_expr: &'t ReferenceExpressionTE<'s, 't>,
+        target_pointer_type: CoordT<'s, 't>,
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        if source_expr.result().coord == target_pointer_type {
+            return source_expr;
+        }
+
+        panic!("implement: convert — non-trivial conversion");
+    }
+/*
   def convert(
       env: IInDenizenEnvironmentT,
       coutputs: CompilerOutputs,
@@ -131,6 +185,25 @@ class ConvertHelper(
   }
 
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn convert_with_subkind(
+        &self,
+        calling_env: &IInDenizenEnvironmentT,
+        coutputs: &mut CompilerOutputs,
+        range: &[RangeS],
+        call_location: LocationInDenizen,
+        source_expr: ReferenceExpressionTE,
+        source_sub_kind: ISubKindTT,
+        target_super_kind: ISuperKindTT,
+    ) -> ReferenceExpressionTE<'_, '_> {
+        panic!("Unimplemented: convert");
+    }
+/*
   def convert(
     callingEnv: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -157,3 +230,4 @@ class ConvertHelper(
 
 }
 */
+}

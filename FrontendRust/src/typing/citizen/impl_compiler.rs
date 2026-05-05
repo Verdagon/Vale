@@ -1,3 +1,26 @@
+use std::collections::HashMap;
+use crate::typing::compiler::Compiler;
+use crate::typing::infer_compiler::*;
+use crate::solver::solver::*;
+use crate::typing::infer::compiler_solver::ITypingPassSolverError;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::*;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::postparsing::rules::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::citizens::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::env::i_env_entry::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::templata::templata::*;
+use crate::typing::compiler_outputs::*;
+use crate::higher_typing::ast::*;
+use crate::interner::Interner;
+
 /*
 package dev.vale.typing.citizen
 
@@ -22,16 +45,37 @@ import dev.vale.typing.infer.ITypingPassSolverError
 
 import scala.collection.immutable.Set
 
+*/
+
+pub enum IsParentResult<'s, 't> {
+    IsParent(IsParent<'s, 't>),
+    IsntParent(IsntParent<'s, 't>),
+}
+/*
 sealed trait IsParentResult
+*/
+pub struct IsParent<'s, 't> {
+    pub templata: ITemplataT<'s, 't>,
+    pub conclusions: std::collections::HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+    pub impl_id: IdT<'s, 't>,
+}
+/*
 case class IsParent(
   templata: ITemplataT[ImplTemplataType],
   conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
   implId: IdT[IImplNameT]
 ) extends IsParentResult
+*/
+pub struct IsntParent<'s, 't> {
+    pub candidates: Vec<IResolvingError<'s, 't>>,
+}
+/*
 case class IsntParent(
   candidates: Vector[IResolvingError]
 ) extends IsParentResult
 
+*/
+/*
 class ImplCompiler(
     opts: TypingPassOptions,
     interner: Interner,
@@ -41,7 +85,22 @@ class ImplCompiler(
     inferCompiler: InferCompiler) {
 
   // We don't have an isAncestor call, see REMUIDDA.
-
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn resolve_impl(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        initial_knowns: &[InitialKnown],
+        impl_templata: &'t ImplDefinitionTemplataT<'s, 't>,
+    ) -> Result<CompleteResolveSolve<'s, 't>, IResolvingError<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def resolveImpl(
       coutputs: CompilerOutputs,
       parentRanges: List[RangeS],
@@ -86,7 +145,7 @@ class ImplCompiler(
     val originalCallingEnv = callingEnv
     val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT())
     val solver =
-      inferCompiler.makeSolver(
+      inferCompiler.makeSolverState(
         envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
 
     inferCompiler.continue(envs, coutputs, solver) match {
@@ -107,6 +166,24 @@ class ImplCompiler(
       solver)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn partial_resolve_impl(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        initial_knowns: &[InitialKnown],
+        impl_templata: &'t ImplDefinitionTemplataT<'s, 't>,
+    ) -> Result<HashMap<IRuneS<'s>, ITemplataT<'s, 't>>, FailedSolve<IRulexSR<'s>, IRuneS<'s>, ITemplataT<'s, 't>, ITypingPassSolverError<'s, 't>>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // WARNING: Doesn't verify conclusions to make sure that any bounds are satisfied!
   def partialResolveImpl(
     coutputs: CompilerOutputs,
@@ -115,7 +192,7 @@ class ImplCompiler(
     callingEnv: IInDenizenEnvironmentT,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplataT):
-  Result[Map[IRuneS, ITemplataT[ITemplataType]], FailedCompilerSolve] = {
+  Result[Map[IRuneS, ITemplataT[ITemplataType]], FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]] = {
 
     val ImplDefinitionTemplataT(parentEnv, impl) = implTemplata
     val ImplA(
@@ -150,16 +227,31 @@ class ImplCompiler(
     // to evaluate an override.
     val originalCallingEnv = callingEnv
     val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT())
-    val solver =
-      inferCompiler.makeSolver(
+    val solverState =
+      inferCompiler.makeSolverState(
         envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
-    inferCompiler.continue(envs, coutputs, solver) match {
+    inferCompiler.continue(envs, coutputs, solverState) match {
       case Ok(()) =>
       case Err(e) => return Err(e)
     }
-    Ok(solver.userifyConclusions().toMap)
+    Ok(solverState.userifyConclusions().toMap)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn compile_impl(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_location: LocationInDenizen<'s>,
+        impl_templata: &'t ImplDefinitionTemplataT<'s, 't>,
+    ) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // This will just figure out the struct template and interface template,
   // so we can add it to the temputs.
   def compileImpl(coutputs: CompilerOutputs, callLocation: LocationInDenizen, implTemplata: ImplDefinitionTemplataT): Unit = {
@@ -297,6 +389,23 @@ class ImplCompiler(
     coutputs.addImpl(implT)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn calculate_runes_independence(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_location: LocationInDenizen<'s>,
+        impl_templata: &'t ImplDefinitionTemplataT<'s, 't>,
+        impl_outer_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        interface: InterfaceTT<'s, 't>,
+    ) -> Vec<bool> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def calculateRunesIndependence(
     coutputs: CompilerOutputs,
     callLocation: LocationInDenizen,
@@ -339,6 +448,21 @@ class ImplCompiler(
     runeToIndependence
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn assemble_impl_name(
+        &self,
+        template_name: IdT<'s, 't>,
+        template_args: &[ITemplataT<'s, 't>],
+        sub_citizen: ICitizenTT<'s, 't>,
+    ) -> IdT<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def assembleImplName(
     templateName: IdT[IImplTemplateNameT],
     templateArgs: Vector[ITemplataT[ITemplataType]],
@@ -505,6 +629,23 @@ class ImplCompiler(
   //  }
   //
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn is_descendant(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        kind: ISubKindTT<'s, 't>,
+    ) -> bool {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def isDescendant(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -524,14 +665,14 @@ class ImplCompiler(
   //   parent: InterfaceTT,
   //   verifyConclusions: Boolean,
   //   declareBounds: Boolean):
-  // Result[ICitizenTT, IIncompleteOrFailedCompilerSolve] = {
+  // Result[ICitizenTT, FailedSolve] = {
   //   val initialKnowns =
   //     Vector(
   //       InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplataT(parent)))
   //   val CompleteCompilerSolve(_, conclusions, _, _) =
   //     solveImplForCall(coutputs, parentRanges, callLocation, callingEnv, initialKnowns, implTemplata, declareBounds, true) match {
   //       case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
-  //       case x : IIncompleteOrFailedCompilerSolve => return Err(x)
+  //       case x : FailedSolve => return Err(x)
   //     }
   //   val parentTT = conclusions.get(implTemplata.impl.subCitizenRune.rune)
   //   vassertSome(parentTT) match {
@@ -540,6 +681,24 @@ class ImplCompiler(
   //   }
   // }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_impl_parent_given_sub_citizen(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        impl_templata: &'t ImplDefinitionTemplataT<'s, 't>,
+        child: ICitizenTT<'s, 't>,
+    ) -> Result<InterfaceTT<'s, 't>, IResolvingError<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def getImplParentGivenSubCitizen(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -567,6 +726,23 @@ class ImplCompiler(
     }
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_parents(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        sub_kind: ISubKindTT<'s, 't>,
+    ) -> Vec<ISuperKindTT<'s, 't>> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def getParents(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -627,6 +803,24 @@ class ImplCompiler(
     parentsFromImplDefs ++ parentsFromImplTemplatas
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn is_parent(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        sub_kind_tt: ISubKindTT<'s, 't>,
+        super_kind_tt: ISuperKindTT<'s, 't>,
+    ) -> IsParentResult<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def isParent(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
@@ -715,3 +909,4 @@ class ImplCompiler(
   }
 }
 */
+}

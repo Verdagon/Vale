@@ -1,3 +1,16 @@
+use crate::typing::compiler::Compiler;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::rules::rules::IRulexSR;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::compiler_outputs::*;
+
 /*
 package dev.vale.typing.expression
 
@@ -18,7 +31,8 @@ import dev.vale.typing.ast._
 import dev.vale.typing.names._
 
 import scala.collection.immutable.List
-
+*/
+/*
 class CallCompiler(
     opts: TypingPassOptions,
     interner: Interner,
@@ -27,7 +41,26 @@ class CallCompiler(
     convertHelper: ConvertHelper,
     localHelper: LocalHelper,
     overloadCompiler: OverloadResolver) {
-
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_call(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        context_region: RegionT,
+        callable_expr: &'t ReferenceExpressionTE<'s, 't>,
+        explicit_template_arg_rules_s: &[&'s IRulexSR<'s>],
+        explicit_template_arg_runes_s: &[IRuneS<'s>],
+        given_args_exprs_2: &[&'t ReferenceExpressionTE<'s, 't>],
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def evaluateCall(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -120,6 +153,29 @@ class CallCompiler(
   // also, the given callable is f, but the actual callable is f.__function.
 
   // By "custom call" we mean calling __call.
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_custom_call(
+        &self,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        context_region: RegionT,
+        kind: KindT<'s, 't>,
+        explicit_template_arg_rules_s: &[&'s IRulexSR<'s>],
+        explicit_template_arg_runes_s: &[IRuneS<'s>],
+        given_callable_unborrowed_expr_2: &'t ReferenceExpressionTE<'s, 't>,
+        given_args_exprs_2: &[&'t ReferenceExpressionTE<'s, 't>],
+    ) -> &'t FunctionCallTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   private def evaluateCustomCall(
     nenv: NodeEnvironmentBox,
     coutputs: CompilerOutputs,
@@ -206,6 +262,25 @@ class CallCompiler(
   }
 
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn check_types(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &'t IInDenizenEnvironmentT<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        params: &[CoordT<'s, 't>],
+        args: &[CoordT<'s, 't>],
+        exact: bool,
+    ) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def checkTypes(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT,
@@ -252,6 +327,28 @@ class CallCompiler(
 //    vassert(argTypes == callableType.paramTypes, "arg param type mismatch. params: " + callableType.paramTypes + " args: " + argTypes)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_prefix_call(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        region: RegionT,
+        callable_reference_expr_2: &'t ReferenceExpressionTE<'s, 't>,
+        explicit_template_arg_rules_s: &[&'s IRulexSR<'s>],
+        explicit_template_arg_runes_s: &[IRuneS<'s>],
+        args_exprs_2: &[&'t ReferenceExpressionTE<'s, 't>],
+    ) -> &'t ReferenceExpressionTE<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   def evaluatePrefixCall(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
@@ -281,3 +378,4 @@ class CallCompiler(
   }
 }
 */
+}

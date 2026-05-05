@@ -14,7 +14,7 @@ import dev.vale.{Accumulator, Err, Interner, Ok, Profiler, RangeS, Result, U, po
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
-import dev.vale.typing.ast.{CitizenDefinitionT, ImplT, InterfaceDefinitionT}
+import dev.vale.typing.ast.{CitizenDefinitionT, ImplT, InterfaceDefinitionT, StructDefinitionT}
 import dev.vale.typing.env._
 import dev.vale.typing.function._
 import dev.vale.typing.infer.ITypingPassSolverError
@@ -84,8 +84,10 @@ class ImplCompiler(
     // to evaluate an override.
     val originalCallingEnv = callingEnv
     val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT(DefaultRegionT))
+    // Per @ECSIIOSZ, this is a per-call-site solver instantiation for impl resolution;
+    // initialKnowns come from the caller via solveImplForCall's preprocessing.
     val solver =
-      inferCompiler.makeSolver(
+      inferCompiler.makeSolverState(
         envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
 
     inferCompiler.continue(envs, coutputs, solver) match {
@@ -150,7 +152,7 @@ class ImplCompiler(
     val originalCallingEnv = callingEnv
     val envs = InferEnv(originalCallingEnv, range :: parentRanges, callLocation, outerEnv, RegionT(DefaultRegionT))
     val solverState =
-      inferCompiler.makeSolver(
+      inferCompiler.makeSolverState(
         envs, coutputs, callSiteRules, runeToType, range :: parentRanges, initialKnowns, Vector())
     inferCompiler.continue(envs, coutputs, solverState) match {
       case Ok(()) =>
@@ -252,6 +254,15 @@ class ImplCompiler(
     val superInterfaceTemplateId =
       TemplataCompiler.getInterfaceTemplate(superInterface.id)
 
+    val subCitizenWeakable =
+      coutputs.lookupCitizen(subCitizen) match {
+        case s: StructDefinitionT => s.weakable
+        case i: InterfaceDefinitionT => i.weakable
+      }
+    val superInterfaceWeakable = coutputs.lookupInterface(superInterface).weakable
+    if (subCitizenWeakable != superInterfaceWeakable) {
+      throw WeakableImplingMismatch(subCitizenWeakable, superInterfaceWeakable)
+    }
 
     val templateArgs = implA.genericParams.map(_.rune.rune).map(inferences)
     val instantiatedId = assembleImplName(implTemplateId, templateArgs, subCitizen)

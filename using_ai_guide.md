@@ -12,12 +12,11 @@ Type these directly in Claude Code.
 | `/good-doc` | Categorize information and write it to the correct `docs/` directories per `docs/meta.md`. Handles arcana (@ID references) and shields. |
 
 ### Migration — Driving Work Forward
-| Command | What it does |
-|---|---|
-| `/migration-drive` | Make minimal, iterative parity-only changes. Adds `panic!` placeholders liberally. No novel logic. |
-| `/migration-test-fixer` | Run a failing test, diagnose what's missing, migrate Scala code until it passes. Stops after 5 consecutive failures. |
-| `/migration-test-fixer-2` | Like above but uses `migrate-director` for smarter orchestration. |
-| `/slice-pipeline` | Run the full slice pipeline on a file: start → rustify → placehold → reconcile (mark/copy/delete). |
+| Command | What it does                                                                                                                   |
+|---|--------------------------------------------------------------------------------------------------------------------------------|
+| `/migration-drive` | Make minimal, iterative parity-only changes. Adds `panic!` placeholders liberally. No novel logic.                             |
+| `/migration-test-fixer` | Run a failing test, uses agents to diagnose and scope, migrate Scala code until it passes. Stops after 5 consecutive failures. |
+| `/slice-pipeline` | Run the full slice pipeline on a file: start → rustify → placehold → reconcile (mark/copy/delete).                             |
 
 ### Migration — Reviewing & Checking
 | Command | What it does |
@@ -39,7 +38,7 @@ Type these directly in Claude Code.
 
 | Scenario | Skill | Under the hood |
 |---|---|---|
-| Guardian hook just blocked your commit and you want to fix it now | `/guardian-diagnose` | Reads `guardian-logs/`, calls `post-hook-allow` / `post-hook-deny`, then runs inline curate (`check-direct`, `cargo nextest run`) |
+| Guardian hook just blocked your commit and you want to fix it now | `/guardian-diagnose` | Reads `guardian-logs/`, calls `expect-allow` / `expect-deny`, then runs inline curate (`check-direct`, `cargo nextest run`) |
 | You're reviewing code and spot a violation Guardian missed | `/guardian-teach` | Calls `guardian contextified-diff`, `guardian check`, creates test case in `tests/` |
 | You applied a Guardian review and marked false positives with `//f` | `/guardian-post-review` | Calls `guardian feedback-line` for each annotation |
 | Weekly triage of accumulated disagreements | `/guardian-curate` | Calls `guardian check`, `cargo test`, moves cases between `disagreements/` and `tests/` |
@@ -58,9 +57,8 @@ These are invoked by skills or by Claude via the Agent tool. You don't call them
 ### Migration Pipeline
 | Agent | Role |
 |---|---|
-| `migrate-diagnoser` | Diagnose what missing migration causes a test failure. Writes `migrate-direction.md`. |
-| `migrate-director` | Orchestrate diagnosis + scoping. Tells Claude what to implement next. |
-| `migrate-scoper` | Generate implementation instructions from diagnoser findings. Internal to migrate-director. |
+| `migrate-diagnoser` | Diagnose what missing migration causes a test failure. Writes `tmp/migrate-direction.md`. |
+| `migrate-scoper` | Generate implementation instructions from diagnoser findings. |
 | `migration-migrate` | Bring over minimum Scala code to make changes compile. Uses `panic!` heavily. |
 
 ### Slice Pipeline
@@ -123,7 +121,7 @@ See `/guardian-add` skill. Summary:
 3. `/migration-check-correct-loop` on specific definitions that need fixing
 
 ### "I want to get a test passing"
-1. `/migration-test-fixer-2` with the test name
+1. `/migration-test-fixer` with the test name
 2. It will diagnose, migrate, and iterate until the test passes
 
 ### "I want to check if my migration is correct"

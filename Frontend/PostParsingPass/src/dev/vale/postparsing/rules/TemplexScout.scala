@@ -10,10 +10,9 @@ import dev.vale.postparsing._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-sealed trait IContextRegion
-case class ContextRegionRune(contextRegion: IRuneS) extends IContextRegion
-case class IsoContextRegion() extends IContextRegion
-
+// Per @ECSIIOSZ, each call-site's templex tree (`Some<T>`, `&E`, `Array<imm, int>`, etc.) is
+// lowered here into a flat rule vector that later becomes the input to a per-call-site
+// solver instance.
 class TemplexScout(
     interner: Interner,
   keywords: Keywords) {
@@ -46,7 +45,7 @@ class TemplexScout(
     ruleBuilder: ArrayBuffer[IRulexSR],
     rangeS: RangeS,
       // DO NOT SUBMIT add iso reasoning to RADTGCA
-    contextRegion: IContextRegion, // Nearest enclosing region marker, see RADTGCA.
+    contextRegion: IRuneS, // Nearest enclosing region marker, see RADTGCA.
     nameSN: IImpreciseNameS):
   RuneUsage = {
     val runeS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
@@ -73,7 +72,7 @@ class TemplexScout(
     env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
-    contextRegion: IContextRegion, // Nearest enclosing region marker, see RADTGCA.
+    contextRegion: IRuneS, // Nearest enclosing region marker, see RADTGCA.
     templex: ITemplexPT):
   RuneUsage = {
     Profiler.frame(() => {
@@ -129,7 +128,7 @@ class TemplexScout(
               val rangeS = evalRange(range)
               val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
 
-              val newContextRegion =
+              val newContextRegion: IRuneS =
                 maybeRegion match {
                   case None => contextRegion
                   case Some(runeName) => {
@@ -139,10 +138,12 @@ class TemplexScout(
                         if (!env.allDeclaredRunes().contains(rune)) {
                           throw CompileErrorExceptionS(UnknownRegionError(rangeS, rune.name.str))
                         }
-                        ContextRegionRune(rules.RuneUsage(evalRange(range), rune).rune)
+                        rune
                       }
                       case None => { // Then it's an isolate
-                        IsoContextRegion()
+                        // Per master's region rework, the iso context region is gone;
+                        // fall back to the surrounding context region.
+                        contextRegion
                       }
                     }
                   }
@@ -277,20 +278,28 @@ class TemplexScout(
             }
             case TuplePT(rangeP, elements) => {
               val rangeS = evalRange(rangeP)
-              val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-              val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder +=
-                rules.MaybeCoercingLookupSR(
-                  rangeS,
-                  templateRuneS,
-                  interner.intern(CodeNameS(keywords.tupleHumanName(elements.length))))
-              ruleBuilder +=
-                rules.MaybeCoercingCallSR(
-                  rangeS,
-                  resultRuneS,
-                  templateRuneS,
-                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, _)))
-              resultRuneS
+              val tupleName = interner.intern(CodeNameS(keywords.tupleHumanName(elements.length)))
+              if (elements.isEmpty) {
+                // Zero-arg case: lower directly to a single MaybeCoercingLookupSR, matching
+                // how any other zero-arg kind template (e.g., `Spaceship`) is handled.
+                // Emitting a MaybeCoercingCallSR here would deadlock RuneTypeSolver, since
+                // its pre-processor declines to seed Tup0's ambiguous templata shape.
+                val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+                ruleBuilder += rules.MaybeCoercingLookupSR(rangeS, resultRuneS, tupleName)
+                resultRuneS
+              } else {
+                val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+                val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+                ruleBuilder +=
+                  rules.MaybeCoercingLookupSR(rangeS, templateRuneS, tupleName)
+                ruleBuilder +=
+                  rules.MaybeCoercingCallSR(
+                    rangeS,
+                    resultRuneS,
+                    templateRuneS,
+                    elements.map(translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, _)))
+                resultRuneS
+              }
             }
           }
         }
@@ -304,7 +313,7 @@ class TemplexScout(
     env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
-    contextRegion: IContextRegion, // Nearest enclosing region marker, see RADTGCA.
+    contextRegion: IRuneS, // Nearest enclosing region marker, see RADTGCA.
     typeP: ITemplexPT):
   RuneUsage = {
     typeP match {
@@ -325,7 +334,7 @@ class TemplexScout(
     lidb: LocationInDenizenBuilder,
     range: RangeS,
     ruleBuilder: ArrayBuffer[IRulexSR],
-    contextRegion: IContextRegion, // Nearest enclosing region marker, see RADTGCA.
+    contextRegion: IRuneS, // Nearest enclosing region marker, see RADTGCA.
     maybeTypeP: Option[ITemplexPT]):
   RuneUsage = {
     maybeTypeP match {
@@ -345,7 +354,7 @@ class TemplexScout(
     range: RangeS,
     ruleBuilder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
-    contextRegion: IContextRegion, // Nearest enclosing region marker, see RADTGCA.
+    contextRegion: IRuneS, // Nearest enclosing region marker, see RADTGCA.
     maybeTypeP: Option[ITemplexPT]):
   Option[RuneUsage] = {
     if (maybeTypeP.isEmpty) {

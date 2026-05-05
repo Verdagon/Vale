@@ -440,6 +440,7 @@ case class FunctionTemplateNameT(
   }
 }
 
+// Per @LAGTNGZ, paramTypes is part of the template name so different arg tuples produce distinct names.
 case class LambdaCallFunctionTemplateNameT(
   codeLocation: CodeLocationS,
   paramTypes: Vector[CoordT]
@@ -451,6 +452,7 @@ case class LambdaCallFunctionTemplateNameT(
   }
 }
 
+// Per @LAGTNGZ, one closure struct can correspond to many of these — one per distinct call-site arg tuple.
 case class LambdaCallFunctionNameT(
   template: LambdaCallFunctionTemplateNameT,
   templateArgs: Vector[ITemplataT[ITemplataType]],
@@ -543,6 +545,7 @@ case class InterfaceNameT(
   vpass()
 }
 
+// Per @LAGTNGZ, the closure struct doesnt have its own generic parameters, but its associated LambdaCallFunctionTemplateNameT does.
 case class LambdaCitizenTemplateNameT(
   codeLocation: CodeLocationS
 ) extends IStructTemplateNameT {

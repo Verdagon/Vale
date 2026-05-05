@@ -8,6 +8,7 @@ import dev.vale.postparsing._
 import dev.vale.solver.{FailedSolve, ISolverError, RuleError, SimpleSolverState, Solver, SolverConflict}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
+import dev.vale.typing.function.StampFunctionSuccess
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -157,6 +158,19 @@ trait IInfererDelegate {
     returnCoord: CoordT):
   PrototypeTemplataT[IFunctionNameT]
 
+  // Per @BRRZ, used by the relaxed ResolveSR handler when the return rune isn't known.
+  // Performs a real overload lookup against the caller's (snapshotted) env and returns
+  // the stamped function's prototype, whose returnType unblocks the solver. Mirrors
+  // the outer InferCompiler delegate's resolveFunction — this delegate exists only
+  // inside the solver's own handler dispatch, so we need it declared here too.
+  def resolveFunction(
+    env: InferEnv,
+    state: CompilerOutputs,
+    range: List[RangeS],
+    name: StrI,
+    paramCoords: Vector[CoordT]):
+  Result[StampFunctionSuccess, FindFunctionFailure]
+
   def assemblePrototype(
     env: InferEnv,
     state: CompilerOutputs,
@@ -242,7 +256,14 @@ class CompilerSolver(
       case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Vector(Vector(resultRune.rune))
       // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
       case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Vector(Vector(paramListRune.rune, returnRune.rune))
-      case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Vector(Vector(paramsListRune.rune, returnRune.rune))
+      // Per @BRRZ, ResolveSR fires in one of two modes: when both params and return
+      // are known (existing predict path, postponing real resolution per SFWPRL), or
+      // when only params are known (real overload lookup to discover the return).
+      // Handler below branches on which condition triggered.
+      case ResolveSR(range, resultRune, name, paramsListRune, returnRune) =>
+        Vector(
+          Vector(paramsListRune.rune, returnRune.rune),
+          Vector(paramsListRune.rune))
       case OneOfSR(range, rune, literals) => Vector(Vector(rune.rune))
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
       case IsConcreteSR(range, rune) => Vector(Vector(rune.rune))
@@ -261,7 +282,7 @@ class CompilerSolver(
     }
   }
 
-  def makeSolver(
+  def makeSolverState(
     range: List[RangeS],
     env: InferEnv,
     state: CompilerOutputs,
@@ -328,7 +349,7 @@ class CompilerSolver(
         }
         val stepsAfter = solverState.getSteps().size
         vassert(stepsAfter == stepsBefore + 1)
-        vassert(solverState.ruleIsSolved(solvingRuleIndex))
+        vassert(solverState.ruleIsSolved(solvingRuleIndex)) // Per @CSCDSRZ, only true after simple solve.
         solverState.sanityCheck()
         // Go back to the beginning. Next step, if there's no simple rule ready to solve, then
         // it'll start doing a complex solve if available, or just finish.
@@ -336,6 +357,7 @@ class CompilerSolver(
       }
     }
     // Stage 2: Do a complex solve if available.
+    // Per @CSCDSRZ, complex solve only adds conclusions — we check conclusion count for progress.
     if (solverState.getUnsolvedRules().nonEmpty) {
       val conclusionsBefore = solverState.getConclusions().toMap.size
       CompilerRuleSolver.complexSolve(delegate, state, env, solverState) match {
@@ -344,10 +366,11 @@ class CompilerSolver(
       }
       solverState.sanityCheck()
       val conclusionsAfter = solverState.getConclusions().toMap.size
+      // Per @CSCDSRZ, check conclusion count (not rules solved) for progress.
       if (conclusionsAfter == conclusionsBefore) {
         // There's nothing more to be done. Let's continue on to stage 3.
       } else {
-        return Ok(true) // Go back to stage 1
+        return Ok(true) // Go back to stage 1 where the new conclusions may unblock simple solves.
       }
     } else {
       // No more rules to solve, so continue to the wrapping up stages of the solve.
@@ -383,6 +406,7 @@ object CompilerRuleSolver {
     delegate.sanityCheckConclusion(env, state, rune, conclusion)
   }
 
+  // Per @CSCDSRZ, complex solve infers conclusions from unsolved rules but doesn't solve them.
   def complexSolve(
       delegate: IInfererDelegate,
       state: CompilerOutputs,
@@ -476,7 +500,7 @@ object CompilerRuleSolver {
         }
       }).toMap
 
-    // DO NOT SUBMIT: its odd that we're not handing in any new rules or solved rules here
+    // Per @CSCDSRZ, complex solve only produces conclusions — empty solvedRules and newRules is correct.
     solverState.commitStep[ITypingPassSolverError](true, Vector(), newConclusions, Vector()) match {
       case Ok(_) =>
       case Err(e) => return Err(e)
@@ -633,10 +657,39 @@ object CompilerRuleSolver {
         // via the `func moo(int)void` syntax) or let the caller pass it in.
 
         val CoordListTemplataT(paramCoords) = vassertSome(solverState.getConclusion(paramListRune.rune))
-        val CoordTemplataT(returnCoord) = vassertSome(solverState.getConclusion(returnRune.rune))
-        // We only pretend this function exists for now, and postpone actually resolving it until later, see SFWPRL.
-        val prototypeTemplata = delegate.predictFunction(env, state, range, name, paramCoords, returnCoord)
-        solverState.commitStep[ITypingPassSolverError](false, Vector(ruleIndex), Map(resultRune.rune -> prototypeTemplata), Vector()) match { case Ok(_) => Ok(()) case Err(e) => Err(InternalSolverError(range :: env.parentRanges, e)) }
+        solverState.getConclusion(returnRune.rune) match {
+          case Some(CoordTemplataT(returnCoord)) => {
+            // Existing predict path: both params and return are known. We only pretend
+            // the function exists for now; actual resolution is postponed to after the
+            // solve completes. See SFWPRL in docs/Generics.md:353.
+            val prototypeTemplata = delegate.predictFunction(env, state, range, name, paramCoords, returnCoord)
+            solverState.commitStep[ITypingPassSolverError](false, Vector(ruleIndex), Map(resultRune.rune -> prototypeTemplata), Vector()) match { case Ok(_) => Ok(()) case Err(e) => Err(InternalSolverError(range :: env.parentRanges, e)) }
+          }
+          case None => {
+            // Per @BRRZ, params are known but return isn't. Do a real overload lookup
+            // (the same delegate.resolveFunction the post-solve phase uses at
+            // InferCompiler.scala:350) so we can discover the return type and unblock
+            // the solver. Safety of this mid-solve lookup:
+            //   - CompilerOutputs.lookupFunction's signatureToFunction cache is the
+            //     recursion terminator for nested bound resolution.
+            //   - RuneTypeSolver.scala:210 already types returnRune as CoordTemplataType,
+            //     so the commitStep below is guaranteed well-typed.
+            //   - Per @SROACSD, no solver call site coexists DefinitionFuncSR with
+            //     ResolveSR, so there is no rule-ordering hazard.
+            //   - All state read by the call chain is frozen env + settled
+            //     CompilerOutputs; the outer solver's in-flight state is never consulted.
+            delegate.resolveFunction(env, state, range :: env.parentRanges, name, paramCoords) match {
+              case Ok(stampResult) => {
+                solverState.commitStep[ITypingPassSolverError](false, Vector(ruleIndex),
+                  Map(
+                    resultRune.rune -> PrototypeTemplataT(stampResult.prototype),
+                    returnRune.rune -> CoordTemplataT(stampResult.prototype.returnType)),
+                  Vector()) match { case Ok(_) => Ok(()) case Err(e) => Err(InternalSolverError(range :: env.parentRanges, e)) }
+              }
+              case Err(fff) => Err(CouldntFindFunction(range :: env.parentRanges, fff))
+            }
+          }
+        }
       }
       case CallSiteFuncSR(range, prototypeRune, name, paramListRune, returnRune) => {
         // If we're here, then we're solving in the callsite, not the definition.
@@ -850,8 +903,11 @@ object CompilerRuleSolver {
         solverState.commitStep[ITypingPassSolverError](false, Vector(ruleIndex), Map(rune.rune -> result), Vector()) match { case Ok(_) => Ok(()) case Err(e) => Err(InternalSolverError(range :: env.parentRanges, e)) }
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        // This rule does nothing, it was actually preprocessed.
-        solverState.commitStep[ITypingPassSolverError](false, Vector(ruleIndex), Map(), Vector()) match { case Ok(_) => Ok(()) case Err(e) => Err(InternalSolverError(range :: env.parentRanges, e)) }
+        // This rule should never reach the solver — callers are required to preprocess
+        // it out (look up the rune in callingEnv, emit an InitialKnown, strip the rule).
+        // Canonical preprocessing fold: OverloadResolver.scala:311-325. See MKRFA /
+        // docs/refactor-thoughts/mkrfa-protocol-leak.md for the full contract.
+        vwat(rune)
       }
       case AugmentSR(range, outerCoordRune, maybeAugmentOwnership, innerRune) => {
         solverState.getConclusion(outerCoordRune.rune) match {

@@ -1,3 +1,23 @@
+use crate::keywords::Keywords;
+use crate::utils::range::RangeS;
+
+use crate::postparsing::names::*;
+use crate::higher_typing::ast::*;
+
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::templata::templata::*;
+use crate::typing::ast::citizens::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::compiler_outputs::*;
+use crate::interner::Interner;
+use crate::typing::templata_compiler::*;
+use crate::typing::infer_compiler::*;
+use crate::typing::compiler::Compiler;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::postparsing::rules::rules::*;
+
 /*
 package dev.vale.typing.citizen
 
@@ -24,25 +44,62 @@ import dev.vale.typing.templata.ITemplataT.expectMutability
 
 import scala.collection.immutable.List
 import scala.collection.mutable
+*/
 
-case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: Boolean) extends Throwable { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+pub struct WeakableImplingMismatch {
+    pub struct_weakable: bool,
+    pub interface_weakable: bool,
+}
+/*
+case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: Boolean) extends Throwable {
+  val hash = runtime.ScalaRunTime._hashCode(this);
+*/
+impl WeakableImplingMismatch {
+    fn hash_code(&self) -> i32 {
+        panic!("Unimplemented: hash_code");
+    }
+/*
+override def hashCode(): Int = hash;
+*/
+}
+impl WeakableImplingMismatch {
+    fn equals(&self, obj: &dyn std::any::Any) -> bool {
+        panic!("Unimplemented: equals");
+    }
+/*
+override def equals(obj: Any): Boolean = vcurious(); }
 
 // See ODMFRC.
+*/
+}
+pub struct UncheckedDefiningConclusions<'s, 't> {
+    pub envs: InferEnv<'s, 't>,
+    pub ranges: Vec<RangeS<'s>>,
+    pub call_location: LocationInDenizen<'s>,
+    pub definition_rules: Vec<IRulexSR<'s>>,
+    pub conclusions: std::collections::HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+}
+/*
 case class UncheckedDefiningConclusions(
     envs: InferEnv,
     ranges: List[RangeS],
     callLocation: LocationInDenizen,
     definitionRules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplataT[ITemplataType]])
-
+*/
+// deleted: delegate trait removed per god-struct refactor (Compiler now holds all methods directly)
+/*
 trait IStructCompilerDelegate {
+*/
+/*
   def evaluateGenericFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplataT):
   FunctionHeaderT
-
+*/
+/*
   def scoutExpectedFunctionForPrototype(
     env: IInDenizenEnvironmentT,
     coutputs: CompilerOutputs,
@@ -57,19 +114,57 @@ trait IStructCompilerDelegate {
     exact: Boolean):
   StampFunctionSuccess
 }
+*/
 
+pub enum IResolveOutcome<'s, 't, T> {
+    ResolveSuccess(ResolveSuccess<'s, 't, T>),
+    ResolveFailure(ResolveFailure<'s, 't, T>),
+}
+/*
 sealed trait IResolveOutcome[+T <: KindT] {
+*/
+fn resolve_outcome_expect<'s, 't, T>(this: IResolveOutcome<'s, 't, T>) -> ResolveSuccess<'s, 't, T> { panic!("Unimplemented: expect"); }
+/*
   def expect(): ResolveSuccess[T]
 }
+*/
+
+pub struct ResolveSuccess<'s, 't, T> {
+    pub kind: T,
+    pub _phantom: std::marker::PhantomData<(&'s (), &'t ())>,
+}
+impl<'s, 't, T> ResolveSuccess<'s, 't, T> {
+fn expect(self) -> ResolveSuccess<'s, 't, T> {
+    panic!("Unimplemented: expect");
+}
+/*
 case class ResolveSuccess[+T <: KindT](kind: T) extends IResolveOutcome[T] {
+*/
+}
+/*
   override def expect(): ResolveSuccess[T] = this
 }
+*/
+pub struct ResolveFailure<'s, 't, T> {
+    pub range: Vec<RangeS<'s>>,
+    pub x: IResolvingError<'s, 't>,
+    pub _phantom: std::marker::PhantomData<T>,
+}
+impl<'s, 't, T> ResolveFailure<'s, 't, T> {
+fn expect(self) -> ResolveSuccess<'s, 't, T> {
+    panic!("Unimplemented: expect");
+}
+/*
 case class ResolveFailure[+T <: KindT](range: List[RangeS], x: IResolvingError) extends IResolveOutcome[T] {
+*/
+}
+/*
   override def expect(): ResolveSuccess[T] = {
     throw CompileErrorExceptionT(TypingPassResolvingError(range, x))
   }
 }
-
+*/
+/*
 class StructCompiler(
     opts: TypingPassOptions,
     interner: Interner,
@@ -81,7 +176,22 @@ class StructCompiler(
   val templateArgsLayer =
     new StructCompilerGenericArgsLayer(
       opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, delegate)
-
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn resolve_struct(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        struct_templata: StructDefinitionTemplataT<'s, 't>,
+        uncoerced_template_args: &[ITemplataT<'s, 't>],
+    ) -> IResolveOutcome<'s, 't, StructTT<'s, 't>> {
+        panic!("Unimplemented: resolve_struct");
+    }
+/*
   def resolveStruct(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT, // See CSSNCE
@@ -95,7 +205,20 @@ class StructCompiler(
         coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs)
     })
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn precompile_struct(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        struct_templata: StructDefinitionTemplataT<'s, 't>,
+    ) -> () {
+        panic!("Unimplemented: precompile_struct");
+    }
+/*
   def precompileStruct(
     coutputs: CompilerOutputs,
     structTemplata: StructDefinitionTemplataT):
@@ -134,7 +257,20 @@ class StructCompiler(
               .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(structTemplateId, outerEnv)
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn precompile_interface(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        interface_templata: InterfaceDefinitionTemplataT<'s, 't>,
+    ) -> () {
+        panic!("Unimplemented: precompile_interface");
+    }
+/*
   def precompileInterface(
     coutputs: CompilerOutputs,
     interfaceTemplata: InterfaceDefinitionTemplataT):
@@ -185,7 +321,22 @@ class StructCompiler(
                 .flatMap(_.entriesByNameT)))
     coutputs.declareTypeOuterEnv(interfaceTemplateId, outerEnv)
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn compile_struct(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        struct_templata: StructDefinitionTemplataT<'s, 't>,
+    ) -> UncheckedDefiningConclusions<'s, 't> {
+        panic!("Unimplemented: compile_struct");
+    }
+/*
   def compileStruct(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -198,6 +349,24 @@ class StructCompiler(
   }
 
   // See SFWPRL for how this is different from resolveInterface.
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn predict_interface(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        interface_templata: InterfaceDefinitionTemplataT<'s, 't>,
+        uncoerced_template_args: &[ITemplataT<'s, 't>],
+    ) -> InterfaceTT<'s, 't> {
+        panic!("Unimplemented: predict_interface");
+    }
+/*
   def predictInterface(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT, // See CSSNCE
@@ -213,6 +382,24 @@ class StructCompiler(
   }
 
   // See SFWPRL for how this is different from resolveStruct.
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn predict_struct(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        struct_templata: StructDefinitionTemplataT<'s, 't>,
+        uncoerced_template_args: &[ITemplataT<'s, 't>],
+    ) -> StructTT<'s, 't> {
+        panic!("Unimplemented: predict_struct");
+    }
+/*
   def predictStruct(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT, // See CSSNCE
@@ -226,7 +413,24 @@ class StructCompiler(
     templateArgsLayer.predictStruct(
       coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs)
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn resolve_interface(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        interface_templata: InterfaceDefinitionTemplataT<'s, 't>,
+        uncoerced_template_args: &[ITemplataT<'s, 't>],
+    ) -> IResolveOutcome<'s, 't, InterfaceTT<'s, 't>> {
+        panic!("Unimplemented: resolve_interface");
+    }
+/*
   def resolveInterface(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironmentT, // See CSSNCE
@@ -243,7 +447,22 @@ class StructCompiler(
 
     success
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn compile_interface(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        interface_templata: InterfaceDefinitionTemplataT<'s, 't>,
+    ) -> UncheckedDefiningConclusions<'s, 't> {
+        panic!("Unimplemented: compile_interface");
+    }
+/*
   def compileInterface(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -257,6 +476,25 @@ class StructCompiler(
   }
 
   // Makes a struct to back a closure
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_closure_understruct(
+        &self,
+        containing_function_env: NodeEnvironmentT<'s, 't>,
+        coutputs: &CompilerOutputs<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        name: IFunctionDeclarationNameS<'s>,
+        function_s: &FunctionA<'s>,
+        members: &[NormalStructMemberT<'s, 't>],
+    ) -> (StructTT<'s, 't>, MutabilityT, FunctionTemplataT<'s, 't>) {
+        panic!("Unimplemented: make_closure_understruct");
+    }
+/*
   def makeClosureUnderstruct(
     containingFunctionEnv: NodeEnvironmentT,
     coutputs: CompilerOutputs,
@@ -284,34 +522,66 @@ class StructCompiler(
 //  }
 
 }
-
-object StructCompiler {
-  def getCompoundTypeMutability(memberTypes2: Vector[CoordT])
-  : MutabilityT = {
-    val membersOwnerships = memberTypes2.map(_.ownership)
-    val allMembersImmutable = membersOwnerships.isEmpty || membersOwnerships.toSet == Set(ShareT)
-    if (allMembersImmutable) ImmutableT else MutableT
-  }
-
-  def getMutability(
-    sanityCheck: Boolean,
-    interner: Interner,
-    keywords: Keywords,
-    coutputs: CompilerOutputs,
-    originalCallingDenizenId: IdT[ITemplateNameT],
-    region: RegionT,
-    structTT: StructTT,
-    boundArgumentsSource: IBoundArgumentsSource):
-  ITemplataT[MutabilityTemplataType] = {
-    val definition = coutputs.lookupStruct(structTT.id)
-    val transformer =
-      TemplataCompiler.getPlaceholderSubstituter(
-        sanityCheck,
-        interner, keywords,
-        originalCallingDenizenId,
-        structTT.id, boundArgumentsSource)
-    val result = transformer.substituteForTemplata(coutputs, definition.mutability)
-    ITemplataT.expectMutability(result)
-  }
-}
 */
+}
+
+/*
+object StructCompiler {
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_compound_type_mutability(
+        &self,
+        member_types: &[CoordT<'s, 't>],
+    ) -> MutabilityT {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+    /*
+      def getCompoundTypeMutability(memberTypes2: Vector[CoordT])
+      : MutabilityT = {
+        val membersOwnerships = memberTypes2.map(_.ownership)
+        val allMembersImmutable = membersOwnerships.isEmpty || membersOwnerships.toSet == Set(ShareT)
+        if (allMembersImmutable) ImmutableT else MutableT
+      }
+    */
+}
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn struct_compiler_get_mutability(
+        &self,
+        sanity_check: bool,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        original_calling_denizen_id: IdT<'s, 't>,
+        region: RegionT,
+        struct_tt: StructTT<'s, 't>,
+        bound_arguments_source: IBoundArgumentsSource<'s, 't>,
+    ) -> ITemplataT<'s, 't> {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+    /* Guardian: disable-all */
+    /*
+      def getMutability(
+        sanityCheck: Boolean,
+        interner: Interner,
+        keywords: Keywords,
+        coutputs: CompilerOutputs,
+        originalCallingDenizenId: IdT[ITemplateNameT],
+        region: RegionT,
+        structTT: StructTT,
+        boundArgumentsSource: IBoundArgumentsSource):
+      ITemplataT[MutabilityTemplataType] = {
+        val definition = coutputs.lookupStruct(structTT.id)
+        val transformer =
+          TemplataCompiler.getPlaceholderSubstituter(
+            sanityCheck,
+            interner, keywords,
+            originalCallingDenizenId,
+            structTT.id, boundArgumentsSource)
+        val result = transformer.substituteForTemplata(coutputs, definition.mutability)
+        ITemplataT.expectMutability(result)
+      }
+    }
+    */
+}

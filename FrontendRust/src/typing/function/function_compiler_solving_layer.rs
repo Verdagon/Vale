@@ -1,3 +1,30 @@
+use std::collections::{HashMap, HashSet};
+use crate::typing::compiler::Compiler;
+use crate::typing::function::function_compiler::*;
+use crate::typing::compilation::TypingPassOptions;
+use crate::utils::code_hierarchy::PackageCoordinate;
+use crate::typing::infer_compiler::{include_rule_in_definition_solve, InitialKnown, InitialSend, InferEnv};
+use crate::postparsing::itemplatatype::ITemplataType;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::ast::*;
+use crate::postparsing::*;
+use crate::postparsing::rules::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::citizens::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::env::i_env_entry::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::templata::templata::*;
+use crate::typing::compiler_outputs::*;
+use crate::higher_typing::ast::*;
+use crate::solver::solver::*;
+use crate::interner::Interner;
+use crate::keywords::Keywords;
+
 /*
 package dev.vale.typing.function
 
@@ -14,7 +41,7 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.function._
-import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve, Solver}
+import dev.vale.solver.{FailedSolve, Solver, Step}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env._
 import dev.vale.typing.infer.ITypingPassSolverError
@@ -34,6 +61,8 @@ import scala.collection.immutable.{List, Set}
 // - Incorporate any template arguments into the environment
 // There's a layer to take care of each of these things.
 // This file is the outer layer, which spawns a local environment for the function.
+*/
+/*
 class FunctionCompilerSolvingLayer(
     opts: TypingPassOptions,
     interner: Interner,
@@ -52,6 +81,25 @@ class FunctionCompilerSolvingLayer(
   // Preconditions:
   // - either no closured vars, or they were already added to the env.
   // - env is the environment the templated function was made in
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_templated_function_from_call_for_prototype_solving(
+        &self,
+        outer_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        original_calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        explicit_template_args: &[ITemplataT<'s, 't>],
+        context_region: RegionT,
+        args: &[CoordT<'s, 't>],
+    ) -> IEvaluateFunctionResult<'s, 't> {
+        panic!("Unimplemented: evaluate_templated_function_from_call_for_prototype");
+    }
+
+/*
   def evaluateTemplatedFunctionFromCallForPrototype(
     // The environment the function was defined in.
     outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
@@ -120,6 +168,27 @@ class FunctionCompilerSolvingLayer(
   // Preconditions:
   // - either no closured vars, or they were already added to the env.
   // - env is the environment the templated function was made in
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_templated_function_from_call_for_banner(
+        &self,
+        declaring_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        original_calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        already_specified_template_args: &[ITemplataT<'s, 't>],
+        context_region: RegionT,
+        args: &[CoordT<'s, 't>],
+    ) -> IEvaluateFunctionResult<'s, 't> {
+        panic!("Unimplemented: evaluate_templated_function_from_call_for_banner");
+    }
+
+/*
   def evaluateTemplatedFunctionFromCallForBanner(
       // The environment the function was defined in.
       declaringEnv: BuildingFunctionEnvironmentWithClosuredsT,
@@ -190,6 +259,27 @@ class FunctionCompilerSolvingLayer(
   // This is called while we're trying to figure out what functionSs to call when there
   // are a lot of overloads available.
   // This assumes it met any type bound restrictions (or, will; not implemented yet)
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_templated_light_banner_from_call(
+        &self,
+        near_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        original_calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        explicit_template_args: &[ITemplataT<'s, 't>],
+        context_region: RegionT,
+        args: &[CoordT<'s, 't>],
+    ) -> IEvaluateFunctionResult<'s, 't> {
+        panic!("Unimplemented: evaluate_templated_light_banner_from_call");
+    }
+
+/*
   def evaluateTemplatedLightBannerFromCall(
       // The environment the function was defined in.
       nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
@@ -260,6 +350,21 @@ class FunctionCompilerSolvingLayer(
     EvaluateFunctionSuccess(prototypeTemplata, inferences, instantiationBoundArgs)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn assemble_known_templatas(
+        &self,
+        function: &FunctionA<'s>,
+        explicit_template_args: &[ITemplataT<'s, 't>],
+    ) -> Vec<InitialKnown<'s, 't>> {
+        panic!("Unimplemented: assemble_known_templatas");
+    }
+
+/*
   private def assembleKnownTemplatas(
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplataT[ITemplataType]]):
@@ -271,6 +376,28 @@ class FunctionCompilerSolvingLayer(
     })
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn check_closure_concerns_handled(
+        &self,
+        near_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+    ) {
+        let function = near_env.function;
+        match &function.body {
+            IBodyS::CodeBody(code_body) => {
+                for _name in code_body.body.closured_names.iter() {
+                    panic!("Unimplemented: check_closure_concerns_handled — closured name assertion");
+                }
+            }
+            _ => {}
+        }
+    }
+
+/*
   private def checkClosureConcernsHandled(
     // The environment the function was defined in.
     nearEnv: BuildingFunctionEnvironmentWithClosuredsT
@@ -287,6 +414,60 @@ class FunctionCompilerSolvingLayer(
   }
 
   // IOW, add the necessary data to turn the near env into the runed env.
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn add_runed_data_to_near_env(
+        &self,
+        near_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        identifying_runes: &[IRuneS<'s>],
+        templatas_by_rune: &std::collections::HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+        reachable_bounds_from_params_and_return: &[PrototypeTemplataT<'s, 't>],
+    ) -> BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT<'s, 't> {
+        let identifying_templatas: Vec<ITemplataT<'s, 't>> =
+            identifying_runes.iter().map(|r| *templatas_by_rune.get(r).unwrap()).collect();
+
+        // reachableBoundsFromParamsAndReturn.zipWithIndex.toVector
+        //   .map({ case (t, i) => (interner.intern(ReachablePrototypeNameT(i)), TemplataEnvEntry(t)) }) ++
+        // templatasByRune.toVector
+        //   .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) })
+        let entries_list: Vec<(INameT<'s, 't>, IEnvEntryT<'s, 't>)> =
+            reachable_bounds_from_params_and_return.iter().enumerate()
+                .map(|(i, t)| -> (INameT<'s, 't>, IEnvEntryT<'s, 't>) {
+                    panic!("Unimplemented: add_runed_data_to_near_env ReachablePrototypeNameT");
+                })
+                .chain(
+                    templatas_by_rune.iter()
+                        .map(|(k, v)| {
+                            let rune_name = self.typing_interner.intern_rune_name(RuneNameT { rune: *k, _phantom: std::marker::PhantomData });
+                            (INameT::Rune(rune_name), IEnvEntryT::Templata(*v))
+                        })
+                )
+                .collect();
+
+        // newEntries = templatas.addEntries(interner, entries_list)
+        let new_entries = self.typing_interner.alloc(near_env.templatas.add_entries(self.typing_interner, self.scout_arena, entries_list));
+
+        let default_region = RegionT;
+
+        let template_args: &'t [ITemplataT<'s, 't>] = self.typing_interner.alloc_slice_from_vec(identifying_templatas);
+        BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT {
+            global_env: near_env.global_env,
+            parent_env: near_env.parent_env,
+            id: near_env.id,
+            template_args,
+            templatas: new_entries,
+            function: near_env.function,
+            variables: near_env.variables,
+            is_root_compiling_denizen: near_env.is_root_compiling_denizen,
+            default_region,
+        }
+    }
+
+/*
   private def addRunedDataToNearEnv(
     nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
     identifyingRunes: Vector[IRuneS],
@@ -326,6 +507,27 @@ class FunctionCompilerSolvingLayer(
   // Preconditions:
   // - either no closured vars, or they were already added to the env.
   // - env is the environment the templated function was made in
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_generic_function_from_call_for_prototype(
+        &self,
+        outer_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        explicit_template_args: &[ITemplataT<'s, 't>],
+        context_region: RegionT,
+        args: &[Option<CoordT<'s, 't>>],
+    ) -> IResolveFunctionResult<'s, 't> {
+        panic!("Unimplemented: evaluate_generic_function_from_call_for_prototype");
+    }
+
+/*
   def evaluateGenericFunctionFromCallForPrototype(
     // The environment the function was defined in.
     outerEnv: BuildingFunctionEnvironmentWithClosuredsT,
@@ -357,14 +559,14 @@ class FunctionCompilerSolvingLayer(
       function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++ function.maybeRetCoordRune.map(_.rune)
 
     val solver =
-      inferCompiler.makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
+      inferCompiler.makeSolverState(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
 
     var loopCheck = function.genericParameters.size + 1
 
     // Incrementally solve and add default generic parameters (and context region).
     inferCompiler.incrementallySolve(
       envs, coutputs, solver,
-      (solver) => {
+      (solverState) => {
         if (loopCheck == 0) {
           throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Infinite loop detected in incremental call solve!"))
         }
@@ -372,7 +574,7 @@ class FunctionCompilerSolvingLayer(
 
         TemplataCompiler.getFirstUnsolvedIdentifyingRune(
           function.genericParameters,
-          (rune) => solver.getConclusion(rune).nonEmpty) match {
+          (rune) => solverState.getConclusion(rune).nonEmpty) match {
           case None => false
           case Some((genericParam, index)) => {
             // This unsolved rune better be one we didn't explicitly hand in already.
@@ -380,7 +582,7 @@ class FunctionCompilerSolvingLayer(
 
             genericParam.default match {
               case Some(defaultRules) => {
-                solver.addRules(defaultRules.rules)
+                solverState.commitStep[ITypingPassSolverError](false, Vector(), Map(), defaultRules.rules).getOrDie()
                 true
               }
               case None => {
@@ -391,11 +593,11 @@ class FunctionCompilerSolvingLayer(
           }
         }
       }) match {
-      case Err(f@FailedCompilerSolve(_, _, _)) => {
+      case Err(f@FailedSolve(_, _, _, _, _)) => {
         return (ResolveFunctionFailure(ResolvingSolveFailedOrIncomplete(f)))
       }
       case Ok(true) =>
-      case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
+      case Ok(false) => // Incomplete, will be detected as SolveIncomplete below.
     }
 
     outerEnv.id match {
@@ -431,6 +633,25 @@ class FunctionCompilerSolvingLayer(
     ResolveFunctionSuccess(PrototypeTemplataT(prototype), inferredTemplatas)
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_generic_virtual_dispatcher_function_for_prototype_solving(
+        &self,
+        near_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        calling_env: &IInDenizenEnvironmentT<'s, 't>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        args: &[Option<CoordT<'s, 't>>],
+    ) -> IDefineFunctionResult<'s, 't> {
+        panic!("Unimplemented: evaluate_generic_virtual_dispatcher_function_for_prototype");
+    }
+
+/*
   def evaluateGenericVirtualDispatcherFunctionForPrototype(
     // The environment the function was defined in.
     nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
@@ -455,8 +676,8 @@ class FunctionCompilerSolvingLayer(
     // into a:
     //   func map<F>(self Opt<$0>, f F, t $0) { ... }
     val preliminaryEnvs = InferEnv(callingEnv, callRange, callLocation, nearEnv, RegionT())
-    val preliminarySolver =
-      inferCompiler.makeSolver(
+    val preliminarySolverState =
+      inferCompiler.makeSolverState(
         preliminaryEnvs,
         coutputs,
         functionDefinitionRules,
@@ -464,7 +685,7 @@ class FunctionCompilerSolvingLayer(
         function.range :: callRange,
         Vector(),
         initialSends)
-    inferCompiler.continue(preliminaryEnvs, coutputs, preliminarySolver) match {
+    inferCompiler.continue(preliminaryEnvs, coutputs, preliminarySolverState) match {
       case Ok(()) =>
       case Err(f) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: callRange, f))
@@ -473,7 +694,7 @@ class FunctionCompilerSolvingLayer(
 
     // Skip checking that the conclusions are all there, because we don't assume that they will all be there. We expect
     // an incomplete solve.
-    val preliminaryInferences = preliminarySolver.userifyConclusions().toMap
+    val preliminaryInferences = preliminarySolverState.userifyConclusions().toMap
     // Now we can use preliminaryInferences to know whether or not we need a placeholder for an
     // identifying rune.
     // Our
@@ -532,6 +753,118 @@ class FunctionCompilerSolvingLayer(
 
   // Preconditions:
   // - either no closured vars, or they were already added to the env.
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_generic_function_from_non_call_solving(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        near_env: &'t BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+    ) -> &'t FunctionHeaderT<'s, 't> {
+        let function = near_env.function;
+
+        let mut range: Vec<RangeS<'s>> = Vec::with_capacity(1 + parent_ranges.len());
+        range.push(function.range);
+        range.extend_from_slice(parent_ranges);
+        self.check_closure_concerns_handled(near_env);
+
+        let function_template_name = self.translate_generic_function_name(function.name);
+        let function_name_local: INameT<'s, 't> = match function_template_name {
+            IFunctionTemplateNameT::FunctionTemplate(r) => INameT::FunctionTemplate(r),
+            IFunctionTemplateNameT::ForwarderFunctionTemplate(r) => INameT::ForwarderFunctionTemplate(r),
+            IFunctionTemplateNameT::ConstructorTemplate(r) => INameT::ConstructorTemplate(r),
+            IFunctionTemplateNameT::AnonymousSubstructConstructorTemplate(r) => INameT::AnonymousSubstructConstructorTemplate(r),
+            IFunctionTemplateNameT::LambdaCallFunctionTemplate(r) => INameT::LambdaCallFunctionTemplate(r),
+            IFunctionTemplateNameT::OverrideDispatcherTemplate(r) => INameT::OverrideDispatcherTemplate(r),
+            IFunctionTemplateNameT::ExternFunction(r) => INameT::ExternFunction(r),
+            IFunctionTemplateNameT::FunctionBoundTemplate(r) => INameT::FunctionBoundTemplate(r),
+            IFunctionTemplateNameT::PredictedFunctionTemplate(r) => INameT::PredictedFunctionTemplate(r),
+        };
+        let _function_template_id = near_env.parent_env.id().add_step(self.typing_interner, function_name_local);
+
+        let definition_rules: Vec<&'s IRulexSR<'s>> = function.rules.iter()
+            .filter(|r| include_rule_in_definition_solve(*r))
+            .collect();
+
+        let mut seen = HashSet::new();
+        let mut param_and_return_runes: Vec<IRuneS<'s>> = Vec::new();
+        for param in function.params.iter() {
+            if let Some(coord_rune) = param.pattern.coord_rune {
+                if seen.insert(coord_rune.rune) {
+                    param_and_return_runes.push(coord_rune.rune);
+                }
+            }
+        }
+        if let Some(ret_coord_rune) = function.maybe_ret_coord_rune {
+            if seen.insert(ret_coord_rune.rune) {
+                param_and_return_runes.push(ret_coord_rune.rune);
+            }
+        }
+
+        let parent_ranges_alloc = self.typing_interner.alloc_slice_from_vec(parent_ranges.to_vec());
+        let near_env_as_in_denizen = self.typing_interner.alloc(
+            IInDenizenEnvironmentT::BuildingWithClosureds(near_env));
+        let near_env_as_env = IEnvironmentT::BuildingWithClosureds(near_env);
+        let envs = InferEnv {
+            original_calling_env: near_env_as_in_denizen,
+            parent_ranges: parent_ranges_alloc,
+            call_location,
+            self_env: near_env_as_env,
+            context_region: RegionT,
+        };
+
+        let rune_to_type: HashMap<IRuneS<'s>, ITemplataType<'s>> = function.rune_to_type.iter()
+            .map(|(k, v)| (*k, *v))
+            .collect();
+        let mut solver = self.make_solver_state(
+            envs, coutputs, &definition_rules, &rune_to_type, &range, &[], &[]);
+
+        let result = self.incrementally_solve(
+            envs, coutputs, &mut solver,
+            |_solver_state| { panic!("Unimplemented: incrementally_solve on_incomplete callback") });
+        match result {
+            Err(_f) => { panic!("Unimplemented: FailedSolve handling in evaluate_generic_function_from_non_call_solving") }
+            Ok(true) => {}
+            Ok(false) => {} // Incomplete, will be detected in checkDefiningConclusionsAndResolve
+        }
+
+        let inferences = match self.interpret_results(&rune_to_type, &mut solver) {
+            Err(_e) => { panic!("Unimplemented: interpretResults error handling") }
+            Ok(conclusions) => conclusions,
+        };
+
+        let instantiation_bound_params = match self.check_defining_conclusions_and_resolve(
+            envs, coutputs, &range, call_location, &definition_rules, &param_and_return_runes, &inferences,
+        ) {
+            Err(_f) => { panic!("Unimplemented: checkDefiningConclusionsAndResolve error handling") }
+            Ok(c) => c,
+        };
+
+        let identifying_runes: Vec<IRuneS<'s>> = function.generic_parameters.iter()
+            .map(|gp| gp.rune.rune)
+            .collect();
+        let reachable_bounds: Vec<PrototypeTemplataT<'s, 't>> =
+            instantiation_bound_params.rune_to_citizen_rune_to_reachable_prototype.iter()
+                .flat_map(|(_, rb)| rb.citizen_rune_to_reachable_prototype.iter().map(|(_, proto)| proto))
+                .map(|proto| PrototypeTemplataT { prototype: proto })
+                .collect();
+        let runed_env = self.add_runed_data_to_near_env(
+            near_env, &identifying_runes, &inferences, &reachable_bounds);
+        let runed_env: &'t BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT<'s, 't> =
+            self.typing_interner.alloc(runed_env);
+
+        let header = self.get_or_evaluate_function_for_header(
+            near_env, runed_env, coutputs, parent_ranges, call_location, function, &instantiation_bound_params);
+
+        header
+    }
+
+/*
   def evaluateGenericFunctionFromNonCall(
     coutputs: CompilerOutputs,
     nearEnv: BuildingFunctionEnvironmentWithClosuredsT,
@@ -555,15 +888,15 @@ class FunctionCompilerSolvingLayer(
 
     val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, RegionT())
     val solver =
-      inferCompiler.makeSolver(
+      inferCompiler.makeSolverState(
         envs, coutputs, definitionRules, function.runeToType, range, Vector(), Vector())
     // Incrementally solve and add placeholders, see IRAGP.
     inferCompiler.incrementallySolve(
       envs, coutputs, solver,
       // Each step happens after the solver has done all it possibly can. Sometimes this can lead
       // to races, see RRBFS.
-      (solver) => {
-        TemplataCompiler.getFirstUnsolvedIdentifyingRune(function.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
+      (solverState) => {
+        TemplataCompiler.getFirstUnsolvedIdentifyingRune(function.genericParameters, (rune) => solverState.getConclusion(rune).nonEmpty) match {
           case None => false
           case Some((genericParam, index)) => {
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
@@ -571,12 +904,18 @@ class FunctionCompilerSolvingLayer(
             val templata =
               templataCompiler.createPlaceholder(
                 coutputs, nearEnv, functionTemplateId, genericParam, index, function.runeToType, placeholderPureHeight, true)
-            solver.manualStep(Map(genericParam.rune.rune -> templata))
+            { // solver.manualStep(Map(genericParam.rune.rune -> templata))
+              solverState.commitStep[Nothing](false, Vector(), Map(genericParam.rune.rune -> templata), Vector()).getOrDie()
+//              solverState.addStep(step)
+//              step.conclusions.foreach({ case (rune, conclusion) =>
+//                solverState.concludeRune(solverState.getCanonicalRune(rune), conclusion)
+//              })
+            }
             true
           }
         }
       }) match {
-        case Err(f @ FailedCompilerSolve(_, _, err)) => {
+        case Err(f @ FailedSolve(_, _, _, _, err)) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
         }
         case Ok(true) =>
@@ -619,6 +958,22 @@ class FunctionCompilerSolvingLayer(
     header
   }
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn assemble_initial_sends_from_args(
+        &self,
+        call_range: RangeS<'s>,
+        function: &FunctionA<'s>,
+        args: &[Option<CoordT<'s, 't>>],
+    ) -> Vec<InitialSend<'s, 't>> {
+        panic!("Unimplemented: assemble_initial_sends_from_args");
+    }
+
+/*
   private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[Option[CoordT]]):
   Vector[InitialSend] = {
     function.params.map(_.pattern.coordRune.get).zip(args).zipWithIndex
@@ -631,3 +986,4 @@ class FunctionCompilerSolvingLayer(
   }
 }
 */
+}

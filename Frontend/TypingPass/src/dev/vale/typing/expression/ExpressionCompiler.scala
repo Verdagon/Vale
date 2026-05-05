@@ -32,7 +32,10 @@ import scala.collection.immutable.{List, Nil, Set}
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-case class TookWeakRefOfNonWeakableError() extends Throwable { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+case class TookWeakRefOfNonWeakableError() extends Throwable {
+  val hash = runtime.ScalaRunTime._hashCode(this);
+override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious(); }
 
 trait IExpressionCompilerDelegate {
   def evaluateTemplatedFunctionFromCallForPrototype(
@@ -145,7 +148,14 @@ class ExpressionCompiler(
   Option[ExpressionT] = {
     evaluateAddressibleLookup(coutputs, nenv, range, region, name) match {
       case Some(x) => {
-        val thing = localHelper.softLoad(nenv, range, x, targetOwnership, region)
+        val thing =
+          targetOwnership match {
+            case LoadAsWeakP if x.result.coord.ownership != WeakT => {
+              val borrowExpr = localHelper.softLoad(nenv, range, x, LoadAsBorrowP, region)
+              weakAlias(coutputs, borrowExpr)
+            }
+            case _ => localHelper.softLoad(nenv, range, x, targetOwnership, region)
+          }
         Some(thing)
       }
       case None => {
@@ -558,6 +568,7 @@ class ExpressionCompiler(
                     runeAToType.toMap,
                     range :: parentRanges,
                     callLocation,
+                    Vector(),
                     Vector(),
                     Vector()) match {
                     case Err(f) => throw CompileErrorExceptionT(TypingPassResolvingError(range :: parentRanges, f))
@@ -1120,6 +1131,9 @@ class ExpressionCompiler(
                 newGlobalFunctionGroupExpression(
                   tinyEnv, RegionT(DefaultRegionT), interner.intern(ArbitraryNameS()))
               (expr, Set())
+            }
+            case _ => {
+              throw CompileErrorExceptionT(CantUseRuneValueAsExpression(range :: parentRanges, runeA))
             }
           }
         }

@@ -67,7 +67,6 @@ Files already in their correct location per `docs/meta.md` can be checked off wi
 - [ ] `.claude/skills/migration-diff-review/SKILL.md`
 - [ ] `.claude/skills/migration-drive/SKILL.md`
 - [ ] `.claude/skills/migration-test-fixer/SKILL.md`
-- [ ] `.claude/skills/migration-test-fixer-2/SKILL.md`
 - [ ] `.claude/skills/guardian-curate/SKILL.md`
 - [ ] `.claude/skills/guardian-post-review/SKILL.md`
 - [ ] `.claude/skills/slice-pipeline/SKILL.md`
@@ -79,7 +78,6 @@ Files already in their correct location per `docs/meta.md` can be checked off wi
 
 - [ ] `.claude/agents/agent-check-correct-loop.md`
 - [ ] `.claude/agents/migrate-diagnoser.md`
-- [ ] `.claude/agents/migrate-director.md`
 - [ ] `.claude/agents/migrate-scoper.md`
 - [ ] `.claude/agents/migration-check-specific.md`
 - [ ] `.claude/agents/migration-gate.md`
@@ -216,10 +214,10 @@ These are cross-project shields and should stay in `Luz/shields/` per `docs/meta
 - [ ] `Luz/shields/UseExpectFunctionsInsteadOfAssertingSizeThenIndexing-UEFIAIX.md`
 - [ ] `Luz/shields/UseUseForShortNamesNotCrateInBodies-UUSNNCBX.md`
 
-## Luz/zen/ and Luz/skills/
+## Luz/arcana/ and Luz/skills/
 
-- [ ] `Luz/zen/TestingArchitecture-TAZ.md`
-- [ ] `Luz/zen/TestsMustBeFullyIsolated-TMBFIZ.md`
-- [ ] `Luz/zen/GoFurtherOnTheStaticTypingSpectrum-GFSTSZ.md`
-- [ ] `Luz/zen/RaiiOverSemaphoresForMovedResources-ROSFMRZ.md`
+- [ ] `Luz/arcana/TestingArchitecture-TAZ.md`
+- [ ] `Luz/arcana/TestsMustBeFullyIsolated-TMBFIZ.md`
+- [ ] `Luz/arcana/GoFurtherOnTheStaticTypingSpectrum-GFSTSZ.md`
+- [ ] `Luz/arcana/RaiiOverSemaphoresForMovedResources-ROSFMRZ.md`
 - [ ] `Luz/skills/FeatureDevelopmentFlow-FDFZ.md`

@@ -466,7 +466,7 @@ impl<'s, 'ctx> HigherTypingPass<'s, 'ctx> {
         ITemplataType::MutabilityTemplataType(MutabilityTemplataType {}),
         ITemplataType::CoordTemplataType(CoordTemplataType {}),
       ]),
-      return_type: &crate::postparsing::rune_type_solver::KIND_TYPE,
+      return_type: scout_arena.alloc(ITemplataType::KindTemplataType(KindTemplataType {})),
     }));
     primitives.insert(keywords.static_array, ITemplataType::TemplateTemplataType(TemplateTemplataType {
       param_types: scout_arena.alloc_slice_copy(&[
@@ -475,7 +475,7 @@ impl<'s, 'ctx> HigherTypingPass<'s, 'ctx> {
         ITemplataType::VariabilityTemplataType(VariabilityTemplataType {}),
         ITemplataType::CoordTemplataType(CoordTemplataType {}),
       ]),
-      return_type: &crate::postparsing::rune_type_solver::KIND_TYPE,
+      return_type: scout_arena.alloc(ITemplataType::KindTemplataType(KindTemplataType {})),
     }));
     HigherTypingPass {
       global_options,
@@ -1674,19 +1674,6 @@ pub fn run_pass(
             programsS.flatMap(_.imports).toVector))
       })
       val imports = mergedProgramS.packageCoordToContents.values.flatMap(_.imports)
-//      val rustImports = imports.filter(_.moduleName == keywords.rust)
-//      rustImports.foreach({
-//        case ImportS(_, moduleName, packageNames, importeeName) => {
-//          val rustPackageString = packageNames.map(_.str).mkString(".")
-//
-//          // ask a rust process to generate the json
-//          // DO NOT SUBMIT
-//          val processBuilder = Process("glass", List("/Users/verdagon/.cargo/bin/rustc", rustPackageString, importeeName.str))
-//          val process = processBuilder.run
-//          // Blocks
-//          process.exitValue()
-//        }
-//      })
 
       //    val orderedModules = orderModules(mergedProgramS)
 

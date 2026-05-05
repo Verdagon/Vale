@@ -1,7 +1,7 @@
 package dev.vale.postparsing
 
 import dev.vale.postparsing.patterns.PatternScout
-import dev.vale.postparsing.rules.{ContextRegionRune, IContextRegion, IRulexSR, IntLiteralSL, IsoContextRegion, LiteralSR, MaybeCoercingCallSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
+import dev.vale.postparsing.rules.{IRulexSR, IntLiteralSL, LiteralSR, MaybeCoercingCallSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
 import dev.vale.parsing.ast._
 import dev.vale.parsing.{ast, _}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
@@ -30,7 +30,8 @@ trait IExpressionScoutDelegate {
 sealed trait IScoutResult[+T <: IExpressionSE]
 // Will contain the address of a local.
 case class LocalLookupResult(range: RangeS, name: IVarNameS) extends IScoutResult[IExpressionSE] {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
 }
 // Looks up something that's not a local.
 // Should be just a function, but its also super likely that the user just forgot
@@ -41,13 +42,15 @@ case class OutsideLookupResult(
   name: StrI,
   templateArgs: Option[Vector[ITemplexPT]]
 ) extends IScoutResult[IExpressionSE] {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
 }
 // Anything else, such as:
 // - Result of a function call
 // - Address inside a struct
 case class NormalResult[+T <: IExpressionSE](expr: T) extends IScoutResult[T] {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   def range: RangeS = expr.range
 }
 
@@ -89,13 +92,13 @@ class ExpressionScout(
           case None => parentStackFrame.contextRegion
           case Some(RegionRunePT(range, maybeName)) => {
             maybeName match {
-              case None => IsoContextRegion()
+              case None => parentStackFrame.contextRegion
               case Some(name) => {
                 val regionRuneS = CodeRuneS(name.str)
                 if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
                   throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, name.str.str))
                 }
-                ContextRegionRune(regionRuneS)
+                regionRuneS
               }
             }
 
@@ -138,7 +141,7 @@ class ExpressionScout(
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     rangeS: RangeS,
-    contextRegion: IContextRegion,
+    contextRegion: IRuneS,
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
     initialLocals: VariableDeclarations,

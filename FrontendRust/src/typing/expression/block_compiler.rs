@@ -1,3 +1,16 @@
+use crate::typing::compiler::Compiler;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::expressions::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::compiler_outputs::*;
+use std::collections::HashSet;
+
 /*
 package dev.vale.typing.expression
 
@@ -20,6 +33,9 @@ import dev.vale.typing.templata._
 
 import scala.collection.immutable.{List, Set}
 
+*/
+// deleted: delegate trait removed per god-struct refactor (Compiler now holds all methods directly)
+/*
 trait IBlockCompilerDelegate {
   def evaluateAndCoerceToReferenceExpression(
     coutputs: CompilerOutputs,
@@ -42,7 +58,8 @@ trait IBlockCompilerDelegate {
     unresultifiedUndestructedExpressions: ReferenceExpressionTE):
   ReferenceExpressionTE
 }
-
+*/
+/*
 class BlockCompiler(
     opts: TypingPassOptions,
 
@@ -50,6 +67,23 @@ class BlockCompiler(
     localHelper: LocalHelper,
     delegate: IBlockCompilerDelegate) {
 
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_block(
+        &self,
+        parent_fate: &mut FunctionEnvironmentBuilder<'s, 't>,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        region: RegionT,
+        block_1: &'s BlockSE<'s>,
+    ) -> (&'t BlockTE<'s, 't>, HashSet<IVarNameT<'s, 't>>, HashSet<IVarNameT<'s, 't>>, HashSet<CoordT<'s, 't>>) {
+        panic!("Unimplemented: Slab 15 — body migration");
+    }
+/*
   // This is NOT USED FOR EVERY BLOCK!
   // This is just for the simplest kind of block.
   // This can serve as an example for how we can use together all the tools provided by BlockCompiler.
@@ -80,8 +114,43 @@ class BlockCompiler(
     val (unstackifiedAncestorLocals, restackifiedAncestorLocals) = nenv.snapshot.getEffectsSince(startingNenv)
     (block2, unstackifiedAncestorLocals, restackifiedAncestorLocals, returnsFromExprs)
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn evaluate_block_statements_block(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        starting_nenv: &'t NodeEnvironmentT<'s, 't>,
+        nenv: &mut NodeEnvironmentBox<'s, 't>,
+        parent_ranges: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        region: RegionT,
+        block_se: &'s BlockSE<'s>,
+    ) -> (&'t ReferenceExpressionTE<'s, 't>, HashSet<CoordT<'s, 't>>) {
+        let (unnevered_unresultified_undestructed_root_expression, returns_from_exprs) =
+            self.evaluate_and_coerce_to_reference_expression(
+                coutputs, nenv, life.add(0), parent_ranges,
+                call_location, region, block_se.expr);
 
+        let unresultified_undestructed_expressions =
+            unnevered_unresultified_undestructed_root_expression;
+
+        let drop_range = RangeS { begin: block_se.range.end, end: block_se.range.end };
+        let drop_ranges: Vec<RangeS<'s>> =
+            std::iter::once(drop_range).chain(parent_ranges.iter().copied()).collect();
+        let new_expr =
+            self.drop_since(
+                coutputs, starting_nenv, nenv,
+                &drop_ranges, call_location, life, region,
+                unresultified_undestructed_expressions);
+
+        (new_expr, returns_from_exprs)
+    }
+/*
   def evaluateBlockStatements(
     coutputs: CompilerOutputs,
     startingNenv: NodeEnvironmentT,
@@ -172,3 +241,4 @@ class BlockCompiler(
 
 }
 */
+}

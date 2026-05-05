@@ -963,7 +963,7 @@ LiveRef Linear::innerConstructStaticSizedArray(
         auto adjustedSsaPtrLE =
             translateBetweenBufferAddressAndPointer(
                 functionState, thenBuilder, regionInstanceRef, ssaRefMT, ssaPtrLE, true);
-        LLVMBuildStore(thenBuilder, ssaValLE, ssaPtrLE);
+        LLVMBuildStore(thenBuilder, ssaValLE, adjustedSsaPtrLE);
 
         buildFlare(FL(), globalState, functionState, thenBuilder);
 

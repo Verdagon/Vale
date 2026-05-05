@@ -1,9 +1,10 @@
 ---
 description: Arena-allocated structs must use arena slices and ArenaIndexMap, not Vec, HashMap, or String.
-model: AgenticSmall
-defs: struct
-assumes: TFITCX
-when_mentioned: "Arena-allocated"
+g_model: SimpleSmall
+g_context: definition
+g_defs: struct
+g_assumes: TFITCX
+g_when_mentioned: "Arena-allocated"
 ---
 
 # Arena-Allocated Structs Should Not Contain Malloc'd Collections (AASSNCMCX)

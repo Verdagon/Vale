@@ -1,3 +1,17 @@
+use crate::interner::StrI;
+use crate::utils::range::RangeS;
+use crate::postparsing::ast::LocationInDenizen;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::env::i_env_entry::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::compiler_outputs::*;
+use crate::typing::compiler::Compiler;
+use crate::higher_typing::ast::*;
+
 /*
 package dev.vale.typing.macros
 
@@ -27,6 +41,12 @@ import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.mutable
 
+*/
+// (Scala `class StructConstructorMacro(opts, interner, keywords, nameTranslator,
+//  destructorCompiler)` absorbed onto `Compiler`; the method bodies live at
+//  `Compiler::get_struct_sibling_entries_struct_constructor` and
+//  `Compiler::generate_function_body_struct_constructor` below.)
+/*
 class StructConstructorMacro(
   opts: TypingPassOptions,
   interner: Interner,
@@ -39,6 +59,18 @@ class StructConstructorMacro(
 
   val macroName: StrI = keywords.DeriveStructConstructor
 
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn get_struct_sibling_entries_struct_constructor(
+        &self,
+        struct_name: IdT<'s, 't>,
+        struct_a: &'s StructA<'s>,
+    ) -> Vec<(IdT<'s, 't>, IEnvEntryT<'s, 't>)> {
+        panic!("Unimplemented: get_struct_sibling_entries_struct_constructor");
+    }
+/*
   override def getStructSiblingEntries(structName: IdT[INameT], structA: StructA):
   Vector[(IdT[INameT], FunctionEnvEntry)] = {
     if (structA.members.collect({ case VariadicStructMemberS(_, _, _) => }).nonEmpty) {
@@ -112,6 +144,27 @@ class StructConstructorMacro(
   }
 
 
+*/
+}
+
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn generate_function_body_struct_constructor(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        env: &FunctionEnvironmentT<'s, 't>,
+        generator_id: StrI<'s>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        origin_function: Option<&FunctionA<'s>>,
+        param_coords: &[ParameterT<'s, 't>],
+        maybe_ret_coord: Option<CoordT<'s, 't>>,
+    ) -> (FunctionHeaderT<'s, 't>, ReferenceExpressionTE<'s, 't>) {
+        panic!("Unimplemented: generate_function_body_struct_constructor");
+    }
+/*
   override def generateFunctionBody(
     env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
@@ -187,3 +240,4 @@ class StructConstructorMacro(
   }
 }
 */
+}

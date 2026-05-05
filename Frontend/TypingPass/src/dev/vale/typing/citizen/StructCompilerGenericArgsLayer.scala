@@ -47,42 +47,30 @@ class StructCompilerGenericArgsLayer(
       //   vassert(templateArgs.size == structA.genericParameters.size)
       // because we have default generic arguments now.
 
+      // Per @ECSIIOSZ, this sets up a per-call-site solver for resolving Foo<X>-style struct
+      // instantiations; explicit template args become InitialKnowns, assembleCallSiteRules
+      // handles SROACSD filtering, and solveForResolving applies DRSINI defaults incrementally.
       val initialKnowns =
         structA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
           InitialKnown(RuneUsage(callRange.head, genericParam.rune.rune), templateArg)
         })
 
       val callSiteRules =
-        TemplataCompiler.assembleCallSiteRules(
-          structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
+        TemplataCompiler.assembleCallSiteRules(structA.headerRules.toVector)
 
       val contextRegion = RegionT(DefaultRegionT)
 
-      // Check if its a valid use of this template
-      val envs = InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion)
-      val solver =
-        inferCompiler.makeSolver(
-          envs,
+      val CompleteResolveSolve(inferences, runeToFunctionBound) =
+        inferCompiler.solveForResolving(
+          InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
           coutputs,
           callSiteRules,
           structA.headerRuneToType,
-          callRange,
-          initialKnowns,
-          Vector())
-      inferCompiler.continue(envs, coutputs, solver) match {
-        case Ok(()) =>
-        case Err(x) => return ResolveFailure(callRange, ResolvingSolveFailedOrIncomplete(x))
-      }
-      val CompleteResolveSolve(inferences, runeToFunctionBound) =
-        inferCompiler.checkResolvingConclusionsAndResolve(
-          envs,
-          coutputs,
           callRange,
           callLocation,
-          structA.headerRuneToType,
-          callSiteRules,
-          Vector(),
-          solver) match {
+          structA.genericParameters,
+          initialKnowns,
+          Vector()) match {
           case Ok(ccs) => ccs
           case Err(x) => return ResolveFailure(callRange, x)
         }
@@ -286,8 +274,7 @@ class StructCompilerGenericArgsLayer(
         })
 
       val callSiteRules =
-        TemplataCompiler.assembleCallSiteRules(
-          interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
+        TemplataCompiler.assembleCallSiteRules(interfaceA.rules.toVector)
 
       val contextRegion = RegionT(DefaultRegionT)
 
@@ -300,6 +287,7 @@ class StructCompilerGenericArgsLayer(
           interfaceA.runeToType,
           callRange,
         callLocation,
+          interfaceA.genericParameters,
           initialKnowns,
           Vector()) match {
           case Ok(ccs) => ccs
@@ -344,7 +332,7 @@ class StructCompilerGenericArgsLayer(
 
       val envs = InferEnv(outerEnv, List(structA.range), callLocation, outerEnv, RegionT(DefaultRegionT))
       val solver =
-        inferCompiler.makeSolver(
+        inferCompiler.makeSolverState(
           envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, Vector(), Vector())
       // Incrementally solve and add placeholders, see IRAGP.
       inferCompiler.incrementallySolve(
@@ -448,7 +436,7 @@ class StructCompilerGenericArgsLayer(
 
       val envs = InferEnv(outerEnv, List(interfaceA.range), callLocation, outerEnv, RegionT(DefaultRegionT))
       val solver =
-        inferCompiler.makeSolver(
+        inferCompiler.makeSolverState(
           envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector())
       // Incrementally solve and add placeholders, see IRAGP.
       inferCompiler.incrementallySolve(

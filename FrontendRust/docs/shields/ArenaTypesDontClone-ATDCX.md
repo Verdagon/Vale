@@ -1,8 +1,9 @@
 ---
 description: Output data must be Copy or behind &'s — Clone-without-Copy on output data is a smell.
-model: AgenticSmall
-assumes: TFITCX
-when_mentioned: "Arena-allocated"
+g_model: SimpleSmall
+g_context: definition
+g_assumes: TFITCX
+g_when_mentioned: "Arena-allocated"
 ---
 
 # Arena Types Don't Clone (ATDCX)

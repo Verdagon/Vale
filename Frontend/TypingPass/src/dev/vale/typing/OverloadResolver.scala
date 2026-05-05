@@ -41,24 +41,35 @@ object OverloadResolver {
   case class WrongNumberOfArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason {
     vpass()
 
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   }
-  case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+  case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+  case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason {
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
     vpass()
   }
   case class SpecificParamRegionDoesntMatch(rune: IRuneS, suppliedMutability: IRegionMutabilityS, calleeMutability: IRegionMutabilityS) extends IFindFunctionFailureReason {
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
     vpass()
   }
-  case class SpecificParamVirtualityDoesntMatch(index: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class Outscored() extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class InferFailure(reason: FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class FindFunctionResolveFailure(reason: IResolvingError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-  case class CouldntEvaluateTemplateError(reason: IDefiningError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+  case class SpecificParamVirtualityDoesntMatch(index: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+  case class Outscored() extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+  case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+  case class InferFailure(reason: FailedSolve[IRulexSR, IRuneS, ITemplataT[ITemplataType], ITypingPassSolverError]) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+  case class FindFunctionResolveFailure(reason: IResolvingError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+  case class CouldntEvaluateTemplateError(reason: IDefiningError) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
 
 
   case class FindFunctionFailure(
@@ -68,7 +79,8 @@ object OverloadResolver {
     rejectedCalleeToReason: Iterable[(ICalleeCandidate, IFindFunctionFailureReason)]
   ) {
     vpass()
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   }
 
   case class EvaluateFunctionFailure2(
@@ -78,7 +90,8 @@ object OverloadResolver {
     rejectedCalleeToReason: Iterable[(PrototypeT[IFunctionNameT], IFindFunctionFailureReason)]
   ) {
     vpass()
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
   }
 }
 
@@ -180,8 +193,14 @@ class OverloadResolver(
     getCandidateBannersInner(env, coutputs, range, functionName, searchedEnvs, results)
     getParamEnvironments(coutputs, range, paramFilters)
       .foreach(e => getCandidateBannersInner(e, coutputs, range, functionName, searchedEnvs, results))
+    // When calling a method on a placeholder (well, any function involving a
+    // placeholder argument really), also look in the environments for any interfaces that we know
+    // that placeholder impls (see @BDPFWDZ). See also `AfterRegionsIntegrationTests."Method call on impl-bounded
+    // generic dispatches through interface"` in IntegrationTests.
+    getPlaceholderExtraCallEnvs(env, coutputs, range, paramFilters)
+      .foreach(e => getCandidateBannersInner(e, coutputs, range, functionName, searchedEnvs, results))
     extraEnvsToLookIn
-      .foreach(e => getCandidateBannersInner(env, coutputs, range, functionName, searchedEnvs, results))
+      .foreach(e => getCandidateBannersInner(e, coutputs, range, functionName, searchedEnvs, results))
   }
 
   private def getCandidateBannersInner(
@@ -311,7 +330,16 @@ class OverloadResolver(
               }
               val rulesWithoutImplicitCoercionsA = ruleBuilder.toVector
 
-              // We preprocess out the rune parent env lookups, see MKRFA and @ICIPCRZ.
+              // We preprocess out the rune parent env lookups, see MKRFA. Per @ECSIIOSZ, this is
+              // the canonical per-call-site setup; other call-site solvers (ArrayCompiler etc.)
+              // should mirror this shape before calling makeSolver/solveForResolving.
+              //
+              // ⚠ This fold is a recurring-bug pattern. MKRFA is unenforced; the value
+              // solver's RuneParentEnvLookupSR handler is a silent no-op, so forgetting to
+              // run this produces unrelated "couldn't solve" errors elsewhere. ArrayCompiler
+              // sat in violation for ~4 years until April 2026. When adding a new
+              // expression-scoped solver caller, either copy this fold verbatim OR (preferably)
+              // land the shared-helper refactor in docs/refactor-thoughts/mkrfa-protocol-leak.md.
               val (initialKnowns, rulesWithoutRuneParentEnvLookups) =
                 rulesWithoutImplicitCoercionsA.foldLeft((Vector[InitialKnown](), Vector[IRulexSR]()))({
                   case ((previousConclusions, remainingRules), RuneParentEnvLookupSR(_, rune)) => {
@@ -339,6 +367,7 @@ class OverloadResolver(
                 explicitTemplateArgRuneToType ++ runeAToType,
                 callRange,
                 callLocation,
+                Vector(),
                 initialKnowns,
                 Vector()) match {
                 case (Err(e)) => {
@@ -439,6 +468,43 @@ class OverloadResolver(
         case _ => Vector.empty
       })
     })
+  }
+
+  private def getPlaceholderExtraCallEnvs(
+    callingEnv: IInDenizenEnvironmentT,
+    coutputs: CompilerOutputs,
+    range: List[RangeS],
+    paramFilters: Vector[CoordT]
+  ): Vector[IInDenizenEnvironmentT] = {
+    val collected = ArrayBuffer[IInDenizenEnvironmentT]()
+    val seen = mutable.Set[IdT[INameT]]()
+    // Look through each parameter, and if it's a placeholder that impls an interface, grab
+    // the interface env so that callers can look inside them for methods too (see @BDPFWDZ).
+    paramFilters.foreach({ case tyype =>
+      tyype.kind match {
+        case KindPlaceholderT(id) => {
+          val placeholderImprecise =
+            TemplatasStore.getImpreciseName(interner, id.localName) match {
+              case None => vfail("Placeholder localName had no imprecise name: " + id.localName)
+              case Some(n) => n
+            }
+          val implKey = interner.intern(ImplSubCitizenImpreciseNameS(placeholderImprecise))
+          val matching = callingEnv.lookupAllWithImpreciseName(implKey, Set(TemplataLookupContext))
+          matching.foreach({
+            case IsaTemplataT(_, _, _, InterfaceTT(superId)) => {
+              val templateId = TemplataCompiler.getInterfaceTemplate(superId)
+              if (!seen.contains(templateId)) {
+                seen.add(templateId)
+                collected += coutputs.getOuterEnvForType(range, templateId)
+              }
+            }
+            case _ =>
+          })
+        }
+        case _ =>
+      }
+    })
+    collected.toVector
   }
 
   // Checks to see if there's a function that *could*
@@ -623,8 +689,7 @@ class OverloadResolver(
         throw CompileErrorExceptionT(
           CouldntNarrowDownCandidates(
             callRange,
-            vimpl(duplicateBanners)))
-        //            duplicateBanners.map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
+            duplicateBanners.toVector))
       } else if (normalIndicesAndCandidates.size == 1) {
         normalIndicesAndCandidates.head._1
       } else if (boundIndicesAndCandidates.nonEmpty) {

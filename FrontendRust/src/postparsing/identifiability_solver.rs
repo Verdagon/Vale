@@ -2,7 +2,7 @@ use crate::scout_arena::ScoutArena;
 use crate::postparsing::names::IRuneS;
 use crate::postparsing::rules::rules::IRulexSR;
 use crate::solver::{
-    IncompleteOrFailedSolve, IncompleteSolve, ISolverError, Solver, SolverDelegate,
+    FailedSolve, ISolverError, SimpleSolverState, SolveIncomplete, make_solver_state,
 };
 use crate::utils::range::RangeS;
 use std::collections::{HashMap, HashSet};
@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 package dev.vale.postparsing
 
 import dev.vale.postparsing.rules._
-import dev.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverError, ISolverState, IStepState, IncompleteSolve, Solver}
+import dev.vale.solver.{FailedSolve, ISolverError, SimpleSolverState, SolveIncomplete, Solver}
 import dev.vale.{Err, Ok, RangeS, Result, vassert, vimpl, vpass}
 import dev.vale._
 import dev.vale.postparsing.rules._
@@ -21,10 +21,10 @@ import scala.collection.immutable.Map
 #[derive(Clone, Debug, PartialEq)]
 pub struct IdentifiabilitySolveError<'s> {
   pub range: Vec<RangeS<'s>>,
-  pub failed_solve: IncompleteOrFailedSolve<IRulexSR<'s>, IRuneS<'s>, bool, IIdentifiabilityRuleError>,
+  pub failed_solve: FailedSolve<IRulexSR<'s>, IRuneS<'s>, bool, IIdentifiabilityRuleError>,
 }
 /*
-case class IdentifiabilitySolveError(range: List[RangeS], failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, Boolean, IIdentifiabilityRuleError]) {
+case class IdentifiabilitySolveError(range: List[RangeS], failedSolve: FailedSolve[IRulexSR, IRuneS, Boolean, IIdentifiabilityRuleError]) {
   vpass()
 }
 */
@@ -34,61 +34,6 @@ sealed trait IIdentifiabilityRuleError
 #[derive(Clone, Debug, PartialEq)]
 pub enum IIdentifiabilityRuleError {}
 
-struct IdentifiabilitySolverDelegate<'s> {
-  call_range: Vec<RangeS<'s>>,
-}
-/* Guardian: disable-all */
-
-impl<'s> SolverDelegate<IRulexSR<'s>, IRuneS<'s>, (), (), bool, IIdentifiabilityRuleError>
-  for IdentifiabilitySolverDelegate<'s>
-{
-  fn rule_to_puzzles(&self, rule: &IRulexSR<'s>) -> Vec<Vec<IRuneS<'s>>> {
-    get_puzzles(rule)
-  }
-  /* Guardian: disable-all */
-
-  fn rule_to_runes(&self, rule: &IRulexSR<'s>) -> Vec<IRuneS<'s>> {
-    get_runes(rule)
-  }
-  /* Guardian: disable-all */
-
-  fn solve<S: crate::solver::ISolverState<IRulexSR<'s>, IRuneS<'s>, bool>>(
-    &self,
-    _state: &(),
-    _env: &(),
-    rule_index: i32,
-    rule: &IRulexSR<'s>,
-    solver_state: &mut S,
-  ) -> Result<(), ISolverError<IRuneS<'s>, bool, IIdentifiabilityRuleError>> {
-    solve_rule_impl(
-      rule_index,
-      &self.call_range,
-      rule,
-      solver_state,
-    )
-  }
-  /* Guardian: disable-all */
-
-  fn complex_solve<S: crate::solver::ISolverState<IRulexSR<'s>, IRuneS<'s>, bool>>(
-    &self,
-    _state: &(),
-    _env: &(),
-    _solver_state: &mut S,
-  ) -> Result<(), ISolverError<IRuneS<'s>, bool, IIdentifiabilityRuleError>> {
-    Ok(())
-  }
-  /* Guardian: disable-all */
-
-  fn sanity_check_conclusion(
-    &self,
-    _env: &(),
-    _state: &(),
-    _rune: &IRuneS<'s>,
-    _conclusion: &bool,
-  ) {
-  }
-  /* Guardian: disable-all */
-}
 /*
 // Identifiability is whether the denizen has enough identifying runes to uniquely identify all its
 // instantiations. It's only used as a check, and will throw an error if there's a rune that can't
@@ -228,297 +173,149 @@ fn get_puzzles<'s>(rule: &IRulexSR<'s>) -> Vec<Vec<IRuneS<'s>>> {
     }
   }
 */
-fn solve_rule_impl<'s, S: crate::solver::ISolverState<IRulexSR<'s>, IRuneS<'s>, bool>>(
-  _rule_index: i32,
-  call_range: &[RangeS<'s>],
+fn solve_rule_impl<'s>(
+  rule_index: i32,
+  _call_range: &[RangeS<'s>],
   rule: &IRulexSR<'s>,
-  solver_state: &mut S,
+  solver_state: &mut SimpleSolverState<IRulexSR<'s>, IRuneS<'s>, bool>,
 ) -> Result<(), ISolverError<IRuneS<'s>, bool, IIdentifiabilityRuleError>> {
-  let mut range_s = vec![rule.range().clone()];
-  range_s.extend(call_range.iter().cloned());
   match rule {
     IRulexSR::KindComponents(_) => panic!("IRulexSR::KindComponents not yet migrated in identifiability solve_rule"),
     IRulexSR::CoordComponents(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.result_rune.rune.clone(),
-        true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.ownership_rune.rune.clone(),
-        true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.kind_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.result_rune.rune.clone(), true), (x.ownership_rune.rune.clone(), true), (x.kind_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::PrototypeComponents(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.result_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.params_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.return_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.result_rune.rune.clone(), true), (x.params_rune.rune.clone(), true), (x.return_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::MaybeCoercingCall(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.result_rune.rune.clone(),
-        true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.template_rune.rune.clone(),
-        true,
-      )?;
+      let mut conclusions: HashMap<IRuneS<'s>, bool> = [(x.result_rune.rune.clone(), true), (x.template_rune.rune.clone(), true)].into_iter().collect();
       for arg in x.args {
-        solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-          range_s.clone(),
-          arg.rune.clone(),
-          true,
-        )?;
+        conclusions.insert(arg.rune.clone(), true);
       }
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], conclusions, vec![])
     }
     IRulexSR::Resolve(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.result_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.params_list_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.return_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.result_rune.rune.clone(), true), (x.params_list_rune.rune.clone(), true), (x.return_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::CallSiteFunc(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.prototype_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.params_list_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.return_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.prototype_rune.rune.clone(), true), (x.params_list_rune.rune.clone(), true), (x.return_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::DefinitionFunc(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.result_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(), x.params_list_rune.rune.clone(), true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.return_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.result_rune.rune.clone(), true), (x.params_list_rune.rune.clone(), true), (x.return_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::DefinitionCoordIsa(_) => panic!("IRulexSR::DefinitionCoordIsa not yet migrated in identifiability solve_rule"),
     IRulexSR::CallSiteCoordIsa(_) => panic!("IRulexSR::CallSiteCoordIsa not yet migrated in identifiability solve_rule"),
     IRulexSR::OneOf(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::Equals(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.left.rune.clone(),
-        true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.right.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.left.rune.clone(), true), (x.right.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::IsConcrete(_) => panic!("IRulexSR::IsConcrete not yet migrated in identifiability solve_rule"),
     IRulexSR::IsInterface(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::IsStruct(_) => panic!("IRulexSR::IsStruct not yet migrated in identifiability solve_rule"),
     IRulexSR::RefListCompoundMutability(_) => panic!("IRulexSR::RefListCompoundMutability not yet migrated in identifiability solve_rule"),
     IRulexSR::CoerceToCoord(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.kind_rune.rune.clone(),
-        true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.coord_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.kind_rune.rune.clone(), true), (x.coord_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::Literal(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::Lookup(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::MaybeCoercingLookup(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::RuneParentEnvLookup(_) => {
       panic!("unimplemented");
     }
     IRulexSR::Augment(x) => {
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s.clone(),
-        x.result_rune.rune.clone(),
-        true,
-      )?;
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.inner_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], [(x.result_rune.rune.clone(), true), (x.inner_rune.rune.clone(), true)].into_iter().collect(), vec![])
     }
     IRulexSR::Call(_) => panic!("IRulexSR::Call not yet migrated in identifiability solve_rule"),
     IRulexSR::CoordSend(_) => panic!("IRulexSR::CoordSend not yet migrated in identifiability solve_rule"),
     IRulexSR::Pack(x) => {
-      for member in x.members {
-        solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-          range_s.clone(), member.rune.clone(), true,
-        )?;
-      }
-      solver_state.step_conclude_rune::<IIdentifiabilityRuleError>(
-        range_s, x.result_rune.rune.clone(), true,
-      )?;
-      Ok(())
+      let mut conclusions: HashMap<IRuneS<'s>, bool> = x.members.iter().map(|m| (m.rune.clone(), true)).collect();
+      conclusions.insert(x.result_rune.rune.clone(), true);
+      solver_state.commit_step::<IIdentifiabilityRuleError>(false, vec![rule_index], conclusions, vec![])
     }
     IRulexSR::IndexList(_) => panic!("IRulexSR::IndexList not yet migrated in identifiability solve_rule"),
   }
 }
 /*
   private def solveRule(
-    state: Unit,
-    env: Unit,
+    solverState: SimpleSolverState[IRulexSR, IRuneS, Boolean],
     ruleIndex: Int,
-    callRange: List[RangeS],
-    rule: IRulexSR,
-    stepState: IStepState[IRulexSR, IRuneS, Boolean]):
+    rule: IRulexSR):
   Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
     rule match {
       case KindComponentsSR(range, resultRune, mutabilityRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, mutabilityRune.rune -> true), Vector())
       }
       case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, ownershipRune.rune, true)
-        stepState.concludeRune(range :: callRange, kindRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, ownershipRune.rune -> true, kindRune.rune -> true), Vector())
       }
       case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, paramsRune.rune, true)
-        stepState.concludeRune(range :: callRange, returnRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, paramsRune.rune -> true, returnRune.rune -> true), Vector())
       }
       case MaybeCoercingCallSR(range, resultRune, templateRune, argRunes) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, templateRune.rune, true)
-        argRunes.map(_.rune).foreach({ case argRune =>
-          stepState.concludeRune(range :: callRange, argRune, true)
-        })
-        Ok(())
+        val conclusions =
+          argRunes.map(_.rune).map({ case argRune => (argRune -> true) }).toMap ++
+              Map(resultRune.rune -> true, templateRune.rune -> true)
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), conclusions, Vector())
       }
       case ResolveSR(range, resultRune, name, paramListRune, returnRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, paramListRune.rune, true)
-        stepState.concludeRune(range :: callRange, returnRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, paramListRune.rune -> true, returnRune.rune -> true), Vector())
       }
       case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, paramListRune.rune, true)
-        stepState.concludeRune(range :: callRange, returnRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, paramListRune.rune -> true, returnRune.rune -> true), Vector())
       }
       case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, paramsListRune.rune, true)
-        stepState.concludeRune(range :: callRange, returnRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, paramsListRune.rune -> true, returnRune.rune -> true), Vector())
       }
       case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, subRune.rune, true)
-        stepState.concludeRune(range :: callRange, superRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, subRune.rune -> true, superRune.rune -> true), Vector())
       }
       case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => {
-        stepState.concludeRune(range :: callRange, subRune.rune, true)
-        stepState.concludeRune(range :: callRange, superRune.rune, true)
-        resultRune match {
-          case Some(resultRune) => stepState.concludeRune(range :: callRange, resultRune.rune, true)
-          case None =>
-        }
-        Ok(())
+        val conclusions = Map(subRune.rune -> true, superRune.rune -> true) ++
+            (resultRune match {
+              case None => Map()
+              case Some(resultRune) => Map(resultRune.rune -> true)
+            })
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), conclusions, Vector())
       }
       case OneOfSR(range, resultRune, literals) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true), Vector())
       }
       case EqualsSR(range, leftRune, rightRune) => {
-        stepState.concludeRune(range :: callRange, leftRune.rune, true)
-        stepState.concludeRune(range :: callRange, rightRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(leftRune.rune -> true, rightRune.rune -> true), Vector())
       }
       case IsConcreteSR(range, rune) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case IsInterfaceSR(range, rune) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case IsStructSR(range, rune) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, coordListRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, coordListRune.rune -> true), Vector())
       }
       case CoerceToCoordSR(range, coordRune, kindRune) => {
-        stepState.concludeRune(range :: callRange, kindRune.rune, true)
-        stepState.concludeRune(range :: callRange, coordRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(kindRune.rune -> true, coordRune.rune -> true), Vector())
       }
       case LiteralSR(range, rune, literal) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case LookupSR(range, rune, name) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case MaybeCoercingLookupSR(range, rune, name) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case RuneParentEnvLookupSR(range, rune) => {
         vimpl()
@@ -531,34 +328,30 @@ fn solve_rule_impl<'s, S: crate::solver::ISolverState<IRulexSR<'s>, IRuneS<'s>, 
 //            return Err(SolverConflict(rune.rune, to, from))
 //          }
 //        }
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), vimpl(), Vector())
       }
       case MaybeCoercingLookupSR(range, rune, name) => {
-        stepState.concludeRune(range :: callRange, rune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(rune.rune -> true), Vector())
       }
       case AugmentSR(range, resultRune, ownership, innerRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, innerRune.rune, true)
-        Ok(())
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), Map(resultRune.rune -> true, innerRune.rune -> true), Vector())
       }
       case PackSR(range, resultRune, memberRunes) => {
-        memberRunes.foreach(x => stepState.concludeRune(range :: callRange, x.rune, true))
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        Ok(())
+        val conclusions = Map(resultRune.rune -> true) ++ memberRunes.map(x => (x.rune -> true))
+        solverState.commitStep[IIdentifiabilityRuleError](false, Vector(ruleIndex), conclusions, Vector())
       }
 //      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-//        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-//        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
-//        stepState.concludeRune(range :: callRange, variabilityRune.rune, true)
-//        stepState.concludeRune(range :: callRange, sizeRune.rune, true)
-//        stepState.concludeRune(range :: callRange, elementRune.rune, true)
+//        solverState.commitStep[IIdentifiabilityRuleError]resultRune.rune, true), Vector())
+//        solverState.commitStep[IIdentifiabilityRuleError]mutabilityRune.rune, true), Vector())
+//        solverState.commitStep[IIdentifiabilityRuleError]variabilityRune.rune, true), Vector())
+//        solverState.commitStep[IIdentifiabilityRuleError]sizeRune.rune, true), Vector())
+//        solverState.commitStep[IIdentifiabilityRuleError]elementRune.rune, true), Vector())
 //        Ok(())
 //      }
 //      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => {
-//        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-//        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
-//        stepState.concludeRune(range :: callRange, elementRune.rune, true)
+//        solverState.commitStep[IIdentifiabilityRuleError]resultRune.rune, true), Vector())
+//        solverState.commitStep[IIdentifiabilityRuleError]mutabilityRune.rune, true), Vector())
+//        solverState.commitStep[IIdentifiabilityRuleError]elementRune.rune, true), Vector())
 //        Ok(())
 //      }
     }
@@ -590,62 +383,73 @@ pub(crate) fn solve_identifiability<'s>(
     out
   };
 
-  let delegate = IdentifiabilitySolverDelegate {
-    call_range: call_range.to_vec(),
-  };
-  let mut solver = Solver::new(
+  let mut solver_state = make_solver_state(
     sanity_check,
-    delegate,
-    call_range.to_vec(),
+    false,
+    Box::new(get_puzzles),
+    &get_runes,
     rules.to_vec(),
     initially_known_runes,
     all_runes,
   );
 
-  while {
-    match solver.advance(&(), &()) {
-      Ok(continue_) => continue_,
-      Err(e) => {
-        return Err(IdentifiabilitySolveError {
-          range: call_range.to_vec(),
-          failed_solve: IncompleteOrFailedSolve::Failed(e),
-        })
+  // Inline advance loop (matches Scala's while loop in solve())
+  loop {
+    solver_state.sanity_check();
+    // Stage 1: simple solve
+    match solver_state.get_next_solvable() {
+      None => break, // No more solvable rules
+      Some(rule_index) => {
+        let rule = solver_state.get_rule(rule_index).clone();
+        let steps_before = solver_state.get_steps().len();
+        match solve_rule_impl(rule_index, call_range, &rule, &mut solver_state) {
+          Ok(()) => {}
+          Err(e) => {
+            return Err(IdentifiabilitySolveError {
+              range: call_range.to_vec(),
+              failed_solve: FailedSolve {
+                steps: solver_state.get_steps(),
+                conclusions: solver_state.get_conclusions().into_iter().collect(),
+                unsolved_rules: solver_state.get_unsolved_rules(),
+                unsolved_runes: solver_state.get_unsolved_runes(),
+                error: e,
+              },
+            })
+          }
+        }
+        let steps_after = solver_state.get_steps().len();
+        assert!(steps_after == steps_before + 1);
+        assert!(solver_state.rule_is_solved(rule_index));
+        solver_state.sanity_check();
       }
     }
-  } {}
+  }
   // If we get here, then there's nothing more the solver can do.
 
-  let steps = solver.get_steps();
-  let conclusions: HashMap<_, _> = solver.userify_conclusions().into_iter().collect();
-
-  let all_rune_ids = solver.get_all_runes();
-  let all_runes_user: HashSet<IRuneS<'s>> = all_rune_ids
-    .iter()
-    .map(|&id| solver.get_user_rune(id))
-    .collect();
-  let conclusions_set: HashSet<_> = conclusions.keys().cloned().collect();
-  let unsolved_runes: HashSet<_> = all_runes_user
-    .difference(&conclusions_set)
-    .cloned()
-    .collect();
+  let steps = solver_state.get_steps();
+  let conclusions: HashMap<_, _> = solver_state.userify_conclusions().into_iter().collect();
+  let unsolved_runes = solver_state.get_unsolved_runes();
 
   if !unsolved_runes.is_empty() {
     Err(IdentifiabilitySolveError {
       range: call_range.to_vec(),
-      failed_solve: IncompleteOrFailedSolve::Incomplete(IncompleteSolve {
+      failed_solve: FailedSolve {
         steps,
-        unsolved_rules: solver.get_unsolved_rules(),
-        unknown_runes: unsolved_runes,
-        incomplete_conclusions: conclusions,
-        _phantom: std::marker::PhantomData,
-      }),
+        conclusions: conclusions.clone(),
+        unsolved_rules: solver_state.get_unsolved_rules(),
+        unsolved_runes,
+        error: ISolverError::SolveIncomplete(
+          SolveIncomplete {
+            _phantom: std::marker::PhantomData,
+          }
+        ),
+      },
     })
   } else {
     Ok(conclusions)
   }
 }
 /*
-  // MIGALLOW: solve -> solve_identifiability
   def solve(
     sanityCheck: Boolean,
     useOptimizedSolver: Boolean,
@@ -655,50 +459,53 @@ pub(crate) fn solve_identifiability<'s>(
     identifyingRunes: Iterable[IRuneS]):
   Result[Map[IRuneS, Boolean], IdentifiabilitySolveError] = {
     val initiallyKnownRunes = identifyingRunes.map(r => (r, true)).toMap
-    val solver =
-      new Solver[IRulexSR, IRuneS, Unit, Unit, Boolean, IIdentifiabilityRuleError](
+    val solverState =
+      Solver.makeSolverState(
         sanityCheck,
         useOptimizedSolver,
-        interner,
         (rule: IRulexSR) => getPuzzles(rule),
         getRunes,
-        new ISolveRule[IRulexSR, IRuneS, Unit, Unit, Boolean, IIdentifiabilityRuleError] {
-          override def sanityCheckConclusion(env: Unit, state: Unit, rune: IRuneS, conclusion: Boolean): Unit = {}
-
-          override def complexSolve(state: Unit, env: Unit, solverState: ISolverState[IRulexSR, IRuneS, Boolean], stepState: IStepState[IRulexSR, IRuneS, Boolean]): Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
-            Ok(())
-          }
-
-          override def solve(state: Unit, env: Unit, solverState: ISolverState[IRulexSR, IRuneS, Boolean], ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, Boolean]): Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
-            solveRule(state, env, ruleIndex, callRange, rule, stepState)
-          }
-        },
-        callRange,
         rules,
         initiallyKnownRunes,
         (rules.flatMap(getRunes) ++ initiallyKnownRunes.keys).distinct.toVector)
     while ( {
-      solver.advance(Unit, Unit) match {
-        case Ok(continue) => continue
-        case Err(e) => return Err(IdentifiabilitySolveError(callRange, e))
+      solverState.sanityCheck()
+      solverState.getNextSolvable() match {
+        case None => false // break
+        case Some(solvingRuleIndex) => {
+          val rule = solverState.getRule(solvingRuleIndex)
+          val stepsBefore = solverState.getSteps().size
+          solveRule(solverState, solvingRuleIndex, rule) match {
+            case Ok(()) => {}
+            case Err(e) => return Err(IdentifiabilitySolveError(callRange, FailedSolve(solverState.getSteps(), solverState.getConclusions().toMap, solverState.getUnsolvedRules(), solverState.getUnsolvedRunes(), e)))
+          }
+          val stepsAfter = solverState.getSteps().size
+          vassert(stepsAfter == stepsBefore + 1)
+          vassert(solverState.ruleIsSolved(solvingRuleIndex)) // Per @CSCDSRZ, only true after simple solve.
+          solverState.sanityCheck()
+          // Go back to the beginning. Next step, if there's no simple rule ready to solve, then
+          // it'll start doing a complex solve if available, or just finish.
+          true
+        }
       }
     }) {}
     // If we get here, then there's nothing more the solver can do.
 
-    val steps = solver.getSteps().toStream
-    val conclusions = solver.userifyConclusions().toMap
+    val steps = solverState.getSteps().toStream
+    val conclusions = solverState.userifyConclusions().toMap
 
-    val allRunes = solver.getAllRunes().map(solver.getUserRune)
+    val allRunes = solverState.getAllRunes()
     val unsolvedRunes = allRunes -- conclusions.keySet
     if (unsolvedRunes.nonEmpty) {
       Err(
         IdentifiabilitySolveError(
           callRange,
-          IncompleteSolve(
+          FailedSolve(
             steps,
-            solver.getUnsolvedRules(),
-            unsolvedRunes,
-            conclusions)))
+            conclusions,
+            solverState.getUnsolvedRules(),
+            unsolvedRunes.toVector,
+            SolveIncomplete())))
     } else {
       Ok(conclusions)
     }

@@ -1,3 +1,21 @@
+use crate::postparsing::ast::LocationInDenizen;
+use crate::typing::compiler::Compiler;
+use std::collections::HashMap;
+use crate::utils::range::RangeS;
+use crate::postparsing::names::*;
+use crate::postparsing::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::citizens::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::environment::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::env::i_env_entry::*;
+use crate::typing::names::names::*;
+use crate::typing::types::types::*;
+use crate::typing::templata::templata::*;
+use crate::typing::compiler_outputs::*;
+use crate::interner::Interner;
+
 /*
 package dev.vale.typing
 
@@ -20,18 +38,51 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
+*/
+pub enum IMethod<'s, 't> {
+    NeededOverride(NeededOverride<'s, 't>),
+    FoundFunction(FoundFunction<'s, 't>),
+}
+/*
 sealed trait IMethod
+*/
+pub struct NeededOverride<'s, 't> {
+    pub name: IImpreciseNameS<'s>,
+    pub param_filters: Vec<CoordT<'s, 't>>,
+}
+/*
 case class NeededOverride(
   name: IImpreciseNameS,
   paramFilters: Vector[CoordT]
-) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
-case class FoundFunction(prototype: PrototypeT[IFunctionNameT]) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
-
+) extends IMethod {
+  val hash = runtime.ScalaRunTime._hashCode(this);
+override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious(); }
+*/
+pub struct FoundFunction<'s, 't> {
+    pub prototype: PrototypeT<'s, 't>,
+}
+/*
+case class FoundFunction(prototype: PrototypeT[IFunctionNameT]) extends IMethod {
+  val hash = runtime.ScalaRunTime._hashCode(this);
+override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious(); }
+*/
+pub struct PartialEdgeT<'s, 't> {
+    pub struct_tt: StructTT<'s, 't>,
+    pub interface: InterfaceTT<'s, 't>,
+    pub methods: Vec<IMethod<'s, 't>>,
+}
+/*
 case class PartialEdgeT(
   struct: StructTT,
   interface: InterfaceTT,
-  methods: Vector[IMethod]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
-
+  methods: Vector[IMethod]) {
+  val hash = runtime.ScalaRunTime._hashCode(this);
+override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious(); }
+*/
+/*
 class EdgeCompiler(
     opts: TypingPassOptions,
     interner: Interner,
@@ -39,6 +90,26 @@ class EdgeCompiler(
     functionCompiler: FunctionCompiler,
     overloadCompiler: OverloadResolver,
     implCompiler: ImplCompiler) {
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn compile_i_tables(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+    ) -> (Vec<InterfaceEdgeBlueprintT<'s, 't>>, HashMap<IdT<'s, 't>, HashMap<IdT<'s, 't>, EdgeT<'s, 't>>>) {
+        // val interfaceEdgeBlueprints = makeInterfaceEdgeBlueprints(coutputs)
+        let interface_edge_blueprints = self.make_interface_edge_blueprints(coutputs);
+
+        // val itables = interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => { ... })
+        let itables: HashMap<IdT<'s, 't>, HashMap<IdT<'s, 't>, EdgeT<'s, 't>>> =
+            interface_edge_blueprints.iter().map(|_interface_edge_blueprint| {
+                panic!("implement: compile_i_tables — itable construction per blueprint");
+            }).collect();
+
+        (interface_edge_blueprints, itables)
+    }
+/*
   def compileITables(coutputs: CompilerOutputs):
   (
     Vector[InterfaceEdgeBlueprintT],
@@ -96,7 +167,46 @@ class EdgeCompiler(
       }).toMap
     (interfaceEdgeBlueprints, itables)
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn make_interface_edge_blueprints(
+        &self,
+        coutputs: &CompilerOutputs<'s, 't>,
+    ) -> Vec<InterfaceEdgeBlueprintT<'s, 't>> {
+        // val x1 = coutputs.getAllFunctions().flatMap(function => function.header.getAbstractInterface match {
+        //   case None => Vector.empty
+        //   case Some(abstractInterface) => Vector(abstractInterfaceTemplate -> function)
+        // })
+        let x1: Vec<(IdT<'s, 't>, &'t FunctionDefinitionT<'s, 't>)> =
+            coutputs.get_all_functions().iter().flat_map(|_function| -> Vec<(IdT<'s, 't>, &'t FunctionDefinitionT<'s, 't>)> {
+                panic!("implement: make_interface_edge_blueprints — getAbstractInterface filter");
+            }).collect();
+
+        // val x2 = x1.groupBy(_._1)
+        // val x3 = x2.mapValues(_.map(_._2))
+        let mut x3: HashMap<IdT<'s, 't>, Vec<&'t FunctionDefinitionT<'s, 't>>> = HashMap::new();
+        for (k, v) in x1.into_iter() {
+            x3.entry(k).or_insert_with(Vec::new).push(v);
+        }
+
+        // val x4 = x3.map({ case (interfaceTemplateId, functions) => ... orderedMethods ... })
+        let _x4: HashMap<IdT<'s, 't>, ()> = x3.into_iter().map(|(_interface_template_id, _functions)| {
+            panic!("implement: make_interface_edge_blueprints — orderedMethods construction");
+        }).collect();
+
+        // val abstractFunctionHeadersByInterfaceTemplateId = x4 ++ coutputs.getAllInterfaces().map(...)
+        for _i in coutputs.get_all_interfaces().iter() {
+            panic!("implement: make_interface_edge_blueprints — augment with empty interfaces");
+        }
+
+        // val interfaceEdgeBlueprints = abstractFunctionHeadersByInterfaceTemplateId.map(...).toVector
+        Vec::new()
+    }
+/*
   private def makeInterfaceEdgeBlueprints(coutputs: CompilerOutputs): Vector[InterfaceEdgeBlueprintT] = {
     val x1 =
       coutputs.getAllFunctions().flatMap({ case function =>
@@ -149,7 +259,23 @@ class EdgeCompiler(
         })
     interfaceEdgeBlueprints.toVector
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn create_override_placeholder_mimicking(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        original_templata_to_mimic: ITemplataT<'s, 't>,
+        dispatcher_outer_env: &IInDenizenEnvironmentT<'s, 't>,
+        index: i32,
+        rune: IRuneS<'s>,
+    ) -> ITemplataT<'s, 't> {
+        panic!("Unimplemented: create_override_placeholder_mimicking");
+    }
+/*
   def createOverridePlaceholderMimicking(
     coutputs: CompilerOutputs,
     originalTemplataToMimic: ITemplataT[ITemplataType],
@@ -227,7 +353,25 @@ class EdgeCompiler(
       }
     result
   }
+*/
+}
 
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn look_for_override(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        call_location: LocationInDenizen<'s>,
+        impl_t: &ImplT<'s, 't>,
+        interface_template_id: IdT<'s, 't>,
+        sub_citizen_template_id: IdT<'s, 't>,
+        abstract_function_prototype: PrototypeT<'s, 't>,
+        abstract_index: i32,
+    ) -> OverrideT<'s, 't> {
+        panic!("Unimplemented: look_for_override");
+    }
+/*
   private def lookForOverride(
     coutputs: CompilerOutputs,
     callLocation: LocationInDenizen,
@@ -580,3 +724,4 @@ class EdgeCompiler(
 
 }
 */
+}

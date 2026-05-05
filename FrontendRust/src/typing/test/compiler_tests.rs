@@ -27,16 +27,57 @@ import org.scalatest._
 
 import scala.collection.immutable.List
 import scala.io.Source
-
+*/
+use super::compiler_test_compilation::compiler_test_compilation;
+use bumpalo::Bump;
+use crate::keywords::Keywords;
+use crate::parse_arena::ParseArena;
+use crate::scout_arena::ScoutArena;
+use crate::utils::code_hierarchy::{self, IPackageResolver, PackageCoordinate};
+use std::collections::HashMap;
+use crate::typing::types::types::{KindT, IntT};
+// mig: struct CompilerTests
+pub struct CompilerTests {}
+// mig: impl CompilerTests
+impl CompilerTests {}
+/*
 class CompilerTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
-
+*/
+// mig: fn read_code_from_resource
+fn read_code_from_resource(resource_filename: &str) -> String {
+    panic!("Unimplemented: read_code_from_resource");
+}
+/*
   def readCodeFromResource(resourceFilename: String): String = {
     val is = Source.fromInputStream(getClass().getClassLoader().getResourceAsStream(resourceFilename))
     vassert(is != null)
     is.mkString("")
   }
 
+*/
+// mig: fn simple_program_returning_an_int_explicit
+#[test]
+fn simple_program_returning_an_int_explicit() {
+    // We had a bug once looking up "int" in the environment, hence this test.
+    let parse_bump = Bump::new();
+    let scout_bump = Bump::new();
+    let typing_bump = Bump::new();
+    let parse_arena = ParseArena::new(&parse_bump);
+    let scout_arena = ScoutArena::new(&scout_bump);
+    let keywords = Keywords::new_for_scout(&scout_arena);
+    let parser_keywords = Keywords::new_for_parse(&parse_arena);
+    let code = "func main() int { return 3; }";
+    let resolver = code_hierarchy::test_from_vec(&parse_arena, vec![code.to_string()])
+        .or(|_: &PackageCoordinate<'_>| -> Option<HashMap<String, String>> { None });
+    let mut compile = compiler_test_compilation(
+        &scout_arena, &keywords, &parser_keywords, &parse_arena, &resolver, &typing_bump,
+    );
+    let coutputs = compile.expect_compiler_outputs();
+    let main = coutputs.lookup_function_by_human_name("main");
+    assert!(main.header.return_type.kind == KindT::Int(IntT { bits: 32 }));
+}
+/*
   test("Simple program returning an int, explicit") {
     // We had a bug once looking up "int" in the environment, hence this test.
 
@@ -50,6 +91,36 @@ class CompilerTests extends FunSuite with Matchers {
     main.header.returnType.kind shouldEqual IntT(32)
   }
 
+*/
+// mig: fn hardcoding_negative_numbers
+#[test]
+fn hardcoding_negative_numbers() {
+    let parse_bump = Bump::new();
+    let scout_bump = Bump::new();
+    let typing_bump = Bump::new();
+    let parse_arena = ParseArena::new(&parse_bump);
+    let scout_arena = ScoutArena::new(&scout_bump);
+    let keywords = Keywords::new_for_scout(&scout_arena);
+    let parser_keywords = Keywords::new_for_parse(&parse_arena);
+    let code = "exported func main() int { return -3; }";
+    let resolver = code_hierarchy::test_from_vec(&parse_arena, vec![code.to_string()])
+        .or(|_: &PackageCoordinate<'_>| -> Option<HashMap<String, String>> { None });
+    let mut compile = compiler_test_compilation(
+        &scout_arena, &keywords, &parser_keywords, &parse_arena, &resolver, &typing_bump,
+    );
+    let coutputs = compile.expect_compiler_outputs();
+    let main = coutputs.lookup_function_by_human_name("main");
+    crate::collect_only_tnode!(
+        crate::typing::test::traverse::NodeRefT::FunctionDefinition(main),
+        crate::typing::test::traverse::NodeRefT::ConstantInt(
+            crate::typing::ast::expressions::ConstantIntTE {
+                value: crate::typing::templata::templata::ITemplataT::Integer(-3),
+                ..
+            }
+        ) => Some(())
+    );
+}
+/*
   test("Hardcoding negative numbers") {
     val compile = CompilerTestCompilation.test(
       """
@@ -59,6 +130,28 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, { case ConstantIntTE(IntegerTemplataT(-3), _, _) => true })
   }
 
+*/
+// mig: fn simple_local
+#[test]
+fn simple_local() {
+    let parse_bump = Bump::new();
+    let scout_bump = Bump::new();
+    let typing_bump = Bump::new();
+    let parse_arena = ParseArena::new(&parse_bump);
+    let scout_arena = ScoutArena::new(&scout_bump);
+    let keywords = Keywords::new_for_scout(&scout_arena);
+    let parser_keywords = Keywords::new_for_parse(&parse_arena);
+    let code = "exported func main() int {\n  a = 42;\n  return a;\n}";
+    let resolver = code_hierarchy::test_from_vec(&parse_arena, vec![code.to_string()])
+        .or(|_: &PackageCoordinate<'_>| -> Option<HashMap<String, String>> { None });
+    let mut compile = compiler_test_compilation(
+        &scout_arena, &keywords, &parser_keywords, &parse_arena, &resolver, &typing_bump,
+    );
+    let coutputs = compile.expect_compiler_outputs();
+    let main = coutputs.lookup_function_by_human_name("main");
+    assert!(main.header.return_type.kind == KindT::Int(IntT { bits: 32 }));
+}
+/*
   test("Simple local") {
     val compile = CompilerTestCompilation.test(
       """
@@ -71,6 +164,14 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(main.header.returnType.kind == IntT(32))
   }
 
+*/
+// mig: fn tests_panic_return_type
+#[test]
+#[ignore]
+fn tests_panic_return_type() {
+    panic!("Unmigrated test: tests_panic_return_type");
+}
+/*
   test("Tests panic return type") {
     val compile = CompilerTestCompilation.test(
       """
@@ -87,6 +188,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn taking_an_argument_and_returning_it
+#[test]
+#[ignore]
+fn taking_an_argument_and_returning_it() {
+    panic!("Unmigrated test: taking_an_argument_and_returning_it");
+}
+/*
   test("Taking an argument and returning it") {
     val compile = CompilerTestCompilation.test(
       """
@@ -99,6 +208,14 @@ class CompilerTests extends FunSuite with Matchers {
     lookup.localVariable.coord match { case CoordT(ShareT, _, IntT.i32) => }
   }
 
+*/
+// mig: fn tests_adding_two_numbers
+#[test]
+#[ignore]
+fn tests_adding_two_numbers() {
+    panic!("Unmigrated test: tests_adding_two_numbers");
+}
+/*
   test("Tests adding two numbers") {
     val compile =
       CompilerTestCompilation.test(
@@ -120,6 +237,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn simple_struct_read
+#[test]
+#[ignore]
+fn simple_struct_read() {
+    panic!("Unmigrated test: simple_struct_read");
+}
+/*
   test("Simple struct read") {
     val compile = CompilerTestCompilation.test(
       """
@@ -132,6 +257,14 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
   }
 
+*/
+// mig: fn make_array_and_dot_it
+#[test]
+#[ignore]
+fn make_array_and_dot_it() {
+    panic!("Unmigrated test: make_array_and_dot_it");
+}
+/*
   test("Make array and dot it") {
     val compile = CompilerTestCompilation.test(
       """
@@ -145,6 +278,14 @@ class CompilerTests extends FunSuite with Matchers {
     compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn simple_struct_instantiate
+#[test]
+#[ignore]
+fn simple_struct_instantiate() {
+    panic!("Unmigrated test: simple_struct_instantiate");
+}
+/*
   test("Simple struct instantiate") {
     val compile = CompilerTestCompilation.test(
       """
@@ -157,6 +298,14 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
   }
 
+*/
+// mig: fn call_destructor
+#[test]
+#[ignore]
+fn call_destructor() {
+    panic!("Unmigrated test: call_destructor");
+}
+/*
   test("Call destructor") {
     val compile = CompilerTestCompilation.test(
       """
@@ -172,6 +321,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn custom_destructor
+#[test]
+#[ignore]
+fn custom_destructor() {
+    panic!("Unmigrated test: custom_destructor");
+}
+/*
   test("Custom destructor") {
     val compile = CompilerTestCompilation.test(
       """
@@ -191,6 +348,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn make_constraint_reference
+#[test]
+#[ignore]
+fn make_constraint_reference() {
+    panic!("Unmigrated test: make_constraint_reference");
+}
+/*
   test("Make constraint reference") {
     val compile = CompilerTestCompilation.test(
       """
@@ -211,6 +376,14 @@ class CompilerTests extends FunSuite with Matchers {
 
 
 
+*/
+// mig: fn recursion
+#[test]
+#[ignore]
+fn recursion() {
+    panic!("Unmigrated test: recursion");
+}
+/*
   test("Recursion") {
     val compile = CompilerTestCompilation.test(
       """
@@ -222,6 +395,14 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, RegionT(), IntT.i32)
   }
 
+*/
+// mig: fn test_overloads
+#[test]
+#[ignore]
+fn test_overloads() {
+    panic!("Unmigrated test: test_overloads");
+}
+/*
   test("Test overloads") {
     val compile = CompilerTestCompilation.test(Tests.loadExpected("programs/functions/overloads.vale"))
     val coutputs = compile.expectCompilerOutputs()
@@ -230,16 +411,40 @@ class CompilerTests extends FunSuite with Matchers {
       CoordT(ShareT, RegionT(), IntT.i32)
   }
 
+*/
+// mig: fn test_readonly_ufcs
+#[test]
+#[ignore]
+fn test_readonly_ufcs() {
+    panic!("Unmigrated test: test_readonly_ufcs");
+}
+/*
   test("Test readonly UFCS") {
     val compile = CompilerTestCompilation.test(Tests.loadExpected("programs/ufcs.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_readwrite_ufcs
+#[test]
+#[ignore]
+fn test_readwrite_ufcs() {
+    panic!("Unmigrated test: test_readwrite_ufcs");
+}
+/*
   test("Test readwrite UFCS") {
     val compile = CompilerTestCompilation.test(Tests.loadExpected("programs/readwriteufcs.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_templates
+#[test]
+#[ignore]
+fn test_templates() {
+    panic!("Unmigrated test: test_templates");
+}
+/*
   test("Test templates") {
     val compile = CompilerTestCompilation.test(
       """
@@ -252,6 +457,14 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(coutputs.getAllUserFunctions.size == 2)
   }
 
+*/
+// mig: fn test_taking_a_callable_param
+#[test]
+#[ignore]
+fn test_taking_a_callable_param() {
+    panic!("Unmigrated test: test_taking_a_callable_param");
+}
+/*
   test("Test taking a callable param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -267,6 +480,14 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.functions.collect({ case x @ functionNameT("do") => x }).head.header.returnType shouldEqual CoordT(ShareT, RegionT(), IntT.i32)
   }
 
+*/
+// mig: fn simple_struct
+#[test]
+#[ignore]
+fn simple_struct() {
+    panic!("Unmigrated test: simple_struct");
+}
+/*
   test("Simple struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -310,6 +531,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn calls_destructor_on_local_var
+#[test]
+#[ignore]
+fn calls_destructor_on_local_var() {
+    panic!("Unmigrated test: calls_destructor_on_local_var");
+}
+/*
   test("Calls destructor on local var") {
     val compile = CompilerTestCompilation.test(
       """
@@ -329,6 +558,14 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.all(main, { case FunctionCallTE(_, _, _) => }).size shouldEqual 2
   }
 
+*/
+// mig: fn tests_defining_an_empty_interface_and_an_implementing_struct
+#[test]
+#[ignore]
+fn tests_defining_an_empty_interface_and_an_implementing_struct() {
+    panic!("Unmigrated test: tests_defining_an_empty_interface_and_an_implementing_struct");
+}
+/*
   test("Tests defining an empty interface and an implementing struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -355,6 +592,14 @@ class CompilerTests extends FunSuite with Matchers {
     }))
   }
 
+*/
+// mig: fn tests_defining_a_non_empty_interface_and_an_implementing_struct
+#[test]
+#[ignore]
+fn tests_defining_a_non_empty_interface_and_an_implementing_struct() {
+    panic!("Unmigrated test: tests_defining_a_non_empty_interface_and_an_implementing_struct");
+}
+/*
   test("Tests defining a non-empty interface and an implementing struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -386,6 +631,14 @@ class CompilerTests extends FunSuite with Matchers {
     }))
   }
 
+*/
+// mig: fn stamps_an_interface_template_via_a_function_return
+#[test]
+#[ignore]
+fn stamps_an_interface_template_via_a_function_return() {
+    panic!("Unmigrated test: stamps_an_interface_template_via_a_function_return");
+}
+/*
   test("Stamps an interface template via a function return") {
     val compile = CompilerTestCompilation.test(
       """
@@ -420,6 +673,14 @@ class CompilerTests extends FunSuite with Matchers {
 //    coutputs.lookupFunction("MyStruct")
 //  }
 
+*/
+// mig: fn reads_a_struct_member
+#[test]
+#[ignore]
+fn reads_a_struct_member() {
+    panic!("Unmigrated test: reads_a_struct_member");
+}
+/*
   test("Reads a struct member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -446,6 +707,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
 
+*/
+// mig: fn automatically_drops_struct
+#[test]
+#[ignore]
+fn automatically_drops_struct() {
+    panic!("Unmigrated test: automatically_drops_struct");
+}
+/*
   test("Automatically drops struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -472,6 +741,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn tests_stamping_an_interface_template_from_a_function_param
+#[test]
+#[ignore]
+fn tests_stamping_an_interface_template_from_a_function_param() {
+    panic!("Unmigrated test: tests_stamping_an_interface_template_from_a_function_param");
+}
+/*
   test("Tests stamping an interface template from a function param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -495,6 +772,14 @@ class CompilerTests extends FunSuite with Matchers {
     // Can't run it because there's nothing implementing that interface >_>
   }
 
+*/
+// mig: fn reports_mismatched_return_type_when_expecting_void
+#[test]
+#[ignore]
+fn reports_mismatched_return_type_when_expecting_void() {
+    panic!("Unmigrated test: reports_mismatched_return_type_when_expecting_void");
+}
+/*
   test("Reports mismatched return type when expecting void") {
     val compile = CompilerTestCompilation.test(
       """
@@ -508,6 +793,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn tests_exporting_function
+#[test]
+#[ignore]
+fn tests_exporting_function() {
+    panic!("Unmigrated test: tests_exporting_function");
+}
+/*
   test("Tests exporting function") {
     val compile = CompilerTestCompilation.test(
       """
@@ -519,6 +812,14 @@ class CompilerTests extends FunSuite with Matchers {
     `export`.prototype shouldEqual moo.header.toPrototype
   }
 
+*/
+// mig: fn tests_exporting_struct
+#[test]
+#[ignore]
+fn tests_exporting_struct() {
+    panic!("Unmigrated test: tests_exporting_struct");
+}
+/*
   test("Tests exporting struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -530,6 +831,14 @@ class CompilerTests extends FunSuite with Matchers {
     `export`.tyype shouldEqual moo.instantiatedCitizen
   }
 
+*/
+// mig: fn tests_exporting_interface
+#[test]
+#[ignore]
+fn tests_exporting_interface() {
+    panic!("Unmigrated test: tests_exporting_interface");
+}
+/*
   test("Tests exporting interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -541,6 +850,14 @@ class CompilerTests extends FunSuite with Matchers {
     `export`.tyype shouldEqual moo.instantiatedInterface
   }
 
+*/
+// mig: fn tests_single_expression_and_single_statement_functions_returns
+#[test]
+#[ignore]
+fn tests_single_expression_and_single_statement_functions_returns() {
+    panic!("Unmigrated test: tests_single_expression_and_single_statement_functions_returns");
+}
+/*
   test("Tests single expression and single statement functions' returns") {
     val compile = CompilerTestCompilation.test(
       """
@@ -560,6 +877,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn tests_calling_a_templated_struct_s_constructor
+#[test]
+#[ignore]
+fn tests_calling_a_templated_struct_s_constructor() {
+    panic!("Unmigrated test: tests_calling_a_templated_struct_s_constructor");
+}
+/*
   test("Tests calling a templated struct's constructor") {
     val compile = CompilerTestCompilation.test(
       """
@@ -612,6 +937,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn tests_upcasting_from_a_struct_to_an_interface
+#[test]
+#[ignore]
+fn tests_upcasting_from_a_struct_to_an_interface() {
+    panic!("Unmigrated test: tests_upcasting_from_a_struct_to_an_interface");
+}
+/*
   test("Tests upcasting from a struct to an interface") {
     val compile = CompilerTestCompilation.test(readCodeFromResource("programs/virtuals/upcasting.vale"))
     val coutputs = compile.expectCompilerOutputs()
@@ -625,6 +958,14 @@ class CompilerTests extends FunSuite with Matchers {
     upcast.innerExpr.result.coord match { case CoordT(OwnT,_, StructTT(IdT(x, Vector(), StructNameT(StructTemplateNameT(StrI("MyStruct")), Vector())))) => vassert(x.isTest) }
   }
 
+*/
+// mig: fn tests_calling_a_virtual_function
+#[test]
+#[ignore]
+fn tests_calling_a_virtual_function() {
+    panic!("Unmigrated test: tests_calling_a_virtual_function");
+}
+/*
   test("Tests calling a virtual function") {
     val compile = CompilerTestCompilation.test(readCodeFromResource("programs/virtuals/calling.vale"))
     val coutputs = compile.expectCompilerOutputs()
@@ -640,6 +981,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn tests_upcasting_has_the_right_stuff
+#[test]
+#[ignore]
+fn tests_upcasting_has_the_right_stuff() {
+    panic!("Unmigrated test: tests_upcasting_has_the_right_stuff");
+}
+/*
   test("Tests upcasting has the right stuff") {
     val compile = CompilerTestCompilation.test(readCodeFromResource("programs/virtuals/calling.vale"))
     val coutputs = compile.expectCompilerOutputs()
@@ -660,6 +1009,14 @@ class CompilerTests extends FunSuite with Matchers {
 //    freePrototype.fullName.last.parameters.head shouldEqual up.result.reference
   }
 
+*/
+// mig: fn tests_calling_a_virtual_function_through_a_borrow_ref
+#[test]
+#[ignore]
+fn tests_calling_a_virtual_function_through_a_borrow_ref() {
+    panic!("Unmigrated test: tests_calling_a_virtual_function_through_a_borrow_ref");
+}
+/*
   test("Tests calling a virtual function through a borrow ref") {
     val compile = CompilerTestCompilation.test(readCodeFromResource("programs/virtuals/callingThroughBorrow.vale"))
     val coutputs = compile.expectCompilerOutputs()
@@ -672,6 +1029,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn tests_calling_a_templated_function_with_explicit_template_args
+#[test]
+#[ignore]
+fn tests_calling_a_templated_function_with_explicit_template_args() {
+    panic!("Unmigrated test: tests_calling_a_templated_function_with_explicit_template_args");
+}
+/*
   test("Tests calling a templated function with explicit template args") {
     // Tests putting MyOption<int> as the type of x.
     val compile = CompilerTestCompilation.test(
@@ -687,6 +1052,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
   // See DSDCTD
+*/
+// mig: fn tests_destructuring_borrow_doesnt_compile_to_destroy
+#[test]
+#[ignore]
+fn tests_destructuring_borrow_doesnt_compile_to_destroy() {
+    panic!("Unmigrated test: tests_destructuring_borrow_doesnt_compile_to_destroy");
+}
+/*
   test("Tests destructuring borrow doesnt compile to destroy") {
     val compile = CompilerTestCompilation.test(
       """
@@ -718,6 +1091,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn tests_making_a_variable_with_a_pattern
+#[test]
+#[ignore]
+fn tests_making_a_variable_with_a_pattern() {
+    panic!("Unmigrated test: tests_making_a_variable_with_a_pattern");
+}
+/*
   test("Tests making a variable with a pattern") {
     // Tests putting MyOption<int> as the type of x.
     val compile = CompilerTestCompilation.test(
@@ -740,17 +1121,41 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn tests_a_linked_list
+#[test]
+#[ignore]
+fn tests_a_linked_list() {
+    panic!("Unmigrated test: tests_a_linked_list");
+}
+/*
   test("Tests a linked list") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/virtuals/ordinarylinkedlist.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_borrow_ref
+#[test]
+#[ignore]
+fn test_borrow_ref() {
+    panic!("Unmigrated test: test_borrow_ref");
+}
+/*
   test("Test borrow ref") {
     val compile = CompilerTestCompilation.test(Tests.loadExpected("programs/borrowRef.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn tests_calling_a_function_with_an_upcast
+#[test]
+#[ignore]
+fn tests_calling_a_function_with_an_upcast() {
+    panic!("Unmigrated test: tests_calling_a_function_with_an_upcast");
+}
+/*
   test("Tests calling a function with an upcast") {
     val compile = CompilerTestCompilation.test(
         """
@@ -772,6 +1177,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn tests_calling_a_templated_function_with_an_upcast
+#[test]
+#[ignore]
+fn tests_calling_a_templated_function_with_an_upcast() {
+    panic!("Unmigrated test: tests_calling_a_templated_function_with_an_upcast");
+}
+/*
   test("Tests calling a templated function with an upcast") {
     val compile = CompilerTestCompilation.test(
       """
@@ -794,6 +1207,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
 
+*/
+// mig: fn tests_upcast_with_generics_has_the_right_stuff
+#[test]
+#[ignore]
+fn tests_upcast_with_generics_has_the_right_stuff() {
+    panic!("Unmigrated test: tests_upcast_with_generics_has_the_right_stuff");
+}
+/*
   test("Tests upcast with generics has the right stuff") {
     val compile = CompilerTestCompilation.test(
       """
@@ -815,12 +1236,28 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn tests_a_templated_linked_list
+#[test]
+#[ignore]
+fn tests_a_templated_linked_list() {
+    panic!("Unmigrated test: tests_a_templated_linked_list");
+}
+/*
   test("Tests a templated linked list") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/templatedlinkedlist.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn tests_a_foreach_for_a_linked_list
+#[test]
+#[ignore]
+fn tests_a_foreach_for_a_linked_list() {
+    panic!("Unmigrated test: tests_a_foreach_for_a_linked_list");
+}
+/*
   test("Tests a foreach for a linked list") {
     val compile = CompilerTestCompilation.test(
         Tests.loadExpected("programs/genericvirtuals/foreachlinkedlist.vale"))
@@ -832,6 +1269,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn test_return_from_inside_if_destroys_locals
+#[test]
+#[ignore]
+fn test_return_from_inside_if_destroys_locals() {
+    panic!("Unmigrated test: test_return_from_inside_if_destroys_locals");
+}
+/*
   test("Test return from inside if destroys locals") {
     val compile = CompilerTestCompilation.test(
       """
@@ -859,6 +1304,14 @@ class CompilerTests extends FunSuite with Matchers {
     destructorCalls.size shouldEqual 2
   }
 
+*/
+// mig: fn recursive_struct
+#[test]
+#[ignore]
+fn recursive_struct() {
+    panic!("Unmigrated test: recursive_struct");
+}
+/*
   test("Recursive struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -870,6 +1323,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn recursive_struct_with_opt
+#[test]
+#[ignore]
+fn recursive_struct_with_opt() {
+    panic!("Unmigrated test: recursive_struct_with_opt");
+}
+/*
   test("Recursive struct with Opt") {
     val compile = CompilerTestCompilation.test(
       """
@@ -883,6 +1344,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
   // Make sure a ListNode struct made it out
+*/
+// mig: fn templated_imm_struct
+#[test]
+#[ignore]
+fn templated_imm_struct() {
+    panic!("Unmigrated test: templated_imm_struct");
+}
+/*
   test("Templated imm struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -894,6 +1363,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn borrow_load_member
+#[test]
+#[ignore]
+fn borrow_load_member() {
+    panic!("Unmigrated test: borrow_load_member");
+}
+/*
   test("Borrow-load member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -914,6 +1391,14 @@ class CompilerTests extends FunSuite with Matchers {
     vpass()
   }
 
+*/
+// mig: fn test_vector_of_struct_templata
+#[test]
+#[ignore]
+fn test_vector_of_struct_templata() {
+    panic!("Unmigrated test: test_vector_of_struct_templata");
+}
+/*
   test("Test Vector of StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
@@ -932,6 +1417,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
 
+*/
+// mig: fn if_branches_returns_never_and_struct
+#[test]
+#[ignore]
+fn if_branches_returns_never_and_struct() {
+    panic!("Unmigrated test: if_branches_returns_never_and_struct");
+}
+/*
   test("If branches returns never and struct") {
     // We had a bug where it couldn't reconcile never and struct.
 
@@ -951,6 +1444,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_return
+#[test]
+#[ignore]
+fn test_return() {
+    panic!("Unmigrated test: test_return");
+}
+/*
   test("Test return") {
     val compile = CompilerTestCompilation.test(
       """
@@ -963,6 +1464,14 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, { case ReturnTE(_) => })
   }
 
+*/
+// mig: fn test_return_from_inside_if
+#[test]
+#[ignore]
+fn test_return_from_inside_if() {
+    panic!("Unmigrated test: test_return_from_inside_if");
+}
+/*
   test("Test return from inside if") {
     val compile = CompilerTestCompilation.test(
       """
@@ -983,6 +1492,14 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, { case ConstantIntTE(IntegerTemplataT(9), _, _) => })
   }
 
+*/
+// mig: fn zero_method_anonymous_interface
+#[test]
+#[ignore]
+fn zero_method_anonymous_interface() {
+    panic!("Unmigrated test: zero_method_anonymous_interface");
+}
+/*
   test("Zero method anonymous interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -994,6 +1511,14 @@ class CompilerTests extends FunSuite with Matchers {
     compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn reports_when_exported_function_depends_on_non_exported_param
+#[test]
+#[ignore]
+fn reports_when_exported_function_depends_on_non_exported_param() {
+    panic!("Unmigrated test: reports_when_exported_function_depends_on_non_exported_param");
+}
+/*
   test("Reports when exported function depends on non-exported param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1005,6 +1530,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_exported_function_depends_on_non_exported_return
+#[test]
+#[ignore]
+fn reports_when_exported_function_depends_on_non_exported_return() {
+    panic!("Unmigrated test: reports_when_exported_function_depends_on_non_exported_return");
+}
+/*
   test("Reports when exported function depends on non-exported return") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1018,6 +1551,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_extern_function_depends_on_non_exported_param
+#[test]
+#[ignore]
+fn reports_when_extern_function_depends_on_non_exported_param() {
+    panic!("Unmigrated test: reports_when_extern_function_depends_on_non_exported_param");
+}
+/*
   test("Reports when extern function depends on non-exported param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1029,6 +1570,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_extern_function_depends_on_non_exported_return
+#[test]
+#[ignore]
+fn reports_when_extern_function_depends_on_non_exported_return() {
+    panic!("Unmigrated test: reports_when_extern_function_depends_on_non_exported_return");
+}
+/*
   test("Reports when extern function depends on non-exported return") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1040,6 +1589,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_exported_struct_depends_on_non_exported_member
+#[test]
+#[ignore]
+fn reports_when_exported_struct_depends_on_non_exported_member() {
+    panic!("Unmigrated test: reports_when_exported_struct_depends_on_non_exported_member");
+}
+/*
   test("Reports when exported struct depends on non-exported member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1055,6 +1612,14 @@ class CompilerTests extends FunSuite with Matchers {
 
 
 
+*/
+// mig: fn checks_that_we_stored_a_borrowed_temporary_in_a_local
+#[test]
+#[ignore]
+fn checks_that_we_stored_a_borrowed_temporary_in_a_local() {
+    panic!("Unmigrated test: checks_that_we_stored_a_borrowed_temporary_in_a_local");
+}
+/*
   test("Checks that we stored a borrowed temporary in a local") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1073,6 +1638,14 @@ class CompilerTests extends FunSuite with Matchers {
       }
   }
 
+*/
+// mig: fn reports_when_reading_nonexistant_local
+#[test]
+#[ignore]
+fn reports_when_reading_nonexistant_local() {
+    panic!("Unmigrated test: reports_when_reading_nonexistant_local");
+}
+/*
   test("Reports when reading nonexistant local") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1085,6 +1658,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_mutating_after_moving
+#[test]
+#[ignore]
+fn reports_when_mutating_after_moving() {
+    panic!("Unmigrated test: reports_when_mutating_after_moving");
+}
+/*
   test("Reports when mutating after moving") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1108,6 +1689,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn tests_export_struct_twice
+#[test]
+#[ignore]
+fn tests_export_struct_twice() {
+    panic!("Unmigrated test: tests_export_struct_twice");
+}
+/*
   test("Tests export struct twice") {
     // See MMEDT why this is an error
     val compile = CompilerTestCompilation.test(
@@ -1120,6 +1709,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_reading_after_moving
+#[test]
+#[ignore]
+fn reports_when_reading_after_moving() {
+    panic!("Unmigrated test: reports_when_reading_after_moving");
+}
+/*
   test("Reports when reading after moving") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1143,6 +1740,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_moving_from_inside_a_while
+#[test]
+#[ignore]
+fn reports_when_moving_from_inside_a_while() {
+    panic!("Unmigrated test: reports_when_moving_from_inside_a_while");
+}
+/*
   test("Reports when moving from inside a while") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1163,6 +1768,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn cant_subscript_non_subscriptable_type
+#[test]
+#[ignore]
+fn cant_subscript_non_subscriptable_type() {
+    panic!("Unmigrated test: cant_subscript_non_subscriptable_type");
+}
+/*
   test("Cant subscript non-subscriptable type") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1180,6 +1793,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn humanize_errors
+#[test]
+#[ignore]
+fn humanize_errors() {
+    panic!("Unmigrated test: humanize_errors");
+}
+/*
   test("Humanize errors") {
     val interner = new Interner()
     val keywords = new Keywords(interner)
@@ -1341,7 +1962,7 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(CompilerErrorHumanizer.humanize(false, humanizePos, linesBetween, lineRangeContaining, lineContaining,
       TypingPassSolverError(
         tz,
-        FailedCompilerSolve(
+        FailedSolve(
           Vector(
             Step[IRulexSR, IRuneS, ITemplataT[ITemplataType]](
               false,
@@ -1349,11 +1970,21 @@ class CompilerTests extends FunSuite with Matchers {
               Vector(),
               Map(
                 CodeRuneS(StrI("X")) -> KindTemplataT(fireflyKind)))).toStream,
+          Map(),
+          Vector(),
           Vector(),
           RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
   }
 
+*/
+// mig: fn report_when_multiple_types_in_array
+#[test]
+#[ignore]
+fn report_when_multiple_types_in_array() {
+    panic!("Unmigrated test: report_when_multiple_types_in_array");
+}
+/*
   test("Report when multiple types in array") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1369,6 +2000,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn report_when_abstract_method_defined_outside_open_interface
+#[test]
+#[ignore]
+fn report_when_abstract_method_defined_outside_open_interface() {
+    panic!("Unmigrated test: report_when_abstract_method_defined_outside_open_interface");
+}
+/*
   test("Report when abstract method defined outside open interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1384,6 +2023,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn report_when_imm_struct_has_varying_member
+#[test]
+#[ignore]
+fn report_when_imm_struct_has_varying_member() {
+    panic!("Unmigrated test: report_when_imm_struct_has_varying_member");
+}
+/*
   test("Report when imm struct has varying member") {
     // https://github.com/ValeLang/Vale/issues/131
     val compile = CompilerTestCompilation.test(
@@ -1402,6 +2049,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn report_imm_mut_mismatch_for_generic_type
+#[test]
+#[ignore]
+fn report_imm_mut_mismatch_for_generic_type() {
+    panic!("Unmigrated test: report_imm_mut_mismatch_for_generic_type");
+}
+/*
   test("Report imm mut mismatch for generic type") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1415,6 +2070,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn tests_stamping_a_struct_and_its_implemented_interface_from_a_function_param
+#[test]
+#[ignore]
+fn tests_stamping_a_struct_and_its_implemented_interface_from_a_function_param() {
+    panic!("Unmigrated test: tests_stamping_a_struct_and_its_implemented_interface_from_a_function_param");
+}
+/*
   test("Tests stamping a struct and its implemented interface from a function param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1442,6 +2105,14 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupImpl(struct.instantiatedCitizen.id, interface.instantiatedInterface.id)
   }
 
+*/
+// mig: fn report_when_imm_contains_varying_member
+#[test]
+#[ignore]
+fn report_when_imm_contains_varying_member() {
+    panic!("Unmigrated test: report_when_imm_contains_varying_member");
+}
+/*
   test("Report when imm contains varying member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1455,6 +2126,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn test_imm_array
+#[test]
+#[ignore]
+fn test_imm_array() {
+    panic!("Unmigrated test: test_imm_array");
+}
+/*
   test("Test imm array") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1471,6 +2150,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
 
+*/
+// mig: fn tests_calling_an_abstract_function
+#[test]
+#[ignore]
+fn tests_calling_an_abstract_function() {
+    panic!("Unmigrated test: tests_calling_an_abstract_function");
+}
+/*
   test("Tests calling an abstract function") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/callingAbstract.vale"))
@@ -1481,6 +2168,14 @@ class CompilerTests extends FunSuite with Matchers {
     }).get
   }
 
+*/
+// mig: fn test_struct_default_generic_argument_in_type
+#[test]
+#[ignore]
+fn test_struct_default_generic_argument_in_type() {
+    panic!("Unmigrated test: test_struct_default_generic_argument_in_type");
+}
+/*
   test("Test struct default generic argument in type") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1506,6 +2201,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn lock_weak_member
+#[test]
+#[ignore]
+fn lock_weak_member() {
+    panic!("Unmigrated test: lock_weak_member");
+}
+/*
   test("Lock weak member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1545,6 +2248,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
   // See DSDCTD
+*/
+// mig: fn tests_destructuring_shared_doesnt_compile_to_destroy
+#[test]
+#[ignore]
+fn tests_destructuring_shared_doesnt_compile_to_destroy() {
+    panic!("Unmigrated test: tests_destructuring_shared_doesnt_compile_to_destroy");
+}
+/*
   test("Tests destructuring shared doesnt compile to destroy") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1578,6 +2289,14 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
 
+*/
+// mig: fn generates_free_function_for_imm_struct
+#[test]
+#[ignore]
+fn generates_free_function_for_imm_struct() {
+    panic!("Unmigrated test: generates_free_function_for_imm_struct");
+}
+/*
   test("Generates free function for imm struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1600,6 +2319,14 @@ class CompilerTests extends FunSuite with Matchers {
 //    Collector.all(freeFunc, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
 
+*/
+// mig: fn reports_when_exported_ssa_depends_on_non_exported_element
+#[test]
+#[ignore]
+fn reports_when_exported_ssa_depends_on_non_exported_element() {
+    panic!("Unmigrated test: reports_when_exported_ssa_depends_on_non_exported_element");
+}
+/*
   test("Reports when exported SSA depends on non-exported element") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1611,6 +2338,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn reports_when_exported_rsa_depends_on_non_exported_element
+#[test]
+#[ignore]
+fn reports_when_exported_rsa_depends_on_non_exported_element() {
+    panic!("Unmigrated test: reports_when_exported_rsa_depends_on_non_exported_element");
+}
+/*
   test("Reports when exported RSA depends on non-exported element") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1622,6 +2357,9 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn imm_generic_can_contain_imm_thing
+/*
   test("Imm generic can contain imm thing") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1633,6 +2371,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_make_array
+#[test]
+#[ignore]
+fn test_make_array() {
+    panic!("Unmigrated test: test_make_array");
+}
+/*
   test("Test MakeArray") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1649,6 +2395,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_array_push_pop_len_capacity_drop
+#[test]
+#[ignore]
+fn test_array_push_pop_len_capacity_drop() {
+    panic!("Unmigrated test: test_array_push_pop_len_capacity_drop");
+}
+/*
   test("Test array push, pop, len, capacity, drop") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1668,6 +2422,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn upcast_generic
+#[test]
+#[ignore]
+fn upcast_generic() {
+    panic!("Unmigrated test: upcast_generic");
+}
+/*
   test("Upcast generic") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1703,6 +2465,14 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+*/
+// mig: fn downcast_function_rrbfs
+#[test]
+#[ignore]
+fn downcast_function_rrbfs() {
+    panic!("Unmigrated test: downcast_function_rrbfs");
+}
+/*
   test("Downcast function, RRBFS") {
     // Here we had something interesting happen: the complex solve had a race with the thing that
     // populates identifying runes.
@@ -1782,6 +2552,14 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(errConstructor.paramTypes.head == sourceExpr.result.coord)
   }
 
+*/
+// mig: fn downcast_with_as
+#[test]
+#[ignore]
+fn downcast_with_as() {
+    panic!("Unmigrated test: downcast_with_as");
+}
+/*
   test("Downcast with as") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1897,6 +2675,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn closure_using_parent_function_s_bound
+#[test]
+#[ignore]
+fn closure_using_parent_function_s_bound() {
+    panic!("Unmigrated test: closure_using_parent_function_s_bound");
+}
+/*
   test("Closure using parent function's bound") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1913,6 +2699,14 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+*/
+// mig: fn test_struct_default_generic_argument_in_call
+#[test]
+#[ignore]
+fn test_struct_default_generic_argument_in_call() {
+    panic!("Unmigrated test: test_struct_default_generic_argument_in_call");
+}
+/*
   test("Test struct default generic argument in call") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1938,6 +2732,14 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+*/
+// mig: fn structs_can_resolve_other_structs_instantiation_bound_arguments
+#[test]
+#[ignore]
+fn structs_can_resolve_other_structs_instantiation_bound_arguments() {
+    panic!("Unmigrated test: structs_can_resolve_other_structs_instantiation_bound_arguments");
+}
+/*
   test("Structs can resolve other structs' instantiation bound arguments") {
     // The definition of Marine<T> was trying to resolve the existence of func drop(int)void.
     // Unfortunately, we don't have an overload index at the time of struct definitions yet, that comes later when

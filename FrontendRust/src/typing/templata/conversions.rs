@@ -1,3 +1,6 @@
+use crate::parsing::ast::ast::*;
+use crate::typing::types::types::*;
+
 /*
 package dev.vale.typing.templata
 
@@ -13,27 +16,44 @@ import dev.vale.typing.{types => t}
 import dev.vale.typing.types._
 
 object Conversions {
+*/
+pub fn evaluate_mutability(mutability: MutabilityP) -> MutabilityT {
+  panic!("Unimplemented: evaluate_mutability");
+}
+/*
   def evaluateMutability(mutability: MutabilityP): MutabilityT = {
     mutability match {
       case MutableP => MutableT
       case ImmutableP => ImmutableT
     }
   }
-
+*/
+pub fn evaluate_location(location: LocationP) -> LocationT {
+  panic!("Unimplemented: evaluate_location");
+}
+/*
   def evaluateLocation(location: LocationP): LocationT = {
     location match {
       case InlineP => InlineT
       case YonderP => YonderT
     }
   }
-
+*/
+pub fn evaluate_variability(variability: VariabilityP) -> VariabilityT {
+  panic!("Unimplemented: evaluate_variability");
+}
+/*
   def evaluateVariability(variability: VariabilityP): VariabilityT = {
     variability match {
       case FinalP => FinalT
       case VaryingP => VaryingT
     }
   }
-
+*/
+pub fn evaluate_ownership(ownership: OwnershipP) -> OwnershipT {
+  panic!("Unimplemented: evaluate_ownership");
+}
+/*
   def evaluateOwnership(ownership: OwnershipP): OwnershipT = {
     ownership match {
       case OwnP => OwnT
@@ -42,7 +62,11 @@ object Conversions {
       case ShareP => ShareT
     }
   }
-
+*/
+pub fn evaluate_maybe_ownership(maybe_ownership: Option<OwnershipP>) -> Option<OwnershipT> {
+  panic!("Unimplemented: evaluate_maybe_ownership");
+}
+/*
   def evaluateMaybeOwnership(maybeOwnership: Option[OwnershipP]): Option[OwnershipT] = {
     maybeOwnership.map({
       case OwnP => OwnT
@@ -50,7 +74,11 @@ object Conversions {
       case ShareP => ShareT
     })
   }
-
+*/
+pub fn unevaluate_ownership(ownership: OwnershipT) -> OwnershipP {
+  panic!("Unimplemented: unevaluate_ownership");
+}
+/*
   def unevaluateOwnership(ownership: OwnershipT): OwnershipP = {
     ownership match {
       case OwnT => OwnP
@@ -59,7 +87,11 @@ object Conversions {
       case ShareT => ShareP
     }
   }
-
+*/
+pub fn unevaluate_mutability(mutability: MutabilityT) -> MutabilityP {
+  panic!("Unimplemented: unevaluate_mutability");
+}
+/*
   def unevaluateMutability(mutability: MutabilityT): MutabilityP = {
     mutability match {
       case MutableT => MutableP

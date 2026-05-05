@@ -1,3 +1,16 @@
+use crate::interner::StrI;
+use crate::utils::range::RangeS;
+
+use crate::higher_typing::ast::*;
+
+use crate::typing::types::types::*;
+use crate::typing::ast::ast::*;
+use crate::typing::ast::expressions::*;
+use crate::typing::env::function_environment_t::*;
+use crate::typing::compiler_outputs::*;
+use crate::typing::compiler::Compiler;
+use crate::postparsing::ast::LocationInDenizen;
+
 /*
 package dev.vale.typing.macros
 
@@ -20,14 +33,36 @@ import dev.vale.typing.env.FunctionEnvironmentBoxT
 import dev.vale.typing.types.InterfaceTT
 import dev.vale.typing.ast
 import dev.vale.typing.function.DestructorCompiler
-
+*/
+// (Scala `class AsSubtypeMacro(keywords, implCompiler, expressionCompiler, destructorCompiler)`
+//  absorbed onto `Compiler`; the method body lives at
+//  `Compiler::generate_function_body_as_subtype` below.)
+/*
 class AsSubtypeMacro(
   keywords: Keywords,
   implCompiler: ImplCompiler,
   expressionCompiler: ExpressionCompiler,
   destructorCompiler: DestructorCompiler) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_as_subtype
-
+*/
+impl<'s, 'ctx, 't> Compiler<'s, 'ctx, 't>
+where 's: 't,
+{
+    pub fn generate_function_body_as_subtype(
+        &self,
+        coutputs: &mut CompilerOutputs<'s, 't>,
+        env: &FunctionEnvironmentT<'s, 't>,
+        generator_id: StrI<'s>,
+        life: LocationInFunctionEnvironmentT<'s>,
+        call_range: &[RangeS<'s>],
+        call_location: LocationInDenizen<'s>,
+        origin_function: Option<&FunctionA<'s>>,
+        param_coords: &[ParameterT<'s, 't>],
+        maybe_ret_coord: Option<CoordT<'s, 't>>,
+    ) -> (FunctionHeaderT<'s, 't>, ReferenceExpressionTE<'s, 't>) {
+        panic!("Unimplemented: generate_function_body_as_subtype");
+    }
+/*
   def generateFunctionBody(
     env: FunctionEnvironmentT,
     coutputs: CompilerOutputs,
@@ -87,3 +122,4 @@ class AsSubtypeMacro(
 
 }
 */
+}

@@ -138,7 +138,18 @@ class FunctionScout(
     val lidb = new LocationInDenizenBuilder(Vector())
 
     maybeParent match {
-      case FunctionNoParent() =>
+      case FunctionNoParent() => {
+        if (attrsP.collectFirst({ case AbstractAttributeP(_) => }).nonEmpty) {
+          maybeParamsP match {
+            case None =>
+              throw CompileErrorExceptionS(VirtualAndAbstractGoTogether(rangeS))
+            case Some(paramsP) =>
+              if (!paramsP.params.exists(_.virtuality match { case Some(AbstractP(_)) => true case _ => false })) {
+                throw CompileErrorExceptionS(VirtualAndAbstractGoTogether(rangeS))
+              }
+          }
+        }
+      }
       case ParentFunction(_) =>
       case ParentCitizen(isInterface, _, _, _, _) => {
         if (isInterface) {
@@ -185,21 +196,18 @@ class FunctionScout(
           val implicitRegionGenericParam =
             GenericParameterS(
               regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
-          (regionRange, ContextRegionRune(rune), Some(implicitRegionGenericParam))
+          (regionRange, rune, Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, maybeRegionName)) => {
-          val newContextRegion =
-            maybeRegionName match {
-              case None => IsoContextRegion()
-              case Some(regionName) => {
-                val rune = CodeRuneS(regionName.str)
-                if (!functionEnv.allDeclaredRunes().contains(rune)) {
-                  throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
-                }
-                ContextRegionRune(rune)
-              }
-            }
-          (evalRange(file, regionRange), newContextRegion, None)
+          // Per master's region rework, only named regions are supported here; the iso
+          // fallback our branch had (case None => IsoContextRegion()) is gone — vassert
+          // on the name to keep parity with master's vassertSome pattern.
+          val regionName = vassertSome(maybeRegionName)
+          val rune = CodeRuneS(regionName.str)
+          if (!functionEnv.allDeclaredRunes().contains(rune)) {
+            throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
+          }
+          (evalRange(file, regionRange), rune, None)
         }
       }
 
@@ -263,7 +271,9 @@ class FunctionScout(
     // like in `(_) => { true }`
     // Later on, we'll make identifying runes for these.
 
-    val explicitParamsS =
+    // For lambdas, untyped explicit params (like `(a, b) => ...` or `(_) => ...`) get a
+    // synthesized coord rune here that will be added to the function's identifying runes.
+    val explicitParamsSAndSynthesizedRunes: Vector[(ParameterS, Option[RuneUsage])] =
       paramsP
         .map({
           case ParameterP(rangeL, maybeAbstractP, maybePreChecked, maybeSelfBorrow, maybePattern) => {
@@ -281,7 +291,7 @@ class FunctionScout(
                 runeToExplicitType += ((rune.rune, CoordTemplataType()))
                 val patternS =
                   AtomSP(rangeS, Some(CaptureS(CodeVarNameS(keywords.self), false)), Some(rune), None)
-                ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternS)
+                (ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternS), None)
               }
               case (None, Some(patternP)) => {
                 val patternPerhapsWithoutCoordRuneS =
@@ -291,22 +301,35 @@ class FunctionScout(
                     ruleBuilder,
                     runeToExplicitType,
                     patternP)
-                val patternS =
-                  patternPerhapsWithoutCoordRuneS.coordRune match {
-                    case None => {
-                      val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-                      runeToExplicitType += ((rune.rune, CoordTemplataType()))
-                      patternPerhapsWithoutCoordRuneS.copy(coordRune = Some(rune))
-                    }
-                    case Some(_) => patternPerhapsWithoutCoordRuneS
+                patternPerhapsWithoutCoordRuneS.coordRune match {
+                  case None => {
+                    // Untyped param (like in `(a) => a`) so make a rune that will be added to
+                    // genericParams and to the identifying runes. This only happens for lambdas,
+                    // top level functions can't have these (enforced elsewhere).
+                    val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
+                    runeToExplicitType += ((rune.rune, CoordTemplataType()))
+                    val patternS = patternPerhapsWithoutCoordRuneS.copy(coordRune = Some(rune))
+                    (ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternS), Some(rune))
                   }
-                ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternS)
+                  case Some(_) =>
+                    (ParameterS(rangeS, maybeAbstractS, maybePreChecked.nonEmpty, patternPerhapsWithoutCoordRuneS), None)
+                }
               }
             }
           }
         })
-//    val explicitParamsS = explicitParamPatternsAndIdentifyingRunes.map(_._1).map(ParameterS)
-//    val identifyingRunesFromExplicitParams = explicitParamPatternsAndIdentifyingRunes.flatMap(_._2)
+    val explicitParamsS = explicitParamsSAndSynthesizedRunes.map(_._1)
+    // Untyped lambda params (from `(_) =>` or `(a, b) =>`) contribute their synthesized coord runes here so later
+    // passes see a uniform FunctionS shape regardless of whether the user wrote `<T>` or an untyped param.
+    val extraGenericParamsFromExplicitParamsS =
+      explicitParamsSAndSynthesizedRunes
+          .flatMap(_._2)
+          .map(rune =>
+            GenericParameterS(
+              rune.range,
+              rune,
+              CoordGenericParameterTypeS(None, true, false),
+              None))
 
 
     // Only if the function actually has a body
@@ -512,6 +535,7 @@ class FunctionScout(
       (
         extraGenericParamsFromParentS ++
         functionUserSpecifiedGenericParametersS ++
+        extraGenericParamsFromExplicitParamsS ++
         extraGenericParamsFromBodyS)
           .filter({
             case GenericParameterS(_, _, RegionGenericParameterTypeS(_), _) => false
@@ -687,7 +711,7 @@ class FunctionScout(
     // This might be the block containing the lambda that we're evaluating now.
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
-    contextRegion: IContextRegion,
+    contextRegion: IRuneS,
     body0: BlockPE,
     initialDeclarations: VariableDeclarations):
   (BodySE, VariableUses, Vector[MagicParamNameS]) = {

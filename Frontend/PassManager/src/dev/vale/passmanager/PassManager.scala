@@ -34,11 +34,15 @@ object PassManager {
     def packageCoord(interner: Interner): PackageCoordinate
   }
   case class ModulePathInput(moduleName: StrI, path: String) extends IFrontendInput {
-    val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+    val hash = runtime.ScalaRunTime._hashCode(this)
+    override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious();
     override def packageCoord(interner: Interner): PackageCoordinate = interner.intern(PackageCoordinate(moduleName, Vector.empty))
   }
   case class DirectFilePathInput(packageCoordinate: PackageCoordinate, path: String) extends IFrontendInput {
-    val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+    val hash = runtime.ScalaRunTime._hashCode(this)
+    override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious();
     override def packageCoord(interner: Interner): PackageCoordinate = packageCoordinate
   }
   case class SourceInput(
@@ -46,7 +50,9 @@ object PassManager {
       // Name isnt guaranteed to be unique, we sometimes hand in strings like "builtins.vale"
       name: String,
       code: String) extends IFrontendInput {
-    val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+    val hash = runtime.ScalaRunTime._hashCode(this)
+    override def hashCode(): Int = hash;
+override def equals(obj: Any): Boolean = vcurious();
     override def packageCoord(interner: Interner): PackageCoordinate = packageCoordinate
   }
 

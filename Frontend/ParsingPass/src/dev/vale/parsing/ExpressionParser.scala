@@ -803,6 +803,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         }) match {
           case Some(destIter) => {
             parseLet(destIter, iter, stopOnCurlied) match {
+              case Err(BadThingAfterTypeInPattern(_)) => return Err(ForgotSetKeyword(destIter.getPos()))
               case Err(e) => return Err(e)
               case Ok(x) => x
             }
@@ -1447,7 +1448,6 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     }
 
     // This is here so we can do things like: [name] = destruct event;
-    // DO NOT SUBMIT add test
     parseDestruct(iter, stopOnCurlied) match {
       case Err(e) => return Err(e)
       case Ok(Some(x)) => return Ok(x)
