@@ -7,6 +7,7 @@ pub struct GlobalOptions {
   pub debug_output: bool,
 }
 /*
+
 package dev.vale.options
 
 object GlobalOptions {

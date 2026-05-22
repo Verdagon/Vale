@@ -1,12 +1,10 @@
-use crate::interner::Interner;
 use crate::keywords::Keywords;
 use crate::lexing::ast::*;
 use crate::lexing::errors::ParseError;
 use crate::parsing::ast::*;
-use crate::parsing::scramble_iterator::ScrambleIterator;
+use crate::parsing::expression_parser::ScrambleIterator;
 use crate::parsing::templex_parser::TemplexParser;
-use crate::utils::arena_utils::alloc_slice_from_vec;
-use bumpalo::Bump;
+use crate::parse_arena::ParseArena;
 
 /*
 package dev.vale.parsing
@@ -21,27 +19,29 @@ import scala.collection.mutable
 */
 type ParseResult<T> = Result<T, ParseError>;
 
-#[derive(Clone)]
-pub struct PatternParser<'a, 'ctx, 'p> {
-  #[allow(dead_code)]
-  interner: &'ctx Interner<'a>,
-  keywords: &'ctx Keywords<'a>,
-  arena: &'p Bump,
+pub struct PatternParser<'p, 'ctx> {
+  parse_arena: &'ctx ParseArena<'p>,
+  keywords: &'ctx Keywords<'p>,
 }
+// V: why is this cloneable?/
+// VA: It isn't — PatternParser has no derive macros at all and is never cloned. Question is moot.
+// V: should this be folded into the main Parser struct?
+// VA: It could be — its only fields (parse_arena, keywords) duplicate what Parser already holds.
+// VA: It exists as a separate struct for method grouping, matching Scala's separate class. Parser
+// VA: holds it as a field and creates it in Parser::new(). Keeping it separate is faithful to Scala's
+// VA: structure; folding it in would reduce indirection but diverge from the Scala class layout.
 /*
 class PatternParser(interner: Interner, keywords: Keywords, templexParser: TemplexParser) {
 */
 
-impl<'a, 'ctx, 'p> PatternParser<'a, 'ctx, 'p>
+impl<'p, 'ctx> PatternParser<'p, 'ctx>
 where
-  'a: 'ctx,
-  'a: 'p,
+  'p: 'ctx,
 {
-  pub fn new(interner: &'ctx Interner<'a>, keywords: &'ctx Keywords<'a>, arena: &'p Bump) -> Self {
+  pub fn new(parse_arena: &'ctx ParseArena<'p>, keywords: &'ctx Keywords<'p>) -> Self {
     PatternParser {
-      interner,
+      parse_arena,
       keywords,
-      arena,
     }
   }
 
@@ -49,13 +49,13 @@ where
   /// Mirrors parseParameter in PatternParser.scala lines 13-72
   pub fn parse_parameter(
     &self,
-    iter: &mut ScrambleIterator<'a, '_>,
-    templex_parser: &TemplexParser<'a, 'ctx, 'p>,
+    iter: &mut ScrambleIterator<'p, '_>,
+    templex_parser: &TemplexParser<'p, 'ctx>,
     index: usize,
     is_in_citizen: bool,
     is_in_function: bool,
     is_in_lambda: bool,
-  ) -> ParseResult<ParameterP<'a, 'p>> {
+  ) -> ParseResult<ParameterP<'p>> {
     let pattern_begin = iter.get_pos();
     let pattern_range = iter.range();
 
@@ -153,7 +153,7 @@ where
       }
 
       val maybeVirtual =
-        iter.peek_cloned() match {
+        iter.peek() match {
           case None => return Err(EmptyParameter(patternRange.begin))
           case Some(WordLE(range, s)) if s == keywords.virtual => {
             iter.advance()
@@ -179,7 +179,7 @@ where
         }
         case None => {
           val maybeName =
-            iter.peek2_cloned() match {
+            iter.peek2() match {
               case (Some(SquaredLE(_, _)), _) => {
                 // This is a destructure parameter with no name or type, like func moo([a, b, c])
                 None
@@ -210,15 +210,15 @@ where
   /// Mirrors parsePattern in PatternParser.scala lines 74-221
   pub fn parse_pattern(
     &self,
-    iter: &mut ScrambleIterator<'a, '_>,
-    templex_parser: &TemplexParser<'a, 'ctx, 'p>,
+    iter: &mut ScrambleIterator<'p, '_>,
+    templex_parser: &TemplexParser<'p, 'ctx>,
     pattern_begin: i32,
     index: usize,
     is_in_citizen: bool,
     is_in_function: bool,
     is_in_lambda: bool,
-    maybe_name_from_parameter: Option<WordLE<'a>>,
-  ) -> ParseResult<PatternPP<'a, 'p>> {
+    maybe_name_from_parameter: Option<WordLE<'p>>,
+  ) -> ParseResult<PatternPP<'p>> {
     // Mirrors PatternParser.scala lines 75-88
     // The Scala code used to have an early return here, but it was dead code and has been commented out.
     // We just check for empty pattern with no name.
@@ -255,12 +255,12 @@ where
     let maybe_destination_local = match maybe_name_from_parameter {
       Some(WordLE { range, str }) => {
         if str == self.keywords.underscore {
-          Some(DestinationLocalP::<'a> {
+          Some(DestinationLocalP::<'p> {
             decl: INameDeclarationP::IgnoredLocalNameDeclaration(range),
             mutate: None,
           })
         } else {
-          Some(DestinationLocalP::<'a> {
+          Some(DestinationLocalP::<'p> {
             decl: INameDeclarationP::LocalNameDeclaration(NameP(range, str)),
             mutate: None,
           })
@@ -335,7 +335,7 @@ where
     };
 
     // Parse optional type (lines 175-194)
-    let maybe_type: Option<ITemplexPT<'a, 'p>> = if next_is_type {
+    let maybe_type: Option<ITemplexPT<'p>> = if next_is_type {
       Some(templex_parser.parse_templex(iter)?)
     } else {
       if is_in_lambda {
@@ -385,7 +385,7 @@ where
 
         Some(DestructureP {
           range: destructure_range,
-          patterns: alloc_slice_from_vec(self.arena, patterns),
+          patterns: self.parse_arena.alloc_slice_from_vec(patterns),
         })
       }
       Some(other) => return Err(ParseError::BadThingAfterTypeInPattern(other.range().begin())),
@@ -393,7 +393,7 @@ where
     };
 
     // Return the complete pattern (lines 217-220)
-    Ok(PatternPP::<'a, 'p> {
+    Ok(PatternPP::<'p> {
       range: RangeL(pattern_begin, iter.get_prev_end_pos()),
       destination: maybe_destination_local,
       templex: maybe_type,
@@ -418,7 +418,7 @@ where
       }
 
       val isConstructing =
-        iter.peek2_cloned() match {
+        iter.peek2() match {
           case (Some(WordLE(_, self)), Some(SymbolLE(range, '.')))
             if self == keywords.self => {
             iter.advance()
@@ -444,7 +444,7 @@ where
           }
           case None => {
             val nameIsNext =
-              iter.peek2_cloned() match {
+              iter.peek2() match {
                 case (None, None) => vwat() // impossible
                 case (Some(_), None) => true
                 case (Some(first), Some(second)) => {
@@ -458,7 +458,7 @@ where
                 }
               }
             if (nameIsNext) {
-              iter.peek_cloned() match {
+              iter.peek() match {
                 case Some(WordLE(range, str)) => {
                   iter.advance()
                   if (str == keywords.UNDERSCORE) {
@@ -481,7 +481,7 @@ where
         }
 
       // We look ahead so we dont parse "in" as a type in: foreach x in myList { ... }
-      iter.peek_cloned() match {
+      iter.peek() match {
         case None =>
         case Some(WordLE(_, in)) if in == keywords.in => iter.stop()
         case Some(_) =>
@@ -491,7 +491,7 @@ where
       // If it's a square-braced thing with nothing after it, it's a destructure.
       // See https://github.com/ValeLang/Vale/issues/434
       val nextIsType =
-        iter.peek2_cloned() match {
+        iter.peek2() match {
           case (None, None) => false
           case (Some(SquaredLE(_, _)), maybeAfter) => {
             // If there's something after it, it's an array.
@@ -524,7 +524,7 @@ where
         }
 
       val maybeDestructure =
-        iter.peek_cloned() match {
+        iter.peek() match {
           case Some(SquaredLE(destructureRange, destructureElements)) => {
             iter.advance()
             val destructure =

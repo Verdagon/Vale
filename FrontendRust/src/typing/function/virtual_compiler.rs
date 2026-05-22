@@ -1,3 +1,4 @@
+/*
 package dev.vale.typing.function
 
 import dev.vale.Interner
@@ -13,7 +14,9 @@ import dev.vale.typing.env.TemplatasStore
 import dev.vale.Err
 
 import scala.collection.immutable.List
+*/
 
+/*
 class VirtualCompiler(opts: TypingPassOptions, interner: Interner, overloadCompiler: OverloadResolver) {
 //  // See Virtuals doc for this function's purpose.
 //  // For the "Templated parent case"
@@ -72,3 +75,4 @@ class VirtualCompiler(opts: TypingPassOptions, interner: Interner, overloadCompi
 //    }
 //  }
 }
+*/

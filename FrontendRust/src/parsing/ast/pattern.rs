@@ -8,23 +8,24 @@ import dev.vale.lexing.RangeL
 import dev.vale._
 */
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct AbstractP {
   pub range: RangeL,
 }
 /*
 //sealed trait IVirtualityP
 case class AbstractP(range: RangeL)// extends IVirtualityP
-//case class OverrideP(range: RangeP, tyype: ITemplexPT) extends IVirtualityP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+//case class OverrideP(range: RangeP, tyype: ITemplexPT) extends IVirtualityP { override def equals(obj: Any): Boolean = vcurious();
+//override def hashCode(): Int = vcurious() }
 */
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ParameterP<'a, 'p> {
+#[derive(Debug, PartialEq)]
+pub struct ParameterP<'p> {
   pub range: RangeL,
   pub virtuality: Option<AbstractP>,
   pub maybe_pre_checked: Option<RangeL>,
   pub self_borrow: Option<RangeL>,
-  pub pattern: Option<PatternPP<'a, 'p>>,
+  pub pattern: Option<PatternPP<'p>>,
 }
 /*
 case class ParameterP(
@@ -38,21 +39,21 @@ case class ParameterP(
 }
 */
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct DestinationLocalP<'a> {
-  pub decl: INameDeclarationP<'a>,
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct DestinationLocalP<'p> {
+  pub decl: INameDeclarationP<'p>,
   pub mutate: Option<RangeL>,
 }
 /*
 case class DestinationLocalP(decl: INameDeclarationP, mutate: Option[RangeL])
 */
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct PatternPP<'a, 'p> {
+#[derive(Debug, PartialEq)]
+pub struct PatternPP<'p> {
   pub range: RangeL,
-  pub destination: Option<DestinationLocalP<'a>>,
-  pub templex: Option<ITemplexPT<'a, 'p>>,
-  pub destructure: Option<DestructureP<'a, 'p>>,
+  pub destination: Option<DestinationLocalP<'p>>,
+  pub templex: Option<ITemplexPT<'p>>,
+  pub destructure: Option<DestructureP<'p>>,
 }
 /*
 case class PatternPP(
@@ -72,28 +73,29 @@ case class PatternPP(
     destructure: Option[DestructureP])
 */
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct DestructureP<'a, 'p> {
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct DestructureP<'p> {
   pub range: RangeL,
-  pub patterns: &'p [PatternPP<'a, 'p>],
+  pub patterns: &'p [PatternPP<'p>],
 }
 /*
 case class DestructureP(
   range: RangeL,
   patterns: Vector[PatternPP]) {
 
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
 }
 */
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum INameDeclarationP<'a> {
-  LocalNameDeclaration(NameP<'a>),
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum INameDeclarationP<'p> {
+  LocalNameDeclaration(NameP<'p>),
   IgnoredLocalNameDeclaration(RangeL),
   IterableNameDeclaration(RangeL),
   IteratorNameDeclaration(RangeL),
   IterationOptionNameDeclaration(RangeL),
-  ConstructingMemberNameDeclaration(NameP<'a>),
+  ConstructingMemberNameDeclaration(NameP<'p>),
 }
 impl INameDeclarationP<'_> {
   pub fn range(&self) -> RangeL {
@@ -112,16 +114,24 @@ sealed trait INameDeclarationP {
   def range: RangeL
 }
 case class LocalNameDeclarationP(name: NameP) extends INameDeclarationP {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious(); override def range: RangeL = name.range
-  if (name.str == "_") {
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious();
+override def range: RangeL = name.range
+  if (name.str.str == "_") {
     vwat()
   }
 }
-case class IgnoredLocalNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious(); }
-case class IterableNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class IteratorNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class IterationOptionNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class ConstructingMemberNameDeclarationP(name: NameP) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious(); override def range: RangeL = name.range }
+case class IgnoredLocalNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious(); }
+case class IterableNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+case class IteratorNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+case class IterationOptionNameDeclarationP(range: RangeL) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious() }
+case class ConstructingMemberNameDeclarationP(name: NameP) extends INameDeclarationP { override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious();
+override def range: RangeL = name.range }
 */
 
 /*

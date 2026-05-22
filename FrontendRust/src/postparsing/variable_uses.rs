@@ -9,9 +9,9 @@ package dev.vale.postparsing
 import dev.vale.{vassert, vcurious, vfail}
 import dev.vale.vimpl
 */
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct VariableUseS<'a> {
-  pub name: IVarNameS<'a>,
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct VariableUseS<'s> {
+  pub name: IVarNameS<'s>,
   pub borrowed: Option<IVariableUseCertainty>,
   pub moved: Option<IVariableUseCertainty>,
   pub mutated: Option<IVariableUseCertainty>,
@@ -23,37 +23,41 @@ case class VariableUse(
     borrowed: Option[IVariableUseCertainty],
     moved: Option[IVariableUseCertainty],
     mutated: Option[IVariableUseCertainty]) {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  val hash = runtime.ScalaRunTime._hashCode(this)
+  override def hashCode(): Int = hash;
 }
 */
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct VariableDeclarationS<'a> {
-  pub name: IVarNameS<'a>,
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct VariableDeclarationS<'s> {
+  pub name: IVarNameS<'s>,
 }
 /*
 case class VariableDeclaration(
     name: IVarNameS) {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  val hash = runtime.ScalaRunTime._hashCode(this)
+  override def hashCode(): Int = hash;
 }
 */
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct VariableDeclarations<'a> {
-  pub vars: Vec<VariableDeclarationS<'a>>,
+pub struct VariableDeclarations<'s> {
+  pub vars: Vec<VariableDeclarationS<'s>>,
 }
-impl<'a> VariableDeclarations<'a> {
+
+impl<'s> VariableDeclarations<'s> {
   // MIGALLOW: empty -> empty
-  pub fn empty() -> VariableDeclarations<'static> {
+  pub fn empty() -> VariableDeclarations<'s> {
     VariableDeclarations { vars: Vec::new() }
   }
 
 /*
 case class VariableDeclarations(vars: Vector[VariableDeclaration]) {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
 
   vassert(vars.distinct == vars)
 */
 // MIGALLOW: ++ -> plus_plus
-pub fn plus_plus(&self, that: &VariableDeclarations<'a>) -> VariableDeclarations<'a> {
+pub fn plus_plus(&self, that: &VariableDeclarations<'s>) -> VariableDeclarations<'s> {
   let mut vars = self.vars.clone();
   vars.extend(that.vars.clone());
   VariableDeclarations { vars }
@@ -64,7 +68,7 @@ pub fn plus_plus(&self, that: &VariableDeclarations<'a>) -> VariableDeclarations
     VariableDeclarations(vars ++ that.vars)
   }
 */
-pub fn find(&self, needle: &IImpreciseNameS<'a>) -> Option<IVarNameS<'a>> {
+pub fn find(&self, needle: &IImpreciseNameS<'s>) -> Option<IVarNameS<'s>> {
   match needle {
     IImpreciseNameS::CodeName(needle_name) => self.vars.iter().find_map(|decl| match &decl.name {
       IVarNameS::CodeVarName(haystack_name) if *haystack_name == needle_name.name => {
@@ -116,25 +120,27 @@ pub fn find(&self, needle: &IImpreciseNameS<'a>) -> Option<IVarNameS<'a>> {
   }
 }
 */
-
-
+  
 }
+/*
+Guardian: disable-all
+*/
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct VariableUses<'a> {
-  pub uses: Vec<VariableUseS<'a>>,
+pub struct VariableUses<'s> {
+  pub uses: Vec<VariableUseS<'s>>,
 }
-
-impl<'a> VariableUses<'a> {
 /*
 case class VariableUses(uses: Vector[VariableUse]) {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def equals(obj: Any): Boolean = vcurious();
+override def hashCode(): Int = vcurious()
 
   vassert(uses.map(_.name).distinct == uses.map(_.name))
 */
+impl<'s> VariableUses<'s> {
 
   // MIGALLOW: empty -> empty
-  pub fn empty() -> VariableUses<'static> {
+  pub fn empty() -> VariableUses<'s> {
     VariableUses { uses: Vec::new() }
   }
 
@@ -144,9 +150,7 @@ case class VariableUses(uses: Vector[VariableUse]) {
 /*
   def allUsedNames: Vector[IVarNameS] = uses.map(_.name)
 */
-pub fn mark_borrowed<'b>(&self, name: IVarNameS<'b>) -> VariableUses<'b>
-where
-  'a: 'b,
+pub fn mark_borrowed(&self, name: IVarNameS<'s>) -> VariableUses<'s>
 {
   self.merge_new_use(VariableUseS {
     name,
@@ -160,9 +164,7 @@ where
     merge(VariableUse(name, Some(Used), None, None), thenMerge)
   }
 */
-pub fn mark_moved<'b>(&self, name: IVarNameS<'b>) -> VariableUses<'b>
-where
-  'a: 'b,
+pub fn mark_moved(&self, name: IVarNameS<'s>) -> VariableUses<'s>
 {
   self.merge_new_use(VariableUseS {
     name,
@@ -176,9 +178,7 @@ where
     merge(VariableUse(name, None, Some(Used), None), thenMerge)
   }
 */
-pub fn mark_mutated<'b>(&self, name: IVarNameS<'b>) -> VariableUses<'b>
-where
-  'a: 'b,
+pub fn mark_mutated(&self, name: IVarNameS<'s>) -> VariableUses<'s>
 {
   self.merge_new_use(VariableUseS {
     name,
@@ -194,9 +194,7 @@ where
   // Incorporate this new use into
 */
 // MIGALLOW: thenMerge -> then_merge
-pub fn then_merge<'b>(&self, new_uses: &VariableUses<'b>) -> VariableUses<'b>
-where
-  'a: 'b,
+pub fn then_merge(&self, new_uses: &VariableUses<'s>) -> VariableUses<'s>
 {
   self.combine(new_uses, Self::then_merge_certainty)
 }
@@ -206,9 +204,7 @@ where
   }
 */
 // MIGALLOW: branchMerge -> branch_merge
-pub fn branch_merge<'b>(&self, new_uses: &VariableUses<'b>) -> VariableUses<'b>
-where
-  'a: 'b,
+pub fn branch_merge(&self, new_uses: &VariableUses<'s>) -> VariableUses<'s>
 {
   self.combine(new_uses, Self::branch_merge_certainty)
 }
@@ -265,16 +261,14 @@ pub fn is_mutated(&self, name: &IVarNameS<'_>) -> IVariableUseCertainty {
     }
   }
 */
-fn combine<'b>(
+fn combine(
   &self,
-  that: &VariableUses<'b>,
+  that: &VariableUses<'s>,
   certainty_merger: fn(
     Option<IVariableUseCertainty>,
     Option<IVariableUseCertainty>,
   ) -> Option<IVariableUseCertainty>,
-) -> VariableUses<'b>
-where
-  'a: 'b,
+) -> VariableUses<'s>
 {
   let mut names: Vec<IVarNameS<'_>> = self.uses.iter().map(|use_| use_.name.clone()).collect();
   for name in that.uses.iter().map(|use_| use_.name.clone()) {
@@ -325,16 +319,14 @@ where
     VariableUses(mergedUses)
   }
 */
-fn merge_new_use<'b>(
+fn merge_new_use(
   &self,
-  new_use: VariableUseS<'b>,
+  new_use: VariableUseS<'s>,
   certainty_merger: fn(
     Option<IVariableUseCertainty>,
     Option<IVariableUseCertainty>,
   ) -> Option<IVariableUseCertainty>,
-) -> VariableUses<'b>
-where
-  'a: 'b,
+) -> VariableUses<'s>
 {
   match self.uses.iter().find(|use_| use_.name == new_use.name) {
     None => {
@@ -420,8 +412,8 @@ fn then_merge_certainty(
     }
   }
 }
+// MIGALLOW: thenMerge -> then_merge_certainty
 /*
-  // MIGALLOW: thenMerge -> then_merge_certainty
   // If A happens, then B happens, we want the resulting use to reflect that.
   private def thenMerge(
       a: Option[IVariableUseCertainty],

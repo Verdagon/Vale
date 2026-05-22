@@ -1,3 +1,15 @@
+use crate::postparsing::names::{INameS, IVarNameS};
+use crate::postparsing::post_parser::ICompileErrorS;
+use crate::utils::range::{CodeLocationS, RangeS};
+use crate::postparsing::names::IImpreciseNameS;
+use crate::postparsing::names::IRuneS;
+use crate::postparsing::rules::rules::IRulexSR;
+use crate::postparsing::itemplatatype::ITemplataType;
+use crate::postparsing::rules::rules::ILiteralSL;
+use crate::parsing::ast::MutabilityP;
+use crate::parsing::ast::VariabilityP;
+use crate::parsing::ast::OwnershipP;
+use crate::postparsing::rules::rules::RuneUsage;
 /*
 package dev.vale.postparsing
 
@@ -11,34 +23,34 @@ import dev.vale.postparsing.rules._
 
 object PostParserErrorHumanizer {
 */
-use crate::postparsing::names::{INameS, IVarNameS};
-use crate::postparsing::post_parser::ICompileErrorS;
-use crate::utils::range::{CodeLocationS, RangeS};
 
-pub fn humanize<'a, HP, LB, LRC, LC>(
+pub fn humanize<'s, HP, LB, LRC, LC>(
   humanize_pos: HP,
   _lines_between: LB,
   _line_range_containing: LRC,
   line_containing: LC,
-  err: &'a ICompileErrorS<'a>,
+  err: &'s ICompileErrorS<'s>,
 ) -> String
 where
-  HP: Fn(&CodeLocationS<'a>) -> String,
-  LB: Fn(&CodeLocationS<'a>, &CodeLocationS<'a>) -> Vec<RangeS<'a>>,
-  LRC: Fn(&CodeLocationS<'a>) -> RangeS<'a>,
-  LC: Fn(&CodeLocationS<'a>) -> String,
+  HP: Fn(&CodeLocationS<'s>) -> String,
+  LB: Fn(&CodeLocationS<'s>, &CodeLocationS<'s>) -> Vec<RangeS<'s>>,
+  LRC: Fn(&CodeLocationS<'s>) -> RangeS<'s>,
+  LC: Fn(&CodeLocationS<'s>) -> String,
 {
   let error_str_body = match err {
     ICompileErrorS::VariableNameAlreadyExists(x) => {
       format!(
         "Local named {} already exists!\n(If you meant to modify the variable, use the `set` keyword beforehand.)",
-        humanize_name(INameS::VarName(x.name.clone()))
+        humanize_var_name(x.name.clone())
       )
     }
     ICompileErrorS::InterfaceMethodNeedsSelf(_) => {
       "Interface's method needs a virtual param of interface's type!".to_string()
     }
     ICompileErrorS::ExternHasBodyS(_) => "Extern function can't have a body too.".to_string(),
+    ICompileErrorS::IdentifyingRunesIncompleteS(_) => {
+      "Not enough identifying runes.".to_string()
+    }
     _ => panic!("Unimplemented humanize branch for {:?}", err),
   };
   let range = err.range();
@@ -116,7 +128,7 @@ where
     f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
   }
 */
-fn humanize_rune_type_error<'a>(
+fn humanize_rune_type_error<'s>(
   _error: &(),
 ) -> String {
   panic!("Unimplemented humanize_rune_type_error");
@@ -143,7 +155,7 @@ fn humanize_rune_type_error<'a>(
     }
   }
 */
-fn humanize_identifiability_rule_errorr<'a>(
+fn humanize_identifiability_rule_errorr<'s>(
   _error: &(),
 ) -> String {
   panic!("Unimplemented humanize_identifiability_rule_errorr");
@@ -158,12 +170,17 @@ fn humanize_identifiability_rule_errorr<'a>(
     }
   }
 */
-fn humanize_name<'a>(name: INameS<'a>) -> String {
+fn humanize_var_name<'s>(var_name: IVarNameS<'s>) -> String {
+  match var_name {
+    IVarNameS::CodeVarName(n) => n.as_str().to_string(),
+    IVarNameS::ClosureParamName(_) => "(closure)".to_string(),
+    _ => panic!("Unimplemented humanize_var_name branch for IVarNameS"),
+  }
+}
+
+fn humanize_name<'s>(name: INameS<'s>) -> String {
   match name {
-    INameS::VarName(var_name) => match var_name {
-      IVarNameS::CodeVarName(n) => n.as_str().to_string(),
-      _ => panic!("Unimplemented humanize_name branch for IVarNameS"),
-    },
+    INameS::VarName(var_name) => humanize_var_name((*var_name).clone()),
     _ => panic!("Unimplemented humanize_name branch for INameS"),
   }
 }
@@ -192,10 +209,19 @@ fn humanize_name<'a>(name: INameS<'a>) -> String {
     }
   }
 */
-fn humanize_imprecise_name<'a>(
-  _name: crate::postparsing::names::IImpreciseNameS<'a>,
+pub fn humanize_imprecise_name<'s>(
+  name: IImpreciseNameS<'s>,
 ) -> String {
-  panic!("Unimplemented humanize_imprecise_name");
+  match name {
+    IImpreciseNameS::ArbitraryName(_) => "_arby".to_string(),
+    IImpreciseNameS::SelfName(_) => "_Self".to_string(),
+    IImpreciseNameS::CodeName(n) => n.name.0.to_string(),
+    IImpreciseNameS::RuneName(rune) => humanize_rune(rune.rune),
+    IImpreciseNameS::AnonymousSubstructTemplateImpreciseName(_) => panic!("implement: humanize_imprecise_name AnonymousSubstructTemplateImpreciseName"),
+    IImpreciseNameS::LambdaStructImpreciseName(_) => panic!("implement: humanize_imprecise_name LambdaStructImpreciseName"),
+    IImpreciseNameS::LambdaImpreciseName(_) => "_Lam".to_string(),
+    _ => panic!("implement: humanize_imprecise_name other"),
+  }
 }
 /*
   def humanizeImpreciseName(name: IImpreciseNameS): String = {
@@ -213,10 +239,75 @@ fn humanize_imprecise_name<'a>(
     }
   }
 */
-fn humanize_rune<'a>(
-  _rune: crate::postparsing::names::IRuneS<'a>,
+pub fn humanize_rune<'s>(
+  rune: IRuneS<'s>,
 ) -> String {
-  panic!("Unimplemented humanize_rune");
+  match rune {
+    IRuneS::ImplicitRune(r) => "_".to_string() + &r.lid.path.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(""),
+    IRuneS::MagicParamRune(_) => panic!("implement: humanize_rune MagicParamRune"),
+    IRuneS::CodeRune(r) => r.name.0.to_string(),
+    IRuneS::ArgumentRune(_) => panic!("implement: humanize_rune ArgumentRune"),
+    IRuneS::SelfKindRune(_) => panic!("implement: humanize_rune SelfKindRune"),
+    IRuneS::SelfOwnershipRune(_) => panic!("implement: humanize_rune SelfOwnershipRune"),
+    IRuneS::SelfKindTemplateRune(_) => panic!("implement: humanize_rune SelfKindTemplateRune"),
+    IRuneS::PatternInputRune(_) => panic!("implement: humanize_rune PatternInputRune"),
+    IRuneS::SelfRune(_) => panic!("implement: humanize_rune SelfRune"),
+    IRuneS::SelfCoordRune(_) => panic!("implement: humanize_rune SelfCoordRune"),
+    IRuneS::ReturnRune(_) => panic!("implement: humanize_rune ReturnRune"),
+    IRuneS::AnonymousSubstructParentInterfaceTemplateRune(_) => panic!("implement: humanize_rune AnonymousSubstructParentInterfaceTemplateRune"),
+    IRuneS::ImplDropVoidRune(_) => panic!("implement: humanize_rune ImplDropVoidRune"),
+    IRuneS::ImplDropCoordRune(_) => panic!("implement: humanize_rune ImplDropCoordRune"),
+    IRuneS::FreeOverrideInterfaceRune(_) => panic!("implement: humanize_rune FreeOverrideInterfaceRune"),
+    IRuneS::FreeOverrideStructRune(_) => panic!("implement: humanize_rune FreeOverrideStructRune"),
+    IRuneS::AnonymousSubstructKindRune(_) => panic!("implement: humanize_rune AnonymousSubstructKindRune"),
+    IRuneS::AnonymousSubstructCoordRune(_) => panic!("implement: humanize_rune AnonymousSubstructCoordRune"),
+    IRuneS::AnonymousSubstructTemplateRune(_) => panic!("implement: humanize_rune AnonymousSubstructTemplateRune"),
+    IRuneS::AnonymousSubstructParentInterfaceKindRune(_) => panic!("implement: humanize_rune AnonymousSubstructParentInterfaceKindRune"),
+    IRuneS::AnonymousSubstructParentInterfaceCoordRune(_) => panic!("implement: humanize_rune AnonymousSubstructParentInterfaceCoordRune"),
+    IRuneS::StructNameRune(_) => panic!("implement: humanize_rune StructNameRune"),
+    IRuneS::FreeOverrideStructTemplateRune(_) => panic!("implement: humanize_rune FreeOverrideStructTemplateRune"),
+    IRuneS::FunctorPrototypeRuneName(_) => panic!("implement: humanize_rune FunctorPrototypeRuneName"),
+    IRuneS::MacroSelfKindRune(_) => panic!("implement: humanize_rune MacroSelfKindRune"),
+    IRuneS::MacroSelfCoordRune(_) => panic!("implement: humanize_rune MacroSelfCoordRune"),
+    IRuneS::MacroVoidKindRune(_) => panic!("implement: humanize_rune MacroVoidKindRune"),
+    IRuneS::MacroVoidCoordRune(_) => panic!("implement: humanize_rune MacroVoidCoordRune"),
+    IRuneS::MacroSelfKindTemplateRune(_) => panic!("implement: humanize_rune MacroSelfKindTemplateRune"),
+    IRuneS::AnonymousSubstructMemberRune(_) => panic!("implement: humanize_rune AnonymousSubstructMemberRune"),
+    IRuneS::AnonymousSubstructFunctionBoundParamsListRune(_) => panic!("implement: humanize_rune AnonymousSubstructFunctionBoundParamsListRune"),
+    IRuneS::AnonymousSubstructFunctionBoundPrototypeRune(_) => panic!("implement: humanize_rune AnonymousSubstructFunctionBoundPrototypeRune"),
+    IRuneS::AnonymousSubstructFunctionInterfaceTemplateRune(_) => panic!("implement: humanize_rune AnonymousSubstructFunctionInterfaceTemplateRune"),
+    IRuneS::AnonymousSubstructFunctionInterfaceKindRune(_) => panic!("implement: humanize_rune AnonymousSubstructFunctionInterfaceKindRune"),
+    IRuneS::AnonymousSubstructDropBoundParamsListRune(_) => panic!("implement: humanize_rune AnonymousSubstructDropBoundParamsListRune"),
+    IRuneS::AnonymousSubstructDropBoundPrototypeRune(_) => panic!("implement: humanize_rune AnonymousSubstructDropBoundPrototypeRune"),
+    IRuneS::AnonymousSubstructMethodInheritedRune(_) => panic!("implement: humanize_rune AnonymousSubstructMethodInheritedRune"),
+    IRuneS::AnonymousSubstructMethodSelfOwnCoordRune(_) => panic!("implement: humanize_rune AnonymousSubstructMethodSelfOwnCoordRune"),
+    IRuneS::AnonymousSubstructMethodSelfBorrowCoordRune(_) => panic!("implement: humanize_rune AnonymousSubstructMethodSelfBorrowCoordRune"),
+    IRuneS::DenizenDefaultRegionRune(_) => panic!("implement: humanize_rune DenizenDefaultRegionRune"),
+    IRuneS::ExternDefaultRegionRune(_) => panic!("implement: humanize_rune ExternDefaultRegionRune"),
+    IRuneS::AnonymousSubstructVoidKindRune(_) => panic!("implement: humanize_rune AnonymousSubstructVoidKindRune"),
+    IRuneS::AnonymousSubstructVoidCoordRune(_) => panic!("implement: humanize_rune AnonymousSubstructVoidCoordRune"),
+    IRuneS::ImplicitCoercionOwnershipRune(_) => panic!("implement: humanize_rune ImplicitCoercionOwnershipRune"),
+    IRuneS::ImplicitCoercionKindRune(_) => panic!("implement: humanize_rune ImplicitCoercionKindRune"),
+    IRuneS::ImplicitCoercionTemplateRune(_) => panic!("implement: humanize_rune ImplicitCoercionTemplateRune"),
+    IRuneS::ImplicitRegionRune(_) => panic!("implement: humanize_rune ImplicitRegionRune"),
+    IRuneS::CallRegionRune(_) => panic!("implement: humanize_rune CallRegionRune"),
+    IRuneS::CaseRuneFromImpl(_) => panic!("implement: humanize_rune CaseRuneFromImpl"),
+    IRuneS::DispatcherRuneFromImpl(_) => panic!("implement: humanize_rune DispatcherRuneFromImpl"),
+    IRuneS::PureBlockRegionRune(_) => panic!("implement: humanize_rune PureBlockRegionRune"),
+    IRuneS::CallPureMergeRegionRune(_) => panic!("implement: humanize_rune CallPureMergeRegionRune"),
+    IRuneS::ReachablePrototypeRune(_) => panic!("implement: humanize_rune ReachablePrototypeRune"),
+    IRuneS::MemberRune(_) => panic!("implement: humanize_rune MemberRune"),
+    IRuneS::LocalDefaultRegionRune(_) => panic!("implement: humanize_rune LocalDefaultRegionRune"),
+    IRuneS::ExportDefaultRegionRune(_) => panic!("implement: humanize_rune ExportDefaultRegionRune"),
+    IRuneS::ArraySizeImplicitRune(_) => panic!("implement: humanize_rune ArraySizeImplicitRune"),
+    IRuneS::ArrayMutabilityImplicitRune(_) => panic!("implement: humanize_rune ArrayMutabilityImplicitRune"),
+    IRuneS::ArrayVariabilityImplicitRune(_) => panic!("implement: humanize_rune ArrayVariabilityImplicitRune"),
+    IRuneS::InterfaceNameRune(_) => panic!("implement: humanize_rune InterfaceNameRune"),
+    IRuneS::LetImplicitRune(_) => panic!("implement: humanize_rune LetImplicitRune"),
+    IRuneS::ExplicitTemplateArgRune(_) => panic!("implement: humanize_rune ExplicitTemplateArgRune"),
+    IRuneS::FunctorParamRuneName(_) => panic!("implement: humanize_rune FunctorParamRuneName"),
+    IRuneS::FunctorReturnRuneName(_) => panic!("implement: humanize_rune FunctorReturnRuneName"),
+  }
 }
 /*
   def humanizeRune(rune: IRuneS): String = {
@@ -278,7 +369,7 @@ fn humanize_rune<'a>(
   }
 */
 fn humanize_templata_type(
-  _tyype: &crate::postparsing::itemplatatype::ITemplataType,
+  _tyype: &ITemplataType,
 ) -> String {
   panic!("Unimplemented humanize_templata_type");
 }
@@ -302,10 +393,39 @@ fn humanize_templata_type(
     }
   }
 */
-fn humanize_rule<'a>(
-  _rule: &crate::postparsing::rules::rules::IRulexSR<'a>,
+pub fn humanize_rule<'s>(
+  rule: &IRulexSR<'s>,
 ) -> String {
-  panic!("Unimplemented humanize_rule");
+  match rule {
+    IRulexSR::KindComponents(r) => {
+      humanize_rune(r.kind_rune.rune) + " = Kind[" + &humanize_rune(r.mutability_rune.rune) + "]"
+    }
+    IRulexSR::CoordComponents(r) => {
+      humanize_rune(r.result_rune.rune) + " = Ref[" + &humanize_rune(r.ownership_rune.rune) + ", " + &humanize_rune(r.kind_rune.rune) + "]"
+    }
+    IRulexSR::PrototypeComponents(_) => panic!("implement: humanize_rule PrototypeComponents"),
+    IRulexSR::OneOf(_) => panic!("implement: humanize_rule OneOf"),
+    IRulexSR::IsInterface(_) => panic!("implement: humanize_rule IsInterface"),
+    IRulexSR::IsStruct(_) => panic!("implement: humanize_rule IsStruct"),
+    IRulexSR::RefListCompoundMutability(_) => panic!("implement: humanize_rule RefListCompoundMutability"),
+    IRulexSR::DefinitionCoordIsa(_) => panic!("implement: humanize_rule DefinitionCoordIsa"),
+    IRulexSR::CallSiteCoordIsa(_) => panic!("implement: humanize_rule CallSiteCoordIsa"),
+    IRulexSR::CoordSend(_) => panic!("implement: humanize_rule CoordSend"),
+    IRulexSR::CoerceToCoord(_) => panic!("implement: humanize_rule CoerceToCoord"),
+    IRulexSR::MaybeCoercingCall(_) => panic!("implement: humanize_rule MaybeCoercingCall"),
+    IRulexSR::MaybeCoercingLookup(_) => panic!("implement: humanize_rule MaybeCoercingLookup"),
+    IRulexSR::Call(_) => panic!("implement: humanize_rule Call"),
+    IRulexSR::Lookup(_) => panic!("implement: humanize_rule Lookup"),
+    IRulexSR::Literal(_) => panic!("implement: humanize_rule Literal"),
+    IRulexSR::Augment(_) => panic!("implement: humanize_rule Augment"),
+    IRulexSR::Equals(_) => panic!("implement: humanize_rule Equals"),
+    IRulexSR::RuneParentEnvLookup(_) => panic!("implement: humanize_rule RuneParentEnvLookup"),
+    IRulexSR::Pack(_) => panic!("implement: humanize_rule Pack"),
+    IRulexSR::Resolve(_) => panic!("implement: humanize_rule Resolve"),
+    IRulexSR::CallSiteFunc(_) => panic!("implement: humanize_rule CallSiteFunc"),
+    IRulexSR::DefinitionFunc(_) => panic!("implement: humanize_rule DefinitionFunc"),
+    other => panic!("vimpl humanize_rule: {:?}", other),
+  }
 }
 /*
   def humanizeRule(rule: IRulexSR): String = {
@@ -358,7 +478,7 @@ fn humanize_rule<'a>(
   }
 */
 fn humanize_literal(
-  _literal: &crate::postparsing::rules::rules::ILiteralSL,
+  _literal: &ILiteralSL,
 ) -> String {
   panic!("Unimplemented humanize_literal");
 }
@@ -375,7 +495,7 @@ fn humanize_literal(
   }
 */
 fn humanize_mutability(
-  _p: crate::parsing::ast::MutabilityP,
+  _p: MutabilityP,
 ) -> String {
   panic!("Unimplemented humanize_mutability");
 }
@@ -388,7 +508,7 @@ fn humanize_mutability(
   }
 */
 fn humanize_variability(
-  _p: crate::parsing::ast::VariabilityP,
+  _p: VariabilityP,
 ) -> String {
   panic!("Unimplemented humanize_variability");
 }
@@ -401,7 +521,7 @@ fn humanize_variability(
   }
 */
 fn humanize_ownership(
-  _p: crate::parsing::ast::OwnershipP,
+  _p: OwnershipP,
 ) -> String {
   panic!("Unimplemented humanize_ownership");
 }
@@ -415,8 +535,8 @@ fn humanize_ownership(
     }
   }
 */
-fn humanize_region<'a>(
-  _r: &crate::postparsing::rules::rules::RuneUsage<'a>,
+fn humanize_region<'s>(
+  _r: &RuneUsage<'s>,
 ) -> String {
   panic!("Unimplemented humanize_region");
 }

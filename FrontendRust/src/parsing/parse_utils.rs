@@ -20,9 +20,9 @@ object ParseUtils {
 
 /// Parse optional region marker (e.g., 'a or ' for isolate).
 /// Shared between Parser and TemplexParser - mirrors Parser.parseRegion in Parser.scala lines 861-888.
-pub fn parse_region<'a>(
-  original_iter: &mut ScrambleIterator<'a, '_>,
-) -> ParseResult<Option<RegionRunePT<'a>>> {
+pub fn parse_region<'p>(
+  original_iter: &mut ScrambleIterator<'p, '_>,
+) -> ParseResult<Option<RegionRunePT<'p>>> {
   let mut tentative_iter = original_iter.clone();
   let rune_begin = tentative_iter.get_pos();
 
@@ -54,12 +54,12 @@ pub fn parse_region<'a>(
 
 /// Helper method to skip past an equals sign while a condition is true
 /// Mirrors ParseUtils.trySkipPastEqualsWhile in ParseUtils.scala
-pub fn try_skip_past_equals_while<'a, 's, F>(
-  iter: &mut ScrambleIterator<'a, 's>,
+pub fn try_skip_past_equals_while<'p, 's, F>(
+  iter: &mut ScrambleIterator<'p, 's>,
   continue_while: F,
-) -> Option<ScrambleIterator<'a, 's>>
+) -> Option<ScrambleIterator<'p, 's>>
 where
-  F: Fn(&ScrambleIterator<'a, 's>) -> bool,
+  F: Fn(&ScrambleIterator<'p, 's>) -> bool,
 {
   let mut scouting_iter = iter.clone();
   while continue_while(&scouting_iter) {
@@ -99,7 +99,7 @@ where
       scoutingIter.peek3() match {
         case (Some(prev), Some(SymbolLE(range, '=')), Some(next)) => {
           val surroundedBySpaces =
-            prev.range().end() < range.begin() && range.end() < next.range().begin()
+            prev.range.end < range.begin && range.end < next.range.begin
           if (surroundedBySpaces) {
             // We'll return this iterator for the things that come before the =
             val beforeIter = iter.clone()
@@ -121,16 +121,45 @@ where
     return None
   }
 */
+/*
+  // This method modifies the current iterator to skip it past the next = symbol
+  // that's surrounded by spaces. Note that it won't catch an = at the beginning or
+  // end of the statement.
+  // It returns None if there wasn't one (which leaves self untouched) or a Some
+  // containing everything we skipped past (minus the =).
+  def trySkipPastSemicolonWhile(iter: ScrambleIterator, continueWhile: ScrambleIterator => Boolean): Option[ScrambleIterator] = {
+    val scoutingIter = iter.clone()
+    while (continueWhile(scoutingIter)) {
+      scoutingIter.peek() match {
+        case Some(SymbolLE(_, ';')) => {
+          // We'll return this iterator for the things that come before the =
+          val beforeIter = iter.clone()
+          beforeIter.end = scoutingIter.index + 1
+
+          // Now modify self to skip past it.
+          iter.skipTo(scoutingIter)
+          iter.advance()
+
+          return Some(beforeIter)
+        }
+        case _ =>
+      }
+      scoutingIter.advance()
+    }
+
+    return None
+  }
+*/
 
 /// Try to skip past a keyword, returning the portion before it
 /// Mirrors trySkipPastKeywordWhile in ParseUtils.scala lines 77-102
-pub fn try_skip_past_keyword_while<'a, 's, F>(
-  iter: &mut ScrambleIterator<'a, 's>,
-  keyword: StrI<'a>,
+pub fn try_skip_past_keyword_while<'p, 's, F>(
+  iter: &mut ScrambleIterator<'p, 's>,
+  keyword: StrI<'p>,
   continue_while: F,
-) -> Option<(WordLE<'a>, ScrambleIterator<'a, 's>)>
+) -> Option<(WordLE<'p>, ScrambleIterator<'p, 's>)>
 where
-  F: Fn(&ScrambleIterator<'a, 's>) -> bool,
+  F: Fn(&ScrambleIterator<'p, 's>) -> bool,
 {
   // Mirrors ParseUtils.scala line 82
   let mut scouting_iter = iter.clone();
@@ -198,37 +227,6 @@ where
     return None
   }
 */
-
-/*
-  // This method modifies the current iterator to skip it past the next = symbol
-  // that's surrounded by spaces. Note that it won't catch an = at the beginning or
-  // end of the statement.
-  // It returns None if there wasn't one (which leaves self untouched) or a Some
-  // containing everything we skipped past (minus the =).
-  def trySkipPastSemicolonWhile(iter: ScrambleIterator, continueWhile: ScrambleIterator => Boolean): Option[ScrambleIterator] = {
-    val scoutingIter = iter.clone()
-    while (continueWhile(scoutingIter)) {
-      scoutingIter.peek() match {
-        case Some(SymbolLE(_, ';')) => {
-          // We'll return this iterator for the things that come before the =
-          val beforeIter = iter.clone()
-          beforeIter.end = scoutingIter.index + 1
-
-          // Now modify self to skip past it.
-          iter.skipTo(scoutingIter)
-          iter.advance()
-
-          return Some(beforeIter)
-        }
-        case _ =>
-      }
-      scoutingIter.advance()
-    }
-
-    return None
-  }
-*/
-
 /*
   def trySkipTo(
     iter: ScrambleIterator,

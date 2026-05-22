@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::utils::code_hierarchy::{FileCoordinate, FileCoordinateMap};
 use crate::utils::range::{CodeLocationS, RangeS};
+use crate::utils::code_hierarchy::PackageCoordinate;
 
 // Mirrors SourceCodeUtils.scala:humanizePos(humanizedFilePath, source, pos)
 pub fn humanize_pos_path(humanized_file_path: &str, source: &str, pos: i32) -> String {
@@ -34,7 +35,7 @@ import scala.collection.mutable.ArrayBuffer
 object SourceCodeUtils {
 */
 // mig: fn humanize_package
-fn humanize_package<'a>(package_coord: &'a crate::utils::code_hierarchy::PackageCoordinate<'a>) -> String {
+pub fn humanize_package<'a>(package_coord: &'a PackageCoordinate<'a>) -> String {
   let mut result = package_coord.module.as_str().to_string();
   for p in package_coord.packages.iter() {
     result.push('.');
@@ -67,7 +68,7 @@ pub fn humanize_pos_code_map<'a>(
   code_map: &FileCoordinateMap<'a, String>,
   code_location_s: &CodeLocationS<'a>,
 ) -> String {
-  let file = code_location_s.file.as_ref();
+  let file = code_location_s.file;
   if code_location_s.offset < 0 {
     return format!("{}:{}", humanize_file(file), code_location_s.offset);
   }
@@ -172,22 +173,16 @@ pub fn line_range_containing<'a>(
   code_map: &FileCoordinateMap<'a, String>,
   code_location_s: &CodeLocationS<'a>,
 ) -> RangeS<'a> {
-  let file = code_location_s.file.clone();
+  let file = code_location_s.file;
   let offset = code_location_s.offset;
   if offset < 0 {
-    return RangeS {
-      begin: CodeLocationS {
-        file: file.clone(),
-        offset: -1,
-      },
-      end: CodeLocationS {
-        file,
-        offset: 0,
-      },
-    };
+    return RangeS::new(
+      CodeLocationS { file, offset: -1 },
+      CodeLocationS { file, offset: 0 },
+    );
   }
   let text = code_map
-    .get_by_value(code_location_s.file.as_ref())
+    .get_by_value(code_location_s.file)
     .expect("line_range_containing: coordinate not found in code map");
   let text_len = text.len() as i32;
   let mut line_begin: i32 = 0;
@@ -197,30 +192,18 @@ pub fn line_range_containing<'a>(
       Some(i) => line_begin + i as i32,
     };
     if line_begin <= offset && offset <= line_end {
-      return RangeS {
-        begin: CodeLocationS {
-          file: file.clone(),
-          offset: line_begin,
-        },
-        end: CodeLocationS {
-          file,
-          offset: line_end,
-        },
-      };
+      return RangeS::new(
+        CodeLocationS { file: file, offset: line_begin },
+        CodeLocationS { file, offset: line_end },
+      );
     }
     line_begin = line_end + 1;
   }
   if offset == text_len {
-    return RangeS {
-      begin: CodeLocationS {
-        file: file.clone(),
-        offset: line_begin,
-      },
-      end: CodeLocationS {
-        file,
-        offset: line_begin,
-      },
-    };
+    return RangeS::new(
+      CodeLocationS { file: file, offset: line_begin },
+      CodeLocationS { file, offset: line_begin },
+    );
   }
   panic!("line_range_containing: offset beyond text");
 }
@@ -262,25 +245,19 @@ pub fn lines_between<'a>(
   assert!(begin_code_loc.file == end_code_loc.file);
   assert!(begin_code_loc.offset <= end_code_loc.offset);
 
-  let file = begin_code_loc.file.clone();
-  if file.as_ref().is_internal() {
+  let file = begin_code_loc.file;
+  if file.is_internal() {
     return vec![];
   }
   let range = line_range_containing(code_map, begin_code_loc);
   let mut line_begin = range.begin.offset;
   let mut line_end = range.end.offset;
-  let mut result = vec![RangeS {
-    begin: CodeLocationS {
-      file: file.clone(),
-      offset: line_begin,
-    },
-    end: CodeLocationS {
-      file: file.clone(),
-      offset: line_end,
-    },
-  }];
+  let mut result = vec![RangeS::new(
+    CodeLocationS { file: file, offset: line_begin },
+    CodeLocationS { file: file, offset: line_end },
+  )];
   let text = code_map
-    .get_by_value(file.as_ref())
+    .get_by_value(file)
     .expect("lines_between: coordinate not found in code map");
   let text_len = text.len() as i32;
   while line_begin < end_code_loc.offset && line_begin < text_len {
@@ -288,16 +265,10 @@ pub fn lines_between<'a>(
       None => text_len,
       Some(i) => line_begin + i as i32,
     };
-    result.push(RangeS {
-      begin: CodeLocationS {
-        file: file.clone(),
-        offset: line_begin,
-      },
-      end: CodeLocationS {
-        file: file.clone(),
-        offset: line_end,
-      },
-    });
+    result.push(RangeS::new(
+      CodeLocationS { file: file, offset: line_begin },
+      CodeLocationS { file: file, offset: line_end },
+    ));
     line_begin = line_end + 1;
   }
   result
@@ -341,12 +312,12 @@ pub fn line_containing<'a>(
   code_map: &FileCoordinateMap<'a, String>,
   code_location_s: &CodeLocationS<'a>,
 ) -> String {
-  if code_location_s.file.as_ref().is_internal() {
-    return humanize_file(code_location_s.file.as_ref());
+  if code_location_s.file.is_internal() {
+    return humanize_file(code_location_s.file);
   }
   let range = line_range_containing(code_map, code_location_s);
   let text = code_map
-    .get_by_value(code_location_s.file.as_ref())
+    .get_by_value(code_location_s.file)
     .expect("line_containing: coordinate not found in code map");
   let begin = range.begin.offset as usize;
   let end = range.end.offset as usize;

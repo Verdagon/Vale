@@ -5,8 +5,15 @@ use crate::lexing::lex_and_explore;
 use crate::parsing::ast::IDenizenP;
 use crate::parsing::Parser;
 use crate::utils::code_hierarchy::{FileCoordinate, IPackageResolver, PackageCoordinate};
-use crate::{Interner, Keywords};
+use crate::Keywords;
+// V: can we put the Keywords struct into the arena? so it doesnt have to be a separate thing...
+// VA: Yes, with one fix: Keywords.tuple_human_name is Vec<StrI<'a>> (heap-allocated, AASSNCMCX
+// VA: violation). Change it to &'a [StrI<'a>] (arena slice), then arena-allocate via
+// VA: parse_arena.bump.alloc(Keywords::new_for_parse(...)). The result is &'p Keywords<'p> which
+// VA: coerces to &'ctx Keywords<'p> at all existing call sites — no signature changes needed.
+// VA: All other ~110 fields are StrI<'a> (Copy), so no other blockers.
 use std::collections::HashMap;
+use crate::parse_arena::ParseArena;
 /*
 package dev.vale.parsing
 
@@ -27,7 +34,7 @@ object ParseAndExplore {
   def parseAndExploreAndCollect(
     interner: Interner,
     keywords: Keywords,
-    _opts: GlobalOptions,
+    opts: GlobalOptions,
     parser: Parser,
     packages: Vector[PackageCoordinate],
     resolver: IPackageResolver[Map[String, String]]):
@@ -42,36 +49,35 @@ object ParseAndExplore {
 */
 
 // From ParseAndExplore.scala lines 35-101: parseAndExplore
-pub fn parse_and_explore<'a, 'ctx, 'p, D, F, R, HandleParsedDenizen, FileHandler>(
-  interner: &'ctx Interner<'a>,
-  keywords: &'ctx Keywords<'a>,
+pub fn parse_and_explore<'p, 'ctx, D, F, R, HandleParsedDenizen, FileHandler>(
+  parse_arena: &'ctx ParseArena<'p>,
+  keywords: &'ctx Keywords<'p>,
   _opts: GlobalOptions,
-  parser: &Parser<'a, 'ctx, 'p>,
-  packages: Vec<&'a PackageCoordinate<'a>>,
+  parser: &Parser<'p, 'ctx>,
+  packages: Vec<&'p PackageCoordinate<'p>>,
   resolver: &R,
   mut handle_parsed_denizen: HandleParsedDenizen,
   mut file_handler: FileHandler,
-) -> Result<Vec<F>, FailedParse<'a>>
+) -> Result<Vec<F>, FailedParse<'p>>
 where
-  'a: 'ctx,
-  'a: 'p,
-  R: IPackageResolver<'a, HashMap<String, String>>,
-  HandleParsedDenizen: FnMut(&'a FileCoordinate<'a>, &str, &[ImportL<'a>], IDenizenP<'a, 'p>) -> D,
-  FileHandler: FnMut(&'a FileCoordinate<'a>, &str, &[RangeL], &[D]) -> F,
+  'p: 'ctx,
+  R: IPackageResolver<'p, HashMap<String, String>>,
+  HandleParsedDenizen: FnMut(&'p FileCoordinate<'p>, &str, &[ImportL<'p>], IDenizenP<'p>) -> D,
+  FileHandler: FnMut(&'p FileCoordinate<'p>, &str, &[RangeL], Vec<D>) -> F,
 {
   // From ParseAndExplore.scala lines 45-100: Call lexAndExplore with parsing logic
   lex_and_explore::lex_and_explore(
-    interner,
+    parse_arena,
     keywords,
     packages,
     resolver,
-    |file_coord: &'a FileCoordinate<'a>,
+    |file_coord: &'p FileCoordinate<'p>,
      code: &str,
-     imports: &[ImportL<'a>],
-     denizen_l: &IDenizenL<'a>|
+     imports: &[ImportL<'p>],
+     denizen_l: &IDenizenL<'p>|
      -> D {
       // From ParseAndExplore.scala lines 51-95: Parse each denizen type
-      let denizen_p: IDenizenP<'a, 'p> = match denizen_l {
+      let denizen_p: IDenizenP<'p> = match denizen_l {
         IDenizenL::TopLevelImport(import) => {
           // From ParseAndExplore.scala lines 53-59
           IDenizenP::TopLevelImport(
@@ -124,10 +130,10 @@ where
       // From ParseAndExplore.scala line 96
       handle_parsed_denizen(file_coord, code, imports, denizen_p)
     },
-    |file_coord: &'a FileCoordinate<'a>,
+    |file_coord: &'p FileCoordinate<'p>,
      code: &str,
      comment_ranges: &[RangeL],
-     denizens: &[D]|
+     denizens: Vec<D>|
      -> F {
       // From ParseAndExplore.scala lines 98-100
       file_handler(file_coord, code, comment_ranges, denizens)

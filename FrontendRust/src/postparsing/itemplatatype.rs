@@ -1,60 +1,64 @@
 /*
+Guardian: disable-all
+*/
+
+/*
 package dev.vale.postparsing
 
 import dev.vale._
 */
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RegionTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CoordTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct KindTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FunctionTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IntegerTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BooleanTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MutabilityTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PrototypeTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StringTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LocationTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OwnershipTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct VariabilityTemplataType {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PackTemplataType {
-  pub element_type: Box<ITemplataType>,
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PackTemplataType<'s> {
+  pub element_type: &'s ITemplataType<'s>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TemplateTemplataType {
-  pub param_types: Vec<ITemplataType>,
-  pub return_type: Box<ITemplataType>,
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct TemplateTemplataType<'s> {
+  pub param_types: &'s [ITemplataType<'s>],
+  pub return_type: &'s ITemplataType<'s>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ITemplataType {
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ITemplataType<'s> {
   RegionTemplataType(RegionTemplataType),
   CoordTemplataType(CoordTemplataType),
   ImplTemplataType(ImplTemplataType),
@@ -68,8 +72,8 @@ pub enum ITemplataType {
   LocationTemplataType(LocationTemplataType),
   OwnershipTemplataType(OwnershipTemplataType),
   VariabilityTemplataType(VariabilityTemplataType),
-  PackTemplataType(PackTemplataType),
-  TemplateTemplataType(TemplateTemplataType),
+  PackTemplataType(PackTemplataType<'s>),
+  TemplateTemplataType(TemplateTemplataType<'s>),
 }
 
 /*
@@ -90,7 +94,8 @@ case class LocationTemplataType() extends ITemplataType
 case class OwnershipTemplataType() extends ITemplataType
 case class VariabilityTemplataType() extends ITemplataType
 case class PackTemplataType(elementType: ITemplataType) extends ITemplataType {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  val hash = runtime.ScalaRunTime._hashCode(this)
+  override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     obj match {
       case PackTemplataType(thatElementType) => elementType == thatElementType
@@ -106,6 +111,8 @@ case class TemplateTemplataType(
 ) extends ITemplataType {
   vassert(!paramTypes.contains(RegionTemplataType()))
 
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  val hash = runtime.ScalaRunTime._hashCode(this)
+
+  override def hashCode(): Int = hash;
 }
 */

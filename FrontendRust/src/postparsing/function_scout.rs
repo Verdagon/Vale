@@ -1,6 +1,50 @@
 // AFTERM: rename to function_post_parser.rs
 // AFTERM: review scout_function
+// Per @DSAUIMZ, all borrow_val() calls in this file borrow from a stack-local
+// LocationInDenizenBuilder instead of arena-allocating. The slice is promoted
+// to permanent arena storage only inside intern_rune on a miss.
 
+use crate::parsing::ast::{FunctionP, GenericParameterP, IAttributeP, ITemplexPT, LoadAsP};
+use crate::parsing::ast::rules::get_ordered_rune_declarations_from_rulexes_with_duplicates;
+use crate::postparsing::ast::{
+  AbstractBodyS, AbstractSP, AdditiveS, BuiltinS, CodeBodyS, CoordGenericParameterTypeS, ExportS,
+  ExternBodyS, ExternS, FunctionS, GeneratedBodyS, GenericParameterS, IBodyS, IFunctionAttributeS,
+  IGenericParameterTypeS, IRegionMutabilityS, LocationInDenizenBuilder, ParameterS, PureS,
+  RegionGenericParameterTypeS,
+};
+use crate::postparsing::expressions::{
+  BlockSE, BodySE, ConsecutorSE, IExpressionSE,
+};
+use crate::postparsing::itemplatatype::{
+  CoordTemplataType, FunctionTemplataType, ITemplataType, KindTemplataType, TemplateTemplataType,
+};
+use crate::postparsing::patterns::{AtomSP, CaptureS};
+use crate::lexing::ast::RangeL;
+use crate::postparsing::names::{
+  ClosureParamNameS, CodeNameS, CodeRuneS, DenizenDefaultRegionRuneS, FunctionNameS,
+  IFunctionDeclarationNameS, IFunctionDeclarationNameValS, IImpreciseNameValS, INameS, INameValS,
+  IRuneS, IRuneValS, IVarNameS, IVarNameValS, ImplicitRuneValS, LambdaDeclarationNameS,
+  LambdaStructDeclarationNameS, MagicParamRuneValS,
+};
+use crate::postparsing::post_parser::{
+  CouldntFindRuneS, ExternHasBodyS, FunctionEnvironmentS, ICompileErrorS, IEnvironmentS,
+  InterfaceMethodNeedsSelf, PostParser, RangedInternalErrorS, StackFrame,
+};
+use crate::postparsing::patterns::pattern_scout::{get_parameter_captures, translate_pattern};
+use crate::postparsing::rules::rule_scout::translate_rulexes;
+use crate::postparsing::rules::templex_scout::translate_maybe_type_into_maybe_rune;
+use crate::parsing::ast::OwnershipP;
+use crate::postparsing::rules::rules::{
+  AugmentSR, CoerceToCoordSR, IRulexSR, LookupSR, MaybeCoercingLookupSR, RuneUsage,
+};
+use crate::postparsing::variable_uses::{VariableDeclarationS, VariableDeclarations, VariableUses};
+use crate::utils::range::RangeS;
+use crate::utils::code_hierarchy::FileCoordinate;
+use std::collections::HashMap;
+use crate::utils::arena_index_map::ArenaIndexMap;
+use indexmap::IndexSet;
+use crate::parsing::ast::BlockPE;
+use crate::postparsing::expressions::LocalS;
 /*
 package dev.vale.postparsing
 
@@ -24,52 +68,20 @@ import dev.vale._
 
 import scala.collection.immutable.{List, Range}
 */
-use crate::parsing::ast::{FunctionP, IAttributeP, ITemplexPT, LoadAsP};
-use crate::parsing::ast::rules::get_ordered_rune_declarations_from_rulexes_with_duplicates;
-use crate::postparsing::ast::{
-  AbstractBodyS, AbstractSP, AdditiveS, BuiltinS, CodeBodyS, CoordGenericParameterTypeS, ExportS,
-  ExternBodyS, ExternS, FunctionS, GeneratedBodyS, GenericParameterS, IBodyS, IFunctionAttributeS,
-  IGenericParameterTypeS, IRegionMutabilityS, LocationInDenizenBuilder, ParameterS, PureS,
-  RegionGenericParameterTypeS,
-};
-use crate::postparsing::expressions::{
-  BodySE, ConsecutorSE, IExpressionSE,
-};
-use crate::postparsing::itemplatatype::{
-  CoordTemplataType, FunctionTemplataType, ITemplataType, KindTemplataType, TemplateTemplataType,
-};
-use crate::postparsing::patterns::{AtomSP, CaptureS};
-use crate::postparsing::names::{
-  CodeNameS, CodeRuneS, DenizenDefaultRegionRuneS, FunctionNameS, IFunctionDeclarationNameS,
-  IImpreciseNameValS, INameS, IRuneS, IRuneValS, IVarNameS, ImplicitRuneS, LambdaDeclarationNameS,
-  MagicParamRuneS,
-};
-use crate::postparsing::post_parser::{
-  CouldntFindRuneS, ExternHasBodyS, FunctionEnvironmentS, ICompileErrorS, IEnvironmentS,
-  InterfaceMethodNeedsSelf, PostParser, RangedInternalErrorS, StackFrame,
-};
-use crate::postparsing::post_parser::scout_generic_parameter;
-use crate::postparsing::patterns::pattern_scout::{get_parameter_captures, translate_pattern};
-use crate::postparsing::rules::rule_scout::translate_rulexes;
-use crate::postparsing::rules::templex_scout::translate_maybe_type_into_maybe_rune;
-use crate::postparsing::rules::rules::{IRulexSR, MaybeCoercingLookupSR, PlaceholderRuleSR, RuneUsage};
-use crate::postparsing::variable_uses::{VariableDeclarationS, VariableDeclarations, VariableUses};
-use crate::utils::range::RangeS;
-use crate::utils::arena_utils::alloc_slice_from_vec;
-use crate::utils::code_hierarchy::FileCoordinate;
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum IFunctionParent<'a> {
+pub enum IFunctionParent<'s>
+
+{
   FunctionNoParent,
   ParentInterface {
-    interface_env: FunctionEnvironmentS<'a>,
-    interface_generic_params: Vec<GenericParameterS<'a>>,
-    interface_rules: Vec<IRulexSR<'a>>,
-    interface_rune_to_explicit_type: HashMap<IRuneS<'a>, ITemplataType>,
+    interface_env: FunctionEnvironmentS<'s>,
+    interface_generic_params: &'s [&'s GenericParameterS<'s>],
+    interface_rules: Vec<IRulexSR<'s>>,
+    interface_rune_to_explicit_type: HashMap<IRuneS<'s>, ITemplataType<'s>>,
   },
   ParentFunction {
-    parent_stack_frame: StackFrame<'a>,
+    parent_stack_frame: StackFrame<'s>,
   },
 }
 
@@ -114,43 +126,37 @@ class FunctionScout(
       keywords
     )
 */
-impl<'a, 'p, 'ctx, 's> PostParser<'a, 'p, 'ctx, 's>
-where
-  'a: 'ctx,
-  'a: 'p,
-  'a: 's,
+impl<'s, 'p, 'ctx> PostParser<'s, 'p, 'ctx>
 {
   pub(crate) fn scout_function(
     &self,
-    file_coordinate: &'a FileCoordinate<'a>,
-    function: &FunctionP<'a, 'p>,
-    maybe_parent: IFunctionParent<'a>,
-  ) -> Result<(FunctionS<'a, 's>, VariableUses<'a>), ICompileErrorS<'a>>
-  where
-    'a: 'p,
+    file_coordinate: &'s FileCoordinate<'s>,
+    function: &FunctionP<'p>,
+    maybe_parent: IFunctionParent<'s>,
+  ) -> Result<(&'s FunctionS<'s>, VariableUses<'s>), ICompileErrorS<'s>>
   {
     // AFTERM: check the order of these various chunks of logic
 
     let is_parent_function = matches!(&maybe_parent, IFunctionParent::ParentFunction { .. });
     let is_parent_interface = matches!(&maybe_parent, IFunctionParent::ParentInterface { .. });
     let function_name = function.header.name.as_ref();
-    let generic_parameters_p = function
+    let generic_parameters_p: &[GenericParameterP<'p>] = function
       .header
       .generic_parameters
       .as_ref()
       .map(|generic_parameters| generic_parameters.params)
       .unwrap_or(&[]);
     // See: Must Scan For Declared Runes First (MSFDRF)
-    let user_specified_identifying_runes: Vec<RuneUsage<'a>> = generic_parameters_p
+    let user_specified_identifying_runes: Vec<RuneUsage<'s>> = generic_parameters_p
       .iter()
       .map(|generic_parameter| RuneUsage {
         range: Self::eval_range(file_coordinate, function.range),
-        rune: self.interner.intern_rune(IRuneValS::CodeRune(CodeRuneS {
-          name: generic_parameter.name.str(),
+        rune: self.scout_arena.intern_rune(IRuneValS::CodeRune(CodeRuneS {
+          name: self.scout_arena.intern_str(generic_parameter.name.str().as_str()),
         })),
       })
       .collect();
-    let user_runes_from_rules: Vec<RuneUsage<'a>> = function
+    let user_runes_from_rules: Vec<RuneUsage<'s>> = function
       .header
       .template_rules
       .as_ref()
@@ -159,8 +165,8 @@ where
           .into_iter()
           .map(|name_p| RuneUsage {
             range: Self::eval_range(file_coordinate, function.range),
-            rune: self.interner.intern_rune(IRuneValS::CodeRune(CodeRuneS {
-              name: name_p.str(),
+            rune: self.scout_arena.intern_rune(IRuneValS::CodeRune(CodeRuneS {
+              name: self.scout_arena.intern_str(name_p.str().as_str()),
             })),
           })
           .collect()
@@ -191,31 +197,39 @@ where
       }
     }
     let mut lidb = LocationInDenizenBuilder::new(vec![]);
-    let mut rules: Vec<IRulexSR<'a>> = Vec::new();
-    let mut rune_to_explicit_type: Vec<(IRuneS<'a>, ITemplataType)> = Vec::new();
+    let mut rules: Vec<IRulexSR<'s>> = Vec::new();
+    let mut rune_to_explicit_type: Vec<(IRuneS<'s>, ITemplataType)> = Vec::new();
     let function_declaration_name = match (&maybe_parent, function_name) {
       (IFunctionParent::ParentFunction { .. }, Some(_)) => {
         panic!("POSTPARSER_SCOUT_LAMBDA_WITH_NAME_NOT_YET_IMPLEMENTED");
       }
-      (_, Some(function_name)) => IFunctionDeclarationNameS::FunctionName(FunctionNameS {
-        name: function_name.str(),
-        code_location: Self::eval_pos(file_coordinate, function_name.range().begin()),
-      }),
-      (IFunctionParent::ParentFunction { .. }, None) => {
-        IFunctionDeclarationNameS::LambdaDeclarationName(LambdaDeclarationNameS {
+      (_, Some(function_name)) => self.scout_arena.intern_name(INameValS::FunctionDeclaration(
+        IFunctionDeclarationNameValS::FunctionName(FunctionNameS {
+          name: self.scout_arena.intern_str(function_name.str().as_str()),
           code_location: Self::eval_pos(file_coordinate, function.range.begin()),
-        })
-      }
+        }),
+      )),
+      (IFunctionParent::ParentFunction { .. }, None) => self.scout_arena.intern_name(
+        INameValS::FunctionDeclaration(IFunctionDeclarationNameValS::LambdaDeclarationName(
+          LambdaDeclarationNameS {
+            code_location: Self::eval_pos(file_coordinate, function.range.begin()),
+          },
+        )),
+      ),
       _ => panic!("POSTPARSER_SCOUT_FUNCTION_WITHOUT_NAME"),
     };
-    let extra_generic_params_from_parent: Vec<GenericParameterS<'a>> = match &maybe_parent {
+    let function_declaration_name_for_env = match &function_declaration_name {
+      INameS::FunctionDeclaration(r) => (*r).clone(),
+      _ => panic!("POSTPARSER_INTERN_FUNCTION_NAME_EXPECTED_FUNCTION_DECLARATION"),
+    };
+    let extra_generic_params_from_parent: Vec<&'s GenericParameterS<'s>> = match &maybe_parent {
       IFunctionParent::ParentInterface {
         interface_generic_params,
         ..
       } => interface_generic_params.to_vec(),
       _ => Vec::new(),
     };
-    let parent_env: Option<Box<IEnvironmentS<'a>>> = match &maybe_parent {
+    let parent_env: Option<Box<IEnvironmentS<'s>>> = match &maybe_parent {
       IFunctionParent::FunctionNoParent => None,
       IFunctionParent::ParentFunction { parent_stack_frame } => {
         Some(Box::new(IEnvironmentS::FunctionEnvironment(
@@ -226,8 +240,8 @@ where
         Some(Box::new(IEnvironmentS::FunctionEnvironment(interface_env.clone())))
       }
     };
-    let declared_runes: Vec<IRuneS<'a>> = match &maybe_parent {
-      IFunctionParent::ParentInterface { .. } => Vec::new(),
+    let declared_runes: IndexSet<IRuneS<'s>> = match &maybe_parent {
+      IFunctionParent::ParentInterface { .. } => IndexSet::new(),
       _ => user_declared_runes
         .iter()
         .map(|rune_usage| rune_usage.rune.clone())
@@ -235,7 +249,7 @@ where
     };
     let function_environment = FunctionEnvironmentS {
       file: file_coordinate,
-      name: function_declaration_name.clone(),
+      name: function_declaration_name_for_env.clone(),
       parent_env,
       declared_runes,
       num_explicit_params: function
@@ -247,19 +261,19 @@ where
       is_interface_internal_method: matches!(&maybe_parent, IFunctionParent::ParentInterface { .. }),
     };
     let header_range_s = Self::eval_range(file_coordinate, function.header.range);
-    let (default_region_rune, _maybe_region_generic_param) = match function
+    let (default_region_rune, _maybe_region_generic_param): (IRuneS<'s>, _) = match function
       .body
       .as_ref()
       .and_then(|body| body.maybe_default_region.as_ref())
     {
       None => {
-        let region_range = RangeS {
-          begin: header_range_s.end.clone(),
-          end: header_range_s.end.clone(),
-        };
-        let rune = self.interner.intern_rune(IRuneValS::DenizenDefaultRegionRune(
+        let region_range = RangeS::new(
+          header_range_s.end.clone(),
+          header_range_s.end.clone(),
+        );
+        let rune = self.scout_arena.intern_rune(IRuneValS::DenizenDefaultRegionRune(
           DenizenDefaultRegionRuneS {
-            denizen_name: INameS::FunctionDeclaration(function_declaration_name.clone()),
+            denizen_name: function_declaration_name.clone(),
           },
         ));
         let implicit_region_generic_param = GenericParameterS {
@@ -277,22 +291,13 @@ where
         };
         (rune, Some(implicit_region_generic_param))
       }
-      /*
-      case Some(RegionRunePT(regionRange, regionName)) => {
-        val rune = CodeRuneS(vassertSome(regionName).str) // impl isolates
-        if (!functionEnv.allDeclaredRunes().contains(rune)) {
-          throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
-        }
-        (evalRange(file, regionRange), rune, None)
-      }
-      */
       Some(region_rune_pt) => {
         let region_name = region_rune_pt
           .name
           .as_ref()
           .unwrap_or_else(|| panic!("POSTPARSER_SCOUT_FUNCTION_DEFAULT_REGION_NAME_MISSING"));
-        let rune = self.interner.intern_rune(IRuneValS::CodeRune(CodeRuneS {
-          name: region_name.str(),
+        let rune = self.scout_arena.intern_rune(IRuneValS::CodeRune(CodeRuneS {
+          name: self.scout_arena.intern_str(region_name.str().as_str()),
         }));
         if !function_environment.all_declared_runes().contains(&rune) {
           return Err(ICompileErrorS::CouldntFindRuneS(CouldntFindRuneS {
@@ -313,7 +318,7 @@ where
       IFunctionParent::FunctionNoParent => {
         let mut child_lidb = lidb.child();
         translate_rulexes(
-          self.interner,
+          self.scout_arena,
           self.keywords,
           IEnvironmentS::FunctionEnvironment(function_environment.clone()),
           &mut child_lidb,
@@ -332,7 +337,7 @@ where
       IFunctionParent::ParentInterface { interface_env, .. } => {
         let mut child_lidb = lidb.child();
         translate_rulexes(
-          self.interner,
+          self.scout_arena,
           self.keywords,
           IEnvironmentS::FunctionEnvironment(interface_env.clone()),
           &mut child_lidb,
@@ -344,13 +349,12 @@ where
       }
     }
     // We'll add the implicit runes to the end, see IRRAE.
-    let function_user_specified_generic_parameters_s = generic_parameters_p
+    let function_user_specified_generic_parameters_s: Vec<&'s GenericParameterS<'s>> = generic_parameters_p
       .iter()
       .zip(user_specified_identifying_runes.iter())
       .map(|(generic_parameter_p, identifying_rune_s)| {
         let mut child_lidb = lidb.child();
-        scout_generic_parameter(
-          self.interner,
+        &*self.scout_arena.alloc(self.scout_generic_parameter(
           IEnvironmentS::FunctionEnvironment(function_environment.clone()),
           &mut child_lidb,
           &mut rune_to_explicit_type,
@@ -358,7 +362,7 @@ where
           default_region_rune.clone(),
           generic_parameter_p,
           identifying_rune_s.clone(),
-        )
+        ))
       })
       .collect::<Vec<_>>();
     let params_p: Vec<_> = function
@@ -385,7 +389,7 @@ where
       })
       .unwrap_or_default();
     // We say PerhapsTypeless because we're in a lambda, they might be anonymous params.
-    let explicit_params_s: Vec<ParameterS<'a>> = params_p
+    let explicit_params_s: Vec<ParameterS<'s>> = params_p
       .iter()
       .map(|param| {
             let param_range = PostParser::eval_range(file_coordinate, param.range);
@@ -397,9 +401,7 @@ where
               (Some(_), None) => {
                 let coord_rune = RuneUsage {
                   range: param_range.clone(),
-                  rune: self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-                    lid: lidb.child().consume(),
-                  })),
+                  rune: self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val()))),
                 };
                 rune_to_explicit_type.push((
                   coord_rune.rune.clone(),
@@ -417,14 +419,14 @@ where
               }
               (None, Some(pattern)) => {
                 let mut pattern_lidb = lidb.child();
-                let mut rune_to_explicit_type_for_pattern: HashMap<IRuneS<'a>, ITemplataType> =
+                let mut rune_to_explicit_type_for_pattern: HashMap<IRuneS<'s>, ITemplataType> =
                   rune_to_explicit_type.iter().cloned().collect();
                 let mut pattern_s = translate_pattern(
-                  self.interner,
+                  self.scout_arena,
                   self.keywords,
                   StackFrame {
                     file: file_coordinate,
-                    name: function_declaration_name.clone(),
+                    name: function_declaration_name_for_env.clone(),
                     parent_env: function_environment.clone(),
                     maybe_parent: None,
                     context_region: default_region_rune.clone(),
@@ -447,9 +449,7 @@ where
                 if pattern_s.coord_rune.is_none() {
                   let coord_rune = RuneUsage {
                     range: param_range.clone(),
-                    rune: self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-                      lid: lidb.child().consume(),
-                    })),
+                    rune: self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val()))),
                   };
                   rune_to_explicit_type.push((
                     coord_rune.rune.clone(),
@@ -461,14 +461,14 @@ where
               }
               _ => panic!("POSTPARSER_SCOUT_FUNCTION_PARAM_FORM_NOT_YET_IMPLEMENTED"),
             };
-            ParameterS {
-              range: param_range.clone(),
+            return ParameterS::new(
+              param_range.clone(),
               virtuality,
-              pre_checked: param.maybe_pre_checked.is_some(),
+              param.maybe_pre_checked.is_some(),
               pattern,
-            }
+            );
       })
-      .collect();
+      .collect::<Vec<ParameterS<'s>>>();
     let maybe_capture_declarations = match function.body {
       None => None,
       Some(_) => {
@@ -478,9 +478,17 @@ where
           }
           IFunctionParent::ParentFunction { .. } => {
             let closure_param_pos = Self::eval_pos(file_coordinate, function.range.begin());
+            let closure_param_name = match self.scout_arena.intern_name(INameValS::VarName(
+              IVarNameValS::ClosureParamName(ClosureParamNameS {
+                code_location: closure_param_pos,
+              }),
+            )) {
+              INameS::VarName(r) => (*r).clone(),
+              _ => panic!("POSTPARSER_INTERN_VAR_NAME_EXPECTED_VAR_NAME"),
+            };
             VariableDeclarations {
               vars: vec![VariableDeclarationS {
-                name: IVarNameS::ClosureParamName(closure_param_pos),
+                name: closure_param_name,
               }],
             }
           }
@@ -502,15 +510,13 @@ where
           let ret_range_s = Self::eval_range(file_coordinate, function.header.ret.range);
           let ret_rune = RuneUsage {
             range: ret_range_s.clone(),
-            rune: self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-              lid: lidb.child().consume(),
-            })),
+            rune: self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val()))),
           };
           rules.push(IRulexSR::MaybeCoercingLookup(MaybeCoercingLookupSR {
             range: ret_range_s.clone(),
             rune: ret_rune.clone(),
             name: self
-              .interner
+              .scout_arena
               .intern_imprecise_name(IImpreciseNameValS::CodeName(CodeNameS {
                 name: self.keywords.void,
               })),
@@ -524,10 +530,10 @@ where
       }
       Some(ret_type_p) => {
         let mut ret_lidb = lidb.child();
-        let mut rune_to_explicit_type_for_ret: HashMap<IRuneS<'a>, ITemplataType> =
+        let mut rune_to_explicit_type_for_ret: HashMap<IRuneS<'s>, ITemplataType> =
           rune_to_explicit_type.iter().cloned().collect();
         let ret_rune = translate_maybe_type_into_maybe_rune(
-          self.interner,
+          self.scout_arena,
           self.keywords,
           match &maybe_parent {
             IFunctionParent::FunctionNoParent | IFunctionParent::ParentFunction { .. } => {
@@ -584,17 +590,17 @@ where
     }
     let (body_s, variable_uses, total_params_s, extra_generic_params_from_body) = if is_parent_interface {
       (
-        IBodyS::AbstractBody(AbstractBodyS {}),
-        VariableUses::empty(),
+        &*self.scout_arena.alloc(IBodyS::AbstractBody(AbstractBodyS {})),
+        VariableUses::<'s>::empty(),
         explicit_params_s,
-        Vec::new(),
+        Vec::<&'s GenericParameterS<'s>>::new(),
       )
     } else if has_abstract_attr {
       (
-        IBodyS::AbstractBody(AbstractBodyS {}),
-        VariableUses::empty(),
+        &*self.scout_arena.alloc(IBodyS::AbstractBody(AbstractBodyS {})),
+        VariableUses::<'s>::empty(),
         explicit_params_s,
-        Vec::new(),
+        Vec::<&'s GenericParameterS<'s>>::new(),
       )
     } else if has_extern_attr {
       if function.body.is_some() {
@@ -603,10 +609,10 @@ where
         }));
       }
       (
-        IBodyS::ExternBody(ExternBodyS {}),
-        VariableUses::empty(),
+        &*self.scout_arena.alloc(IBodyS::ExternBody(ExternBodyS {})),
+        VariableUses::<'s>::empty(),
         explicit_params_s,
-        Vec::new(),
+        Vec::<&'s GenericParameterS<'s>>::new(),
       )
     } else if has_builtin_attr {
       let generator_name = function
@@ -614,15 +620,15 @@ where
         .attributes
         .iter()
         .find_map(|attr| match attr {
-          IAttributeP::BuiltinAttribute(builtin_attr) => Some(builtin_attr.generator_name.str()),
+          IAttributeP::BuiltinAttribute(builtin_attr) => Some(self.scout_arena.intern_str(builtin_attr.generator_name.str().as_str())),
           _ => None,
         })
         .unwrap_or_else(|| panic!("POSTPARSER_SCOUT_FUNCTION_BUILTIN_ATTR_NOT_FOUND"));
       (
-        IBodyS::GeneratedBody(GeneratedBodyS { generator_id: generator_name }),
-        VariableUses::empty(),
+        &*self.scout_arena.alloc(IBodyS::GeneratedBody(GeneratedBodyS { generator_id: generator_name })),
+        VariableUses::<'s>::empty(),
         explicit_params_s,
-        Vec::new(),
+        Vec::<&'s GenericParameterS<'s>>::new(),
       )
     } else {
       let body = function
@@ -639,7 +645,7 @@ where
         IFunctionParent::ParentFunction { parent_stack_frame } => Some(parent_stack_frame.clone()),
         _ => None,
       };
-      let (body_s, variable_uses, magic_param_names) = self.scout_body(
+      let (body_s, variable_uses, magic_param_names): (&'s BodySE<'s>, VariableUses<'s>, Vec<IVarNameS<'s>>) = self.scout_body(
         function_environment,
         parent_stack_frame,
         &mut lidb,
@@ -664,24 +670,18 @@ where
           message: "Cant have a lambda with _ and params".to_string(),
         }));
       }
-      let mut total_params_s: Vec<ParameterS<'a>> = Vec::new();
-      let mut extra_generic_params_from_body = Vec::<GenericParameterS<'a>>::new();
+      let mut total_params_s: Vec<ParameterS<'s>> = Vec::new();
+      let mut extra_generic_params_from_body = Vec::<&'s GenericParameterS<'s>>::new();
       if is_parent_function {
         let IFunctionParent::ParentFunction { parent_stack_frame } = &maybe_parent else {
           panic!("POSTPARSER_SCOUT_FUNCTION_EXPECTED_PARENT_FUNCTION");
         };
-        let closure_struct_region_rune = self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-          lid: lidb.child().consume(),
-        }));
-        let closure_struct_kind_rune = self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-          lid: lidb.child().consume(),
-        }));
-        let closure_struct_coord_rune = self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-          lid: lidb.child().consume(),
-        }));
+        let closure_struct_region_rune = self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val())));
+        let closure_struct_kind_rune = self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val())));
+        let closure_struct_coord_rune = self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val())));
         let closure_param_s = self.create_closure_param(
           function.range,
-          function_declaration_name.clone(),
+          function_declaration_name_for_env.clone(),
           &mut lidb,
           &mut rules,
           &mut rune_to_explicit_type,
@@ -692,9 +692,9 @@ where
         );
         total_params_s.push(closure_param_s);
       }
-      total_params_s.extend(explicit_params_s.clone());
+      total_params_s.extend(explicit_params_s);
       if is_parent_function {
-        let magic_params =
+        let magic_params: Vec<ParameterS<'s>> =
           self.create_magic_parameters(&mut lidb, magic_param_names, &mut rune_to_explicit_type);
         // Lambdas identifying runes are determined by their magic params.
         // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
@@ -705,7 +705,7 @@ where
             .as_ref()
             .unwrap_or_else(|| panic!("POSTPARSER_SCOUT_MAGIC_PARAM_WITHOUT_COORD_RUNE"))
             .clone();
-          GenericParameterS {
+          &*self.scout_arena.alloc(GenericParameterS {
             range: magic_param.pattern.range.clone(),
             rune: coord_rune,
             tyype: IGenericParameterTypeS::CoordGenericParameterType(CoordGenericParameterTypeS {
@@ -714,18 +714,18 @@ where
               region_mutable: false,
             }),
             default: None,
-          }
+          })
         }));
         total_params_s.extend(magic_params);
       }
       (
-        IBodyS::CodeBody(CodeBodyS { body: body_s }),
+        &*self.scout_arena.alloc(IBodyS::CodeBody(CodeBodyS { body: body_s })),
         variable_uses,
         total_params_s,
         extra_generic_params_from_body,
       )
     };
-    let mut generic_params = extra_generic_params_from_parent;
+    let mut generic_params: Vec<&'s GenericParameterS<'s>> = extra_generic_params_from_parent;
     generic_params.extend(function_user_specified_generic_parameters_s);
     generic_params.extend(extra_generic_params_from_body);
     generic_params = generic_params
@@ -738,7 +738,7 @@ where
       })
       .collect();
 
-    let unfiltered_rules_array = rules;
+    let unfiltered_rules_array: Vec<IRulexSR<'s>> = rules;
     let rules_array = match &maybe_parent {
       IFunctionParent::ParentInterface { .. } => unfiltered_rules_array
         .into_iter()
@@ -748,7 +748,7 @@ where
     };
 
     let unfiltered_attrs_p = function.header.attributes;
-    let filtered_attrs: Vec<&IAttributeP<'a>> = match &maybe_parent {
+    let filtered_attrs: Vec<&IAttributeP<'p>> = match &maybe_parent {
       IFunctionParent::FunctionNoParent => unfiltered_attrs_p
         .iter()
         .filter(|a| !matches!(a, IAttributeP::AbstractAttribute(_)))
@@ -756,7 +756,7 @@ where
       IFunctionParent::ParentInterface { .. } => unfiltered_attrs_p.iter().collect(),
       IFunctionParent::ParentFunction { .. } => unfiltered_attrs_p.iter().collect(),
     };
-    let func_attrs_s: Vec<IFunctionAttributeS<'a>> = filtered_attrs
+    let func_attrs_s: Vec<IFunctionAttributeS<'s>> = filtered_attrs
       .into_iter()
       .map(|attr| match attr {
         IAttributeP::ExportAttribute(_) => IFunctionAttributeS::Export(ExportS {
@@ -768,7 +768,7 @@ where
         IAttributeP::PureAttribute(_) => IFunctionAttributeS::Pure(PureS),
         IAttributeP::AdditiveAttribute(_) => IFunctionAttributeS::Additive(AdditiveS),
         IAttributeP::BuiltinAttribute(builtin_attr) => IFunctionAttributeS::Builtin(BuiltinS {
-          generator_name: builtin_attr.generator_name.str(),
+          generator_name: self.scout_arena.intern_str(builtin_attr.generator_name.str().as_str()),
         }),
         IAttributeP::AbstractAttribute(_) => panic!("AbstractAttribute should have been filtered"),
         other => panic!("POSTPARSER_SCOUT_FUNCTION_ATTRIBUTE_NOT_YET_IMPLEMENTED: {:?}", other),
@@ -777,6 +777,7 @@ where
 
     let range_s = Self::eval_range(file_coordinate, function.range);
     let mut rune_to_predicted_type = Self::predict_rune_types(
+      self.scout_arena,
       range_s.clone(),
       &user_specified_identifying_runes
         .iter()
@@ -786,35 +787,42 @@ where
       &rules_array,
     )?;
     rune_to_predicted_type.retain(|_, tyype| !matches!(tyype, ITemplataType::RegionTemplataType(_)));
-    Self::check_identifiability(
+    let rules_array: &'s [IRulexSR<'s>] = self.scout_arena.alloc_slice_from_vec(rules_array);
+    self.check_identifiability(
       range_s,
       &generic_params
         .iter()
         .map(|generic_param| generic_param.rune.rune.clone())
         .collect::<Vec<_>>(),
-      &rules_array,
-    );
+      rules_array,
+    )?;
 
-    let tyype = TemplateTemplataType {
-      param_types: generic_params
+    let param_types_vec: Vec<ITemplataType<'s>> = generic_params
         .iter()
         .map(|generic_param| generic_param.tyype.tyype())
-        .collect(),
-      return_type: Box::new(ITemplataType::FunctionTemplataType(FunctionTemplataType {})),
+        .collect();
+    let tyype = TemplateTemplataType {
+      param_types: self.scout_arena.alloc_slice_copy(&param_types_vec),
+      return_type: self.scout_arena.alloc(ITemplataType::FunctionTemplataType(FunctionTemplataType {})),
+    };
+    let function_name_ref: &'s IFunctionDeclarationNameS<'s> = match function_declaration_name {
+      INameS::FunctionDeclaration(r) => r,
+      _ => panic!("POSTPARSER_FUNCTION_NAME_EXPECTED_FUNCTION_DECLARATION"),
     };
     Ok((
-      FunctionS {
-        range: Self::eval_range(file_coordinate, function.range),
-        name: function_declaration_name,
-        attributes: alloc_slice_from_vec(self.scout_arena, func_attrs_s),
-        generic_params: alloc_slice_from_vec(self.scout_arena, generic_params),
-        rune_to_predicted_type,
-        tyype,
-        params: alloc_slice_from_vec(self.scout_arena, total_params_s),
-        maybe_ret_coord_rune,
-        rules: alloc_slice_from_vec(self.scout_arena, rules_array),
-        body: body_s,
-      },
+      &*self.scout_arena.alloc(
+        FunctionS::new(
+          Self::eval_range(file_coordinate, function.range),
+          function_name_ref,
+          self.scout_arena.alloc_slice_from_vec(func_attrs_s),
+          self.scout_arena.alloc_slice_from_vec(generic_params),
+          rune_to_predicted_type,
+          tyype,
+          self.scout_arena.alloc_slice_from_vec(total_params_s),
+          maybe_ret_coord_rune,
+          rules_array,
+          body_s,
+        )),
       variable_uses,
     ))
   }
@@ -1329,68 +1337,96 @@ where
 */
 fn create_closure_param(
   &self,
-  range: crate::lexing::ast::RangeL,
-  func_name: IFunctionDeclarationNameS<'a>,
+  range: RangeL,
+  func_name: IFunctionDeclarationNameS<'s>,
   lidb: &mut LocationInDenizenBuilder,
-  rule_builder: &mut Vec<IRulexSR<'a>>,
-  rune_to_explicit_type: &mut Vec<(IRuneS<'a>, ITemplataType)>,
-  parent_stack_frame: &StackFrame<'a>,
-  _closure_struct_region_rune: IRuneS<'a>,
-  closure_struct_kind_rune: IRuneS<'a>,
-  closure_struct_coord_rune: IRuneS<'a>,
-) -> crate::postparsing::ast::ParameterS<'a> {
+  rule_builder: &mut Vec<IRulexSR<'s>>,
+  rune_to_explicit_type: &mut Vec<(IRuneS<'s>, ITemplataType)>,
+  parent_stack_frame: &StackFrame<'s>,
+  _closure_struct_region_rune: IRuneS<'s>,
+  closure_struct_kind_rune: IRuneS<'s>,
+  closure_struct_coord_rune: IRuneS<'s>,
+) -> ParameterS<'s> {
   let closure_param_pos = PostParser::eval_pos(parent_stack_frame.file, range.begin());
-  let closure_param_range = crate::utils::range::RangeS {
-    begin: closure_param_pos.clone(),
-    end: closure_param_pos.clone(),
-  };
-  let IFunctionDeclarationNameS::LambdaDeclarationName(_lambda_name) = func_name else {
-    panic!("POSTPARSER_SCOUT_CREATE_CLOSURE_PARAM_NON_LAMBDA_NAME");
+  let closure_param_range = RangeS::new(
+    closure_param_pos.clone(),
+    closure_param_pos.clone(),
+  );
+  let closure_param_name = match self.scout_arena.intern_name(INameValS::VarName(
+    IVarNameValS::ClosureParamName(ClosureParamNameS {
+      code_location: closure_param_range.begin.clone(),
+    }),
+  )) {
+    INameS::VarName(r) => (*r).clone(),
+    _ => panic!("POSTPARSER_INTERN_VAR_NAME_EXPECTED_VAR_NAME"),
   };
   rune_to_explicit_type.push((
-    closure_struct_kind_rune,
+    closure_struct_kind_rune.clone(),
     ITemplataType::KindTemplataType(KindTemplataType {}),
   ));
+  let IFunctionDeclarationNameS::LambdaDeclarationName(lambda_name) = func_name else {
+    panic!("POSTPARSER_SCOUT_CREATE_CLOSURE_PARAM_NON_LAMBDA_NAME");
+  };
+  let closure_struct_name =
+    self.scout_arena.intern_name(INameValS::LambdaStructDeclaration(LambdaStructDeclarationNameS {
+      lambda_name: lambda_name.clone(),
+    }));
+  let closure_struct_imprecise_name = match &closure_struct_name {
+    INameS::LambdaStructDeclaration(r) => (*r).get_imprecise_name(self.scout_arena),
+    _ => panic!("POSTPARSER_INTERN_LAMBDA_STRUCT_NAME_EXPECTED_LAMBDA_STRUCT"),
+  };
+  rule_builder.push(IRulexSR::Lookup(LookupSR {
+    range: closure_param_range.clone(),
+    rune: RuneUsage {
+      range: closure_param_range.clone(),
+      rune: closure_struct_kind_rune.clone(),
+    },
+    name: closure_struct_imprecise_name.clone(),
+  }));
   rune_to_explicit_type.push((
     closure_struct_coord_rune.clone(),
     ITemplataType::CoordTemplataType(CoordTemplataType {}),
   ));
+  rule_builder.push(IRulexSR::CoerceToCoord(CoerceToCoordSR {
+    range: closure_param_range.clone(),
+    coord_rune: RuneUsage {
+      range: closure_param_range.clone(),
+      rune: closure_struct_coord_rune.clone(),
+    },
+    kind_rune: RuneUsage {
+      range: closure_param_range.clone(),
+      rune: closure_struct_kind_rune.clone(),
+    },
+  }));
   let closure_param_type_rune = RuneUsage {
     range: closure_param_range.clone(),
-    rune: self.interner.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneS {
-      lid: lidb.child().consume(),
-    })),
+    rune: self.scout_arena.intern_rune(IRuneValS::ImplicitRune(ImplicitRuneValS::new(lidb.child().borrow_val()))),
   };
-  rune_to_explicit_type.push((
-    closure_param_type_rune.rune.clone(),
-    ITemplataType::CoordTemplataType(CoordTemplataType {}),
-  ));
-  // Scala emits Lookup/CoerceToCoord/Augment rules here. We do not have
-  // those rule variants in Rust yet, so we leave explicit placeholders
-  // instead of silently dropping this part of the shape.
-  rule_builder.push(IRulexSR::Placeholder(PlaceholderRuleSR {
+  rule_builder.push(IRulexSR::Augment(AugmentSR {
     range: closure_param_range.clone(),
+    result_rune: closure_param_type_rune.clone(),
+    ownership: Some(OwnershipP::Borrow),
+    inner_rune: RuneUsage {
+      range: closure_param_range.clone(),
+      rune: closure_struct_coord_rune,
+    },
   }));
-  rule_builder.push(IRulexSR::Placeholder(PlaceholderRuleSR {
+  let capture: CaptureS<'s> = CaptureS {
+    name: closure_param_name,
+    mutate: false,
+  };
+  let closure_pattern = AtomSP::<'s> {
     range: closure_param_range.clone(),
-  }));
-  rule_builder.push(IRulexSR::Placeholder(PlaceholderRuleSR {
-    range: closure_param_range.clone(),
-  }));
-  ParameterS {
+    name: Some(capture),
+    coord_rune: Some(closure_param_type_rune),
+    destructure: None,
+  };
+  return ParameterS::<'s> {
     range: closure_param_range.clone(),
     virtuality: None,
     pre_checked: false,
-    pattern: AtomSP {
-      range: closure_param_range,
-      name: Some(CaptureS {
-        name: IVarNameS::ClosureParamName(closure_param_pos),
-        mutate: false,
-      }),
-      coord_rune: Some(closure_param_type_rune),
-      destructure: None,
-    },
-  }
+    pattern: closure_pattern,
+  };
 }
 /*
   private def createClosureParam(
@@ -1443,31 +1479,33 @@ fn create_closure_param(
 fn create_magic_parameters(
   &self,
   lidb: &mut LocationInDenizenBuilder,
-  lambda_magic_param_names: Vec<crate::postparsing::names::MagicParamNameS<'a>>,
-  rune_to_explicit_type: &mut Vec<(IRuneS<'a>, ITemplataType)>,
-) -> Vec<crate::postparsing::ast::ParameterS<'a>> {
+  lambda_magic_param_names: Vec<IVarNameS<'s>>,
+  rune_to_explicit_type: &mut Vec<(IRuneS<'s>, ITemplataType)>,
+) -> Vec<ParameterS<'s>> {
   lambda_magic_param_names
     .into_iter()
     .map(|magic_param_name| {
-      let magic_param_range = crate::utils::range::RangeS {
-        begin: magic_param_name.code_location.clone(),
-        end: magic_param_name.code_location.clone(),
+      let code_location = match &magic_param_name {
+        IVarNameS::MagicParamName(c) => c.clone(),
+        _ => panic!("POSTPARSER_CREATE_MAGIC_PARAMS_EXPECTED_MAGIC_PARAM_NAME"),
       };
-      let magic_param_rune = self.interner.intern_rune(IRuneValS::MagicParamRune(MagicParamRuneS {
-        lid: lidb.child().consume(),
-      }));
+      let magic_param_range = RangeS::new(
+        code_location.clone(),
+        code_location.clone(),
+      );
+      let magic_param_rune = self.scout_arena.intern_rune(IRuneValS::MagicParamRune(MagicParamRuneValS::new(lidb.child().borrow_val())));
       rune_to_explicit_type.push((
         magic_param_rune.clone(),
         ITemplataType::CoordTemplataType(CoordTemplataType {}),
       ));
-      ParameterS {
-        range: magic_param_range.clone(),
-        virtuality: None,
-        pre_checked: false,
-        pattern: AtomSP {
+      ParameterS::new(
+        magic_param_range.clone(),
+        None,
+        false,
+        AtomSP {
           range: magic_param_range.clone(),
           name: Some(CaptureS {
-            name: IVarNameS::MagicParamName(magic_param_name.code_location),
+            name: magic_param_name,
             mutate: false,
           }),
           coord_rune: Some(RuneUsage {
@@ -1476,7 +1514,7 @@ fn create_magic_parameters(
           }),
           destructure: None,
         },
-      }
+      )
     })
     .collect()
 }
@@ -1508,11 +1546,9 @@ fn create_magic_parameters(
   #[allow(dead_code)]
   pub(crate) fn scout_lambda(
     &self,
-    parent_stack_frame: StackFrame<'a>,
-    function: &FunctionP<'a, 'p>,
-  ) -> Result<(FunctionS<'a, 's>, VariableUses<'a>), ICompileErrorS<'a>>
-  where
-    'a: 'p,
+    parent_stack_frame: StackFrame<'s>,
+    function: &FunctionP<'p>,
+  ) -> Result<(&'s FunctionS<'s>, VariableUses<'s>), ICompileErrorS<'s>>
   {
     let file_coordinate = parent_stack_frame.file;
     self.scout_function(
@@ -1532,24 +1568,24 @@ fn create_magic_parameters(
 */
   fn scout_body(
     &self,
-    function_env: FunctionEnvironmentS<'a>,
-    parent_stack_frame: Option<StackFrame<'a>>,
+    function_env: FunctionEnvironmentS<'s>,
+    parent_stack_frame: Option<StackFrame<'s>>,
     lidb: &mut LocationInDenizenBuilder,
-    context_region: IRuneS<'a>,
-    body0: &crate::parsing::ast::BlockPE<'a, 'p>,
-    initial_declarations: VariableDeclarations<'a>,
+    context_region: IRuneS<'s>,
+    body0: &BlockPE<'p>,
+    initial_declarations: VariableDeclarations<'s>,
   ) -> Result<
     (
-      crate::postparsing::expressions::BodySE<'a, 's>,
-      VariableUses<'a>,
-      Vec<crate::postparsing::names::MagicParamNameS<'a>>,
+      &'s BodySE<'s>,
+      VariableUses<'s>,
+      Vec<IVarNameS<'s>>,
     ),
-    ICompileErrorS<'a>,
+    ICompileErrorS<'s>,
   > {
-    let function_body_env = function_env.child();
+    let function_body_env: FunctionEnvironmentS<'s> = function_env.child();
     let body_range_s = PostParser::eval_range(function_body_env.file, body0.range);
     let mut new_block_lidb = lidb.child();
-    let (block1, self_uses, child_uses) = self.new_block(
+    let (block1, self_uses, child_uses): (&'s BlockSE<'s>, VariableUses<'s>, VariableUses<'s>) = self.new_block(
       function_body_env.clone(),
       parent_stack_frame,
       &mut new_block_lidb,
@@ -1564,59 +1600,41 @@ fn create_magic_parameters(
             body0.inner,
             LoadAsP::Use,
           )?;
-        let expr_without_constructing_without_void: &'s IExpressionSE<'a, 's> = match inner_expr {
-          IExpressionSE::Consecutor(consecutor) => {
-            let exprs: Vec<&'s IExpressionSE<'a, 's>> = {
-              let mut v: Vec<_> = consecutor.exprs.iter().copied().collect();
-              while matches!(v.last(), Some(IExpressionSE::Void(_))) {
-                v.pop();
-              }
-              v
-            };
-            assert!(
-              !exprs.is_empty(),
-              "POSTPARSER_SCOUT_BODY_CONSECUTOR_EMPTY_AFTER_VOID_STRIP"
-            );
-            if exprs.len() == 1 {
-              exprs.into_iter().next().unwrap()
-            } else {
-              &*self.scout_arena.alloc(IExpressionSE::Consecutor(ConsecutorSE {
-                exprs: alloc_slice_from_vec(self.scout_arena, exprs),
-              }))
-            }
-          }
-          other => other,
-        };
         Ok((
           stack_frame2,
-          expr_without_constructing_without_void,
+          inner_expr,
           inner_self_uses,
           inner_child_uses,
         ))
       },
     )?;
 
-    let magic_param_names: Vec<crate::postparsing::names::MagicParamNameS<'a>> = self_uses
+    let magic_param_names: Vec<IVarNameS<'s>> = self_uses
       .uses
       .iter()
       .filter_map(|use_| match &use_.name {
         IVarNameS::MagicParamName(code_location) => {
-          Some(crate::postparsing::names::MagicParamNameS {
-            code_location: code_location.clone(),
-          })
+          Some(
+            match self.scout_arena.intern_name(INameValS::VarName(IVarNameValS::MagicParamName(
+              code_location.clone(),
+            ))) {
+              INameS::VarName(r) => (*r).clone(),
+              _ => panic!("POSTPARSER_INTERN_MAGIC_PARAM_EXPECTED_VAR_NAME"),
+            },
+          )
         }
         _ => None,
       })
       .collect();
-    let magic_param_vars: Vec<VariableDeclarationS<'a>> = magic_param_names
+    let magic_param_vars: Vec<VariableDeclarationS<'s>> = magic_param_names
       .iter()
       .map(|magic_param_name| VariableDeclarationS {
-        name: IVarNameS::MagicParamName(magic_param_name.code_location.clone()),
+        name: magic_param_name.clone(),
       })
       .collect();
-    let magic_param_locals: Vec<crate::postparsing::expressions::LocalS<'a>> = magic_param_vars
+    let magic_param_locals: Vec<LocalS<'s>> = magic_param_vars
       .iter()
-      .map(|declared| crate::postparsing::expressions::LocalS {
+      .map(|declared| LocalS {
         var_name: declared.name.clone(),
         self_borrowed: self_uses.is_borrowed(&declared.name),
         self_moved: self_uses.is_moved(&declared.name),
@@ -1626,9 +1644,18 @@ fn create_magic_parameters(
         child_mutated: child_uses.is_mutated(&declared.name),
       })
       .collect();
-    let mut block1_with_magic_param_locals = block1.clone();
-    block1_with_magic_param_locals.locals.extend(magic_param_locals);
-    let block1 = &*self.scout_arena.alloc(block1_with_magic_param_locals);
+    let mut combined_locals: Vec<_> = block1.locals.to_vec();
+    combined_locals.extend(magic_param_locals);
+    let block1 = &*self.scout_arena.alloc(BlockSE {
+      range: block1.range.clone(),
+      locals: self.scout_arena.alloc_slice_from_vec(combined_locals),
+      expr: block1.expr,
+    });
+    // V: tell me about the above change?
+    // VA: This is a faithful translation of Scala's `BlockSE(bodyRangeS, block1.locals ++ magicParamLocals, block1.expr)`.
+    // VA: It re-allocates BlockSE with combined locals (original + magic params) into the arena. Not novel logic.
+    // VA: One minor divergence: Rust uses block1.range (already computed) while Scala uses bodyRangeS
+    // VA: (a fresh evalRange(body0.range)). They likely resolve to the same value but the source differs.
     let all_uses = self_uses.then_merge(&child_uses);
     let uses_of_parent_variables = all_uses
       .uses
@@ -1642,15 +1669,15 @@ fn create_magic_parameters(
       })
       .cloned()
       .collect::<Vec<_>>();
-    let closured_names: Vec<IVarNameS<'a>> = uses_of_parent_variables
+    let closured_names: Vec<IVarNameS<'s>> = uses_of_parent_variables
       .iter()
       .map(|use_| use_.name.clone())
       .collect();
-    let body_s = BodySE {
+    let body_s = &*self.scout_arena.alloc(BodySE {
       range: PostParser::eval_range(function_body_env.file, body0.range),
-      closured_names,
+      closured_names: self.scout_arena.alloc_slice_from_vec(closured_names),
       block: block1,
-    };
+    });
     Ok((body_s, VariableUses { uses: uses_of_parent_variables }, magic_param_names))
   }
 /*
@@ -1748,12 +1775,13 @@ fn create_magic_parameters(
 */
   pub(crate) fn scout_interface_member(
     &self,
-    file_coordinate: &'a FileCoordinate<'a>,
-    function_p: &crate::parsing::ast::FunctionP<'a, 'p>,
-    interface_generic_params: &[GenericParameterS<'a>],
-    interface_rules: &[IRulexSR<'a>],
-    interface_rune_to_explicit_type: &HashMap<IRuneS<'a>, ITemplataType>,
-  ) -> Result<FunctionS<'a, 's>, ICompileErrorS<'a>>
+    file_coordinate: &'s FileCoordinate<'s>,
+    function_p: &FunctionP<'p>,
+    parent_interface_env: &IEnvironmentS<'s>,
+    interface_generic_params: &'s [&'s GenericParameterS<'s>],
+    interface_rules: &[IRulexSR<'s>],
+    interface_rune_to_explicit_type: &ArenaIndexMap<'s, IRuneS<'s>, ITemplataType>,
+  ) -> Result<&'s FunctionS<'s>, ICompileErrorS<'s>>
   {
     assert!(
       function_p.body.is_none(),
@@ -1767,10 +1795,6 @@ fn create_magic_parameters(
       function_p.header.generic_parameters.is_none(),
       "POSTPARSER_SCOUT_INTERFACE_MEMBER_GENERIC_PARAMETERS_NOT_YET_IMPLEMENTED"
     );
-    assert!(
-      function_p.header.template_rules.is_none(),
-      "POSTPARSER_SCOUT_INTERFACE_MEMBER_TEMPLATE_RULES_NOT_YET_IMPLEMENTED"
-    );
     if let Some(params) = &function_p.header.params {
       if !params.params.iter().any(|param| param.virtuality.is_some()) {
         return Err(ICompileErrorS::InterfaceMethodNeedsSelf(
@@ -1783,14 +1807,24 @@ fn create_magic_parameters(
     let Some(method_name_p) = function_p.header.name.as_ref() else {
       panic!("POSTPARSER_INTERFACE_MEMBER_WITHOUT_NAME");
     };
-    let interface_env = FunctionEnvironmentS {
-      file: file_coordinate,
-      name: IFunctionDeclarationNameS::FunctionName(FunctionNameS {
-        name: method_name_p.str(),
+    let method_name = self.scout_arena.intern_name(INameValS::FunctionDeclaration(
+      IFunctionDeclarationNameValS::FunctionName(FunctionNameS {
+        name: self.scout_arena.intern_str(method_name_p.str().as_str()),
         code_location: Self::eval_pos(file_coordinate, method_name_p.range().begin()),
       }),
+    ));
+    let parent_declared_runes = match parent_interface_env {
+      IEnvironmentS::Environment(env) => env.user_declared_runes.clone(),
+      _ => panic!("Expected EnvironmentS for interface env"),
+    };
+    let interface_env = FunctionEnvironmentS {
+      file: file_coordinate,
+      name: match &method_name {
+        INameS::FunctionDeclaration(r) => (*r).clone(),
+        _ => panic!("POSTPARSER_INTERN_INTERFACE_METHOD_NAME_EXPECTED_FUNCTION_DECLARATION"),
+      },
       parent_env: None,
-      declared_runes: Vec::new(),
+      declared_runes: parent_declared_runes,
       num_explicit_params: function_p
         .header
         .params
@@ -1804,9 +1838,9 @@ fn create_magic_parameters(
       function_p,
       IFunctionParent::ParentInterface {
         interface_env,
-        interface_generic_params: interface_generic_params.to_vec(),
+        interface_generic_params,
         interface_rules: interface_rules.to_vec(),
-        interface_rune_to_explicit_type: interface_rune_to_explicit_type.clone(),
+        interface_rune_to_explicit_type: interface_rune_to_explicit_type.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
       },
     )?;
     assert!(

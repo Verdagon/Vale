@@ -1,7 +1,8 @@
 use super::ast::*;
 use super::errors::*;
 use super::lexing_iterator::*;
-use crate::{Interner, Keywords};
+use crate::Keywords;
+use crate::parse_arena::ParseArena;
 /*
 package dev.vale.lexing
 
@@ -12,26 +13,34 @@ import scala.collection.mutable
 
 type Result<T> = std::result::Result<T, ParseError>;
 
+/// Helper enum for string parsing
+enum StringPartResult<'p> {
+  Char(char),
+  Expr(ScrambleLE<'p>),
+}
+/*
+MIGALLOW: Scala didn't need this, it has Either for this.
+*/
 
 /// Vale lexer
 /// Matches Scala's Lexer class
-pub struct Lexer<'a, 'ctx> {
-  interner: &'ctx Interner<'a>,
-  keywords: &'ctx Keywords<'a>,
+pub struct Lexer<'p, 'ctx> {
+  parse_arena: &'ctx ParseArena<'p>,
+  keywords: &'ctx Keywords<'p>,
 }
-impl<'a, 'ctx> Lexer<'a, 'ctx>
+impl<'p, 'ctx> Lexer<'p, 'ctx>
 where
-  'a: 'ctx,
+  'p: 'ctx,
 {
   /*
   class Lexer(interner: Interner, keywords: Keywords) {
   */
-  pub fn new(interner: &'ctx Interner<'a>, keywords: &'ctx Keywords<'a>) -> Self {
-    Lexer { interner, keywords }
+  pub fn new(parse_arena: &'ctx ParseArena<'p>, keywords: &'ctx Keywords<'p>) -> Self {
+    Lexer { parse_arena, keywords }
   }
 
   /// Lex attributes on a declaration
-  pub fn lex_attributes(&self, iter: &mut LexingIterator) -> Result<Vec<IAttributeL<'a>>>
+  pub fn lex_attributes(&self, iter: &mut LexingIterator) -> Result<&'p [IAttributeL<'p>]>
   {
     let mut attributes = Vec::new();
 
@@ -43,7 +52,7 @@ where
       }
     }
 
-    Ok(attributes)
+    Ok(self.parse_arena.alloc_slice_from_vec(attributes))
   }
   /*
     def lexAttributes(iter: LexingIterator): Result[Vector[IAttributeL], IParseError] = {
@@ -61,7 +70,7 @@ where
   */
 
   /// Lex a single attribute
-  pub fn lex_attribute(&self, iter: &mut LexingIterator) -> Result<Option<IAttributeL<'a>>>
+  pub fn lex_attribute(&self, iter: &mut LexingIterator) -> Result<Option<IAttributeL<'p>>>
   {
     let attribute_begin = iter.get_pos();
 
@@ -170,7 +179,7 @@ where
         None
       };
       let end = iter.get_pos();
-      return Ok(Some(IAttributeL::ExternAttribute::<'a> {
+      return Ok(Some(IAttributeL::ExternAttribute::<'p> {
         range: RangeL::new(attribute_begin, end),
         maybe_custom_name,
       }));
@@ -306,7 +315,7 @@ where
   */
 
   /// Lex a top-level denizen (function, struct, interface, impl, import, export)
-  pub fn lex_denizen(&self, iter: &mut LexingIterator) -> Result<IDenizenL<'a>>
+  pub fn lex_denizen(&self, iter: &mut LexingIterator) -> Result<IDenizenL<'p>>
   {
     let denizen_begin = iter.get_pos();
 
@@ -314,32 +323,32 @@ where
     iter.consume_comments_and_whitespace();
 
     // Try function
-    if let Some(func) = self.lex_function(iter, denizen_begin, attributes.clone())? {
+    if let Some(func) = self.lex_function(iter, denizen_begin, attributes)? {
       return Ok(IDenizenL::TopLevelFunction(func));
     }
 
     // Try struct
-    if let Some(strukt) = self.lex_struct(iter, denizen_begin, attributes.clone())? {
+    if let Some(strukt) = self.lex_struct(iter, denizen_begin, attributes)? {
       return Ok(IDenizenL::TopLevelStruct(strukt));
     }
 
     // Try interface
-    if let Some(interface) = self.lex_interface(iter, denizen_begin, attributes.clone())? {
+    if let Some(interface) = self.lex_interface(iter, denizen_begin, attributes)? {
       return Ok(IDenizenL::TopLevelInterface(interface));
     }
 
     // Try impl
-    if let Some(impl_) = self.lex_impl(iter, denizen_begin, attributes.clone())? {
+    if let Some(impl_) = self.lex_impl(iter, denizen_begin, attributes)? {
       return Ok(IDenizenL::TopLevelImpl(impl_));
     }
 
     // Try import
-    if let Some(import) = self.lex_import(iter, denizen_begin, attributes.clone())? {
+    if let Some(import) = self.lex_import(iter, denizen_begin, attributes)? {
       return Ok(IDenizenL::TopLevelImport(import));
     }
 
     // Try export
-    if let Some(export) = self.lex_export(iter, denizen_begin, attributes.clone())? {
+    if let Some(export) = self.lex_export(iter, denizen_begin, attributes)? {
       return Ok(IDenizenL::TopLevelExportAs(export));
     }
 
@@ -404,8 +413,8 @@ where
     &self,
     iter: &mut LexingIterator,
     begin: i32,
-    attributes: Vec<IAttributeL<'a>>,
-  ) -> Result<Option<ImplL<'a>>>
+    attributes: &'p [IAttributeL<'p>],
+  ) -> Result<Option<ImplL<'p>>>
   {
     if !iter.try_skip_complete_word("impl") {
       return Ok(None);
@@ -417,24 +426,26 @@ where
     iter.consume_comments_and_whitespace();
 
     let interface_name = self
-      .lex_identifier(iter)
-      .ok_or(ParseError::BadImplInterface(iter.get_pos()))?;
+        .lex_identifier(iter)
+        .ok_or(ParseError::BadImplInterface(iter.get_pos()))?;
     iter.consume_comments_and_whitespace();
 
     let maybe_interface_generic_args = self.lex_angled(iter)?;
 
     let interface = if let Some(interface_generic_args) = maybe_interface_generic_args {
-      ScrambleLE::<'a> {
+      ScrambleLE::<'p> {
         range: RangeL::new(interface_name.range.begin(), interface_generic_args.range.end()),
-        elements: vec![
-          Box::new(INodeLEEnum::Word::<'a>(interface_name)),
-          Box::new(INodeLEEnum::Angled::<'a>(interface_generic_args)),
-        ],
+        elements: self.parse_arena.alloc_slice_copy(&[
+          &*self.parse_arena.alloc(INodeLEEnum::Word::<'p>(interface_name)),
+          &*self.parse_arena.alloc(INodeLEEnum::Angled::<'p>(interface_generic_args)),
+        ]),
       }
     } else {
       ScrambleLE {
         range: interface_name.range,
-        elements: vec![Box::new(INodeLEEnum::Word(interface_name))],
+        elements: self.parse_arena.alloc_slice_copy(&[
+          &*self.parse_arena.alloc(INodeLEEnum::Word(interface_name)),
+        ]),
       }
     };
 
@@ -447,8 +458,8 @@ where
     iter.consume_comments_and_whitespace();
 
     let struct_name = self
-      .lex_identifier(iter)
-      .ok_or(ParseError::BadImplStruct(iter.get_pos()))?;
+        .lex_identifier(iter)
+        .ok_or(ParseError::BadImplStruct(iter.get_pos()))?;
     iter.consume_comments_and_whitespace();
 
     let maybe_struct_generic_args = self.lex_angled(iter)?;
@@ -456,15 +467,17 @@ where
     let struct_ = if let Some(struct_generic_args) = maybe_struct_generic_args {
       ScrambleLE {
         range: RangeL::new(struct_name.range.begin(), struct_generic_args.range.end()),
-        elements: vec![
-          Box::new(INodeLEEnum::Word(struct_name)),
-          Box::new(INodeLEEnum::Angled(struct_generic_args)),
-        ],
+        elements: self.parse_arena.alloc_slice_copy(&[
+          &*self.parse_arena.alloc(INodeLEEnum::Word(struct_name)),
+          &*self.parse_arena.alloc(INodeLEEnum::Angled(struct_generic_args)),
+        ]),
       }
     } else {
       ScrambleLE {
         range: struct_name.range,
-        elements: vec![Box::new(INodeLEEnum::Word(struct_name))],
+        elements: self.parse_arena.alloc_slice_copy(&[
+          &*self.parse_arena.alloc(INodeLEEnum::Word(struct_name)),
+        ]),
       }
     };
 
@@ -486,7 +499,7 @@ where
 
     let end = iter.get_pos();
 
-    Ok(Some(ImplL::<'a> {
+    Ok(Some(ImplL::<'p> {
       range: RangeL::new(begin, end),
       identifying_runes: maybe_identifying_runes,
       template_rules: maybe_rules,
@@ -610,8 +623,8 @@ where
     &self,
     iter: &mut LexingIterator,
     begin: i32,
-    attributes: Vec<IAttributeL<'a>>,
-  ) -> Result<Option<FunctionL<'a>>>
+    attributes: &'p [IAttributeL<'p>],
+  ) -> Result<Option<FunctionL<'p>>>
   {
     if !iter.try_skip_complete_word("func") && !iter.try_skip_complete_word("funky") {
       return Ok(None);
@@ -690,8 +703,8 @@ where
     iter.consume_comments_and_whitespace();
 
     let params = self
-      .lex_parend(iter)?
-      .ok_or(ParseError::BadFunctionParamsBegin(iter.get_pos()))?;
+        .lex_parend(iter)?
+        .ok_or(ParseError::BadFunctionParamsBegin(iter.get_pos()))?;
 
     iter.consume_comments_and_whitespace();
 
@@ -704,8 +717,8 @@ where
       None
     } else {
       let body = self
-        .lex_curlied(iter, false)?
-        .ok_or(ParseError::BadFunctionBodyError(iter.get_pos()))?;
+          .lex_curlied(iter, false)?
+          .ok_or(ParseError::BadFunctionBodyError(iter.get_pos()))?;
       Some(FunctionBodyL { body })
     };
 
@@ -720,7 +733,7 @@ where
       trailing_details,
     };
 
-    Ok(Some(FunctionL::<'a> {
+    Ok(Some(FunctionL::<'p> {
       range: RangeL::new(begin, end),
       header,
       body: maybe_body,
@@ -850,8 +863,8 @@ where
     &self,
     iter: &mut LexingIterator,
     begin: i32,
-    attributes: Vec<IAttributeL<'a>>,
-  ) -> Result<Option<StructL<'a>>>
+    attributes: &'p [IAttributeL<'p>],
+  ) -> Result<Option<StructL<'p>>>
   {
     if !iter.try_skip_complete_word("struct") {
       return Ok(None);
@@ -860,8 +873,8 @@ where
     iter.consume_comments_and_whitespace();
 
     let name = self
-      .lex_identifier(iter)
-      .ok_or(ParseError::BadStructName(iter.get_pos()))?;
+        .lex_identifier(iter)
+        .ok_or(ParseError::BadStructName(iter.get_pos()))?;
     iter.consume_comments_and_whitespace();
 
     let maybe_generic_args = self.lex_angled(iter)?;
@@ -1025,8 +1038,8 @@ where
     &self,
     iter: &mut LexingIterator,
     begin: i32,
-    attributes: Vec<IAttributeL<'a>>,
-  ) -> Result<Option<InterfaceL<'a>>>
+    attributes: &'p [IAttributeL<'p>],
+  ) -> Result<Option<InterfaceL<'p>>>
   {
     if !iter.try_skip_complete_word("interface") {
       return Ok(None);
@@ -1035,8 +1048,8 @@ where
     iter.consume_comments_and_whitespace();
 
     let name = self
-      .lex_identifier(iter)
-      .ok_or(ParseError::BadInterfaceName(iter.get_pos()))?;
+        .lex_identifier(iter)
+        .ok_or(ParseError::BadInterfaceName(iter.get_pos()))?;
     iter.consume_comments_and_whitespace();
 
     let maybe_generic_args = self.lex_angled(iter)?;
@@ -1101,7 +1114,7 @@ where
       maybe_identifying_runes: maybe_generic_args,
       template_rules: maybe_rules,
       body_range: RangeL::new(members_begin, end),
-      members,
+      members: self.parse_arena.alloc_slice_from_vec(members),
     }))
   }
 
@@ -1220,8 +1233,8 @@ where
     &self,
     iter: &mut LexingIterator,
     begin: i32,
-    attributes: Vec<IAttributeL<'a>>,
-  ) -> Result<Option<ImportL<'a>>>
+    attributes: &'p [IAttributeL<'p>],
+  ) -> Result<Option<ImportL<'p>>>
   {
     if !iter.try_skip_complete_word(self.keywords.impoort.as_str()) {
       return Ok(None);
@@ -1243,8 +1256,8 @@ where
         }
       } else {
         self
-          .lex_identifier(iter)
-          .ok_or(ParseError::BadImportName(iter.get_pos()))?
+            .lex_identifier(iter)
+            .ok_or(ParseError::BadImportName(iter.get_pos()))?
       };
       steps.push(name);
 
@@ -1261,7 +1274,7 @@ where
 
     let module_name = steps[0].clone();
     let importee_name = steps.last().unwrap().clone();
-    let package_steps = steps[1..steps.len() - 1].to_vec();
+    let package_steps = self.parse_arena.alloc_slice_copy(&steps[1..steps.len() - 1]);
 
     Ok(Some(ImportL {
       range: RangeL::new(begin, iter.get_pos()),
@@ -1321,8 +1334,8 @@ where
     &self,
     iter: &mut LexingIterator,
     begin: i32,
-    attributes: Vec<IAttributeL<'a>>,
-  ) -> Result<Option<ExportAsL<'a>>>
+    attributes: &'p [IAttributeL<'p>],
+  ) -> Result<Option<ExportAsL<'p>>>
   {
     if !iter.try_skip_complete_word(self.keywords.export.as_str()) {
       return Ok(None);
@@ -1381,7 +1394,7 @@ where
   */
 
   /// Lex parenthesized expression
-  fn lex_parend(&self, iter: &mut LexingIterator) -> Result<Option<ParendLE<'a>>> {
+  fn lex_parend(&self, iter: &mut LexingIterator) -> Result<Option<ParendLE<'p>>> {
     let begin = iter.get_pos();
 
     if !iter.try_skip('(') {
@@ -1400,7 +1413,7 @@ where
 
     let end = iter.get_pos();
 
-    Ok(Some(ParendLE::<'a> {
+    Ok(Some(ParendLE::<'p> {
       range: RangeL::new(begin, end),
       contents: innards,
     }))
@@ -1440,7 +1453,7 @@ where
     &self,
     iter: &mut LexingIterator,
     stop_on_open_brace: bool,
-  ) -> Result<Option<CurliedLE<'a>>> {
+  ) -> Result<Option<CurliedLE<'p>>> {
     let begin = iter.get_pos();
 
     if iter.peek() == '{' && stop_on_open_brace {
@@ -1519,7 +1532,7 @@ where
   */
 
   /// Lex square bracketed expression
-  fn lex_squared(&self, iter: &mut LexingIterator) -> Result<Option<SquaredLE<'a>>> {
+  fn lex_squared(&self, iter: &mut LexingIterator) -> Result<Option<SquaredLE<'p>>> {
     let begin = iter.get_pos();
 
     if !iter.try_skip('[') {
@@ -1574,7 +1587,7 @@ where
   */
 
   /// Lex angle bracketed expression (generics)
-  fn lex_angled(&self, iter: &mut LexingIterator) -> Result<Option<AngledLE<'a>>> {
+  fn lex_angled(&self, iter: &mut LexingIterator) -> Result<Option<AngledLE<'p>>> {
     let begin = iter.get_pos();
 
     if !(iter.peek() == '<' && self.angle_is_open_or_close(iter)) {
@@ -1706,6 +1719,39 @@ where
     }
   */
 
+  /*
+  //  def lexCommaSeparatedList(iter: LexingIterator, stopOnOpenBrace: Boolean, stopOnWhere: Boolean): Result[CommaSeparatedListLE, IParseError] = {
+  //    val begin = iter.getPos()
+  //
+  //    // If this encounters a ; or or ) or } a non-binary > then it should stop.
+  //    iter.consumeCommentsAndWhitespace()
+  //
+  //    val innards = new Accumulator[ScrambleLE]()
+  //    var trailingComma = false
+  //
+  //    while (!atEnd(iter, stopOnOpenBrace, stopOnWhere) && !iter.trySkip(',')) {
+  //      iter.consumeCommentsAndWhitespace()
+  //
+  //      if (atEnd(iter, stopOnOpenBrace, stopOnWhere)) {
+  //        trailingComma = true
+  //      } else {
+  //        val node =
+  //          lexScramble(iter, stopOnOpenBrace, stopOnWhere) match {
+  //            case Err(e) => return Err(e)
+  //            case Ok(x) => x
+  //          }
+  //        innards.add(node)
+  //      }
+  //
+  //      iter.consumeCommentsAndWhitespace()
+  //    }
+  //
+  //    val end = iter.getPos()
+  //
+  //    Ok(CommaSeparatedListLE(RangeL(begin, end), innards.buildArray(), trailingComma))
+  //  }
+  */
+
   /// Check if we're at the end of a scramble
   fn at_end(
     &self,
@@ -1755,25 +1801,25 @@ where
     stop_on_open_brace: bool,
     stop_on_where: bool,
     stop_on_semicolon: bool,
-  ) -> Result<ScrambleLE<'a>> {
+  ) -> Result<ScrambleLE<'p>> {
     let begin = iter.get_pos();
 
     iter.consume_comments_and_whitespace();
 
-    let mut innards = Vec::new();
+    let mut innards: Vec<&'p INodeLEEnum<'p>> = Vec::new();
 
     while !self.at_end(iter, stop_on_open_brace, stop_on_where, stop_on_semicolon) {
       let node = self.lex_node(iter, stop_on_open_brace, stop_on_where)?;
-      innards.push(Box::new(node));
+      innards.push(&*self.parse_arena.alloc(node));
 
       iter.consume_comments_and_whitespace();
     }
 
     let end = iter.get_pos();
 
-    Ok(ScrambleLE::<'a> {
+    Ok(ScrambleLE::<'p> {
       range: RangeL::new(begin, end),
-      elements: innards,
+      elements: self.parse_arena.alloc_slice_copy(&innards),
     })
   }
   /*
@@ -1812,7 +1858,7 @@ where
     iter: &mut LexingIterator,
     stop_on_open_brace: bool,
     stop_on_where: bool,
-  ) -> Result<INodeLEEnum<'a>> {
+  ) -> Result<INodeLEEnum<'p>> {
     // Try angled
     if let Some(x) = self.lex_angled(iter)? {
       return Ok(INodeLEEnum::Angled(x));
@@ -1866,7 +1912,7 @@ where
   */
 
   /// Lex an atomic element (identifier, number, string, symbol)
-  fn lex_atom(&self, iter: &mut LexingIterator, stop_on_where: bool) -> Result<INodeLEEnum<'a>> {
+  fn lex_atom(&self, iter: &mut LexingIterator, stop_on_where: bool) -> Result<INodeLEEnum<'p>> {
     assert!(!(stop_on_where && iter.try_skip_complete_word("where")));
 
     // Try number
@@ -1884,8 +1930,8 @@ where
     // Try identifier - use is_unicode_identifier_part to match Scala's isUnicodeIdentifierPart
     if Self::is_unicode_identifier_part(iter.peek()) {
       let id = self
-        .lex_identifier(iter)
-        .expect("lexIdentifier should return Some when peek is unicode identifier part");
+          .lex_identifier(iter)
+          .expect("lexIdentifier should return Some when peek is unicode identifier part");
       return Ok(INodeLEEnum::Word(id));
     }
 
@@ -1927,7 +1973,7 @@ where
   /// Check if a character is a Unicode identifier part (matches Java's isUnicodeIdentifierPart)
   fn is_unicode_identifier_part(c: char) -> bool {
     // This matches Java's Character.isUnicodeIdentifierPart behavior
-    c.is_alphabetic() || c.is_numeric() || c == '_' || 
+    c.is_alphabetic() || c.is_numeric() || c == '_' ||
         c == '\u{00B7}' || // Middle dot
         (c >= '\u{0300}' && c <= '\u{036F}') || // Combining diacritical marks
         (c >= '\u{203F}' && c <= '\u{2040}') // Undertie and character tie
@@ -1937,7 +1983,7 @@ where
   */
 
   /// Lex an identifier
-  fn lex_identifier(&self, iter: &mut LexingIterator) -> Option<WordLE<'a>> {
+  fn lex_identifier(&self, iter: &mut LexingIterator) -> Option<WordLE<'p>> {
     let begin = iter.get_pos();
 
     // Keep eating identifier characters using isUnicodeIdentifierPart to match Scala
@@ -1953,7 +1999,7 @@ where
     } else {
       Some(WordLE {
         range: RangeL::new(begin, end),
-        str: self.interner.intern(word),
+        str: self.parse_arena.intern_str(word),
       })
     }
   }
@@ -1969,18 +2015,331 @@ where
       if (word.isEmpty) {
         None
       } else {
-        Some(WordLE(RangeL(begin, end), interner.intern(word)))
+        Some(WordLE(RangeL(begin, end), interner.intern(StrI(word))))
       }
     }
   */
 
+  fn _lex_region(&self, _iter: &mut LexingIterator) -> Option<ScrambleLE<'p>> {
+    panic!("Unimplemented");
+  }
+  /*
+  def lexRegion(originalIter: LexingIterator): Option[ScrambleLE] = {
+    val begin = originalIter.getPos()
+
+    val tentativeIter = originalIter.clone()
+
+    val name =
+      lexIdentifier(tentativeIter) match {
+        case None => return None
+        case Some(x) => x
+      }
+
+    val symbolBegin = tentativeIter.getPos()
+    if (!tentativeIter.trySkip('\'')) {
+      return None
+    }
+    val symbolEnd = tentativeIter.getPos()
+
+    originalIter.skipTo(tentativeIter.getPos())
+    val end = originalIter.getPos()
+
+    val symbolL = SymbolLE(RangeL(symbolBegin, symbolEnd), '\'')
+    val scramble = ScrambleLE(RangeL(begin, end), Vector(name, symbolL))
+    return Some(scramble)
+  }
+  */
+  /*
+  */
+
+  /// Check if we're at the end of a string
+  fn lex_string_end(&self, iter: &mut LexingIterator, is_long_string: bool) -> bool {
+    if iter.at_end() {
+      return true;
+    }
+
+    if is_long_string {
+      iter.try_skip_str("\"\"\"")
+    } else {
+      iter.try_skip('"')
+    }
+  }
+  /*
+    def lexStringEnd(iter: LexingIterator, isLongString: Boolean): Boolean = {
+      iter.atEnd() || iter.trySkip(if (isLongString) "\"\"\"" else "\"")
+    }
+  */
+
+  /// Lex a string literal (with interpolation support)
+  fn lex_string(&self, iter: &mut LexingIterator) -> Result<Option<INodeLEEnum<'p>>> {
+    let begin = iter.get_pos();
+
+    let is_long_string = if iter.try_skip_str("\"\"\"") {
+      true
+    } else if iter.try_skip('"') {
+      false
+    } else {
+      return Ok(None);
+    };
+
+    let mut parts = Vec::new();
+    let mut string_so_far = String::new();
+    let mut string_so_far_begin = iter.get_pos();
+
+    while !self.lex_string_end(iter, is_long_string) {
+      let string_so_far_end_pos = iter.get_pos();
+
+      match self.lex_string_part(iter, begin)? {
+        StringPartResult::Char(c) => {
+          string_so_far.push(c);
+        }
+        StringPartResult::Expr(expr) => {
+          if !string_so_far.is_empty() {
+            parts.push(StringPart::Literal {
+              range: RangeL::new(string_so_far_begin, string_so_far_end_pos),
+              s: self.parse_arena.intern_str(&string_so_far),
+            });
+            string_so_far.clear();
+          }
+          parts.push(StringPart::Expr(expr));
+
+          if !iter.try_skip('}') {
+            return Err(ParseError::BadStringInterpolationEnd(iter.get_pos()));
+          }
+          string_so_far_begin = iter.get_pos();
+        }
+      }
+    }
+
+    if !string_so_far.is_empty() {
+      parts.push(StringPart::Literal {
+        range: RangeL::new(string_so_far_begin, iter.get_pos()),
+        s: self.parse_arena.intern_str(&string_so_far),
+      });
+    }
+
+    Ok(Some(INodeLEEnum::String(StringLE {
+      range: RangeL::new(begin, iter.get_pos()),
+      parts: self.parse_arena.alloc_slice_from_vec(parts),
+    })))
+  }
+  /*
+    def lexString(iter: LexingIterator): Result[Option[INodeLE], IParseError] = {
+      val begin = iter.getPos()
+      val isLongString =
+        if (iter.trySkip("\"\"\"")) {
+          true
+        } else if (iter.trySkip("\"")) {
+          false
+        } else {
+          return Ok(None)
+        }
+
+      val parts = new Accumulator[StringPart]()
+      var stringSoFarBegin = iter.getPos()
+      var stringSoFar = new StringBuilder()
+
+      while (!lexStringEnd(iter, isLongString)) {
+        val stringSoFarEndPos = iter.getPos()
+        lexStringPart(iter, begin) match {
+          case Err(e) => return Err(e)
+          case Ok(Left(c)) => {
+            stringSoFar += c
+          }
+          case Ok(Right(expr)) => {
+            if (stringSoFar.nonEmpty) {
+              parts.add(StringPartLiteral(RangeL(stringSoFarBegin, stringSoFarEndPos), stringSoFar.toString()))
+              stringSoFar.clear()
+            }
+            parts.add(StringPartExpr(expr))
+            if (!iter.trySkip('}')) {
+              return Err(BadStringInterpolationEnd(iter.getPos()))
+            }
+            stringSoFarBegin = iter.getPos()
+          }
+        }
+      }
+      if (stringSoFar.nonEmpty) {
+        parts.add(StringPartLiteral(RangeL(stringSoFarBegin, iter.getPos()), stringSoFar.toString()))
+        stringSoFar.clear()
+      }
+      Ok(Some(StringLE(RangeL(begin, iter.getPos()), parts.buildArray())))
+    }
+  */
+  /// Lex a part of a string (character or interpolated expression)
+  fn lex_string_part(
+    &self,
+    iter: &mut LexingIterator,
+    _string_begin_pos: i32,
+  ) -> Result<StringPartResult<'p>> {
+    // Handle interpolation
+    if iter.try_skip_str("{\\\n") {
+      // Line ending in {\
+      let expr = self.lex_scramble(iter, false, false, false)?;
+      return Ok(StringPartResult::Expr(expr));
+    } else if iter.peek_string("{\n") {
+      // Line ending in { - treat as literal
+      iter.advance();
+      return Ok(StringPartResult::Char('{'));
+    } else if iter.try_skip('{') {
+      // { with stuff after - interpolation
+      let expr = self.lex_scramble(iter, false, false, false)?;
+      return Ok(StringPartResult::Expr(expr));
+    }
+
+    // Handle escape sequences
+    if iter.try_skip('\\') {
+      if iter.try_skip('r') || iter.try_skip('\r') {
+        Ok(StringPartResult::Char('\r'))
+      } else if iter.try_skip('t') {
+        Ok(StringPartResult::Char('\t'))
+      } else if iter.try_skip('n') || iter.try_skip('\n') {
+        Ok(StringPartResult::Char('\n'))
+      } else if iter.try_skip('\\') {
+        Ok(StringPartResult::Char('\\'))
+      } else if iter.try_skip('"') {
+        Ok(StringPartResult::Char('"'))
+      } else if iter.try_skip('/') {
+        Ok(StringPartResult::Char('/'))
+      } else if iter.try_skip('{') {
+        Ok(StringPartResult::Char('{'))
+      } else if iter.try_skip('}') {
+        Ok(StringPartResult::Char('}'))
+      } else if iter.try_skip('u') {
+        // Unicode escape
+        let num = self
+            .parse_four_digit_hex_num(iter, 0)
+            .ok_or(ParseError::BadUnicodeChar(iter.get_pos()))?;
+        Ok(StringPartResult::Char(
+          char::from_u32(num as u32).unwrap_or('\u{FFFD}'),
+        ))
+      } else {
+        // Unknown escape, just take next char
+        Ok(StringPartResult::Char(iter.advance()))
+      }
+    } else {
+      // Regular character
+      let c = iter.advance();
+      Ok(StringPartResult::Char(c))
+    }
+  }
+
+  /*
+    def lexStringPart(iter: LexingIterator, stringBeginPos: Int):
+    Result[Either[Char, ScrambleLE], IParseError] = {
+      // Normally, we interpret as an expression anything after a `{`. However, we handle
+      // newlines in a special way.
+      // We don't want to interpolate { if its followed by a newline, such as in
+      //   """
+      //     if true {
+      //       3 + 4
+      //     }
+      //   """
+      // but if they want to interpolate inside, they can use {\ like
+      //   """
+      //     if true {\
+      //       3 + 4
+      //     }
+      //   """
+      // which becomes
+      //   """
+      //     if true 7
+      //   """
+      // The newline is because we dont want to interpolate when its a { then a newline.
+      // If they want that, then they should do {\
+      if (iter.trySkip("{\\\n")) { // line ending in {\
+        lexScramble(iter, false, false, false).map(Right(_))
+      } else if (iter.peekString("{\n")) { // line ending in {
+        iter.advance()
+        Ok(Left('{'))
+      } else if (iter.trySkip('{')) { // { with stuff after
+        lexScramble(iter, false, false, false).map(Right(_))
+      } else if (iter.trySkip('\\')) {
+        if (iter.trySkip('r') || iter.trySkip('\r')) {
+          Ok(Left('\r'))
+        } else if (iter.trySkip('t')) {
+          Ok(Left('\t'))
+        } else if (iter.trySkip('n') || iter.trySkip('\n')) {
+          Ok(Left('\n'))
+        } else if (iter.trySkip('\\')) {
+          Ok(Left('\\'))
+        } else if (iter.trySkip('"')) {
+          Ok(Left('\"'))
+        } else if (iter.trySkip('/')) {
+          Ok(Left('/'))
+        } else if (iter.trySkip('{')) {
+          Ok(Left('{'))
+        } else if (iter.trySkip('}')) {
+          Ok(Left('}'))
+        } else if (iter.trySkip('u')) {
+          val num =
+            parseFourDigitHexNum(iter) match {
+              case None => {
+                return Err(BadUnicodeChar(iter.getPos()))
+              }
+              case Some(x) => x
+            }
+          Ok(Left(num.toChar))
+        } else {
+          Ok(Left(iter.advance()))
+        }
+      } else {
+        val c = iter.advance()
+        Ok(Left(c))
+      }
+    }
+  */
+
+  /// Parse a four-digit hexadecimal number
+  pub fn parse_four_digit_hex_num(&self, iter: &mut LexingIterator, _offset: usize) -> Option<i32> {
+    let str = iter.peek_exact(4)?;
+
+    for c in str.chars() {
+      if !c.is_ascii_hexdigit() {
+        return None;
+      }
+    }
+
+    let str_owned = str.to_string();
+
+    // Advance past the 4 characters
+    for _ in 0..4 {
+      iter.advance();
+    }
+
+    i32::from_str_radix(&str_owned, 16).ok()
+  }
+  /*
+    def parseFourDigitHexNum(iter: LexingIterator): Option[Int] = {
+      val str =
+        iter.peek(4) match {
+          case None => return None
+          case Some(s) => s
+        }
+      var i = 0;
+      while (i < 4) {
+        // MIGALLOW: Scala has a bug here, in that it advances the iterator even if we end up
+        // returning None.
+        val c = iter.advance()
+        if (c >= '0' && c <= '9') {
+        } else if (c >= 'a' && c <= 'f') {
+        } else if (c >= 'A' && c <= 'F') {
+        } else {
+          return None
+        }
+        i = i + 1;
+      }
+      Some(Integer.parseInt(str, 16)) // MIGALLOW: parseInt vs from_str_radix
+    }
+  */
+
   /// Lex a number (integer or float)
-  fn lex_number(&self, original_iter: &mut LexingIterator) -> Result<Option<INodeLEEnum<'a>>> {
+  fn lex_number(&self, original_iter: &mut LexingIterator) -> Result<Option<INodeLEEnum<'p>>> {
     let begin = original_iter.get_pos();
 
     // Check if preceded by a dot (for array access like arr.2.1)
     let is_name = original_iter.position >= 1
-      && original_iter.code.chars().nth(original_iter.position - 1) == Some('.');
+        && original_iter.code.chars().nth(original_iter.position - 1) == Some('.');
 
     let mut tentative_iter = original_iter.clone();
     let negative = tentative_iter.try_skip('-');
@@ -2180,450 +2539,7 @@ where
     }
   }
   */
-
-  /// Lex a string literal (with interpolation support)
-  fn lex_string(&self, iter: &mut LexingIterator) -> Result<Option<INodeLEEnum<'a>>> {
-    let begin = iter.get_pos();
-
-    let is_long_string = if iter.try_skip_str("\"\"\"") {
-      true
-    } else if iter.try_skip('"') {
-      false
-    } else {
-      return Ok(None);
-    };
-
-    let mut parts = Vec::new();
-    let mut string_so_far = String::new();
-    let mut string_so_far_begin = iter.get_pos();
-
-    while !self.lex_string_end(iter, is_long_string) {
-      let string_so_far_end_pos = iter.get_pos();
-
-      match self.lex_string_part(iter, begin)? {
-        StringPartResult::Char(c) => {
-          string_so_far.push(c);
-        }
-        StringPartResult::Expr(expr) => {
-          if !string_so_far.is_empty() {
-            parts.push(StringPart::Literal {
-              range: RangeL::new(string_so_far_begin, string_so_far_end_pos),
-              s: string_so_far.clone(),
-            });
-            string_so_far.clear();
-          }
-          parts.push(StringPart::Expr(expr));
-
-          if !iter.try_skip('}') {
-            return Err(ParseError::BadStringInterpolationEnd(iter.get_pos()));
-          }
-          string_so_far_begin = iter.get_pos();
-        }
-      }
-    }
-
-    if !string_so_far.is_empty() {
-      parts.push(StringPart::Literal {
-        range: RangeL::new(string_so_far_begin, iter.get_pos()),
-        s: string_so_far,
-      });
-    }
-
-    Ok(Some(INodeLEEnum::String(StringLE {
-      range: RangeL::new(begin, iter.get_pos()),
-      parts,
-    })))
-  }
-  /*
-    def lexString(iter: LexingIterator): Result[Option[INodeLE], IParseError] = {
-      val begin = iter.getPos()
-      val isLongString =
-        if (iter.trySkip("\"\"\"")) {
-          true
-        } else if (iter.trySkip("\"")) {
-          false
-        } else {
-          return Ok(None)
-        }
-
-      val parts = new Accumulator[StringPart]()
-      var stringSoFarBegin = iter.getPos()
-      var stringSoFar = new StringBuilder()
-
-      while (!lexStringEnd(iter, isLongString)) {
-        val stringSoFarEndPos = iter.getPos()
-        lexStringPart(iter, begin) match {
-          case Err(e) => return Err(e)
-          case Ok(Left(c)) => {
-            stringSoFar += c
-          }
-          case Ok(Right(expr)) => {
-            if (stringSoFar.nonEmpty) {
-              parts.add(StringPartLiteral(RangeL(stringSoFarBegin, stringSoFarEndPos), stringSoFar.toString()))
-              stringSoFar.clear()
-            }
-            parts.add(StringPartExpr(expr))
-            if (!iter.trySkip('}')) {
-              return Err(BadStringInterpolationEnd(iter.getPos()))
-            }
-            stringSoFarBegin = iter.getPos()
-          }
-        }
-      }
-      if (stringSoFar.nonEmpty) {
-        parts.add(StringPartLiteral(RangeL(stringSoFarBegin, iter.getPos()), stringSoFar.toString()))
-        stringSoFar.clear()
-      }
-      Ok(Some(StringLE(RangeL(begin, iter.getPos()), parts.buildArray())))
-    }
-  */
-
-  /// Check if we're at the end of a string
-  fn lex_string_end(&self, iter: &mut LexingIterator, is_long_string: bool) -> bool {
-    if iter.at_end() {
-      return true;
-    }
-
-    if is_long_string {
-      iter.try_skip_str("\"\"\"")
-    } else {
-      iter.try_skip('"')
-    }
-  }
-  /*
-    def lexStringEnd(iter: LexingIterator, isLongString: Boolean): Boolean = {
-      iter.atEnd() || iter.trySkip(if (isLongString) "\"\"\"" else "\"")
-    }
-  */
-
-  /// Lex a part of a string (character or interpolated expression)
-  fn lex_string_part(
-    &self,
-    iter: &mut LexingIterator,
-    _string_begin_pos: i32,
-  ) -> Result<StringPartResult<'a>> {
-    // Handle interpolation
-    if iter.try_skip_str("{\\\n") {
-      // Line ending in {\
-      let expr = self.lex_scramble(iter, false, false, false)?;
-      return Ok(StringPartResult::Expr(expr));
-    } else if iter.peek_string("{\n") {
-      // Line ending in { - treat as literal
-      iter.advance();
-      return Ok(StringPartResult::Char('{'));
-    } else if iter.try_skip('{') {
-      // { with stuff after - interpolation
-      let expr = self.lex_scramble(iter, false, false, false)?;
-      return Ok(StringPartResult::Expr(expr));
-    }
-
-    // Handle escape sequences
-    if iter.try_skip('\\') {
-      if iter.try_skip('r') || iter.try_skip('\r') {
-        Ok(StringPartResult::Char('\r'))
-      } else if iter.try_skip('t') {
-        Ok(StringPartResult::Char('\t'))
-      } else if iter.try_skip('n') || iter.try_skip('\n') {
-        Ok(StringPartResult::Char('\n'))
-      } else if iter.try_skip('\\') {
-        Ok(StringPartResult::Char('\\'))
-      } else if iter.try_skip('"') {
-        Ok(StringPartResult::Char('"'))
-      } else if iter.try_skip('/') {
-        Ok(StringPartResult::Char('/'))
-      } else if iter.try_skip('{') {
-        Ok(StringPartResult::Char('{'))
-      } else if iter.try_skip('}') {
-        Ok(StringPartResult::Char('}'))
-      } else if iter.try_skip('u') {
-        // Unicode escape
-        let num = self
-          .parse_four_digit_hex_num(iter, 0)
-          .ok_or(ParseError::BadUnicodeChar(iter.get_pos()))?;
-        Ok(StringPartResult::Char(
-          char::from_u32(num as u32).unwrap_or('\u{FFFD}'),
-        ))
-      } else {
-        // Unknown escape, just take next char
-        Ok(StringPartResult::Char(iter.advance()))
-      }
-    } else {
-      // Regular character
-      let c = iter.advance();
-      Ok(StringPartResult::Char(c))
-    }
-  }
-
-  /*
-    def lexStringPart(iter: LexingIterator, stringBeginPos: Int):
-    Result[Either[Char, ScrambleLE], IParseError] = {
-      // Normally, we interpret as an expression anything after a `{`. However, we handle
-      // newlines in a special way.
-      // We don't want to interpolate { if its followed by a newline, such as in
-      //   """
-      //     if true {
-      //       3 + 4
-      //     }
-      //   """
-      // but if they want to interpolate inside, they can use {\ like
-      //   """
-      //     if true {\
-      //       3 + 4
-      //     }
-      //   """
-      // which becomes
-      //   """
-      //     if true 7
-      //   """
-      // The newline is because we dont want to interpolate when its a { then a newline.
-      // If they want that, then they should do {\
-      if (iter.trySkip("{\\\n")) { // line ending in {\
-        lexScramble(iter, false, false, false).map(Right(_))
-      } else if (iter.peekString("{\n")) { // line ending in {
-        iter.advance()
-        Ok(Left('{'))
-      } else if (iter.trySkip('{')) { // { with stuff after
-        lexScramble(iter, false, false, false).map(Right(_))
-      } else if (iter.trySkip('\\')) {
-        if (iter.trySkip('r') || iter.trySkip('\r')) {
-          Ok(Left('\r'))
-        } else if (iter.trySkip('t')) {
-          Ok(Left('\t'))
-        } else if (iter.trySkip('n') || iter.trySkip('\n')) {
-          Ok(Left('\n'))
-        } else if (iter.trySkip('\\')) {
-          Ok(Left('\\'))
-        } else if (iter.trySkip('"')) {
-          Ok(Left('\"'))
-        } else if (iter.trySkip('/')) {
-          Ok(Left('/'))
-        } else if (iter.trySkip('{')) {
-          Ok(Left('{'))
-        } else if (iter.trySkip('}')) {
-          Ok(Left('}'))
-        } else if (iter.trySkip('u')) {
-          val num =
-            parseFourDigitHexNum(iter) match {
-              case None => {
-                return Err(BadUnicodeChar(iter.getPos()))
-              }
-              case Some(x) => x
-            }
-          Ok(Left(num.toChar))
-        } else {
-          Ok(Left(iter.advance()))
-        }
-      } else {
-        val c = iter.advance()
-        Ok(Left(c))
-      }
-    }
-  */
-
-  /// Parse a four-digit hexadecimal number
-  pub fn parse_four_digit_hex_num(&self, iter: &mut LexingIterator, _offset: usize) -> Option<i32> {
-    let str = iter.peek_exact(4)?;
-
-    for c in str.chars() {
-      if !c.is_ascii_hexdigit() {
-        return None;
-      }
-    }
-
-    let str_owned = str.to_string();
-
-    // Advance past the 4 characters
-    for _ in 0..4 {
-      iter.advance();
-    }
-
-    i32::from_str_radix(&str_owned, 16).ok()
-  }
-  /*
-    def parseFourDigitHexNum(iter: LexingIterator): Option[Int] = {
-      val str =
-        iter.peek(4) match {
-          case None => return None
-          case Some(s) => s
-        }
-      var i = 0;
-      while (i < 4) {
-        // MIGALLOW: Scala has a bug here, in that it advances the iterator even if we end up
-        // returning None.
-        val c = iter.advance()
-        if (c >= '0' && c <= '9') {
-        } else if (c >= 'a' && c <= 'f') {
-        } else if (c >= 'A' && c <= 'F') {
-        } else {
-          return None
-        }
-        i = i + 1;
-      }
-      Some(Integer.parseInt(str, 16)) // MIGALLOW: parseInt vs from_str_radix
-    }
-  */
-
-  fn _lex_region(&self, _iter: &mut LexingIterator) -> Option<ScrambleLE<'a>> {
-    panic!("Unimplemented");
-  }
-  /*
-  def lexRegion(originalIter: LexingIterator): Option[ScrambleLE] = {
-    val begin = originalIter.getPos()
-
-    val tentativeIter = originalIter.clone()
-
-    val name =
-      lexIdentifier(tentativeIter) match {
-        case None => return None
-        case Some(x) => x
-      }
-
-    val symbolBegin = tentativeIter.getPos()
-    if (!tentativeIter.trySkip('\'')) {
-      return None
-    }
-    val symbolEnd = tentativeIter.getPos()
-
-    originalIter.skipTo(tentativeIter.getPos())
-    val end = originalIter.getPos()
-
-    val symbolL = SymbolLE(RangeL(symbolBegin, symbolEnd), '\'')
-    val scramble = ScrambleLE(RangeL(begin, end), Vector(name, symbolL))
-    return Some(scramble)
-  }
-  */
 }
-
-/// Helper enum for string parsing
-enum StringPartResult<'a> {
-  Char(char),
-  Expr(ScrambleLE<'a>),
-}
-/*
-MIGALLOW: Scala didn't need this, it has Either for this.
-*/
-
-/*
-//  def lexSemicolonSeparatedList(iter: LexingIterator, stopOnOpenBrace: Boolean, stopOnWhere: Boolean): Result[SemicolonSeparatedListLE, IParseError] = {
-//    val begin = iter.getPos()
-//
-//    // If this encounters a ; or or ) or } a non-binary > then it should stop.
-//    iter.consumeCommentsAndWhitespace()
-//
-//    val elements = new Accumulator[ScrambleLE]()
-//    var trailingSemicolon = false
-//
-//    while (!atEnd(iter, stopOnOpenBrace, stopOnWhere) && iter.trySkip(';')) {
-//      iter.consumeCommentsAndWhitespace()
-//
-//      if (atEnd(iter, stopOnOpenBrace, stopOnWhere)) {
-//        trailingSemicolon = true
-//      } else {
-//        val node =
-//          lexScramble(iter, stopOnOpenBrace, stopOnWhere) match {
-//            case Err(e) => return Err(e)
-//            case Ok(x) => x
-//          }
-//        elements.add(node)
-//      }
-//
-//      iter.consumeCommentsAndWhitespace()
-//    }
-//
-//    val end = iter.getPos()
-//
-//    Ok(SemicolonSeparatedListLE(RangeL(begin, end), elements.buildArray(), trailingSemicolon))
-//  }
-*/
-/*
-//  def lexCommaSeparatedList(iter: LexingIterator, stopOnOpenBrace: Boolean, stopOnWhere: Boolean): Result[CommaSeparatedListLE, IParseError] = {
-//    val begin = iter.getPos()
-//
-//    // If this encounters a ; or or ) or } a non-binary > then it should stop.
-//    iter.consumeCommentsAndWhitespace()
-//
-//    val innards = new Accumulator[ScrambleLE]()
-//    var trailingComma = false
-//
-//    while (!atEnd(iter, stopOnOpenBrace, stopOnWhere) && !iter.trySkip(',')) {
-//      iter.consumeCommentsAndWhitespace()
-//
-//      if (atEnd(iter, stopOnOpenBrace, stopOnWhere)) {
-//        trailingComma = true
-//      } else {
-//        val node =
-//          lexScramble(iter, stopOnOpenBrace, stopOnWhere) match {
-//            case Err(e) => return Err(e)
-//            case Ok(x) => x
-//          }
-//        innards.add(node)
-//      }
-//
-//      iter.consumeCommentsAndWhitespace()
-//    }
-//
-//    val end = iter.getPos()
-//
-//    Ok(CommaSeparatedListLE(RangeL(begin, end), innards.buildArray(), trailingComma))
-//  }
-*/
-/*
-//
-//  def lexStringPart(iter: LexingIterator, stringBeginPos: Int): Result[Char, IParseError] = {
-//    if (iter.trySkip(() => "^\\\\".r)) {
-//      if (iter.trySkip(() => "^r".r) || iter.trySkip(() => "^\\r".r)) {
-//        Ok('\r')
-//      } else if (iter.trySkip(() => "^t".r)) {
-//        Ok('\t')
-//      } else if (iter.trySkip(() => "^n".r) || iter.trySkip(() => "^\\n".r)) {
-//        Ok('\n')
-//      } else if (iter.trySkip(() => "^\\\\".r)) {
-//        Ok('\\')
-//      } else if (iter.trySkip(() => "^\"".r)) {
-//        Ok('\"')
-//      } else if (iter.trySkip(() => "^/".r)) {
-//        Ok('/')
-//      } else if (iter.trySkip(() => "^\\{".r)) {
-//        Ok('{')
-//      } else if (iter.trySkip(() => "^\\}".r)) {
-//        Ok('}')
-//      } else if (iter.trySkip(() => "^u".r)) {
-//        val num =
-//          StringParser.parseFourDigitHexNum(iter) match {
-//            case None => {
-//              return Err(BadUnicodeChar(iter.getPos()))
-//            }
-//            case Some(x) => x
-//          }
-//        Ok(num.toChar)
-//      } else {
-//        Ok(iter.tryy(() => "^.".r).get.charAt(0))
-//      }
-//    } else {
-//      val c =
-//        iter.tryy(() => "^(.|\\n)".r) match {
-//          case None => {
-//            return Err(BadStringChar(stringBeginPos, iter.getPos()))
-//          }
-//          case Some(x) => x
-//        }
-//      Ok(c.charAt(0))
-//    }
-//  }
-//
-//  def lexString(iter: LexingIterator): Result[Option[StringPT], IParseError] = {
-//    val begin = iter.getPos()
-//    if (!iter.trySkip(() => "^\"".r)) {
-//      return Ok(None)
-//    }
-//    val stringSoFar = new StringBuilder()
-//    while (!(iter.atEnd() || iter.trySkip(() => "^\"".r))) {
-//      val c = lexStringPart(iter, begin) match { case Err(e) => return Err(e) case Ok(c) => c }
-//      stringSoFar += c
-//    }
-//    Ok(Some(StringPT(RangeL(begin, iter.getPos()), stringSoFar.toString())))
-//  }
-*/
 /*
 //return Err(BadFunctionAfterParam(iter.getPos()))
 //return Err(BadFunctionBodyError(iter.position))

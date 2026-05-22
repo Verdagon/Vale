@@ -1,4 +1,5 @@
-use crate::interner::{Interner, StrI};
+use crate::interner::StrI;
+use crate::parse_arena::ParseArena;
 use crate::keywords::Keywords;
 use crate::lexing::ast::{IDenizenL, ImportL, RangeL};
 use crate::lexing::errors::FailedParse;
@@ -24,23 +25,82 @@ import scala.collection.mutable
 object LexAndExplore {
 */
 
+/// Helper function that collects all denizens and files
+/// From LexAndExplore.scala lines 12-40
+/// TODO: Fix closure lifetime issues - collect pattern causes borrow checker to reject.
+/// Workaround: Implement without using lex_and_explore's callback, or change handler to take owned data.
+#[allow(dead_code)]
+pub fn lex_and_explore_and_collect<'p, R>(
+  _parse_arena: &ParseArena<'p>,
+  _keywords: &Keywords<'p>,
+  _packages: Vec<&'p PackageCoordinate<'p>>,
+  _resolver: &R,
+) -> Result<
+  (
+    Vec<(Arc<FileCoordinate<'p>>, String, Vec<ImportL<'p>>, IDenizenL<'p>)>,
+    Vec<(Arc<FileCoordinate<'p>>, String, Vec<RangeL>, Vec<IDenizenL<'p>>)>,
+  ),
+  FailedParse<'p>,
+>
+where
+  R: IPackageResolver<'p, HashMap<String, String>>,
+{
+  panic!("lex_and_explore_and_collect: closure lifetime fix needed")
+  // Already tracked in docs/migration/todo.md line 47.
+}
+
+/*
+  // This is a helper function that one doesn't need to use, but it can be handy and also
+  // serves as a great example on how to use the lexAndExplore() method.
+  def lexAndExploreAndCollect[D, F](
+    interner: Interner,
+    keywords: Keywords,
+    packages: Vector[PackageCoordinate],
+    resolver: IPackageResolver[Map[String, String]]):
+  Result[
+    (
+      Accumulator[(FileCoordinate, String, Vector[ImportL], IDenizenL)],
+      Accumulator[(FileCoordinate, String, Vector[RangeL], Vector[IDenizenL])]),
+  FailedParse] = {
+    val denizens = new Accumulator[(FileCoordinate, String, Vector[ImportL], IDenizenL)]()
+    val files = new Accumulator[(FileCoordinate, String, Vector[RangeL], Vector[IDenizenL])]()
+
+    lexAndExplore[IDenizenL, Unit](
+      interner, keywords, packages, resolver,
+      (file, code, imports, denizen) => {
+        denizens.add((file, code, imports, denizen))
+        denizen
+      },
+      (file, code, ranges, denizens) => {
+        files.add((file, code, ranges.buildArray(), denizens.buildArray()))
+        Unit
+      }) match {
+      case Err(e) => return Err(e)
+      case Ok(_) =>
+    }
+
+    Ok((denizens, files))
+  }
+*/
+
+
 /// Main generic lexing function with import-driven package discovery
 /// From LexAndExplore.scala lines 43-150
-pub fn lex_and_explore<'a, 'ctx, D, F, R>(
-  interner: &'ctx Interner<'a>,
-  keywords: &'ctx Keywords<'a>,
-  packages: Vec<&'a PackageCoordinate<'a>>,
+pub fn lex_and_explore<'p, 'ctx, D, F, R>(
+  parse_arena: &'ctx ParseArena<'p>,
+  keywords: &'ctx Keywords<'p>,
+  packages: Vec<&'p PackageCoordinate<'p>>,
   resolver: &R,
-  mut denizen_handler: impl FnMut(&'a FileCoordinate<'a>, &str, &[ImportL<'a>], &IDenizenL<'a>) -> D,
-  mut file_handler: impl FnMut(&'a FileCoordinate<'a>, &str, &[RangeL], &[D]) -> F,
-) -> Result<Vec<F>, FailedParse<'a>>
+  mut denizen_handler: impl FnMut(&'p FileCoordinate<'p>, &str, &[ImportL<'p>], &IDenizenL<'p>) -> D,
+  mut file_handler: impl FnMut(&'p FileCoordinate<'p>, &str, &[RangeL], Vec<D>) -> F,
+) -> Result<Vec<F>, FailedParse<'p>>
 where
-  'a: 'ctx,
-  R: IPackageResolver<'a, HashMap<String, String>>,
+  'p: 'ctx,
+  R: IPackageResolver<'p, HashMap<String, String>>,
 {
-  let mut unexplored_packages: HashSet<&'a PackageCoordinate<'a>> =
+  let mut unexplored_packages: HashSet<&'p PackageCoordinate<'p>> =
     packages.into_iter().collect();
-  let mut started_packages: HashSet<PackageCoordinate<'a>> = HashSet::new();
+  let mut started_packages: HashSet<PackageCoordinate<'p>> = HashSet::new();
   let mut already_found_file_to_code = FileCoordinateMap::<String>::new();
 
   let mut files_acc = Vec::new();
@@ -50,21 +110,21 @@ where
     unexplored_packages.remove(&needed_package_coord);
     started_packages.insert(needed_package_coord.clone());
 
-    let filepaths_and_contents: Vec<(&'a FileCoordinate<'a>, String)> = match resolver.resolve(&needed_package_coord) {
+    let filepaths_and_contents: Vec<(&'p FileCoordinate<'p>, String)> = match resolver.resolve(&needed_package_coord) {
       None => {
         panic!("Couldn't find: {:?}", needed_package_coord);
       }
       Some(filepath_to_code) => {
         let mut result = Vec::new();
         for (filepath, code) in filepath_to_code {
-          let file_coord = interner.intern_file_coordinate(needed_package_coord, &filepath);
+          let file_coord = parse_arena.intern_file_coordinate(needed_package_coord, &filepath);
           result.push((file_coord, code));
         }
         result
       }
     };
 
-    let filepaths_map: HashMap<&'a FileCoordinate<'a>, String> = filepaths_and_contents
+    let filepaths_map: HashMap<&'p FileCoordinate<'p>, String> = filepaths_and_contents
       .iter()
     .map(|(fc, code)| (*fc, code.clone()))
       .collect();
@@ -73,8 +133,8 @@ where
     for (file_coord, code) in filepaths_and_contents {
       let mut result_acc = Vec::new();
 
-      let mut iter = LexingIterator::new(code.clone());
-      let lexer = Lexer::<'a, 'ctx>::new(interner, keywords);
+      let mut iter = LexingIterator::new(&code);
+      let lexer = Lexer::<'p, 'ctx>::new(parse_arena, keywords);
       // Store (module, packages) as owned strings to avoid lexer borrow conflict.
       let mut packages_to_explore: Vec<(String, Vec<String>)> = Vec::new();
 
@@ -139,16 +199,16 @@ where
 
       // Add discovered packages to unexplored (after lex loop to avoid borrow conflicts).
       for (module_str, package_strs) in packages_to_explore {
-        let package_steps: Vec<StrI<'a>> =
-          package_strs.iter().map(|s| interner.intern(s)).collect();
-        let coord = interner.intern_package_coordinate(interner.intern(&module_str), &package_steps);
+        let package_steps: Vec<StrI<'p>> =
+          package_strs.iter().map(|s| parse_arena.intern_str(s)).collect();
+        let coord = parse_arena.intern_package_coordinate(parse_arena.intern_str(&module_str), &package_steps);
         if !started_packages.contains(&*coord) {
           unexplored_packages.insert(&*coord);
         }
       }
 
       let comments_ranges = iter.comments.clone();
-      let file = file_handler(file_coord, &code, &comments_ranges, &result_acc);
+      let file = file_handler(file_coord, &code, &comments_ranges, result_acc);
       files_acc.push(file);
     }
   }
@@ -267,64 +327,6 @@ where
     })
   }
 */
-
-/// Helper function that collects all denizens and files
-/// From LexAndExplore.scala lines 12-40
-/// TODO: Fix closure lifetime issues - collect pattern causes borrow checker to reject.
-/// Workaround: Implement without using lex_and_explore's callback, or change handler to take owned data.
-#[allow(dead_code)]
-pub fn lex_and_explore_and_collect<'a, R>(
-  _interner: &Interner<'a>,
-  _keywords: &Keywords<'a>,
-  _packages: Vec<&'a PackageCoordinate<'a>>,
-  _resolver: &R,
-) -> Result<
-  (
-    Vec<(Arc<FileCoordinate<'a>>, String, Vec<ImportL<'a>>, IDenizenL<'a>)>,
-    Vec<(Arc<FileCoordinate<'a>>, String, Vec<RangeL>, Vec<IDenizenL<'a>>)>,
-  ),
-  FailedParse<'a>,
->
-where
-  R: IPackageResolver<'a, HashMap<String, String>>,
-{
-  todo!("lex_and_explore_and_collect: closure lifetime fix needed")
-}
-
-/*
-  // This is a helper function that one doesn't need to use, but it can be handy and also
-  // serves as a great example on how to use the lexAndExplore() method.
-  def lexAndExploreAndCollect[D, F](
-    interner: Interner,
-    keywords: Keywords,
-    packages: Vector[PackageCoordinate],
-    resolver: IPackageResolver[Map[String, String]]):
-  Result[
-    (
-      Accumulator[(FileCoordinate, String, Vector[ImportL], IDenizenL)],
-      Accumulator[(FileCoordinate, String, Vector[RangeL], Vector[IDenizenL])]),
-  FailedParse] = {
-    val denizens = new Accumulator[(FileCoordinate, String, Vector[ImportL], IDenizenL)]()
-    val files = new Accumulator[(FileCoordinate, String, Vector[RangeL], Vector[IDenizenL])]()
-
-    lexAndExplore[IDenizenL, Unit](
-      interner, keywords, packages, resolver,
-      (file, code, imports, denizen) => {
-        denizens.add((file, code, imports, denizen))
-        denizen
-      },
-      (file, code, ranges, denizens) => {
-        files.add((file, code, ranges.buildArray(), denizens.buildArray()))
-        Unit
-      }) match {
-      case Err(e) => return Err(e)
-      case Ok(_) =>
-    }
-
-    Ok((denizens, files))
-  }
-*/
-
 /*
 }
 */
