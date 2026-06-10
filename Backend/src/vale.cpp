@@ -275,6 +275,13 @@ std::string generateFunctionC(
         // so the same fn declared in both headers triggers a "conflicting types" error.
         // `<stdbool.h>` reaches us transitively via rust_deps.h.
         s << "bool";
+      } else if (rustRetStr == "()") {
+        // cbindgen represents Rust's unit return as `struct rust_tuple_` (a zero-size
+        // struct typedef'd in rust_deps.h), not `void`. The default Vale mapping for
+        // no-return is `void`, which would conflict with cbindgen's declaration for the
+        // same fn. Emit the struct here; the typedef is provided by rust_deps.h which
+        // every emitted rust extern header already includes.
+        s << "struct rust_tuple_";
       } else {
         s << returnTypeExportName;
       }
@@ -340,6 +347,10 @@ std::string generateFunctionC(
   for (int i = 0; i < prototype->params.size(); i++) {
     std::string rustParamStr = rustParamStrs.empty() ? "" : rustParamStrs[i];
     bool borrowParam = !rustParamStr.empty() && rustParamStr[0] == '&';
+    // cbindgen emits non-const pointers for Rust `&mut T` params; only `&T` (immutable
+    // borrow) gets the `const` qualifier. Skipping this distinction makes Vale's emitted
+    // header conflict with cbindgen on every `&mut self` mutator.
+    bool mutableBorrowParam = rustParamStr.rfind("&mut ", 0) == 0;
     if (addedAnyParam) {
       s << ", ";
     }
@@ -359,7 +370,7 @@ std::string generateFunctionC(
         // signature, so it must NOT add a `*` here — doing so was the PR 3.2
         // regression that broke 14 interface/struct extern/export tests. Verify
         // the rust-extern path still produces the right C signatures before submit.
-        if (borrowParam) {
+        if (borrowParam && !mutableBorrowParam) {
           s << "const ";
         }
         if (rustParamStr == "usize") {
