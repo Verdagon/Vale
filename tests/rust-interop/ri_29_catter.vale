@@ -1,17 +1,27 @@
-// expected_exit: 42
-// summary: Catter-derived test. Catter (the original Vale-to-Rust interop proof of
-// concept, vendored at /Catter/) imports both rust.std.option.Option and rust.std.vec.Vec
-// in the same program and uses Vec<int>.with_capacity(42).capacity() — that multi-import
-// shape including Option is not covered by any other test. ri_16 covers Vec + String,
-// not Vec + Option, and Option's bindings have historically regressed (Catter's
-// /Catter/bindings/std/option/ shows it once worked); a test here catches the binding
-// import compiling at all. Method body matches Catter's main.vale but returns the
-// capacity via exit code instead of println (the test runner runs --no_std true).
+// expected_exit: 0
+// expected_stdout: "length:\n42\n"
+// include_stdlib: true
+// summary: Catter's actual main.vale, verbatim. Catter is the original 2024 Vale-to-Rust
+// interop proof of concept (vendored at /Catter/). It imports both rust.std.option.Option
+// AND rust.std.vec.Vec, allocates Vec<int>.with_capacity(42), prints "length:" then the
+// capacity. This test exercises the FULL Catter program — stdlib + extern struct +
+// println(i64) + rust interop — which is more than any other ri_* test covers. Kept
+// in sync with Catter/src/main.vale.
 
 import rust.std.option.Option;
 import rust.std.vec.Vec;
 
-exported func main() int {
-  vec = Vec<int>.with_capacity(42i64);
-  return vec.capacity().TruncateI64ToI32();
+exported func main() {
+	vec = Vec<int>.with_capacity(42i64);
+	println("length:");
+	println(vec.capacity());
+}
+
+
+// TODO: move to standard library
+func println(i i64) {
+  println(castI64Str(i));
+}
+func print(i i64) {
+  print(castI64Str(i));
 }

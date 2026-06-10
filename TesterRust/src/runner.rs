@@ -139,12 +139,16 @@ impl TestSuite {
     ///   - `Some(N)`: build must succeed, the produced binary must exit with N.
     ///   - `None`:    we EXPECT the build to fail (the `// expects_build_fail: true`
     ///                tests). The drain step marks success if the build's exit ≠ 0.
+    /// `opts` carries the optional `// include_stdlib: true` / `// expected_stdout: "..."`
+    /// behaviors — defaults for both reproduce the original ri_* shape (no stdlib, no
+    /// stdout check).
     pub fn start_rust_interop_test(
         &mut self,
         test_name: &str,
         vale_dir: &Path,
         expected_exit_or_buildfail: RustInteropOutcome,
         region: &str,
+        opts: RustInteropOpts,
     ) {
         if self.verbose {
             println!("Considering rust-interop test {}...", test_name);
@@ -160,7 +164,7 @@ impl TestSuite {
             .cwd
             .join(format!("testbuild/{}_{}", test_name, region));
 
-        let kind = TestKind::RustInterop;
+        let kind = TestKind::RustInterop { include_stdlib: opts.include_stdlib };
         match start_build(
             self,
             test_name,
@@ -186,7 +190,7 @@ impl TestSuite {
                     test_build_dir,
                     process,
                     runs,
-                    expect_stdout: None,
+                    expect_stdout: opts.expected_stdout,
                 });
             }
             Err(e) => {
@@ -349,6 +353,20 @@ impl TestSuite {
 pub enum RustInteropOutcome {
     ExpectedExit(i32),
     BuildFail,
+}
+
+/// Optional behaviors a rust-interop test can opt into via headers:
+/// `// include_stdlib: true` and `// expected_stdout: "..."`. Defaults match the
+/// no-stdlib / no-stdout-check shape used by the original 28 ri_* tests.
+pub struct RustInteropOpts {
+    pub include_stdlib: bool,
+    pub expected_stdout: Option<String>,
+}
+
+impl Default for RustInteropOpts {
+    fn default() -> Self {
+        RustInteropOpts { include_stdlib: false, expected_stdout: None }
+    }
 }
 
 fn print_build_failure(

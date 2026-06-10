@@ -16,13 +16,17 @@ exported func main() int {
 }
 ```
 
-The two header rules:
-- **`// expected_exit: <integer 0-255>`** is mandatory. The runner pulls it out with a regex; no header → test fails immediately.
-- **`// summary:`** is mandatory by convention (humans grep for it). The runner doesn't read it but reviewers do.
+The headers:
 
-The program must compile against `--no_std true` (the runner passes this) — keep it self-contained against the Rust import, no `import v.builtins.*`.
+| Header | Required? | Effect |
+|---|---|---|
+| `// expected_exit: <integer 0-255>` | mandatory (or `expects_build_fail`) | Build must succeed; run must exit with this code. |
+| `// expects_build_fail: true` | mandatory (or `expected_exit`) | Build must FAIL. Used to pin documented unsupported features. |
+| `// summary: ...` | mandatory by convention | Humans grep for it. Runner doesn't read it. |
+| `// include_stdlib: true` | optional, default false | Opt the build in to the Vale stdlib at `<stdlib_dir>/src`. Needed for `println`, `castI64Str`, etc. |
+| `// expected_stdout: "..."` | optional | Assert on captured stdout. Quoted string supports `\n`, `\t`, `\r`, `\"`, `\\` escapes. |
 
-Use the exit code as your assertion channel. Exit codes are unsigned 8 bits on POSIX, so test values must be in the 0-255 range.
+Default mode (no `include_stdlib`) compiles against `--no_std true` — keep the program self-contained against the Rust import, no `import v.builtins.*`. Exit code is the usual assertion channel (0-255 on POSIX); `expected_stdout` is for programs whose value is in what they print (like `ri_29_catter`).
 
 ## Running
 

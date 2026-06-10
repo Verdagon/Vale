@@ -15,8 +15,9 @@ pub enum TestKind {
     Vale { include_stdlib: bool },
     /// A rust-interop test under tests/rust-interop/. Forces resilient-v3, skips the
     /// testbuiltins.c injection (the rust-interop tests are self-contained), and appends
-    /// the rust-interop CLI flags.
-    RustInterop,
+    /// the rust-interop CLI flags. `include_stdlib` mirrors the Vale corpus arm — opt-in
+    /// for tests that use `println` / `castI64Str` / etc.
+    RustInterop { include_stdlib: bool },
 }
 
 /// Spawn a valec build subprocess for one test. Mirrors `func StartBuild`.
@@ -42,7 +43,7 @@ pub fn start_build(
     // Tester injects testbuiltins.c into every test (line 539 of main.vale). Rust-interop
     // tests are self-contained against `--no_std true` and the rust binding so we skip the
     // injection there — adding it just slows the build for no observable change.
-    if !matches!(kind, TestKind::RustInterop) {
+    if !matches!(kind, TestKind::RustInterop { .. }) {
         let testbuiltins = suite.opts.backend_tests_dir.join("testbuiltins.c");
         args.push(format!("vtest={}", testbuiltins.to_string_lossy()));
     }
@@ -66,21 +67,22 @@ pub fn start_build(
     args.push("--no_std".to_string());
     args.push("true".to_string());
 
-    match kind {
-        TestKind::Vale { include_stdlib } => {
-            if *include_stdlib {
-                args.push(format!(
-                    "stdlib={}",
-                    suite.opts.stdlib_dir.join("src").to_string_lossy()
-                ));
-            }
-        }
-        TestKind::RustInterop => {
-            // Append the three rust-interop flags so PassManager invokes ValeRuster and
-            // Backend invokes Divination.
-            for arg in suite.rust_interop_args() {
-                args.push(arg);
-            }
+    let include_stdlib_now = match kind {
+        TestKind::Vale { include_stdlib } => *include_stdlib,
+        TestKind::RustInterop { include_stdlib } => *include_stdlib,
+    };
+    if include_stdlib_now {
+        args.push(format!(
+            "stdlib={}",
+            suite.opts.stdlib_dir.join("src").to_string_lossy()
+        ));
+    }
+
+    if matches!(kind, TestKind::RustInterop { .. }) {
+        // Append the three rust-interop flags so PassManager invokes ValeRuster and
+        // Backend invokes Divination.
+        for arg in suite.rust_interop_args() {
+            args.push(arg);
         }
     }
 
