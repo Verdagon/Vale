@@ -78,7 +78,7 @@ static_assertions = "1.1.0"
 subprocess = "0.2.9"
 ```
 
-The `[package]` metadata and exact deps don't matter much for a program that only uses `std::vec::Vec` — the reference file at `/Volumes/V/Catter/Dependencies.toml` works fine as a starting point even if your program doesn't actually touch `libc` or `subprocess`.
+The `[package]` metadata and exact deps don't matter much for a program that only uses `std::vec::Vec` — the reference file vendored in this repo at `Catter/Dependencies.toml` works fine as a starting point even if your program doesn't actually touch `libc` or `subprocess`. (Catter itself, at `Catter/`, is the original Vale-to-Rust interop proof of concept; it serves as both the canonical reference Cargo.toml and a documented example.)
 
 ---
 
@@ -98,13 +98,13 @@ After the prerequisites are met, drive the 32-test suite end-to-end with TesterR
   --stdlib_dir stdlib \
   --vale_ruster_path ValeRuster/target/debug/ValeRuster \
   --divination_path Divination/target/debug/Divination \
-  --rust_cargo_toml /path/to/your/Dependencies.toml \
+  --rust_cargo_toml Catter/Dependencies.toml \
   --rust_interop_tests_dir tests/rust-interop \
   --concurrent 4 \
   ri_
 ```
 
-The `ri_` substring filter selects exactly the rust-interop tests. Each test program lives in `tests/rust-interop/ri_*.vale` with a `// expected_exit: N` header. If the summary line is `Done! Passed 31/32` (32 if Bug 4 is fixed), your environment is wired correctly.
+The `ri_` substring filter selects exactly the rust-interop tests. Each test program lives in `tests/rust-interop/ri_*.vale` with a `// expected_exit: N` header. `Catter/Dependencies.toml` is the vendored reference Cargo.toml (no external paths required). If the summary line is `Done! Passed 31/31`, your environment is wired correctly. (One test — `ri_u01_vec_push` — is deliberately skipped, see `tests/rust-interop/README.md`.)
 
 ---
 

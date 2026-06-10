@@ -1,0 +1,17 @@
+// expected_exit: 42
+// summary: Catter-derived test. Catter (the original Vale-to-Rust interop proof of
+// concept, vendored at /Catter/) imports both rust.std.option.Option and rust.std.vec.Vec
+// in the same program and uses Vec<int>.with_capacity(42).capacity() — that multi-import
+// shape including Option is not covered by any other test. ri_16 covers Vec + String,
+// not Vec + Option, and Option's bindings have historically regressed (Catter's
+// /Catter/bindings/std/option/ shows it once worked); a test here catches the binding
+// import compiling at all. Method body matches Catter's main.vale but returns the
+// capacity via exit code instead of println (the test runner runs --no_std true).
+
+import rust.std.option.Option;
+import rust.std.vec.Vec;
+
+exported func main() int {
+  vec = Vec<int>.with_capacity(42i64);
+  return vec.capacity().TruncateI64ToI32();
+}

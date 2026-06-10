@@ -40,13 +40,13 @@ From the repo root, with the toolchain built (`./scripts/build-rust-interop.sh ~
   --stdlib_dir stdlib \
   --vale_ruster_path ValeRuster/target/debug/ValeRuster \
   --divination_path Divination/target/debug/Divination \
-  --rust_cargo_toml /path/to/Dependencies.toml \
+  --rust_cargo_toml Catter/Dependencies.toml \
   --rust_interop_tests_dir tests/rust-interop \
   --concurrent 4 \
   ri_
 ```
 
-The `ri_` positional arg is a substring filter that matches all 32 rust-interop tests (their filenames all start with that prefix) and nothing in the Vale corpus. To run a single test, swap `ri_` for e.g. `ri_01_vec_capacity_42`. To run a subset, use a more specific substring like `vec_capacity`. Multiple positional args AND together (`vec bool` ⇒ tests whose names contain both).
+The `ri_` positional arg is a substring filter that matches all rust-interop tests (their filenames all start with that prefix) and nothing in the Vale corpus. To run a single test, swap `ri_` for e.g. `ri_01_vec_capacity_42`. To run a subset, use a more specific substring like `vec_capacity`. Multiple positional args AND together (`vec bool` ⇒ tests whose names contain both).
 
 Per-test build dirs land at `testbuild/<test_name>_resilient-v3/` for post-mortem. The summary `Done! Passed N/M` prints at the end.
 
@@ -59,7 +59,7 @@ Per-test build dirs land at `testbuild/<test_name>_resilient-v3/` for post-morte
 
 ## What's currently tested
 
-`ri_01_` through `ri_28_` are expected-to-pass; `ri_u01_` through `ri_u04_` are expected-to-build-fail (documented unsupported Rust features).
+`ri_01_` through `ri_28_` plus `ri_29_catter` are expected-to-pass; `ri_u02_` through `ri_u04_` are expected-to-build-fail (documented unsupported Rust features). `ri_u01_vec_push` is currently disabled — see its file for why.
 
 | File | Asserts |
 |---|---|
@@ -84,9 +84,10 @@ Per-test build dirs land at `testbuild/<test_name>_resilient-v3/` for post-morte
 | `ri_23_two_vec_diff_generics.vale` | `Vec<int>` AND `Vec<bool>` in one program — currently surfaces Backend Bug 4. |
 | `ri_26_fn_returns_vec.vale` | Extern type returned from Vale fn. |
 | `ri_28_struct_pass_through_helper.vale` | Vale struct containing extern, passed through a fn. |
-| `ri_u01_vec_push.vale` | Mutable receiver — expected to fail to build. |
+| `ri_29_catter.vale` | Catter-derived — imports `rust.std.option.Option` + `rust.std.vec.Vec` in the same program. Catter (vendored at `/Catter/`) is the original 2024 Vale↔Rust interop proof of concept; this test preserves its Option+Vec import shape (no other test imports Option). |
+| `ri_u01_vec_push.vale` | DISABLED. Build now succeeds with the Backend `&mut` C-emit fix, but Vale's by-value extern storage means push mutations don't propagate. See the file's comment for the full diagnosis. |
 | `ri_u02_hashmap_new.vale` | Allocator-generic default — expected to fail to build. |
 | `ri_u03_box_new.vale` | Allocator-generic default — expected to fail to build. |
 | `ri_u04_vec_iter.vale` | Lifetime generic — expected to fail to build. |
 
-Everything here imports `rust.std.vec.Vec` or `rust.std.string.String` — the two bindings the current Frontend/Coordinator pipeline supports end-to-end. Add more import targets as ValeRuster's filter list expands.
+Most tests here import `rust.std.vec.Vec` or `rust.std.string.String`; `ri_29_catter` adds `rust.std.option.Option`. Add more import targets as ValeRuster's filter list expands.

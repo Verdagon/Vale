@@ -1,0 +1,18 @@
+
+import rust.std.option.Option;
+import rust.std.vec.Vec;
+
+exported func main() {
+	vec = Vec<int>.with_capacity(42i64);
+	println("length:");
+	println(vec.capacity());
+}
+
+
+// TODO: move to standard library
+func println(i i64) {
+  println(castI64Str(i));
+}
+func print(i i64) {
+  print(castI64Str(i));
+}

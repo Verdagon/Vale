@@ -88,14 +88,16 @@ TesterRust (the Rust port of Tester) drives the suite. From the repo root:
   --stdlib_dir stdlib \
   --vale_ruster_path ValeRuster/target/debug/ValeRuster \
   --divination_path Divination/target/debug/Divination \
-  --rust_cargo_toml /path/to/Dependencies.toml \
+  --rust_cargo_toml Catter/Dependencies.toml \
   --rust_interop_tests_dir tests/rust-interop \
   --concurrent 4 \
   --verbose false \
   ri_
 ```
 
-The trailing `ri_` is a positional substring filter that selects exactly the 32 rust-interop tests (their filenames all begin with that prefix). Omit it to also run the canonical Vale corpus from `Frontend/Tests/test/main/resources/programs/`, or replace with another substring (e.g. `vec_capacity`) to scope further.
+The trailing `ri_` is a positional substring filter that selects exactly the rust-interop tests (their filenames all begin with that prefix). Omit it to also run the canonical Vale corpus from `Frontend/Tests/test/main/resources/programs/`, or replace with another substring (e.g. `vec_capacity`) to scope further.
+
+`Catter/Dependencies.toml` is the vendored reference Cargo.toml (the in-repo descendant of the original Catter proof of concept). All in-tree tests work against it; for your own program, copy it as a starting point.
 
 TesterRust supports `--concurrent N` for parallel execution; the per-test build dirs land under `testbuild/<test_name>_<region>/`. See `tests/rust-interop/README.md` for how to add a new test.
 
