@@ -1,0 +1,10 @@
+// expected_exit: 3
+// summary: Vec<bool>. Tests a non-numeric generic param flowing through the Vale → Rust
+// type substitution. Vale bool should map to Rust bool (both 1-byte).
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<bool>.with_capacity(3i64);
+  return v.capacity().TruncateI64ToI32();
+}

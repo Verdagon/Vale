@@ -1,0 +1,14 @@
+// expected_exit: 21
+// summary: A Vale helper function taking and returning Vec capacity, verifying that
+// extern types survive Vale function parameter passing (not just locals in main).
+
+import rust.std.vec.Vec;
+
+func get_cap(v Vec<int>) i64 {
+  return v.capacity();
+}
+
+exported func main() int {
+  v = Vec<int>.with_capacity(21i64);
+  return get_cap(v).TruncateI64ToI32();
+}

@@ -1,0 +1,11 @@
+// expects_build_fail: true
+// summary: Box::new(42i64). Box's type signature is Box<T, A: Allocator = Global>; the
+// allocator default trips the generator's unsupported-feature filter. (Treating this as
+// expected-fail; if it actually works, demote to a passing test.)
+
+import rust.std.boxed.Box;
+
+exported func main() int {
+  b = Box<int>.new(42);
+  return 0;
+}

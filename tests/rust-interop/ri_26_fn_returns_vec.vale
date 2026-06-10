@@ -1,0 +1,15 @@
+// expected_exit: 19
+// summary: Vale function that RETURNS a Rust extern. Test 18 confirmed parameter
+// passing; this confirms the return path (extern types crossing the call boundary
+// outward, with the caller taking ownership).
+
+import rust.std.vec.Vec;
+
+func make_vec(n i64) Vec<int> {
+  return Vec<int>.with_capacity(n);
+}
+
+exported func main() int {
+  v = make_vec(19i64);
+  return v.capacity().TruncateI64ToI32();
+}

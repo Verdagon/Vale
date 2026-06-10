@@ -1,0 +1,14 @@
+// expected_exit: 11
+// summary: Vale fn taking a Rust String parameter. Mirrors test 18 for the non-generic
+// type to confirm parameter passing isn't Vec-specific.
+
+import rust.std.string.String;
+
+func get_cap(s String) i64 {
+  return s.capacity();
+}
+
+exported func main() int {
+  s = String.with_capacity(11i64);
+  return get_cap(s).TruncateI64ToI32();
+}

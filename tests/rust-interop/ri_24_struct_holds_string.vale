@@ -1,0 +1,14 @@
+// expected_exit: 32
+// summary: Vale struct holding a Rust String (non-generic extern). Mirrors test 17's
+// Vec composition but for the non-generic type, confirming composition isn't Vec-specific.
+
+import rust.std.string.String;
+
+struct Holder {
+  s String;
+}
+
+exported func main() int {
+  h = Holder(String.with_capacity(32i64));
+  return h.s.capacity().TruncateI64ToI32();
+}

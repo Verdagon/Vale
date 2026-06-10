@@ -1,0 +1,12 @@
+// expected_exit: 17
+// summary: Two Vec instances with different capacities (10 and 7). Confirms they don't
+// share state via a single global / wrong identity in the FFI layer — 10+7 = 17.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  a = Vec<int>.with_capacity(10i64);
+  b = Vec<int>.with_capacity(7i64);
+  total = a.capacity() + b.capacity();
+  return total.TruncateI64ToI32();
+}

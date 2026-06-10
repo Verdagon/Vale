@@ -1,0 +1,10 @@
+// expected_exit: 8
+// summary: Vec<float>. Vale `float` → Rust f64 (Vale floats are 64-bit). Confirms FP
+// param substitution doesn't perturb the integer-returning capacity() call.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<float>.with_capacity(8i64);
+  return v.capacity().TruncateI64ToI32();
+}

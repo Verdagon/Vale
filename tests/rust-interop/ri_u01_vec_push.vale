@@ -1,0 +1,12 @@
+// expects_build_fail: true
+// summary: Vec::push takes &mut self. Per docs/usage/rust-interop.md the binding generator
+// currently skips methods needing mutable receivers in non-trivial ways. Expect either
+// "Skipping (self) method push" in the generated Vec.vale or a typing error in main.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(4i64);
+  v.push(7);
+  return 0;
+}

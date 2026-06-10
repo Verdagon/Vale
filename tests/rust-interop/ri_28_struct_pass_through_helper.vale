@@ -1,0 +1,19 @@
+// expected_exit: 6
+// summary: Vale fn taking a Vale struct that contains a Rust extern. Confirms a struct
+// holding a Vec survives parameter passing — Vale's struct-by-value carries the embedded
+// extern correctly across a call boundary.
+
+import rust.std.vec.Vec;
+
+struct Container {
+  inner Vec<int>;
+}
+
+func inspect(c Container) i64 {
+  return c.inner.capacity();
+}
+
+exported func main() int {
+  c = Container(Vec<int>.with_capacity(6i64));
+  return inspect(c).TruncateI64ToI32();
+}

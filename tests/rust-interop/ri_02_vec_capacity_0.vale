@@ -1,0 +1,9 @@
+// expected_exit: 0
+// summary: Vec::with_capacity(0) gives capacity 0. Edge case: capacity literal of zero.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(0i64);
+  return v.capacity().TruncateI64ToI32();
+}

@@ -1,0 +1,12 @@
+// expected_exit: 30
+// summary: Two distinct Rust imports in one program (Vec + String). Confirms ValeRuster
+// is invoked once per import and both generated bindings coexist in the same module.
+
+import rust.std.vec.Vec;
+import rust.std.string.String;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(20i64);
+  s = String.with_capacity(10i64);
+  return (v.capacity() + s.capacity()).TruncateI64ToI32();
+}

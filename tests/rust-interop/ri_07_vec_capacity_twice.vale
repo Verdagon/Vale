@@ -1,0 +1,12 @@
+// expected_exit: 5
+// summary: Calling capacity() twice on the same Vec must return the same value (5 here);
+// exit returns the SECOND call's result, so a "first call only" stub fails this.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(5i64);
+  first = v.capacity();
+  second = v.capacity();
+  return second.TruncateI64ToI32();
+}

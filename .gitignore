@@ -16,6 +16,8 @@ Catalyst/catalyst/target/
 Catalyst/testing/test*/out/
 removeextra.sh
 target
+clibthing
+testbuild
 project
 .metals
 Frontend/.idea/librariesadoptopenjdk.tar.gz

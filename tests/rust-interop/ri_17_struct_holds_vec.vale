@@ -1,0 +1,15 @@
+// expected_exit: 12
+// summary: A Vale struct holding a Rust extern Vec as a field. Confirms composition (the
+// extern type can be stored inside a Vale-owned struct) and that field-access drills back
+// down to a usable extern instance.
+
+import rust.std.vec.Vec;
+
+struct Wrapper {
+  inner Vec<int>;
+}
+
+exported func main() int {
+  w = Wrapper(Vec<int>.with_capacity(12i64));
+  return w.inner.capacity().TruncateI64ToI32();
+}

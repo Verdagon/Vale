@@ -1,0 +1,10 @@
+// expected_exit: 64
+// summary: String::with_capacity(64).capacity() returns 64 (or at least >= 64 per Rust
+// docs — in practice with_capacity is exact for small values).
+
+import rust.std.string.String;
+
+exported func main() int {
+  s = String.with_capacity(64i64);
+  return s.capacity().TruncateI64ToI32();
+}

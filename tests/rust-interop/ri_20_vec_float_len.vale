@@ -1,0 +1,10 @@
+// expected_exit: 0
+// summary: Vec<float>.with_capacity(11).len() = 0. Confirms the FloatIT NameHammer arm
+// also works through the len method, not just capacity.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<float>.with_capacity(11i64);
+  return v.len().TruncateI64ToI32();
+}

@@ -1,0 +1,10 @@
+// expected_exit: 0
+// summary: Vec::new() should give a Vec with capacity 0. Exercises a Rust associated fn
+// with no arguments (Vec::new), distinct from Vec::with_capacity which takes one.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.new();
+  return v.capacity().TruncateI64ToI32();
+}

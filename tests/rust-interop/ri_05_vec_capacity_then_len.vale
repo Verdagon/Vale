@@ -1,0 +1,11 @@
+// expected_exit: 0
+// summary: Vec::with_capacity(10).len() is still 0 (capacity reserves space; len counts
+// inserted elements). Exercises a second Vec method, Vec::len, and confirms the two are
+// distinct in the binding.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(10i64);
+  return v.len().TruncateI64ToI32();
+}

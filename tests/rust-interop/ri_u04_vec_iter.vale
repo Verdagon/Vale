@@ -1,0 +1,11 @@
+// expects_build_fail: true
+// summary: Vec::iter returns Iter<'_, T> — has a lifetime generic. Documented as
+// unsupported (no lifetime generics in bindings).
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.new();
+  it = v.iter();
+  return 0;
+}

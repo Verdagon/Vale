@@ -269,6 +269,12 @@ std::string generateFunctionC(
       s << "extern ";
       if (rustRetStr == "usize") {
         s << "uintptr_t";
+      } else if (rustRetStr == "bool") {
+        // cbindgen declares Rust bool-returning fns as `bool` in rust_deps.h. The default
+        // Vale mapping is `int8_t` which is ABI-compatible but type-incompatible to clang,
+        // so the same fn declared in both headers triggers a "conflicting types" error.
+        // `<stdbool.h>` reaches us transitively via rust_deps.h.
+        s << "bool";
       } else {
         s << returnTypeExportName;
       }
@@ -358,6 +364,10 @@ std::string generateFunctionC(
         }
         if (rustParamStr == "usize") {
           s << "uintptr_t";
+        } else if (rustParamStr == "bool") {
+          // Symmetric to the bool-return case above — Rust bool params come from cbindgen
+          // as `bool`, so we emit `bool` here too to keep the C-side signature consistent.
+          s << "bool";
         } else {
           s << paramTypeExportName;
         }
@@ -1371,7 +1381,10 @@ void doRustyThings(
     exit(1);
   }
 
-  std::string rustExternsFilename = "rust_externs.h";
+  // Per-test output_dir so concurrent valec invocations (e.g. TesterRust with --concurrent
+  // > 1) don't clobber each other's rust_externs.h. Mirrors the precedent immediately below
+  // for sizes.txt under rustOutputDir.
+  std::string rustExternsFilename = globalState->opt->outputDir + "/rust_externs.h";
   std::ofstream rustExternsFile(rustExternsFilename);
   if (!rustExternsFile.is_open()) {
     std::cerr << "Error creating " << rustExternsFilename << std::endl;

@@ -1,0 +1,13 @@
+// expected_exit: 0
+// summary: Vec<i64>.new().is_empty() — exercises i64 generic + bool return + new()
+// (no-arg associated fn). Fills out i64 coverage to match the int family.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<i64>.new();
+  if (v.is_empty()) {
+    return 0;
+  }
+  return 1;
+}

@@ -1,0 +1,13 @@
+// expected_exit: 1
+// summary: Vec::new().is_empty() returns Rust bool true; we encode as exit 1. Exercises
+// a bool-returning Rust method and Vale's coercion of Rust bool back to Vale bool.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.new();
+  if (v.is_empty()) {
+    return 1;
+  }
+  return 0;
+}

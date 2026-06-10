@@ -1,0 +1,9 @@
+// expected_exit: 100
+// summary: A two-digit capacity. Confirms larger int values survive the i64→i32 truncate.
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(100i64);
+  return v.capacity().TruncateI64ToI32();
+}

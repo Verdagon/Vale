@@ -1,0 +1,10 @@
+// expected_exit: 9
+// summary: Vec<i64> instead of Vec<int>. Exercises ValeRuster's mapping of Vale i64 →
+// Rust i64 in the generic substitution (vs the int → i32 mapping used elsewhere).
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<i64>.with_capacity(9i64);
+  return v.capacity().TruncateI64ToI32();
+}

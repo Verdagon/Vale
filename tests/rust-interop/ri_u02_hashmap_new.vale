@@ -1,0 +1,11 @@
+// expects_build_fail: true
+// summary: HashMap::new returns HashMap<K, V, RandomState>. The third allocator-ish
+// type param defaults via Rust's syntax and the binding generator can't synthesize that.
+// Documented as unsupported (allocator generics).
+
+import rust.std.collections.HashMap;
+
+exported func main() int {
+  m = HashMap<int, int>.new();
+  return 0;
+}

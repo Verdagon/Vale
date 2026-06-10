@@ -1,0 +1,10 @@
+// expected_exit: 7
+// summary: A small non-baseline capacity. Catches regressions where the integer plumbing
+// always returns 42 (e.g. a stub that hardcoded the smoke-test value).
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  v = Vec<int>.with_capacity(7i64);
+  return v.capacity().TruncateI64ToI32();
+}

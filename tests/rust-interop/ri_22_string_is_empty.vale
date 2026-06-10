@@ -1,0 +1,13 @@
+// expected_exit: 1
+// summary: String::new().is_empty() — exercises is_empty on a non-generic Rust type,
+// distinct from the Vec family's generic dispatch path.
+
+import rust.std.string.String;
+
+exported func main() int {
+  s = String.new();
+  if (s.is_empty()) {
+    return 1;
+  }
+  return 0;
+}

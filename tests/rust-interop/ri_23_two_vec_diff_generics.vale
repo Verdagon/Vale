@@ -1,0 +1,12 @@
+// expected_exit: 23
+// summary: Vec<int> alongside Vec<bool> — two different generic instantiations of the
+// same Rust type in one program. Confirms each gets a distinct mangled name and the
+// bindings don't collide. (15 + 8 = 23.)
+
+import rust.std.vec.Vec;
+
+exported func main() int {
+  ints = Vec<int>.with_capacity(15i64);
+  bools = Vec<bool>.with_capacity(8i64);
+  return (ints.capacity() + bools.capacity()).TruncateI64ToI32();
+}

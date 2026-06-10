@@ -1,0 +1,16 @@
+// expected_exit: 13
+// summary: A Vale struct holding BOTH a Vec and a String. Confirms composition handles
+// heterogeneous extern types in the same struct. (4 + 9 = 13.)
+
+import rust.std.vec.Vec;
+import rust.std.string.String;
+
+struct Pair {
+  v Vec<int>;
+  s String;
+}
+
+exported func main() int {
+  p = Pair(Vec<int>.with_capacity(4i64), String.with_capacity(9i64));
+  return (p.v.capacity() + p.s.capacity()).TruncateI64ToI32();
+}

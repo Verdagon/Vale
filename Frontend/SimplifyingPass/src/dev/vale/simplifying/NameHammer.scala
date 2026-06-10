@@ -100,8 +100,13 @@ object NameHammer {
   }
 
   def simplifyKind(value: KindIT[cI]): SimpleId = {
+    // The names emitted here must match what ValeRuster substitutes into the generated
+    // Rust binding filenames (e.g. `Vec<i32>::capacity` → `alloc_vec_Vec_1__i32___capacity`).
+    // Keep these in sync with Rust's literal type-name conventions: i32/i64/bool/f64.
     value match {
       case IntIT(bits) => SimpleId(Vector(SimpleIdStep("i" + bits, Vector())))
+      case BoolIT() => SimpleId(Vector(SimpleIdStep("bool", Vector())))
+      case FloatIT() => SimpleId(Vector(SimpleIdStep("f64", Vector())))
       case StrIT() => SimpleId(Vector(SimpleIdStep("str", Vector())))
       case other => vimpl(other)
     }

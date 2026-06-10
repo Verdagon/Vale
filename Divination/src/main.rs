@@ -1,10 +1,5 @@
 #![allow(unused_imports)]
 
-mod indexer;
-mod resolve_id;
-mod vast_types;
-mod simplify;
-mod resolve;
 
 extern crate toml;
 
@@ -24,22 +19,8 @@ use anyhow::{Context, Result};
 use cargo_metadata::diagnostic::DiagnosticCode;
 use cargo_metadata::Message;
 use regex::Regex;
-use rustdoc_types::{Crate, Function, GenericArg, GenericArgs, GenericParamDefKind, Generics, Id, Impl, Item, ItemEnum, Struct, Type};
-use crate::indexer::ItemIndex;
 use crate::ParsedType::ImplCast;
-use crate::resolve_id::{extend_and_resolve_uid, generic_name, is_generic, is_primitive, is_special_primitive, lookup_uid, resolve_uid, str_id, tuple_id};
 use crate::ResolveError::ResolveFatal;
-use itertools::Itertools;
-use crate::simplify::{SimpleType, SimpleValType, simplify_type, SimplifyError};
-use crate::simplify::SimplifyError::Unsupported;
-
-// Universal id.
-// This can refer to anything, including type aliases, imports, etc.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-struct UId {
-  crate_name: String,
-  id: Id,
-}
 
 struct TypeInfo {
   canonical_type: ParsedFullType,
@@ -110,11 +91,6 @@ fn main() -> Result<(), anyhow::Error> {
               .help("The crate name to generate bindings for")
               .action(ArgAction::Set)
               .required(true))
-          .arg(Arg::new("vale_bindings_dir")
-              .long("vale_bindings_dir")
-              .help("Directory to output vale bindings to.")
-              .action(ArgAction::Set)
-              .required(true))
           .arg(Arg::new("output_dir")
               .long("output_dir")
               .help("Directory to output to.")
@@ -123,10 +99,6 @@ fn main() -> Result<(), anyhow::Error> {
           .arg(Arg::new("input_file")
               .long("input_file")
               .help("File to read from, intead of stdin.")
-              .action(ArgAction::Set))
-          .arg(Arg::new("type")
-              .long("type")
-              .help("A single dotted type path to generate bindings for (e.g. std.vec.Vec). When set, overrides --input_file and stdin.")
               .action(ArgAction::Set))
           .arg(Arg::new("output_sizes")
               .long("output_sizes")
@@ -168,18 +140,31 @@ fn main() -> Result<(), anyhow::Error> {
     return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, format!("No stdout from command: {} {}", command, args.join(" ")))));
   }
 
-  let vale_bindings_dir_path = root_matches.get_one::<String>("vale_bindings_dir").unwrap();
+  // Detect the host target triple (e.g. aarch64-apple-darwin, x86_64-apple-darwin) from
+  // `rustc -vV`. Previously hardcoded to aarch64-apple-darwin, which broke x86_64 Macs
+  // and Linux. cbuild uses this triple and the Coordinator reads it back from the target
+  // directory structure to pick the right clang -arch.
+  let rustc_vv_output =
+      Command::new(&rustc_path).args(["-vV"]).output()
+          .with_context(|| format!("Failed to run {} -vV", &rustc_path))?;
+  if !rustc_vv_output.status.success() {
+    return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other,
+        String::from_utf8_lossy(&rustc_vv_output.stderr).to_string())));
+  }
+  let rustc_vv_str = String::from_utf8_lossy(&rustc_vv_output.stdout);
+  let host_triple: String = rustc_vv_str.lines()
+      .find_map(|line| line.strip_prefix("host: "))
+      .ok_or_else(|| anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other,
+          format!("rustc -vV output missing `host:` line:\n{}", rustc_vv_str))))?
+      .trim().to_string();
+
   let output_dir_path = root_matches.get_one::<String>("output_dir").unwrap();
   let maybe_output_sizes_path = root_matches.get_one::<String>("output_sizes");
 
   let maybe_input_file_path = root_matches.get_one::<String>("input_file");
-  let maybe_single_type = root_matches.get_one::<String>("type");
 
   let mut input_lines: Vec<String> = Vec::new();
-  if let Some(single_type) = maybe_single_type {
-    // Synthesize a single import line so the list subcommand's existing regex picks it up.
-    input_lines.push(format!("import rust.{}", single_type));
-  } else if let Some(input_file_path) = maybe_input_file_path {
+  if let Some(input_file_path) = maybe_input_file_path {
     let file = File::open(input_file_path)?;
     let reader = io::BufReader::new(file);
     for line_res in reader.lines() {
@@ -199,21 +184,11 @@ fn main() -> Result<(), anyhow::Error> {
     Some(("list", list_matches)) => {
       let output_dir_path = root_matches.get_one::<String>("output_dir").unwrap();
 
-      let mut crates = HashMap::new();
-      crates.insert("std".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "std")?);
-      crates.insert("alloc".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "alloc")?);
-      crates.insert("core".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "core")?);
-      indexer::get_dependency_crates(&rustc_sysroot_path, &cargo_path, &output_dir_path, &cargo_toml_path, &mut crates)?;
+      let mut types_to_find: Vec<String> = Vec::new();
 
-      let item_index = indexer::genealogize(&crates)?;
-
-      let mut undeduped_types_to_find: Vec<String> = Vec::new();
-
-      if maybe_single_type.is_none() {
-        if let Some(input_file_path) = maybe_input_file_path {
-          if !input_file_path.ends_with(".vale") {
-            panic!("Input file doesn't end with .vale!");
-          }
+      if let Some(input_file_path) = maybe_input_file_path {
+        if !input_file_path.ends_with(".vale") {
+          panic!("Input file doesn't end with .vale!");
         }
       }
       for line in input_lines {
@@ -225,102 +200,629 @@ fn main() -> Result<(), anyhow::Error> {
               captures.get(1)
                   .expect("Bad rsuse/rsfn line")
                   .as_str().to_string();
-          undeduped_types_to_find.push(type_str);
+          types_to_find.push(type_str);
         }
       }
+      unimplemented!();
+    }
+    Some(("instantiate", instantiate_matches)) => {
+      // let c_folder = instantiate_matches.get_one::<String>("c_folder").unwrap();
+      // if Path::new(c_folder).exists() {
+      //   fs::remove_dir_all(c_folder)?;
+      // }
+      // fs::create_dir(c_folder)
+      //     .with_context(|| "Failed to create directory ".to_owned() + c_folder)?;
 
-      let types_to_find = undeduped_types_to_find.iter().unique().collect::<Vec<_>>();
+      // let rust_folder = instantiate_matches.get_one::<String>("generated").unwrap();
+      // if Path::new(rust_folder).exists() {
+      //   fs::remove_dir_all(rust_folder)?;
+      // }
+      // fs::create_dir(rust_folder)
+      //     .with_context(|| "Failed to create directory ".to_owned() + rust_folder)?;
 
-      let mut desired_types_steps_and_uids = Vec::new();
-      for type_to_find in types_to_find {
-        let type_step_strs =
-            type_to_find.split(".").into_iter().map(|x| x.to_owned()).collect::<Vec<_>>();
-        let mut current: Option<UId> = None;
-        for step_str in &type_step_strs {
-          current = Some(
-            match extend_and_resolve_uid(
-              &crates, &item_index.primitive_name_to_uid, current.as_ref(), step_str) {
-              Ok(x) => x,
-              Err(ResolveError::NotFound) => {
-                return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Not found: {}", step_str)))); // DO NOT SUBMIT
-              }
-              Err(ResolveError::Unsupported(reason)) => {
-                return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Unsupported top-level type '{}': {}", step_str, reason))));
-              }
-              Err(ResolveError::ResolveFatal(fatal)) => return Err(fatal),
-            });
-        }
-        if let Some(uid) = current {
-          desired_types_steps_and_uids.push((type_step_strs, uid));
+      let mut concrete_primitives: HashSet<String> = HashSet::new();
+      concrete_primitives.insert("bool".to_owned());
+      concrete_primitives.insert("char".to_owned());
+      concrete_primitives.insert("f32".to_owned());
+      concrete_primitives.insert("f64".to_owned());
+      concrete_primitives.insert("f128".to_owned());
+      concrete_primitives.insert("i128".to_owned());
+      concrete_primitives.insert("i16".to_owned());
+      concrete_primitives.insert("i32".to_owned());
+      concrete_primitives.insert("i64".to_owned());
+      concrete_primitives.insert("i8".to_owned());
+      concrete_primitives.insert("isize".to_owned());
+      // concrete_primitives.insert("str".to_owned()); because its not really a primitive to C
+      concrete_primitives.insert("u128".to_owned());
+      concrete_primitives.insert("u16".to_owned());
+      concrete_primitives.insert("u32".to_owned());
+      concrete_primitives.insert("u64".to_owned());
+      concrete_primitives.insert("u8".to_owned());
+      concrete_primitives.insert("usize".to_owned());
+
+      let mut original_str_to_alias: HashMap<String, String> = HashMap::new();
+      let mut alias_to_original_str: HashMap<String, String> = HashMap::new();
+      let mut original_type_str_and_parsed_type_and_original_line_and_maybe_alias: Vec<(String, ParsedFullType, String, Option<String>)> = Vec::new();
+      let mut original_func_str_and_parsed_type_and_original_line_and_maybe_alias: Vec<(String, ParsedFullType, String, Option<String>)> = Vec::new();
+
+      let mut alias_to_original_full_type: HashMap<String, ParsedFullType> = HashMap::new();
+
+      if let Some(input_file_path) = maybe_input_file_path {
+        if input_file_path.ends_with(".vast") {
+          // TODO: handle vast directly?
         } else {
-          unimplemented!();
+          if !(input_file_path.ends_with(".h") || input_file_path.ends_with(".c") || input_file_path.ends_with(".cpp")) {
+            eprintln!("Input file doesn't end with .vast, .h, .c, or .cpp. Assuming C, proceeding...");
+          }
+        }
+      }
+      for line in input_lines {
+        if !Regex::new(r#"^#pragma\s+rs(use|fn)"#).unwrap().is_match(&line) {
+          continue;
+        }
+
+        let line = line.trim().to_string();
+
+        let maybe_aliasing_line_captures =
+            Regex::new(r#"^\s*(#pragma\s+rs(use|fn)\s+)?(\w+)\s+=\s+(\S.+)\s*$"#).unwrap()
+                .captures(&line);
+        let (is_fn, target_type_str, maybe_alias) =
+            if let Some(aliasing_line_captures) = maybe_aliasing_line_captures {
+              let type_type_str =
+                  aliasing_line_captures.get(2)
+                      .expect("Bad rsuse/rsfn line")
+                      .as_str().to_string();
+              let is_fn =
+                match type_type_str.as_str() {
+                  "use" => false,
+                  "fn" => true,
+                  _ => panic!("Bad rsuse/rsfn line")
+                };
+              let maybe_alias =
+                  aliasing_line_captures.get(3).map(|x| x.as_str().to_string());
+              let target_type_str =
+                  aliasing_line_captures.get(4)
+                      .expect("Blork")
+                      .as_str();
+              (is_fn, target_type_str, maybe_alias)
+            } else {
+              let simple_line_captures =
+                  Regex::new(r#"^\s*(#pragma\s+rs(use|fn)\s+)?(\S.+)\s*$"#).unwrap()
+                      .captures(&line)
+                      .expect(&("Bad line: ".to_owned() + &line));
+              let type_type_str =
+                  simple_line_captures.get(2)
+                      .expect("Bad rsuse/rsfn line")
+                      .as_str().to_string();
+              let is_fn =
+                  match type_type_str.as_str() {
+                    "use" => false,
+                    "fn" => true,
+                    _ => panic!("Bad rsuse/rsfn line")
+                  };
+              let target_type_str =
+                  simple_line_captures.get(3)
+                      .expect("Blork")
+                      .as_str();
+              (is_fn, target_type_str, None)
+            };
+
+        if let Some(alias) = &maybe_alias {
+          original_str_to_alias.insert(target_type_str.to_owned(), alias.clone());
+          alias_to_original_str.insert(alias.clone(), target_type_str.to_owned());
+        }
+        println!("Adding {:?}", target_type_str);
+        if is_fn {
+          let (func_full_name, _, rest) =
+              parse_full_type(&concrete_primitives, &alias_to_original_full_type, &HashMap::new(), target_type_str)?;
+          original_func_str_and_parsed_type_and_original_line_and_maybe_alias.push(
+            (target_type_str.to_owned(), func_full_name.clone(), line.clone(), maybe_alias.clone()));
+          if let Some(alias) = &maybe_alias {
+            alias_to_original_full_type.insert(alias.clone(), func_full_name);
+          }
+        } else {
+          let (type_full_name, _, rest) =
+              parse_full_type(&concrete_primitives, &alias_to_original_full_type, &HashMap::new(), target_type_str)?;
+          assert!(rest.len() == 0); // DO NOT SUBMIT
+          original_type_str_and_parsed_type_and_original_line_and_maybe_alias.push(
+            (target_type_str.to_owned(), type_full_name.clone(), line.clone(), maybe_alias.clone()));
+          if let Some(alias) = &maybe_alias {
+            alias_to_original_full_type.insert(alias.clone(), type_full_name);
+          }
         }
       }
 
-      let mut available_types_uids: HashSet<UId> =
-          desired_types_steps_and_uids.iter().map(|x| x.1.clone()).collect();
-      available_types_uids.insert(item_index.primitive_name_to_uid.get("usize").unwrap().clone());
-      available_types_uids.insert(item_index.primitive_name_to_uid.get("i64").unwrap().clone());
-      available_types_uids.insert(item_index.primitive_name_to_uid.get("i32").unwrap().clone());
-      available_types_uids.insert(item_index.primitive_name_to_uid.get("bool").unwrap().clone());
-      available_types_uids.insert(tuple_id(&item_index.primitive_name_to_uid));
+      if !original_str_to_alias.contains_key("&str") {
+        let parsed_type =
+            ParsedFullType{
+              steps: vec![
+                ParsedType::Ref{
+                  mutable: false,
+                  inner: ParsedFullType {
+                      steps: vec![
+                        ParsedType::Primitive("str".to_owned())
+                      ]
+                    }
+                }]
+            };
+        original_str_to_alias.insert("&str".to_owned(), "rust_str_ref".to_owned());
+        alias_to_original_str.insert("rust_str_ref".to_owned(), "&str".to_owned());
+        original_type_str_and_parsed_type_and_original_line_and_maybe_alias.push(
+          ("&str".to_owned(), parsed_type, "(builtin)".to_owned(), Some("rust_str_ref".to_owned())));
+      }
+      let str_ref_alias = original_str_to_alias.get("&str").unwrap();
 
-      for (type_steps_strs, uid) in desired_types_steps_and_uids {
-        let mut dest_file_path_str = type_steps_strs.join("/");
-        dest_file_path_str = vale_bindings_dir_path.to_string() + "/" + &dest_file_path_str + ".vale";
-        let dest_file_path = Path::new(&dest_file_path_str);
-        let dest_dir_path = dest_file_path.parent().unwrap();
-        fs::create_dir_all(&dest_dir_path).unwrap(); // DO NOT SUBMIT
+      let mut cbindgen_toml_contents = String::with_capacity(1000);
+      cbindgen_toml_contents += "include_guard = \"EXAMPLE_PROJECT_H\"\n";
+      cbindgen_toml_contents += "include_version = true\n";
+      cbindgen_toml_contents += "language = \"C\"\n";
+      cbindgen_toml_contents += "cpp_compat = true\n";
+      cbindgen_toml_contents += "\n";
+      cbindgen_toml_contents += "header = \"\"\"\n";
+      cbindgen_toml_contents += "#define VALIGN(n) __attribute__ ((aligned(n)))\n";
+      cbindgen_toml_contents += "#include <stdalign.h>\n";
+      cbindgen_toml_contents += "\"\"\"\n";
+      cbindgen_toml_contents += "\n";
+      cbindgen_toml_contents += "[layout]\n";
+      cbindgen_toml_contents += "aligned_n = \"VALIGN\"\n";
 
-        let item = lookup_uid(&crates, &uid);
+      fs::write(output_dir_path.to_owned() + "/cbindgen.toml", cbindgen_toml_contents)
+          .with_context(|| "Failed to write ".to_owned() + output_dir_path + "/Cargo.toml")?;
 
-        match &item.inner {
-          ItemEnum::Struct(struct_) => {
-            let s =
-                match valify_concrete(&crates, &item_index, &available_types_uids, uid, item, &struct_.generics, &struct_.impls) {
-                  Ok(x) => x,
-                  Err(SimplifyError::Unsupported(reason)) => unimplemented!(),
-                  Err(SimplifyError::SimplifyFatal(e)) => Err(e).unwrap() // DO NOT SUBMIT
-                };
-            println!("Writing to {:?}", dest_file_path);
-            fs::write(dest_file_path, s).unwrap();
+      let mut primitives: HashSet<String> = HashSet::new();
+      primitives.insert("&str".to_owned()); // TODO: add more
+
+      let mut drop_func_type_original_str_to_maybe_drop_func_alias: HashMap<String, Option<String>> = HashMap::new();
+      let mut scouting_strings: Vec<String> = Vec::new();
+      // Drop functions expect this kind of return type
+      scouting_strings.push(get_type_sizer_string("()", &ParsedFullType { steps: vec![ParsedType::Tuple {generic_args: Vec::new()}] }));
+
+      // TODO: Expensive call to string_path
+      original_type_str_and_parsed_type_and_original_line_and_maybe_alias.sort_by_key(|x| x.0.clone());
+      original_func_str_and_parsed_type_and_original_line_and_maybe_alias.sort_by_key(|x| x.0.clone());
+      for (original_type_str, parsed_type, line, _maybe_alias) in &original_type_str_and_parsed_type_and_original_line_and_maybe_alias {
+        println!("Sizing type {}", &original_type_str);
+        scouting_strings.push(get_type_sizer_string(original_type_str, parsed_type));
+      }
+      for (original_func_str, parsed_type, line, maybe_alias) in &original_func_str_and_parsed_type_and_original_line_and_maybe_alias {
+        let last = parsed_type.steps.last().unwrap();
+        match last {
+          ParsedType::Ref { .. } => panic!("wat"),
+          ParsedType::Primitive(_) => panic!("wat"),
+          ParsedType::Lifetime => panic!("wat"),
+          ParsedType::Wildcard => panic!("wat"),
+          ParsedType::ImplCast { .. } => panic!("wat"),
+          ParsedType::Alias(name) => unimplemented!(),
+          ParsedType::Tuple { .. } => {}// continue
+          ParsedType::Slice { .. } => {}// continue
+          ParsedType::Value { name, generic_args, params } => {
+            if name == "drop" {
+              // // Make sure to resolve the type.
+              // // TODO: This might be redundant.
+              let param_full_type = full_type_get_init(parsed_type);
+              println!("Sizing for drop function {}, type {}", &original_func_str, str_for_full_type(&param_full_type));
+              // There wasn't an original name for it, so just generate one.
+              let drop_type_original_name = sizify_full_type(&param_full_type);
+              scouting_strings.push(get_type_sizer_string(&drop_type_original_name, &param_full_type));
+              // Don't proceed to ask rustc anything about drop functions, because we can't
+              // directly address drop functions. We get something like this:
+              //   error[E0599]: no function or associated item named `drop` found for struct `OsString` in the current scope
+              //      --> src/main.rs:62:80
+              //   62  |   println!("fn {}", "std::ffi::OsString::drop");  print_fn(std::ffi::OsString::drop);
+              //       note: if you're trying to build a new `OsString` consider using one of the following associated functions:
+              // Instead, we'll just manually create them later.
+              drop_func_type_original_str_to_maybe_drop_func_alias.insert(drop_type_original_name, maybe_alias.clone());
+              continue;
+            }
           }
-          ItemEnum::Enum(enum_) => {
-            let s =
-                match valify_concrete(&crates, &item_index, &available_types_uids, uid, item, &enum_.generics, &enum_.impls) {
-                  Ok(x) => x,
-                  Err(SimplifyError::Unsupported(reason)) => unimplemented!(),
-                  Err(SimplifyError::SimplifyFatal(e)) => Err(e).unwrap() // DO NOT SUBMIT
-                };
-            println!("Writing to {:?}", dest_file_path);
-            fs::write(dest_file_path, s).unwrap();
-          }
-          ItemEnum::Module(_) => unimplemented!(),
-          ItemEnum::ExternCrate { .. } => unimplemented!(),
-          ItemEnum::Use(_) => unimplemented!(),
-          ItemEnum::Union(_) => unimplemented!(),
-          ItemEnum::StructField(_) => unimplemented!(),
-          ItemEnum::Variant(_) => unimplemented!(),
-          ItemEnum::Function(_) => unimplemented!(),
-          ItemEnum::Trait(_) => unimplemented!(),
-          ItemEnum::TraitAlias(_) => unimplemented!(),
-          ItemEnum::Impl(_) => unimplemented!(),
-          ItemEnum::TypeAlias(_) => unimplemented!(),
-          ItemEnum::Constant { .. } => unimplemented!(),
-          ItemEnum::Static(_) => unimplemented!(),
-          ItemEnum::ExternType => unimplemented!(),
-          ItemEnum::Macro(_) => unimplemented!(),
-          ItemEnum::ProcMacro(_) => unimplemented!(),
-          ItemEnum::Primitive(_) => unimplemented!(),
-          ItemEnum::AssocConst { .. } => unimplemented!(),
-          ItemEnum::AssocType { .. } => unimplemented!(),
+        }
+        println!("Sizing function {}", &original_func_str);
+        scouting_strings.push(get_func_scouting_string(original_func_str, parsed_type));
+      }
+
+      println!("Running sizer program on {} types...", scouting_strings.len());
+
+      let sizer_program_str =
+          std::iter::once(sizer_preamble().to_owned()).into_iter()
+              .chain(std::iter::once("fn main() {".to_owned()))
+              .chain(scouting_strings)
+              .chain(std::iter::once("}".to_owned()))
+              .collect::<Vec<String>>()
+              .join("\n");
+
+      if Path::new(&(output_dir_path.to_owned() + "/src/lib.rs")).exists() {
+        fs::remove_file(output_dir_path.to_owned() + "/src/lib.rs")
+            .with_context(|| "Failed to remove ".to_owned() + output_dir_path + "/src/lib.rs")?;
+      }
+
+      let sizer_program_output_str =
+          get_rust_program_output(&cargo_path, output_dir_path, &sizer_program_str)?;
+      let mut type_rust_str_to_size_and_alignment: HashMap<String, (usize, usize)> = HashMap::new();
+      let mut func_rust_str_to_ret_str_and_params_strs: HashMap<String, (String, Vec<String>)> = HashMap::new();
+
+      let mut original_str_to_rust_str: HashMap<String, String> = HashMap::new();
+      let mut rust_str_to_original_str: HashMap<String, String> = HashMap::new();
+      let mut rust_str_to_alias: HashMap<String, String> = HashMap::new();
+      let mut alias_to_rust_str: HashMap<String, String> = HashMap::new();
+
+      println!("Got sizer program output:\n{}", sizer_program_output_str);
+
+      let lines = sizer_program_output_str.split("\n").collect::<Vec<_>>();
+      let mut root_line_i = 0;
+      while root_line_i < lines.len() {
+        let root_line = lines[root_line_i];
+
+        let original_str =
+            if let Some(first_space_pos) = root_line.find(" ") {
+              root_line[first_space_pos..].trim()
+            } else {
+              return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, "Bad line from sizer program: ".to_string() + root_line)));
+            };
+
+        let mut next_root_line_i = root_line_i + 1;
+        while next_root_line_i < lines.len() && lines[next_root_line_i].starts_with("  ") {
+          next_root_line_i += 1;
         }
 
-        // #!DeriveStructConstructor
-        // extern struct Vec<T> imm {
-        //   extern func with_capacity(capacity i64) Vec<T>;
-        //   extern func capacity(self Vec<T>) i64;
-        // }
+        let rust_str =
+          if root_line.starts_with("type") {
+            assert!(root_line_i + 1 < lines.len());
+            let (size, alignment, rust_type_str) = parse_type_info_line(lines[root_line_i + 1].trim())?;
+
+            type_rust_str_to_size_and_alignment.insert(rust_type_str.to_owned(), (size, alignment));
+
+            if let Some(maybe_drop_func_alias) = drop_func_type_original_str_to_maybe_drop_func_alias.get(original_str) {
+              let func_str = rust_type_str.to_owned() + "::drop";
+              let ret_type_rust_str = "()".to_owned();
+              let param_types_rust_strs = vec![rust_type_str.to_owned()];
+              func_rust_str_to_ret_str_and_params_strs.insert(
+                func_str.to_owned(), (ret_type_rust_str.to_owned(), param_types_rust_strs));
+              if let Some(alias) = maybe_drop_func_alias {
+                alias_to_rust_str.insert(alias.to_string(), func_str.to_string());
+                rust_str_to_alias.insert(func_str.to_string(), alias.to_string());
+              }
+            }
+
+            rust_type_str
+          } else if root_line.starts_with("fn") {
+            let (num_params, func_str_unturboed) = parse_func_info_line(lines[root_line_i + 1].trim())?;
+            // Strings start with < if they're talking about impls, hence not doing the replace on that first one.
+            let func_str =
+                turbofishify(&func_str_unturboed)
+                    // Rust's type_name shows this for any impl str method, like str::chars.
+                    .replace("core::str::<impl str>::", "str::");
+
+            let (ret_size, ret_alignment, ret_type_rust_str) = parse_type_info_line(lines[root_line_i + 2].trim())?;
+            type_rust_str_to_size_and_alignment.insert(ret_type_rust_str.to_owned(), (ret_size, ret_alignment));
+
+            let mut param_types_rust_strs = Vec::new();
+            for param_line_i in (root_line_i + 3)..next_root_line_i {
+              let (param_size, param_alignment, param_rust_type_str) = parse_type_info_line(lines[param_line_i].trim())?;
+              type_rust_str_to_size_and_alignment.insert(param_rust_type_str.to_owned(), (param_size, param_alignment));
+              param_types_rust_strs.push(param_rust_type_str.to_owned());
+            }
+
+            func_rust_str_to_ret_str_and_params_strs.insert(
+              func_str.to_owned(), (ret_type_rust_str.to_owned(), param_types_rust_strs));
+            func_str
+          } else {
+            panic!("Bad output from sizer program: {}", root_line);
+          };
+
+        rust_str_to_original_str.insert(rust_str.clone(), original_str.to_owned());
+        original_str_to_rust_str.insert(original_str.to_owned(), rust_str.clone());
+
+        if let Some(alias) = original_str_to_alias.get(original_str) {
+          alias_to_rust_str.insert(alias.to_string(), rust_str.to_string());
+          rust_str_to_alias.insert(rust_str.to_string(), alias.to_string());
+        }
+
+        root_line_i = next_root_line_i;
+      }
+
+      let mut alias_to_parsed_type: HashMap<String, ParsedFullType> = HashMap::new();
+      let mut parsed_type_to_alias: HashMap<ParsedFullType, String> = HashMap::new();
+      for (type_rust_str, (size, alignment)) in &type_rust_str_to_size_and_alignment {
+        if let Some(alias) = rust_str_to_alias.get(type_rust_str) {
+          // Handling in an empty map for aliases is fine because these come straight from Rust and
+          // don't mention aliases.
+          let (type_, _, _) = parse_full_type(&concrete_primitives, &HashMap::new(), &HashMap::new(), &type_rust_str)?;
+          alias_to_parsed_type.insert(alias.to_string(), type_.clone());
+          parsed_type_to_alias.insert(type_.clone(), alias.to_string());
+        }
+      }
+      for (func_rust_str, (size, alignment)) in &type_rust_str_to_size_and_alignment {
+        if let Some(alias) = rust_str_to_alias.get(func_rust_str) {
+          // Handling in an empty map for aliases is fine because these come straight from Rust and
+          // don't mention aliases.
+          let (type_, _, _) = parse_full_type(&concrete_primitives, &HashMap::new(), &HashMap::new(), &func_rust_str)?;
+          alias_to_parsed_type.insert(alias.to_string(), type_.clone());
+          parsed_type_to_alias.insert(type_.clone(), alias.to_string());
+        }
+      }
+
+      for (key, val) in &parsed_type_to_alias {
+        eprintln!("alias type key: {:?}", str_for_full_type(&key));
+      }
+
+      // let mut crates = HashMap::new();
+      // crates.insert("std".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "std")?);
+      // crates.insert("alloc".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "alloc")?);
+      // crates.insert("core".to_string(), indexer::get_crate(&rustc_sysroot_path, &cargo_path, &output_dir_path, "core")?);
+      // indexer::get_dependency_crates(&rustc_sysroot_path, &cargo_path, &output_dir_path, &cargo_toml_path, &mut crates)?;
+      // let item_index = indexer::genealogize(&crates)?;
+
+      let mut type_rust_str_to_info: HashMap<String, TypeInfo> = HashMap::new();
+      let mut func_rust_str_to_info: HashMap<String, FuncInfo> = HashMap::new();
+      for (func_rust_str, (ret_type_rust_str, param_types_rust_strs)) in func_rust_str_to_ret_str_and_params_strs {
+        let (type_without_aliasing, type_with_aliasing, _) =
+            parse_full_type(&concrete_primitives, &HashMap::new(), &parsed_type_to_alias, &func_rust_str)?;
+        // let (type_with_aliasing, _) = parse_full_type(&concrete_primitives, &parsed_type_to_alias, &func_rust_str)?;
+        let public_type = type_without_aliasing.clone();//determine_public_type(&crates, &item_index, &type_without_aliasing)?;
+        let c_name =
+            rust_str_to_alias.get(&func_rust_str).map(|x| x.to_owned())
+                .unwrap_or(get_pointered_prefixed_mangled_type(&type_with_aliasing));
+        func_rust_str_to_info.insert(
+          func_rust_str,
+          FuncInfo {
+              canonical_type: type_without_aliasing,
+              public_type,
+              c_name,
+              ret_type_rust_str,
+              param_types_rust_strs
+            });
+      }
+      for (type_rust_str, (size, alignment)) in type_rust_str_to_size_and_alignment {
+        let (type_without_aliasing, type_with_aliasing, _) =
+            parse_full_type(&concrete_primitives, &HashMap::new(), &parsed_type_to_alias, &type_rust_str)?;
+        eprintln!("Just parsed canonical {:?}, aliasing {:?}", str_for_full_type(&type_without_aliasing), str_for_full_type(&type_with_aliasing));
+        // let (type_with_aliasing, _) = parse_full_type(&concrete_primitives, &parsed_type_to_alias, &type_rust_str)?;
+        let public_type = type_without_aliasing.clone();//determine_public_type(&crates, &item_index, &type_without_aliasing)?;
+        let c_name =
+            rust_str_to_alias.get(&type_rust_str).map(|x| x.to_owned())
+                .unwrap_or(get_pointered_prefixed_mangled_type(&type_with_aliasing));
+        type_rust_str_to_info.insert(
+          type_rust_str,
+          TypeInfo {
+              canonical_type: type_without_aliasing,
+              public_type,
+              c_name,
+              size,
+              alignment
+            });
+      }
+
+
+      let mut struct_strings: Vec<String> = Vec::new();
+      let mut func_strings: Vec<String> = Vec::new();
+
+      // type_and_original_line_and_type_str_and_maybe_alias
+      //     .sort_by_key(|x| x.0.valtype.id.id.0.clone());
+
+      for (rust_type_str, type_info) in &type_rust_str_to_info {
+        match type_info.canonical_type.steps.last().unwrap() {
+          ImplCast { .. } => unimplemented!(),
+          ParsedType::Lifetime => unimplemented!(),
+          ParsedType::Wildcard => unimplemented!(),
+          ParsedType::Alias(name) => unimplemented!(),
+          ParsedType::Ref { mutable, inner } => {
+            eprintln!("TODO: put better logic in for whether something's sized");
+            let sized =
+              match inner.steps.last().unwrap() {
+                ParsedType::Slice { inner: inner_inner } => false,
+                ParsedType::Value { name, generic_args, params } => {
+                  match name.as_str() {
+                    "str" => false,
+                    _ => true
+                  }
+                },
+                _ => true,
+              };
+            if sized {
+              continue; // Skip these, we don't need struct wrappers for pointers.
+            } else {
+              // If it's not sized, then its like a slice, and we do want a struct wrapper for that.
+            }
+          },
+          ParsedType::Primitive(name) => continue,
+          ParsedType::Value { .. } => {}
+          ParsedType::Tuple { .. } => {}
+          ParsedType::Slice { .. } => {}
+        }
+        struct_strings.push(
+          instantiate_struct(type_info)?);
+      }
+
+      for (rust_type_str, func_info) in &func_rust_str_to_info {
+        let maybe_alias = rust_str_to_alias.get(rust_type_str).map(|x| x.as_str());
+        func_strings.push(instantiate_func(&type_rust_str_to_info, func_info)?);
+      }
+
+      if let Some(output_sizes_path) = maybe_output_sizes_path {
+        let output_sizes_str =
+            original_str_to_rust_str
+                .iter()
+                .map(|(original_str, rust_str)| {
+                  if let Some(info) = type_rust_str_to_info.get(rust_str) {
+                    let mangled = mangle_full_type(&info.public_type);
+                    format!("type/{}/{}/{}/{}\n", original_str, mangled, info.size, info.alignment)
+                  } else if let Some(info) = func_rust_str_to_info.get(rust_str) {
+                    let mangled = mangle_full_type(&info.public_type);
+                    let mut result_str = format!("fn/{}/{}/{}", original_str, mangled, info.ret_type_rust_str);
+                    for param_str in &info.param_types_rust_strs {
+                      result_str = result_str + "/" + &param_str;
+                    }
+                    result_str + "\n"
+                  } else {
+                    panic!("original str not fn or type?");
+                  }
+                })
+                .collect::<Vec<_>>()
+                .join("");
+        fs::write(output_sizes_path, output_sizes_str)
+            .with_context(|| "Failed to write ".to_string() + output_sizes_path)?;
+      }
+
+      let final_program_str =
+          [common_preamble().to_owned(), instantiations_preamble(str_ref_alias).to_owned()].into_iter()
+              .chain(struct_strings.into_iter())
+              .chain(func_strings.into_iter())
+              .collect::<Vec<String>>()
+              .join("\n");
+
+      fs::write(output_dir_path.to_string() + "/src/capi.rs", &final_program_str)
+          .with_context(|| "Failed to write ".to_string() + output_dir_path + "/src/capi.rs")?;
+
+      fs::write(
+        output_dir_path.to_string() + "/src/lib.rs",
+        r#"
+#![feature(os_str_display)]
+
+#[cfg(feature = "capi")]
+mod capi;
+"#)
+          .with_context(|| "Failed to write ".to_string() + output_dir_path + "/src/lib.rs")?;
+
+      fs::remove_file(output_dir_path.to_string() + "/src/main.rs")
+          .with_context(|| "Failed to remove ".to_string() + output_dir_path + "/src/main.rs")?;
+
+      let args_human_output: Vec<String> = vec![
+        "+nightly".to_owned(),
+        "cbuild".to_owned(),
+        "--release".to_owned(),
+        "--manifest-path=".to_string() + output_dir_path + "/Cargo.toml",
+        "--destdir=clibthing".to_owned(),
+        "--target".to_owned(), host_triple.clone(),
+        // Removed: "-Z", "build-std-features=panic_immediate_abort" — this was renamed
+        // in rust nightly 2025-12. The panic=abort in the generated Cargo.toml profile
+        // achieves normal panic-abort behavior; panic_immediate_abort was a size optimization.
+        "-Z".to_owned(), "build-std=std,panic_abort".to_owned(),
+        "--library-type".to_owned(), "staticlib".to_owned()
+      ];
+
+      let mut args_json_output = args_human_output.clone();
+      args_json_output.push("--message-format=json".to_owned());
+
+      let mut command_with_json_output = Command::new(&cargo_path)
+          .args(args_json_output)
+          .env("RUSTFLAGS", "-Zlocation-detail=none")
+          .stdout(Stdio::piped())
+          .spawn()
+          .with_context(|| "Failed to execute cbuild command")
+          .unwrap();
+      let json_output = command_with_json_output.wait_with_output().expect("Couldn't get cargo's exit status");
+      if json_output.status.code() == Some(0) {
+        // Continue
+      } else {
+        let mut replacements = vec![];
+
+        // It gave some errors, probably about us accessing private names.
+        // Let's find the fixes and apply them.
+        // I wish cargo fix could do this for us but it can't =\
+        let reader = std::io::BufReader::new(json_output.stdout.take(1000000)); // DO NOT SUBMIT magic number
+        for message in cargo_metadata::Message::parse_stream(reader) {
+          match message.unwrap() {
+            Message::CompilerMessage(msg) => {
+              if let Some(code) = &msg.message.code {
+                if code.code == "E0603" {
+                  println!("Bork {:?}", msg);
+                  let maybe_suggestion =
+                    msg.message.children.iter().find(|m| {
+                      // Should match "consider importing this enum instead"
+                      // and "consider importing this struct instead"
+                      // and "consider importing one of these items instead"
+                      // etc.
+                      m.message.starts_with("consider importing")
+                    });
+                  if let Some(suggestion_diagnostic) = maybe_suggestion {
+                    if suggestion_diagnostic.spans.len() < 1 {
+                      unimplemented!();
+                    }
+                    // There might be more than one span here.
+                    // If we use the type core::str::iter::Chars, it'll suggest we use one of:
+                    // - core::str::Chars
+                    // - crate::capi::core::str::Chars
+                    // - std::str::Chars
+                    // We could in theory use any of these, but let's go with the smallest one
+                    // just to be deterministic.
+                    let mut possible_replacements = suggestion_diagnostic.spans.clone();
+                    possible_replacements.sort_by_key(|x| {
+                      x.suggested_replacement.as_ref()
+                          .expect("Expected replacement in consider-importing diagnostic!")
+                          .len()
+                    });
+                    replacements.push(possible_replacements[0].clone());
+                  } else {
+                    unimplemented!();
+                  }
+                }
+              }
+            },
+            Message::CompilerArtifact(artifact) => {
+              // println!("Bork {:?}", artifact);
+            },
+            Message::BuildScriptExecuted(script) => {
+              // println!("Bork {:?}", script);
+            },
+            Message::BuildFinished(finished) => {
+              // println!("Bork {:?}", finished);
+            },
+            _ => () // Unknown message
+          }
+        }
+
+        replacements.sort_by_key(|a| a.byte_start);
+        if replacements.len() >= 1 {
+          for i in 0..(replacements.len() - 1) {
+            let this = &replacements[i];
+            let next = &replacements[i + 1];
+            if this.byte_end > next.byte_start {
+              unimplemented!();
+            }
+          }
+        }
+
+        let mut replaced_code = final_program_str;
+        for replacement in replacements.iter().rev() {
+          replaced_code.replace_range(
+            (replacement.byte_start as usize)..(replacement.byte_end as usize),
+            replacement.suggested_replacement.as_ref().unwrap());
+        }
+        fs::write(output_dir_path.to_string() + "/src/capi.rs", replaced_code)
+            .with_context(|| "Failed to write ".to_string() + output_dir_path + "/src/capi.rs")?;
+
+        let mut command_with_human_output = Command::new(&cargo_path)
+            .args(args_human_output)
+            .env("RUSTFLAGS", "-Zlocation-detail=none")
+            .stdout(Stdio::piped())
+            .output()
+            .with_context(|| "Failed to execute cbuild command")
+            .unwrap();
+
+        if command_with_human_output.status.code() == Some(0) {
+          // Proceed!
+        } else {
+          let stderr = String::from_utf8_lossy(&command_with_human_output.stderr);
+          let stdout = String::from_utf8_lossy(&command_with_human_output.stdout);
+          let error = "Error from cbuild command: ".to_string() + &stderr + "\n" + &stdout;
+          return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, error)));
+        }
+      }
+
+      let output = Command::new(&cargo_path)
+          .args(&[
+            "cinstall",
+            &("--manifest-path=".to_string() + output_dir_path + "/Cargo.toml"),
+            "--destdir=clibthing",
+            "--library-type", "staticlib"])
+          .output()
+          .with_context(|| "Failed to execute cbuild command")?;
+      if output.status.code() == Some(0) {
+        // Continue
+      } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let error = "Error from cinstall command: ".to_string() + &stderr;
+        return Err(anyhow::Error::new(std::io::Error::new(std::io::ErrorKind::Other, error)));
       }
     }
     _ => {
@@ -333,496 +835,6 @@ fn main() -> Result<(), anyhow::Error> {
   return Ok(());
 }
 
-fn valify_concrete(
-  crates: &HashMap<String, Crate>,
-  item_index: &ItemIndex,
-  available_type_uids: &HashSet<UId>,
-  struct_uid: UId,
-  struct_item: &Item,
-  concrete_generics: &Generics,
-  concrete_impls: &Vec<Id>
-) -> Result<String, SimplifyError> {
-  let mut result =
-      "#!DeriveStructConstructor extern struct ".to_owned() +
-          &struct_item.name.as_ref().expect("Struct has no name?");
-  if concrete_generics.params.len() > 0 {
-    result += "<";
-    for gen in &concrete_generics.params {
-      match &gen.kind {
-        GenericParamDefKind::Lifetime { .. } => unimplemented!(),
-        GenericParamDefKind::Const { .. } => unimplemented!(),
-        GenericParamDefKind::Type { bounds, default, is_synthetic } => {
-          if bounds.len() > 0 {
-            continue; // DO NOT SUBMIT
-          }
-          result += &gen.name;
-        }
-      }
-    }
-    result += ">";
-  }
-  result += " imm {\n"; // DO NOT SUBMIT imm
-
-  let mut method_name_to_count: HashMap<String, usize> = HashMap::new();
-
-  for impl_id in concrete_impls {
-    let impl_uid_unresolved = UId { crate_name: struct_uid.crate_name.clone(), id: impl_id.clone() };
-    let impl_uid = resolve_uid(crates, &item_index.primitive_name_to_uid, &impl_uid_unresolved).unwrap(); // DO NOT SUBMIT
-    let impl_item = lookup_uid(crates, &impl_uid);
-    let impl_ =
-        match &impl_item.inner {
-          ItemEnum::Impl(i) => i,
-          _ => panic!("Impl item isn't impl!"),
-        };
-    for method_id in &impl_.items {
-      let method_uid_unresolved =
-          UId { crate_name: struct_uid.crate_name.clone(), id: method_id.clone() };
-      let method_uid = resolve_uid(crates, &item_index.primitive_name_to_uid, &method_uid_unresolved).unwrap(); // DO NOT SUBMIT
-      let method_item = lookup_uid(crates, &method_uid);
-      match &method_item.inner {
-        ItemEnum::Function(method) => {
-          if let Some(name) = &method_item.name {
-            *method_name_to_count.entry(name.clone()).or_default() += 1;
-          }
-        }
-        _ => {}
-      }
-    }
-  }
-  for impl_id in concrete_impls {
-    let impl_uid_unresolved = UId { crate_name: struct_uid.crate_name.clone(), id: impl_id.clone() };
-    let impl_uid = resolve_uid(crates, &item_index.primitive_name_to_uid, &impl_uid_unresolved).unwrap(); // DO NOT SUBMIT
-    let impl_item = lookup_uid(crates, &impl_uid);
-    let impl_ =
-        match &impl_item.inner {
-          ItemEnum::Impl(i) => i,
-          _ => panic!("Impl item isn't impl!"),
-        };
-
-    // if impl_.generics.params.len() > 0 {
-    //   eprintln!(
-    //     "Skipping {} impl {}: {}",
-    //     struct_item.name.as_ref().unwrap_or(&"".to_owned()),
-    //     impl_.trait_.as_ref().map(|x| &x.path).unwrap_or(&"".to_owned()),
-    //     "Impl has generics");
-    //   continue;
-    // }
-
-    match &valify_impl(crates, &item_index, &available_type_uids, &struct_uid, struct_item, concrete_generics, concrete_impls, &method_name_to_count, &impl_) {
-      Ok(x) => {
-        result += x;
-      }
-      Err(Unsupported(reason)) => {
-        result +=
-            &format!(
-              "  // Skipping {} impl: {}\n",
-              // struct_item.name.as_ref().unwrap_or(&"".to_owned()),
-              impl_.trait_.as_ref().map(|x| &x.path).unwrap_or(&"".to_owned()),
-              reason);
-      }
-      Err(SimplifyError::SimplifyFatal(err)) => Err(err).unwrap() // DO NOT SUBMIT
-    }
-  }
-  result += "}\n";
-  Ok(result)
-}
-
-fn valify_impl(
-  crates: &HashMap<String, Crate>,
-  item_index: &ItemIndex,
-  outer_whitelist_type_uids: &HashSet<UId>,
-  struct_uid: &UId,
-  struct_item: &Item,
-  concrete_generics: &Generics,
-  concrete_impls: &Vec<Id>,
-  method_name_to_count: &HashMap<String, usize>,
-  impl_: &Impl
-) -> Result<String, SimplifyError> {
-  let mut result = "".to_owned();
-
-  let struct_name =
-    match &impl_.for_ {
-      Type::ResolvedPath(path) => &path.path,
-      Type::BorrowedRef { .. } => {
-        return Err(Unsupported("Impl for borrowed struct unsupported".to_string()));
-      },
-      Type::DynTrait(_) => unimplemented!(),
-      Type::Generic(_) => unimplemented!(),
-      Type::Primitive(_) => {
-        // Triggered by e.g. `impl PartialEq<String> for str` while walking String's
-        // impl set — the `for_` is the primitive `str`, not String itself. Skip these
-        // sibling impls; the binding for the requested type (String) is unaffected.
-        return Err(Unsupported("Impl for primitive unsupported".to_string()));
-      },
-      Type::FunctionPointer(_) => unimplemented!(),
-      Type::Tuple(_) => unimplemented!(),
-      Type::Slice(_) => {
-        return Err(Unsupported("Impl for slice unsupported".to_string()));
-      }
-      Type::Array { .. } => {
-        return Err(Unsupported("Impl for array unsupported".to_string()));
-      }
-      Type::Pat { .. } => unimplemented!(),
-      Type::ImplTrait(_) => unimplemented!(),
-      Type::Infer => unimplemented!(),
-      Type::RawPointer { .. } => unimplemented!(),
-      Type::QualifiedPath { .. } => unimplemented!(),
-    };
-  let trait_name =
-    match &impl_.trait_ {
-      None => "(self)",
-      Some(trait_) => &trait_.path,
-    };
-  eprintln!("Considering {} impl {}...", struct_name, trait_name);
-
-  if impl_.blanket_impl.is_some() {
-    return Err(Unsupported("Blanket impls unsupported".to_owned()));
-  }
-
-  // DO NOT SUBMIT take out, simplify
-  // let names_and_generic_simple_types =
-  let impl_struct_arg_impl_runes =
-      match &impl_.for_ {
-        Type::ResolvedPath(path) => {
-          if path.id != struct_uid.id {
-            return Err(Unsupported("Impl for non-struct types unsupported".to_owned()));
-          }
-          let empty = Vec::new();
-          let generic_args =
-              path.args.as_ref()
-                  .map(|x| {
-                    match &**x {
-                      GenericArgs::AngleBracketed { args, .. } => args,
-                      GenericArgs::Parenthesized { .. } => unimplemented!(),
-                      GenericArgs::ReturnTypeNotation => unimplemented!(),
-                    }
-                  })
-                  .unwrap_or(&empty);
-          let mut result = vec![];
-          for generic_arg in generic_args {
-            result.push(
-              match generic_arg {
-                GenericArg::Lifetime(_) => unimplemented!(),
-                GenericArg::Const(_) => unimplemented!(),
-                GenericArg::Infer => unimplemented!(),
-                GenericArg::Type(type_) => {
-                  match type_ {
-                    Type::Generic(rune) => {
-                      match rune.as_str() {
-                        "$" | "" => unimplemented!(),
-                        _ => rune.clone()
-                      }
-                    },
-                    Type::Array { .. } => {
-                      return Err(Unsupported("Encountered generic arg Array".to_owned()))
-                    }
-                    Type::ResolvedPath(path) => {
-                      return Err(Unsupported(format!("Encountered generic arg nested ResolvedPath {}", path.path)))
-                    }
-                    Type::DynTrait(_) => unimplemented!(),
-                    Type::Primitive(_) => {
-                      return Err(Unsupported("Encountered const generic".to_owned()))
-                    },
-                    Type::FunctionPointer(_) => unimplemented!(),
-                    Type::Tuple(_) => {
-                      return Err(Unsupported("Encountered generic arg tuple".to_owned()))
-                    }
-                    Type::Slice(_) => unimplemented!(),
-                    Type::Pat { .. } => unimplemented!(),
-                    Type::ImplTrait(_) => unimplemented!(),
-                    Type::Infer => unimplemented!(),
-                    Type::RawPointer { .. } => unimplemented!(),
-                    Type::BorrowedRef { .. } => {
-                      return Err(Unsupported("Encountered generic arg borrow ref".to_owned()))
-                    }
-                    Type::QualifiedPath { .. } => unimplemented!(),
-                  }
-                },
-              });
-          }
-          result
-        }
-        _ => unimplemented!(),
-      };
-
-  // DO NOT SUBMIT take out, simplify
-  let mut defaulted_generic_runes: HashSet<String> = HashSet::new();
-  let mut names_and_generic_simple_types = vec![];
-  for (struct_generic_param, impl_struct_arg_impl_rune) in
-      concrete_generics.params.iter().zip(&impl_struct_arg_impl_runes) {
-    match struct_generic_param.name.as_str() {
-      "$" | "" => unimplemented!(),
-      _ => {} // proceed
-    }
-    match impl_struct_arg_impl_rune.as_str() {
-      "$" | "" => unimplemented!(),
-      _ => {} // proceed
-    }
-
-    let has_default =
-      match &struct_generic_param.kind {
-        GenericParamDefKind::Lifetime { .. } => unimplemented!(),
-        GenericParamDefKind::Const { .. } => unimplemented!(),
-        GenericParamDefKind::Type { bounds, default, is_synthetic } => {
-          default.is_some()
-        }
-      };
-    if has_default {
-      defaulted_generic_runes.insert(impl_struct_arg_impl_rune.to_owned());
-    } else {
-      names_and_generic_simple_types.push((
-        impl_struct_arg_impl_rune,
-        SimpleType {
-          imm_ref: false,
-          mut_ref: false,
-          valtype: SimpleValType {
-            id: generic_id(struct_generic_param.name.clone()),
-            generic_args: Vec::new(),
-            maybe_parent_impl: None,
-            maybe_parent_concrete: None
-          }
-        }));
-    }
-  }
-  if impl_struct_arg_impl_runes.len() < impl_.generics.params.len() {
-    return Err(Unsupported("Impl has more args than used in struct".to_owned()))
-  }
-
-  let mut generics: HashMap<String, SimpleType> = HashMap::new();
-  for (a, b) in &names_and_generic_simple_types {
-    generics.insert((*a).to_owned(), b.clone());
-  }
-  let self_valtype =
-      SimpleValType {
-        id: struct_uid.clone(),
-        generic_args: names_and_generic_simple_types.into_iter().map(|(a, b)| b).collect(),
-        maybe_parent_concrete: None,
-        maybe_parent_impl: None
-      };
-  generics.insert(
-    "Self".to_owned(),
-    SimpleType {
-      imm_ref: false,
-      mut_ref: false,
-      valtype: self_valtype
-    });
-  let mut whitelist_type_ids = outer_whitelist_type_uids.clone();
-  for (_, generic) in &generics {
-    whitelist_type_ids.insert(generic.valtype.id.clone());
-  }
-
-  for method_id in &impl_.items {
-    let method_uid_unresolved =
-        UId { crate_name: struct_uid.crate_name.clone(), id: method_id.clone() };
-    let method_uid = resolve_uid(crates, &item_index.primitive_name_to_uid, &method_uid_unresolved).unwrap(); // DO NOT SUBMIT
-    let method_item = lookup_uid(crates, &method_uid);
-    match &method_item.inner {
-      ItemEnum::Function(method) => {
-        match valify_method(crates, item_index, &method_name_to_count, &defaulted_generic_runes, &whitelist_type_ids, &generics, method_uid, method_item, method) {
-          Ok(x) => {
-            result += &x
-          },
-          Err(SimplifyError::SimplifyFatal(e)) => return Err(SimplifyError::SimplifyFatal(e)),
-          Err(SimplifyError::Unsupported(reason)) => {
-            result +=
-              &format!(
-                "  // Skipping {} method {}: {}\n",
-                // struct_item.name.as_ref().unwrap_or(&"".to_owned()),
-                trait_name,
-                method_item.name.as_ref().unwrap_or(&"".to_owned()),
-                &reason);
-          }
-        }
-      }
-      _ => {} // Ignore anything else
-    }
-  }
-
-  Ok(result)
-}
-
-fn generic_id(
-  name: String,
-) -> UId {
-  use std::collections::hash_map::DefaultHasher;
-  use std::hash::{Hash, Hasher};
-  let mut hasher = DefaultHasher::new();
-  name.hash(&mut hasher);
-  UId {
-    // Store the generic param name after "$" so we can extract it later
-    crate_name: format!("${}", name),
-    id: Id(hasher.finish() as u32),
-  }
-}
-
-fn valify_method(
-  crates: &HashMap<String, Crate>,
-  item_index: &ItemIndex,
-  method_name_to_count: &HashMap<String, usize>,
-  defaulted_generic_runes: &HashSet<String>,
-  outer_whitelist_type_uids: &HashSet<UId>,
-  outer_generics: &HashMap<String, SimpleType>,
-  method_uid: UId,
-  method_item: &Item,
-  method: &Function
-) -> Result<String, SimplifyError> {
-  let mut generics = outer_generics.clone();
-  let mut whitelist_type_uids = outer_whitelist_type_uids.clone();
-  // for generic in &method.generics.params {
-  //   generics.insert(
-  //     generic.name.to_owned(),
-  //     SimpleType {
-  //       imm_ref: false,
-  //       mut_ref: false,
-  //       valtype: SimpleValType {
-  //         id: generic_id(generic.name.to_owned()),
-  //         generic_args: Vec::new(),
-  //         maybe_parent_impl: None,
-  //         maybe_parent_concrete: None
-  //       }
-  //     });
-  // }
-
-  if let Some(name) = &method_item.name {
-    if *method_name_to_count.get(name).unwrap_or(&0) > 1 {
-      return Err(Unsupported("Method is overloaded".to_owned()));
-    } else {
-      eprintln!("Doing func {} which has {} overloads", name, *method_name_to_count.get(name).unwrap());
-    }
-  } else {
-    return Err(Unsupported("Encountered no-name method".to_owned()));
-  }
-
-  if method.generics.params.len() > 0 {
-    return Err(Unsupported("Method generics unsupported".to_owned()));
-  }
-
-  let mut result: String =
-      "  extern func ".to_owned() +
-      // DO NOT SUBMIT
-      method_item.name.as_ref().expect("Struct method has no name!") +
-      "(";
-
-  let mut params_inner_str = "".to_owned();
-  for (param_name, param_type) in &method.sig.inputs {
-    if params_inner_str.len() > 0 {
-      params_inner_str += ", ";
-    }
-    let param_simplified =
-        simplify_type(crates, item_index, &defaulted_generic_runes, Some(&whitelist_type_uids), &generics, &method_uid.crate_name, param_type)?; // DO NOT SUBMIT
-    params_inner_str += param_name;
-    params_inner_str += " ";
-    params_inner_str += &valify_simple_type(crates, item_index, &param_simplified);
-  }
-  result += &params_inner_str;
-
-  result += ")";
-
-  if let Some(output) = &method.sig.output {
-    let output_simplified =
-        simplify_type(crates, item_index, defaulted_generic_runes, Some(&whitelist_type_uids), &generics, &method_uid.crate_name, output)?;
-    result += " ";
-    result += &valify_simple_type(crates, item_index, &output_simplified);
-  }
-
-  result += ";\n";
-
-  Ok(result)
-}
-
-fn valify_simple_type(
-  crates: &HashMap<String, Crate>,
-  item_index: &ItemIndex,
-  type_: &SimpleType
-) -> String {
-  "".to_owned() +
-  (if type_.mut_ref || type_.imm_ref {
-    // Skip, the ABI will do this for us for now DO NOT SUBMIT
-    // From later: wat? i think we need it now DO NOT SUBMIT
-    "&"
-  } else {
-    ""
-  }) +
-      &valify_simple_valtype(crates, item_index, &type_.valtype)
-}
-
-fn valify_simple_valtype(
-  crates: &HashMap<String, Crate>,
-  item_index: &ItemIndex,
-  valtype: &SimpleValType
-) -> String {
-  let uid = &valtype.id;
-  if is_primitive(&item_index.primitive_uid_to_name, uid) {
-    if is_special_primitive(&item_index.primitive_name_to_uid, &uid) {
-      if is_generic(uid) {
-        return generic_name(uid).to_string()
-      } else if uid == &tuple_id(&item_index.primitive_name_to_uid) {
-        let mut inner_str = "".to_owned();
-        for x in &valtype.generic_args {
-          inner_str += &valify_simple_type(crates, item_index, x);
-          inner_str += ", ";
-        }
-        "(".to_owned() + &inner_str + ")"
-      } else if valtype.id == str_id(&item_index.primitive_name_to_uid) {
-        "str".to_owned()
-      } else {
-        unimplemented!()
-      }
-    } else {
-      if let Some(thing) = item_index.primitive_uid_to_name.get(uid) {
-        if thing == "usize" {
-          return "i64".to_owned(); // DO NOT SUBMIT
-        } else {
-          return thing.to_owned()
-        }
-      } else {
-        unimplemented!()
-      }
-    }
-  } else {
-    let item = lookup_uid(crates, uid);
-    let mut result =
-        match &item.name {
-          Some(x) => x.to_owned(),
-          None => unimplemented!(),
-        };
-    if valtype.generic_args.len() > 0 {
-      let trimmed_num_generic_args =
-        match &item.inner {
-          ItemEnum::Trait(trait_) => filter_defaulted_generics(&trait_.generics),
-          ItemEnum::Struct(struct_) => filter_defaulted_generics(&struct_.generics),
-          ItemEnum::Enum(enum_) => filter_defaulted_generics(&enum_.generics),
-          _ => unimplemented!(),
-        };
-
-      let mut generics_str = "".to_owned();
-      for x in &valtype.generic_args.iter().take(trimmed_num_generic_args).into_iter().collect::<Vec<_>>() {
-        if generics_str.len() > 0 {
-          generics_str += ", ";
-        }
-        generics_str += &valify_simple_type(crates, item_index, x);
-      }
-
-      result += "<";
-      result += &generics_str;
-      result += ">";
-    }
-    result
-  }
-}
-
-fn filter_defaulted_generics(generics: &Generics) -> usize {
-  generics.params.iter().filter(|x| {
-    match &x.kind {
-      GenericParamDefKind::Type { bounds, default, is_synthetic } => {
-        default.is_none()
-      }
-      GenericParamDefKind::Lifetime { .. } => unimplemented!(),
-      GenericParamDefKind::Const { .. } => unimplemented!(),
-    }
-  }).collect::<Vec<_>>().len()
-}
-
 fn turbofishify(rust_type_str_unturboed: &str) -> String {
   // Strings start with < if they're talking about impls, hence not doing the replace on that first one.
   rust_type_str_unturboed[0..1].to_string() +
@@ -831,113 +843,6 @@ fn turbofishify(rust_type_str_unturboed: &str) -> String {
 
 fn full_type_get_init(parsed_type: &ParsedFullType) -> ParsedFullType {
   ParsedFullType { steps: parsed_type.steps[0..parsed_type.steps.len() - 1].into_iter().map(|x| x.clone()).collect::<Vec<_>>() }
-}
-
-fn determine_public_type(
-  crates: &HashMap<String, Crate>,
-  item_index: &ItemIndex,
-  canonical_type: &ParsedFullType
-) -> anyhow::Result<ParsedFullType> {
-  let s = sizify_full_type(canonical_type);
-  eprintln!("Doing type {:?}", s);
-  let mut result_type = ParsedFullType { steps: Vec::new() };
-  let mut previous: Option<UId> = None;
-  for (step_i, step) in canonical_type.steps.iter().enumerate() {
-    // let uid =
-    match step {
-      ParsedType::Alias(name) => unimplemented!(),
-      ParsedType::Primitive(_) => {
-        result_type.steps.push(step.clone());
-      },
-      ParsedType::Ref { mutable, inner } => {
-        result_type.steps.push(
-          ParsedType::Ref {
-            mutable: *mutable,
-            inner: determine_public_type(crates, item_index, inner)?
-          });
-      },
-      ParsedType::Tuple { generic_args } => {
-        let mut new_generic_args = Vec::new();
-        for generic_arg in generic_args {
-          new_generic_args.push(
-            determine_public_type(crates, item_index, generic_arg)?);
-        }
-        result_type.steps.push(ParsedType::Tuple { generic_args: new_generic_args });
-      },
-      ParsedType::Slice { inner } => {
-        result_type.steps.push(
-          ParsedType::Slice {
-            inner: determine_public_type(crates, item_index, inner)?
-          });
-      },
-      ParsedType::Value { name, generic_args, params } => {
-        match extend_and_resolve_uid(crates, &item_index.primitive_name_to_uid, previous.as_ref(), name) {
-          Ok(uid) => {
-            previous = Some(uid.clone());
-
-            // sanity check
-            match &lookup_uid(crates, &uid).inner {
-              ItemEnum::Module(m) => {
-                if m.is_stripped {
-                  // Don't add this step to the final type, since its members were re-exported.
-                  unimplemented!(); // curious
-                }
-              }
-              _ => {}
-            }
-
-            let mut new_generic_args = Vec::new();
-            for generic_arg in generic_args {
-              new_generic_args.push(
-                determine_public_type(crates, item_index, generic_arg)?);
-            }
-            let mut new_params = Vec::new();
-            for param in params {
-              new_params.push(
-                determine_public_type(crates, item_index, param)?);
-            }
-
-            result_type.steps.push(ParsedType::Value {
-              name: name.clone(),
-              generic_args: new_generic_args,
-              params: new_params
-            });
-          }
-          Err(ResolveError::NotFound) => {
-            // Sometimes when we get one of these path steps, it's actually a private module
-            // such as the unwind_safe in core::panic::unwind_safe::RefUnwindSafe.
-            // The RefUnwindSafe was actually pub use'd in core::panic.
-            // If this isn't the last step, let's skip it and see if things work.
-            // TODO: document better or something? seems sketchy.
-            // Also, this seems like it has something to do with Module's is_stripped
-            // field, but there's not really a good way to use that to help, AFAICT.
-            continue;
-          }
-          Err(ResolveError::Unsupported(reason)) => {
-            return Err(anyhow::anyhow!("Unsupported type: {}", reason));
-          }
-          Err(ResolveError::ResolveFatal(fatal)) => return Err(fatal)
-        }
-      }
-      ImplCast { struct_, impl_ } => {
-        // All impl methods are public, so we don't actually need to do anything here.
-        // We can just use the struct's name.
-        // Though, it does mean that things are ambiguous now, for example, we're turning:
-        //   <std::ffi::os_str::OsString as core::convert::From<&str>>::from
-        // into:
-        //   std::ffi::os_str::OsString::from
-        let mut struct_canonical_type = determine_public_type(crates, item_index, struct_)?;
-        result_type.steps.append(&mut struct_canonical_type.steps);
-        result_type.steps.append(&mut canonical_type.steps[(step_i + 1)..].iter().map(|x| x.clone()).collect::<Vec<ParsedType>>());
-        eprintln!("Determined canonical: {:?}", sizify_full_type(&result_type));
-        return Ok(result_type);
-      }
-      ParsedType::Lifetime => unimplemented!(),
-      ParsedType::Wildcard => unimplemented!(),
-    }
-  }
-  eprintln!("Determined canonical: {:?}", sizify_full_type(&result_type));
-  return Ok(result_type);
 }
 
 fn parse_func_info_line(info_line: &str) -> Result<(usize, String)> {
@@ -1107,10 +1012,8 @@ pub extern "C" fn rust_StrLen(str_c: rust_str_ref) -> usize {
 "#.replace("rust_str_ref", str_ref_alias)
 }
 
-#[derive(Debug)]
 enum ResolveError {
   NotFound,
-  Unsupported(String),
   ResolveFatal(anyhow::Error)
 }
 
@@ -1281,7 +1184,6 @@ fn instantiate_func(
           .iter()
           .map(|x| type_rust_str_to_info.get(x).unwrap())
           .collect::<Vec<&TypeInfo>>();
-  // Per @SMLRZ, drop identified by last path step. Path has type args on struct step (e.g. Vec<i32>::drop).
   let is_drop =
     match info.canonical_type.steps.last().unwrap() {
       ParsedType::Value { name, .. } => name == "drop",
@@ -1419,7 +1321,7 @@ fn parse_type<'a>(
   match parse_group(&concrete_primitives, &replacements, &parsed_type_to_alias, rest, false, false, true)? {
     (Some((tuple_members_canonical, tuple_members_aliasing)), new_rest) => {
       if tuple_members_canonical.len() != 1 {
-        parse_group(&concrete_primitives, &replacements, &parsed_type_to_alias, rest, false, false, true);
+        let _ = parse_group(&concrete_primitives, &replacements, &parsed_type_to_alias, rest, false, false, true);
         panic!("Bad slice!"); // DO NOT SUBMIT
       }
       let inner_canonical = tuple_members_canonical.first().unwrap();
@@ -1568,7 +1470,6 @@ fn parse_full_type<'a>(
   }
 }
 
-// Per @SMLRZ, parses Rust paths with type args on type steps (e.g. Vec<i32>::capacity).
 fn parse_full_type_inner<'a>(
   concrete_primitives: &HashSet<String>,
   replacements: &HashMap<String, ParsedFullType>,

@@ -1,0 +1,20 @@
+# Pins the Rust nightly Divination uses. Matches the pin in the ValeRustInterop repo
+# (which calls us from its Backend), so the whole Vale → Rust interop pipeline uses a
+# single consistent toolchain.
+#
+# Why pin:
+# - Divination invokes `cargo +nightly cbuild` with `-Zbuild-std=std,panic_abort` to
+#   rebuild core/std/alloc. The unstable flag surface here churns: a recent nightly
+#   renamed `panic_immediate_abort` from a build-std feature flag to a real panic
+#   strategy, silently breaking our cbuild args until we noticed the core rebuild error.
+# - cargo-c (which provides cbuild) tracks the compiler closely too; a mismatched
+#   nightly can produce odd linker/rustc interactions.
+#
+# To bump: pick a nightly, test end-to-end against the calling ValeRustInterop pipeline,
+# then update both this file and ValeRustInterop/rust-toolchain.toml in lockstep.
+[toolchain]
+channel = "nightly-2025-12-09"
+# rust-src is required for Divination's `-Zbuild-std=std,panic_abort` flag, which
+# recompiles core/std/alloc from source to apply the generated crate's panic strategy.
+# No need for rust-docs-json here — that's only used by ValeRuster for rustdoc JSON.
+components = ["rust-src"]
