@@ -8,22 +8,10 @@ use crate::tests::tests::load_expected;
 use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonInt;
-/*
-package dev.vale
 
-import dev.vale.finalast._
-import dev.vale.instantiating.ast._
-import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, StructInstanceV}
-import dev.vale.typing.ast._
-import dev.vale.typing.types._
-import dev.vale.von.{VonBool, VonFloat, VonInt}
-import org.scalatest._
-*/
 // mig: struct IntegrationTestsB
 pub struct IntegrationTestsB;
-/*
-class IntegrationTestsB extends FunSuite with Matchers {
-*/
+
 // mig: fn tests_single_expression_and_single_statement_functions_returns
 #[test]
 fn tests_single_expression_and_single_statement_functions_returns() {
@@ -47,17 +35,7 @@ fn tests_single_expression_and_single_statement_functions_returns() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests single expression and single statement functions' returns") {
-    val compile = RunCompilation.test(
-      """
-        |struct MyThing { value int; }
-        |func moo() MyThing { return MyThing(4); }
-        |exported func main() { moo(); }
-      """.stripMargin)
-    compile.run(Vector())
-  }
-*/
+
 // mig: fn tests_calling_a_templated_struct_constructor
 #[test]
 fn tests_calling_a_templated_struct_constructor() {
@@ -81,21 +59,7 @@ fn tests_calling_a_templated_struct_constructor() {
     );
     let _ = compile.eval_for_kind_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests calling a templated struct's constructor") {
-    val compile = RunCompilation.test(
-      """
-        |#!DeriveStructDrop
-        |struct MySome<T Ref> { value T; }
-        |
-        |exported func main() int {
-        |  [x] = MySome<int>(4);
-        |  return x;
-        |}
-      """.stripMargin)
-    compile.evalForKind(Vector())
-  }
-*/
+
 // mig: fn test_array_push_pop_len_capacity_drop
 #[test]
 fn test_array_push_pop_len_capacity_drop() {
@@ -125,28 +89,7 @@ fn test_array_push_pop_len_capacity_drop() {
         other => panic!("expected VonInt(9), got {:?}", other),
     }
 }
-/*
-  test("Test array push, pop, len, capacity, drop") {
-    val compile = RunCompilation.test(
-      """
-        |import castutils.*;
-        |import printutils.*;
-        |import array.make.*;
-        |
-        |exported func main() int {
-        |  arr = Array<mut, int>(9);
-        |  arr.push(420);
-        |  arr.push(421);
-        |  arr.push(422);
-        |  arr.len();
-        |  return arr.capacity();
-        |  // implicit drop with pops
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    compile.evalForKind(Vector()) match { case VonInt(9) => }
-  }
-*/
+
 // mig: fn test_int_generic
 #[test]
 fn test_int_generic() {
@@ -173,24 +116,7 @@ fn test_int_generic() {
         other => panic!("expected VonInt(5), got {:?}", other),
     }
 }
-/*
-  test("Test int generic") {
-    val compile = RunCompilation.test(
-      """
-        |
-        |struct Vec<N Int, T>
-        |{
-        |  values [#N]<imm>T;
-        |}
-        |
-        |exported func main() int {
-        |  v = Vec<3, int>(#[#](3, 4, 5));
-        |  return v.values.2;
-        |}
-      """.stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(5) => }
-  }
-*/
+
 // mig: fn tests_upcasting_from_a_struct_to_an_interface
 #[test]
 fn tests_upcasting_from_a_struct_to_an_interface() {
@@ -215,12 +141,7 @@ fn tests_upcasting_from_a_struct_to_an_interface() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests upcasting from a struct to an interface") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/virtuals/upcasting.vale"))
-    compile.run(Vector())
-  }
-*/
+
 // mig: fn tests_upcasting_from_if
 #[test]
 fn tests_upcasting_from_if() {
@@ -248,12 +169,7 @@ fn tests_upcasting_from_if() {
         other => panic!("Expected VonInt(42), got {:?}", other),
     }
 }
-/*
-  test("Tests upcasting from if") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/if/upcastif.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-*/
+
 // mig: fn tests_lambda
 #[test]
 fn tests_lambda() {
@@ -277,19 +193,7 @@ fn tests_lambda() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests lambda") {
-    val compile =
-      RunCompilation.test(
-        """
-          |exported func main() int {
-          |  a = 7;
-          |  return { a }();
-          |}
-          |""".stripMargin)
-    compile.run(Vector())
-  }
-*/
+
 // mig: fn tests_generic_with_a_lambda
 #[test]
 fn tests_generic_with_a_lambda() {
@@ -313,21 +217,7 @@ fn tests_generic_with_a_lambda() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests generic with a lambda") {
-    val compile =
-      RunCompilation.test(
-        """
-          |func genFunc<T>(a &T) &T {
-          |  return { a }();
-          |}
-          |exported func main() int {
-          |  genFunc(7)
-          |}
-          |""".stripMargin)
-    compile.run(Vector())
-  }
-*/
+
 // See LCCPGB for explanation.
 // mig: fn tests_generic_s_lambda_calling_parent_function_s_bound
 #[test]
@@ -352,23 +242,7 @@ fn tests_generic_s_lambda_calling_parent_function_s_bound() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests generic's lambda calling parent function's bound") {
-    // See LCCPGB for explanation.
-    val compile =
-      RunCompilation.test(
-        """
-          |func genFunc<T>(a &T)
-          |where func print(&T)void {
-          |  { print(a); }()
-          |}
-          |exported func main() {
-          |  genFunc("hello");
-          |}
-          |""".stripMargin)
-    compile.run(Vector())
-  }
-*/
+
 // This lambda has an implicit <Y> template param
 // mig: fn tests_generic_with_a_polymorphic_lambda
 #[test]
@@ -393,22 +267,7 @@ fn tests_generic_with_a_polymorphic_lambda() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests generic with a polymorphic lambda") {
-    // This lambda has an implicit <Y> template param
-    val compile =
-      RunCompilation.test(
-        """
-          |func genFunc<T>(a &T) &T {
-          |  return (x => a)(true);
-          |}
-          |exported func main() int {
-          |  genFunc(7)
-          |}
-          |""".stripMargin)
-    compile.run(Vector())
-  }
-*/
+
 // This lambda has an implicit <Y> template param, invoked with a bool then a string
 // mig: fn tests_generic_with_a_polymorphic_lambda_invoked_twice
 #[test]
@@ -433,41 +292,7 @@ fn tests_generic_with_a_polymorphic_lambda_invoked_twice() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests generic with a polymorphic lambda invoked twice") {
-    // This lambda has an implicit <Y> template param, invoked with a bool then a string
-    val compile =
-      RunCompilation.test(
-        """
-          |func genFunc<T>(a &T) &T {
-          |  lam = (x => a);
-          |  lam(true);
-          |  return lam("hello");
-          |}
-          |exported func main() int {
-          |  genFunc(7)
-          |}
-          |""".stripMargin)
-    compile.run(Vector())
-  }
 
-//  test("Test getting generic value out of lambda") {
-//    val compile = RunCompilation.test(
-//      """
-//        |#!DeriveStructDrop
-//        |struct MyStruct<A Ref imm, B Ref imm, C Ref imm, D Ref imm> imm { a A; b B; c C; d D; }
-//        |
-//        |func bork<A, B, C, D>(m &MyStruct<A, B, C, D>) &D {
-//        |  return { m.d }();
-//        |}
-//        |exported func main() int {
-//        |  x = MyStruct(true, 1, "hello", 3);
-//        |  return bork(&x);
-//        |}
-//        |""".stripMargin)
-//    compile.evalForKind(Vector()) match { case VonInt(5) => }
-//  }
-*/
 // mig: fn tests_double_closure
 #[test]
 fn tests_double_closure() {
@@ -492,12 +317,7 @@ fn tests_double_closure() {
     );
     compile.run_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests double closure") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/lambdas/doubleclosure.vale"))
-    compile.run(Vector())
-  }
-*/
+
 // mig: fn tests_from_subdir_file
 #[test]
 fn tests_from_subdir_file() {
@@ -525,12 +345,7 @@ fn tests_from_subdir_file() {
         other => panic!("Expected VonInt(8), got {:?}", other),
     }
 }
-/*
-  test("Tests from subdir file") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/virtuals/round.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(8) => }
-  }
-*/
+
 // mig: fn test_generic_param_default
 #[test]
 fn test_generic_param_default() {
@@ -557,16 +372,7 @@ fn test_generic_param_default() {
         other => panic!("expected VonInt(42), got {:?}", other),
     }
 }
-/*
-  test("Test generic param default") {
-    val compile = RunCompilation.test(
-      """
-        |func bork<N Int = 42>() int { return N; }
-        |exported func main() int { bork() }
-      """.stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-*/
+
 // mig: fn tests_calling_a_virtual_function
 #[test]
 fn tests_calling_a_virtual_function() {
@@ -594,12 +400,7 @@ fn tests_calling_a_virtual_function() {
         other => panic!("Expected VonInt(7), got {:?}", other),
     }
 }
-/*
-  test("Tests calling a virtual function") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/virtuals/calling.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(7) => }
-  }
-*/
+
 // mig: fn tests_making_a_variable_with_a_pattern
 #[test]
 fn tests_making_a_variable_with_a_pattern() {
@@ -626,28 +427,7 @@ fn tests_making_a_variable_with_a_pattern() {
         other => panic!("Expected VonInt(9), got {:?}", other),
     }
 }
-/*
-  test("Tests making a variable with a pattern") {
-    // Tests putting MyOption<int> as the type of x.
-    val compile = RunCompilation.test(
-      """
-        |interface MyOption<T> where T Ref { }
-        |
-        |struct MySome<T> where T Ref {}
-        |impl<T> MyOption<T> for MySome<T>;
-        |
-        |func doSomething(opt MyOption<int>) int {
-        |  return 9;
-        |}
-        |
-        |exported func main() int {
-        |	 x MyOption<int> = MySome<int>();
-        |	 return doSomething(x);
-        |}
-      """.stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(9) => }
-  }
-*/
+
 // mig: fn tests_a_linked_list
 #[test]
 fn tests_a_linked_list() {
@@ -672,13 +452,7 @@ fn tests_a_linked_list() {
     );
     let _ = compile.eval_for_kind_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests a linked list") {
-    val compile = RunCompilation.test(
-      Tests.loadExpected("programs/virtuals/ordinarylinkedlist.vale"))
-    compile.evalForKind(Vector())
-  }
-*/
+
 // mig: fn tests_a_templated_linked_list
 #[test]
 fn tests_a_templated_linked_list() {
@@ -703,13 +477,7 @@ fn tests_a_templated_linked_list() {
     );
     let _ = compile.eval_for_kind_primitive_args(Vec::new()).unwrap();
 }
-/*
-  test("Tests a templated linked list") {
-    val compile = RunCompilation.test(
-        Tests.loadExpected("programs/genericvirtuals/templatedlinkedlist.vale"))
-    compile.evalForKind(Vector())
-  }
-*/
+
 // mig: fn tests_calling_an_abstract_function
 #[test]
 fn tests_calling_an_abstract_function() {
@@ -737,12 +505,7 @@ fn tests_calling_an_abstract_function() {
         other => panic!("Expected VonInt(4), got {:?}", other),
     }
 }
-/*
-  test("Tests calling an abstract function") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/genericvirtuals/callingAbstract.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(4) => }
-  }
-*/
+
 // mig: fn template_overrides_are_stamped
 #[test]
 fn template_overrides_are_stamped() {
@@ -771,14 +534,7 @@ fn template_overrides_are_stamped() {
         other => panic!("expected VonInt(1), got {:?}", other),
     }
 }
-/*
-  test("Template overrides are stamped") {
-    // See TIBANFC: Translate Impl Bound Argument Names For Case
-    val compile = RunCompilation.testNoBuiltins(
-        Tests.loadExpected("programs/genericvirtuals/templatedoption.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(1) => }
-  }
-*/
+
 // mig: fn tests_a_foreach_for_a_linked_list
 #[test]
 fn tests_a_foreach_for_a_linked_list() {
@@ -803,25 +559,7 @@ fn tests_a_foreach_for_a_linked_list() {
     );
     assert_eq!(compile.eval_for_stdout(Vec::new()).unwrap(), "102030");
 }
-/*
-  test("Tests a foreach for a linked list") {
-    val compile = RunCompilation.test(
-        Tests.loadExpected("programs/genericvirtuals/foreachlinkedlist.vale"))
-    compile.evalForStdout(Vector()) shouldEqual "102030"
-  }
 
-  // When we call a function with a virtual parameter, try stamping for all ancestors in its
-  // place.
-  // We're stamping all ancestors, and all ancestors have virtual.
-  // Virtual starts a function family.
-  // So, this checks that it and its three ancestors are all stamped and all get their own
-  // function families.
-//  test("Stamp multiple ancestors") {
-//    val compile = RunCompilation.test(Tests.loadExpected("programs/genericvirtuals/stampMultipleAncestors.vale"))
-//    val coutputs = compile.expectCompilerOutputs()
-//    compile.evalForKind(Vector())
-//  }
-*/
 // mig: fn tests_recursion
 #[test]
 fn tests_recursion() {
@@ -849,12 +587,7 @@ fn tests_recursion() {
         other => panic!("expected VonInt(120), got {:?}", other),
     }
 }
-/*
-  test("Tests recursion") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/functions/recursion.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(120) => }
-  }
-*/
+
 // mig: fn tests_generic_recursion
 #[test]
 fn tests_generic_recursion() {
@@ -881,28 +614,4 @@ fn tests_generic_recursion() {
         other => panic!("expected VonInt(120), got {:?}", other),
     }
 }
-/*
-  test("Tests generic recursion") {
-    val compile = RunCompilation.test(
-      """
-        |func factorial<T>(one T, x T) T
-        |where func isZero(&T)bool, func *(&T, &T)T, func -(&T, &T)T, func drop(T)void {
-        |  return if isZero(&x) {
-        |      one
-        |    } else {
-        |      q = &one;
-        |      x * factorial(one, x - q)
-        |    };
-        |}
-        |
-        |func isZero(x int) bool { x == 0 }
-        |
-        |exported func main() int {
-        |  return factorial(1, 5);
-        |}
-        |""".stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(120) => }
-  }
-}
 
-*/
