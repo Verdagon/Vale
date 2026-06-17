@@ -30,7 +30,7 @@ class ParseSamplesTests extends FunSuite with Collector with TestParseUtils {
 */
 fn load_expected(path: &str) -> String {
   let full_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-    .join("../Frontend/Tests/test/main/resources")
+    .join("src/tests")
     .join(path);
   fs::read_to_string(&full_path)
     .unwrap_or_else(|e| panic!("Failed to load sample '{}': {} ({:?})", path, e, full_path))
