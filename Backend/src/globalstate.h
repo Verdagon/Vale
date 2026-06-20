@@ -58,8 +58,11 @@ public:
   LLVMValueRef liveHeapObjCounterLE = nullptr;
   LLVMValueRef derefCounterLE = nullptr;
   LLVMValueRef mutRcAdjustCounterLE = nullptr;
+  LLVMValueRef livenessCheckCounterLE = nullptr;
+  LLVMValueRef livenessPreCheckCounterLE = nullptr;
   LLVMValueRef writeOnlyGlobalLE = nullptr;
   LLVMValueRef crashGlobalLE = nullptr;
+  LLVMValueRef nextGenThreadGlobalIntLE = nullptr;
 //  LLVMValueRef nullLE = nullptr;
 
   LLVMTypeRef wrcTableStructLT = nullptr;
@@ -83,6 +86,16 @@ public:
   LLVMValueRef neverPtrLE = nullptr;
 
 //  LLVMValueRef coroutineEntryFunc = nullptr;
+
+  // These should eventually be moved into thread local storage when we do multithreading.
+  // Initialized at the beginning of main, used for C FFI.
+  LLVMValueRef sideStackLE = nullptr;
+  // Used for passing arguments to wrapper functions across stack switches.
+  // At some point we should just pass a pointer to a struct containing all of these.
+  // We should make sure that these don't get destroyed before the coroutine wants them.
+  // Though, I guess thats what structured concurrency is for.
+//  LLVMValueRef sideStackArgReturnDestPtr = nullptr;
+//  LLVMValueRef sideStackArgCalleeFuncPtrPtr = nullptr;
 
   LLVMBuilderRef stringConstantBuilder = nullptr;
   std::unordered_map<std::string, LLVMValueRef> stringConstants;
@@ -118,6 +131,8 @@ public:
   OverridesBySubstructByInterfaceMap overridesBySubstructByInterface;
   // This keeps us from adding more edges or interfaces after we've already started compiling them.
   bool interfacesOpen = true;
+
+  uint64_t nextGenerationAddend = 0;
 
   UniversalRefStructLT* getUniversalRefStructLT() { return universalRefStructLT.get(); }
 
@@ -219,6 +234,11 @@ public:
 
   RCImm* rcImm = nullptr;
   IRegion* mutRegion = nullptr;
+//  IRegion* unsafeRegion = nullptr;
+//  IRegion* assistRegion = nullptr;
+//  IRegion* naiveRcRegion = nullptr;
+//  IRegion* resilientV3Region = nullptr;
+//  IRegion* resilientV4Region = nullptr;
   Linear* linearRegion = nullptr;
   std::unordered_map<RegionId*, IRegion*, AddressHasher<RegionId*>> regions;
 

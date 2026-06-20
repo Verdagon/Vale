@@ -44,6 +44,7 @@ enum
     OPT_FLARES,
     OPT_FAST_CRASH,
     OPT_GEN_HEAP,
+    OPT_GENERATION_SIZE,
     OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE,
     OPT_ELIDE_CHECKS_FOR_REGIONS,
     OPT_INCLUDE_BOUNDS_CHECKS,
@@ -52,6 +53,7 @@ enum
     OPT_PRINT_MEM_OVERHEAD,
     OPT_ENABLE_REPLAYING,
     OPT_REPLAY_WHITELIST_EXTERN,
+    OPT_ENABLE_SIDE_CALLING,
     OPT_CENSUS,
     OPT_REGION_OVERRIDE,
     OPT_FILENAMES,
@@ -94,6 +96,7 @@ static opt_arg_t args[] =
     { "fast_crash", '\0', OPT_ARG_OPTIONAL, OPT_FAST_CRASH },
     { "gen_heap", '\0', OPT_ARG_OPTIONAL, OPT_GEN_HEAP },
     { "elide_checks_for_known_live", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_KNOWN_LIVE },
+    { "gen_size", '\0', OPT_ARG_REQUIRED, OPT_GENERATION_SIZE },
     { "elide_checks_for_regions", '\0', OPT_ARG_OPTIONAL, OPT_ELIDE_CHECKS_FOR_REGIONS },
     { "include_bounds_checks", '\0', OPT_ARG_OPTIONAL, OPT_INCLUDE_BOUNDS_CHECKS },
     { "use_atomic_rc", '\0', OPT_ARG_OPTIONAL, OPT_USE_ATOMIC_RC },
@@ -101,6 +104,7 @@ static opt_arg_t args[] =
     { "print_mem_overhead", '\0', OPT_ARG_OPTIONAL, OPT_PRINT_MEM_OVERHEAD },
     { "enable_replaying", '\0', OPT_ARG_OPTIONAL, OPT_ENABLE_REPLAYING },
     { "replay_whitelist_extern", '\0', OPT_ARG_REQUIRED, OPT_REPLAY_WHITELIST_EXTERN },
+    { "enable_side_calling", '\0', OPT_ARG_OPTIONAL, OPT_ENABLE_SIDE_CALLING },
     { "census", '\0', OPT_ARG_OPTIONAL, OPT_CENSUS },
     { "region_override", '\0', OPT_ARG_REQUIRED, OPT_REGION_OVERRIDE },
     { "ir", '\0', OPT_ARG_NONE, OPT_IR },
@@ -302,6 +306,16 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
             break;
           }
 
+          case OPT_GENERATION_SIZE: {
+            assert(s.arg_val);
+            if (s.arg_val == std::string("32")) {
+              opt->generationSize = 32;
+            } else if (s.arg_val == std::string("64")) {
+              opt->generationSize = 64;
+            } else { assert(false); throw 1337; }
+            break;
+          }
+
           case OPT_ELIDE_CHECKS_FOR_REGIONS: {
             if (!s.arg_val) {
               opt->elideChecksForRegions = true;
@@ -357,6 +371,17 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
             break;
           }
 
+          case OPT_ENABLE_SIDE_CALLING: {
+            if (!s.arg_val) {
+              opt->enableSideCalling = true;
+            } else if (s.arg_val == std::string("true")) {
+              opt->enableSideCalling = true;
+            } else if (s.arg_val == std::string("false")) {
+              opt->enableSideCalling = false;
+            } else { assert(false); throw 1337; }
+            break;
+          }
+
         case OPT_CENSUS: {
           if (!s.arg_val) {
             opt->census = true;
@@ -381,6 +406,12 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
 //            opt->regionOverride = RegionOverride::RESILIENT_V1;
 //          } else if (s.arg_val == std::string("resilient-v2")) {
 //            opt->regionOverride = RegionOverride::RESILIENT_V2;
+          } else if (s.arg_val == std::string("resilient-v3")) {
+            opt->regionOverride = RegionOverride::RESILIENT_V3;
+          } else if (s.arg_val == std::string("safe-fastest")) {
+            opt->regionOverride = RegionOverride::SAFE_FASTEST;
+          } else if (s.arg_val == std::string("safe")) {
+            opt->regionOverride = RegionOverride::SAFE;
 //          } else if (s.arg_val == std::string("resilient-limit")) {
 //            opt->regionOverride = RegionOverride::RESILIENT_LIMIT;
           } else {

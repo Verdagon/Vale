@@ -35,9 +35,12 @@
 #include <llvm-c/Transforms/Utils.h>
 #include <llvm-c/Transforms/IPO.h>
 
+#include "region/resilientv3/resilientv3.h"
 #include "region/unsafe/unsafe.h"
 #include "function/expressions/shared/string.h"
 #include <sstream>
+#include <region/safe/safe.h>
+#include "region/safe-fastest/safefastest.h"
 #include "region/linear/linear.h"
 #include "function/expressions/shared/members.h"
 #include "function/expressions/expressions.h"
@@ -52,6 +55,11 @@
 #endif
 
 // This is 0x27100000 in hex.
+// This number was chosen because it ends in zeroes either way, so it should be a bit more
+// recognizable.
+// TODO(#598): Use a random starting value.
+constexpr int FIRST_GEN = 655360000;
+
 template <typename Out>
 void split(const std::string &s, char delim, Out result) {
   std::istringstream iss(s);
@@ -677,6 +685,15 @@ void compileValeCode(GlobalState* globalState, MetalCache* metalCachePtr, Progra
     case RegionOverride::FAST:
       std::cout << "Region override: fast" << std::endl;
       break;
+    case RegionOverride::RESILIENT_V3:
+      std::cout << "Region override: resilient-v3" << std::endl;
+      break;
+    case RegionOverride::SAFE:
+      std::cout << "Region override: safe" << std::endl;
+      break;
+    case RegionOverride::SAFE_FASTEST:
+      std::cout << "Region override: safe-fastest" << std::endl;
+      break;
     default:
       { assert(false); throw 1337; }
       break;
@@ -759,9 +776,30 @@ void compileValeCode(GlobalState* globalState, MetalCache* metalCachePtr, Progra
   globalState->neverPtrLE = LLVMAddGlobal(globalState->mod, makeNeverType(globalState), "__never");
   LLVMSetInitializer(globalState->neverPtrLE, LLVMConstArray(LLVMIntTypeInContext(globalState->context, NEVER_INT_BITS), empty, 0));
 
+  globalState->sideStackLE = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "__sideStack");
+  LLVMSetInitializer(globalState->sideStackLE, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
+
+//  globalState->sideStackArgCalleeFuncPtrPtr = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "sideStackArgCalleeFuncPtrPtr");
+//  LLVMSetInitializer(globalState->sideStackArgCalleeFuncPtrPtr, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
+
+//  globalState->sideStackArgReturnDestPtr = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "sideStackArgReturnDestPtr");
+//  LLVMSetInitializer(globalState->sideStackArgReturnDestPtr, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
+
   globalState->mutRcAdjustCounterLE =
       LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__mutRcAdjustCounter");
   LLVMSetInitializer(globalState->mutRcAdjustCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+
+  globalState->livenessCheckCounterLE =
+      LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__livenessCheckCounter");
+  LLVMSetInitializer(globalState->livenessCheckCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+
+  globalState->livenessPreCheckCounterLE =
+      LLVMAddGlobal(globalState->mod, LLVMInt64TypeInContext(globalState->context), "__livenessPreCheckCounter");
+  LLVMSetInitializer(globalState->livenessPreCheckCounterLE, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false));
+
+  auto genLT = LLVMIntTypeInContext(globalState->context, globalState->opt->generationSize);
+  globalState->nextGenThreadGlobalIntLE = LLVMAddGlobal(globalState->mod, genLT, "__vale_nextGen");
+  LLVMSetInitializer(globalState->nextGenThreadGlobalIntLE, LLVMConstInt(genLT, FIRST_GEN, false));
 
   initInternalExterns(globalState);
 
@@ -779,6 +817,15 @@ void compileValeCode(GlobalState* globalState, MetalCache* metalCachePtr, Progra
       break;
     case RegionOverride::FAST:
       globalState->mutRegion = new Unsafe(globalState);
+      break;
+    case RegionOverride::RESILIENT_V3:
+      globalState->mutRegion = new ResilientV3(globalState, globalState->metalCache->mutRegionId);
+      break;
+    case RegionOverride::SAFE:
+      globalState->mutRegion = new Safe(globalState);
+      break;
+    case RegionOverride::SAFE_FASTEST:
+      globalState->mutRegion = new SafeFastest(globalState);
       break;
     default:
       { assert(false); throw 1337; }

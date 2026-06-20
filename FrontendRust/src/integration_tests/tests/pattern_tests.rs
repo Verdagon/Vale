@@ -9,6 +9,7 @@ use crate::instantiating::ast::types::IntIT;
 use crate::instantiating::ast::types::KindIT;
 use crate::instantiating::ast::types::OwnershipI;
 use crate::instantiating::ast::types::StructIT;
+use crate::instantiating::ast::types::cI;
 use crate::integration_tests::tests::run_compilation::test;
 use crate::interner::StrI;
 use crate::keywords::Keywords;
@@ -119,10 +120,7 @@ fn test_matching_a_multiple_member_seq_of_mutables() {
         &compilation_bump,
         &hammer_interner, &typing_interner, &scout_arena, &keywords, &parser_keywords, &parse_arena,
         &instantiating_bump,
-        r"
-struct Marine { hp int; }
-exported func main() int { [x, y] = (Marine(6), Marine(8)); return y.hp; }
-",
+        "\nstruct Marine { hp int; }\nexported func main() int { [x, y] = (Marine(6), Marine(8)); return y.hp; }\n",
     );
     {
         let coutputs = compile.expect_compiler_outputs();
@@ -173,10 +171,7 @@ fn test_matching_a_multiple_member_pack_of_immutable_and_own() {
         &compilation_bump,
         &hammer_interner, &typing_interner, &scout_arena, &keywords, &parser_keywords, &parse_arena,
         &instantiating_bump,
-        r"
-struct Marine { hp int; }
-exported func main() int { [x, y] = (7, Marine(8)); return y.hp; }
-",
+        "\nstruct Marine { hp int; }\nexported func main() int { [x, y] = (7, Marine(8)); return y.hp; }\n",
     );
     {
         let coutputs = compile.expect_compiler_outputs();
@@ -226,14 +221,7 @@ fn test_matching_a_multiple_member_pack_of_immutable_and_borrow() {
         &compilation_bump,
         &hammer_interner, &typing_interner, &scout_arena, &keywords, &parser_keywords, &parse_arena,
         &instantiating_bump,
-        r"
-struct Marine { hp int; }
-exported func main() int {
-  m = Marine(8);
-  [x, y] = (7, &m);
-  return y.hp;
-}
-",
+        "\nstruct Marine { hp int; }\nexported func main() int {\n  m = Marine(8);\n  [x, y] = (7, &m);\n  return y.hp;\n}\n",
     );
     {
         let coutputs = compile.expect_compiler_outputs();
@@ -247,7 +235,7 @@ exported func main() int {
     {
         let monouts = compile.get_monouts();
         let tup_def = monouts.lookup_struct_by_name("Tup2");
-        let tup_def_member_types: Vec<CoordI<'_, '_>> = tup_def.members.iter().filter_map(|m| match m.tyype {
+        let tup_def_member_types: Vec<CoordI<'_, '_, cI>> = tup_def.members.iter().filter_map(|m| match m.tyype {
             IMemberTypeI::AddressMemberTypeI(t) => Some(t.reference),
             IMemberTypeI::ReferenceMemberTypeI(t) => Some(t.reference),
         }).collect();
@@ -337,15 +325,7 @@ fn test_destructuring_a_shared() {
         &compilation_bump,
         &hammer_interner, &typing_interner, &scout_arena, &keywords, &parser_keywords, &parse_arena,
         &instantiating_bump,
-        r"
-import array.iter.*;
-exported func main() int {
-  sm = #[#](#[#](42, 73, 73));
-  foreach [i, m1] in sm {
-    return i;
-  }
-}
-",
+        "\nimport array.iter.*;\nexported func main() int {\n  sm = #[#](#[#](42, 73, 73));\n  foreach [i, m1] in sm {\n    return i;\n  }\n}\n",
     );
     {
         let _coutputs = compile.expect_compiler_outputs();
@@ -450,16 +430,7 @@ fn ignore_destructure() {
         &compilation_bump,
         &hammer_interner, &typing_interner, &scout_arena, &keywords, &parser_keywords, &parse_arena,
         &instantiating_bump,
-        r"
-struct Marine {
-  hp int;
-}
-exported func main() int {
-  m = Marine(4);
-  Marine[_] = m;
-  return 42;
-}
-",
+        "\nstruct Marine {\n  hp int;\n}\nexported func main() int {\n  m = Marine(4);\n  Marine[_] = m;\n  return 42;\n}\n",
     );
     match compile.eval_for_kind_primitive_args(Vec::new()).unwrap() {
         IVonData::Int(VonInt { value: 42 }) => {}

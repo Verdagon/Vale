@@ -11,6 +11,9 @@
 
 enum class RegionOverride {
   NAIVE_RC,
+  RESILIENT_V3,
+  SAFE_FASTEST,
+  SAFE,
   FAST
 };
 
@@ -46,6 +49,7 @@ struct ValeOptions {
     bool census = false;    // Enable census checking
     bool flares = false;    // Enable flare output
     bool fastCrash = false;    // Enable single-instruction crash, a bit faster
+    int generationSize = 32;    // Size of generation integer, in bits.
     bool elideChecksForKnownLive = true;    // Elide checks for static-analysis-known live
     bool elideChecksForRegions = true;    // Elide checks for immutable regions
     bool includeBoundsChecks = true;
@@ -53,9 +57,10 @@ struct ValeOptions {
     bool forceAllKnownLive = false;    // Enables generational heap
     bool printMemOverhead = false;    // Enables generational heap
     bool enableReplaying = false;    // Enables deterministic replaying
+    bool enableSideCalling = false;    // Enables side calling, used for fearless FFI
     std::unordered_map<std::string, std::unordered_set<std::string>> projectNameToReplayWhitelistedExterns;
 
-    RegionOverride regionOverride = RegionOverride::FAST;
+    RegionOverride regionOverride = RegionOverride::RESILIENT_V3;
 };
 
 int valeOptSet(ValeOptions *opt, int *argc, char **argv);

@@ -27,7 +27,7 @@ use crate::typing::ast::expressions::{
     DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, DiscardTE, ExpressionTE, ExternFunctionCallTE,
     FunctionCallTE, IfTE, InterfaceFunctionCallTE, InterfaceToInterfaceUpcastTE,
     IsSameInstanceTE, LetAndLendTE, LetNormalTE, LocalLookupTE, LockWeakTE, MutateTE,
-    NewImmRuntimeSizedArrayTE, NewMutRuntimeSizedArrayTE, PopRuntimeSizedArrayTE,
+    NewImmRuntimeSizedArrayTE, NewMutRuntimeSizedArrayTE, PopRuntimeSizedArrayTE, PureTE,
     PushRuntimeSizedArrayTE, ReferenceExpressionTE, ReferenceMemberLookupTE, ReinterpretTE,
     RestackifyTE, ReturnTE, RuntimeSizedArrayCapacityTE, RuntimeSizedArrayLookupTE, SoftLoadTE,
     StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE,
@@ -81,6 +81,7 @@ pub enum NodeRefT<'s, 't> {
     Return(&'t ReturnTE<'s, 't>),
     Break(&'t BreakTE),
     Block(&'t BlockTE<'s, 't>),
+    Pure(&'t PureTE<'s, 't>),
     Consecutor(&'t ConsecutorTE<'s, 't>),
     Tuple(&'t TupleTE<'s, 't>),
     StaticArrayFromValues(&'t StaticArrayFromValuesTE<'s, 't>),
@@ -552,6 +553,7 @@ fn visit_reference_expression<'s, 't, T, F>(
         ReferenceExpressionTE::Return(x) => visit_return(pred, out, x),
         ReferenceExpressionTE::Break(x) => visit_break(pred, out, x),
         ReferenceExpressionTE::Block(x) => visit_block(pred, out, x),
+        ReferenceExpressionTE::Pure(x) => visit_pure(pred, out, x),
         ReferenceExpressionTE::Consecutor(x) => visit_consecutor(pred, out, x),
         ReferenceExpressionTE::Tuple(x) => visit_tuple(pred, out, x),
         ReferenceExpressionTE::StaticArrayFromValues(x) => {
@@ -772,6 +774,16 @@ where
 {
     collect_if(pred, out, NodeRefT::Block(x));
     visit_reference_expression(pred, out, x.inner);
+}
+
+fn visit_pure<'s, 't, T, F>(pred: &F, out: &mut Vec<T>, x: &'t PureTE<'s, 't>)
+where
+    F: Fn(NodeRefT<'s, 't>) -> Option<T>,
+    's: 't,
+{
+    collect_if(pred, out, NodeRefT::Pure(x));
+    visit_reference_expression(pred, out, x.inner);
+    visit_coord(pred, out, &x.result_type);
 }
 
 fn visit_consecutor<'s, 't, T, F>(pred: &F, out: &mut Vec<T>, x: &'t ConsecutorTE<'s, 't>)

@@ -9,6 +9,7 @@ use crate::final_ast::ast::IFunctionAttributeH;
 use crate::instantiating::ast::ast::{ExternI, FunctionDefinitionI, FunctionHeaderI, IFunctionAttributeI};
 use crate::instantiating::ast::ast::{PrototypeI};
 use crate::instantiating::ast::hinputs::HinputsI;
+use crate::instantiating::ast::types::cI;
 use crate::simplifying::hamuts::Hamuts;
 use crate::simplifying::hammer::Hammer;
 use crate::final_ast::ast::FunctionH;
@@ -196,7 +197,7 @@ where 's: 'h, 's: 'i, 'i: 'h,
         hinputs: &HinputsI<'s, 'i>,
         hamuts: &mut Hamuts<'s, 'i, 'h>,
         current_function_header: &FunctionHeaderI<'s, 'i>,
-        prototype2: &'i PrototypeI<'s, 'i>,
+        prototype2: &'i PrototypeI<'s, 'i, cI>,
     ) -> FunctionRefH<'s, 'h>
     {
         let prototype_h = self.translate_prototype(hinputs, hamuts, prototype2);

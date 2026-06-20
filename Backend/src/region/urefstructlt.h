@@ -19,14 +19,17 @@ constexpr int UniversalRefStructNumMembers = 7;
 
 struct UniversalRefStructExplodedMembersLT {
   LLVMValueRef objPtrI64LE;
+  LLVMValueRef objGenI32LE;
   LLVMValueRef typeInfoPtrI64LE;
 
   UniversalRefStructExplodedMembersLT() = delete;
 
   UniversalRefStructExplodedMembersLT(
       LLVMValueRef objPtrI64LE_,
+      LLVMValueRef objGenI32LE_,
       LLVMValueRef typeInfoPtrI64LE_) :
       objPtrI64LE(objPtrI64LE_),
+      objGenI32LE(objGenI32LE_),
       typeInfoPtrI64LE(typeInfoPtrI64LE_) {}
 };
 
@@ -39,17 +42,36 @@ struct UniversalRefStructLT {
   UniversalRefStructExplodedMembersLT explodeForRegularInterface(
       GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef urefLE);
 
+  UniversalRefStructExplodedMembersLT explodeForGenerationalConcrete(
+      GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef urefLE);
+
+  UniversalRefStructExplodedMembersLT explodeForGenerationalInterface(
+      GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef urefLE);
+
   LLVMValueRef implodeForRegularConcrete(
       GlobalState* globalState,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef objPtrI64LE);
+  LLVMValueRef implodeForGenerationalConcrete(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef objPtrI64LE,
+      LLVMValueRef objGenI32LE);
   LLVMValueRef implodeForRegularInterface(
       GlobalState* globalState,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef typeInfoPtrI64LE,
       LLVMValueRef objPtrI64LE);
+  LLVMValueRef implodeForGenerationalInterface(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef typeInfoPtrI64LE,
+      LLVMValueRef objPtrI64LE,
+      LLVMValueRef objGenI32LE);
 
 
   [[nodiscard]] LLVMTypeRef getStructLT() const { return structLT->getStructLT(); }

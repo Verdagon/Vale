@@ -13,6 +13,7 @@ pub fn build_backend_argv(
     maybe_region_override: Option<&str>,
     maybe_opt_level: Option<&str>,
     maybe_cpu: Option<&str>,
+    maybe_gen_size: Option<&str>,
     // `-o <name>` is consumed by valec for the final clang invocation;
     // the backend writes a fixed `build.o` regardless of this name.
     _executable_name: &str,
@@ -52,6 +53,10 @@ pub fn build_backend_argv(
     if let Some(cpu) = maybe_cpu {
         command_line_args.push("--cpu".to_string());
         command_line_args.push(cpu.to_string());
+    }
+    if let Some(gen_size) = maybe_gen_size {
+        command_line_args.push("--gen_size".to_string());
+        command_line_args.push(gen_size.to_string());
     }
     if flares {
         command_line_args.push("--flares".to_string());

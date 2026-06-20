@@ -94,8 +94,11 @@ set(BACKEND_LIB_SRCS
 		src/region/common/defaultlayout/structs.cpp
 		src/region/common/defaultlayout/structsrouter.cpp
 		src/region/rcimm/rcimm.cpp
+		src/region/common/lgtweaks/lgtweaks.cpp
 		src/region/common/wrcweaks/wrcweaks.cpp
+		src/region/common/hgm/hgm.cpp
 		src/region/common/fatweaks/fatweaks.cpp
+		src/region/resilientv3/resilientv3.cpp
 		src/region/naiverc/naiverc.cpp
 		src/region/unsafe/unsafe.cpp
 		src/region/linear/linear.cpp
@@ -117,9 +120,12 @@ set(BACKEND_LIB_SRCS
 		src/utils/llvm.cpp
 		src/utils/llvm.h
 		src/utils/structlt.h
+		src/region/safe/safe.cpp
+		src/region/safe-fastest/safefastest.cpp
 		src/region/common/migration.h
 		src/region/common/migration.cpp
 		src/region/iregion.cpp
+		src/utils/randomgeneration.cpp
 )
 
 add_library(backend_lib STATIC ${BACKEND_LIB_SRCS})

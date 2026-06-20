@@ -99,6 +99,7 @@ pub fn build_stuff(compiler_dir: &Path, all_args: &[String]) {
     let maybe_region_override = get_optional_flag(build_args, "--region_override");
     let maybe_opt_level = get_optional_flag(build_args, "--opt_level");
     let maybe_cpu = get_optional_flag(build_args, "--cpu");
+    let maybe_gen_size = get_optional_flag(build_args, "--gen_size");
     let executable_name = get_flag_value(build_args, "-o", "main");
     let flares = get_bool_flag(build_args, "--flares", false);
     let gen_heap = get_bool_flag(build_args, "--gen_heap", false);
@@ -147,6 +148,7 @@ pub fn build_stuff(compiler_dir: &Path, all_args: &[String]) {
             if arg == "-o" || arg == "--output_dir" || arg == "--builtins_dir_override"
                 || arg == "--clang_override" || arg == "--libc_override"
                 || arg == "--region_override" || arg == "--opt_level" || arg == "--cpu"
+                || arg == "--gen_size"
                 || arg == "--replay_whitelist_extern" {
                 i += 2; // Skip flag and value
                 continue;
@@ -240,6 +242,7 @@ pub fn build_stuff(compiler_dir: &Path, all_args: &[String]) {
             maybe_region_override.as_deref(),
             maybe_opt_level.as_deref(),
             maybe_cpu.as_deref(),
+            maybe_gen_size.as_deref(),
             &executable_name,
             flares, gen_heap, census, verify,
             &opt_level,

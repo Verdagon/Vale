@@ -9,6 +9,7 @@ use crate::final_ast::instructions::{BlockH, ImmutabilifyH, MutabilifyH};
 use crate::instantiating::ast::ast::FunctionHeaderI;
 use crate::instantiating::ast::expressions::{BlockIE, ImmutabilifyIE, MutabilifyIE};
 use crate::instantiating::ast::hinputs::HinputsI;
+use crate::instantiating::ast::types::cI;
 use crate::simplifying::hamuts::Hamuts;
 use crate::simplifying::hammer::{Hammer, Locals};
 use crate::final_ast::types::KindHT;
@@ -35,7 +36,7 @@ where 's: 'h, 's: 'i, 'i: 'h,
         hamuts: &mut Hamuts<'s, 'i, 'h>,
         current_function_header: &FunctionHeaderI<'s, 'i>,
         parent_locals: &mut Locals<'s, 'i, 'h>,
-        block2: &BlockIE<'s, 'i>,
+        block2: &BlockIE<'s, 'i, cI>,
     ) -> &'h BlockH<'s, 'h>
     {
         let mut block_locals = parent_locals.snapshot();
@@ -114,7 +115,7 @@ where 's: 'h, 's: 'i, 'i: 'h,
         hamuts: &mut Hamuts<'s, 'i, 'h>,
         current_function_header: &FunctionHeaderI<'s, 'i>,
         locals: &mut Locals<'s, 'i, 'h>,
-        node: &MutabilifyIE<'s, 'i>,
+        node: &MutabilifyIE<'s, 'i, cI>,
     ) -> &'h MutabilifyH<'s, 'h>
     {
         panic!("Unimplemented: translate_mutabilify");
@@ -155,7 +156,7 @@ where 's: 'h, 's: 'i, 'i: 'h,
         hamuts: &mut Hamuts<'s, 'i, 'h>,
         current_function_header: &FunctionHeaderI<'s, 'i>,
         locals: &mut Locals<'s, 'i, 'h>,
-        node: &ImmutabilifyIE<'s, 'i>,
+        node: &ImmutabilifyIE<'s, 'i, cI>,
     ) -> &'h ImmutabilifyH<'s, 'h>
     {
         panic!("Unimplemented: translate_immutabilify");
