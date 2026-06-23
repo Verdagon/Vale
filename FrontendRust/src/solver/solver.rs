@@ -10,6 +10,7 @@ import scala.collection.mutable
 use std::marker::PhantomData;
 
 use super::simple_solver_state::SimpleSolverState;
+use indexmap::{IndexMap, IndexSet};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::Infallible;
@@ -158,7 +159,7 @@ pub fn make_solver_state<Rule, Rune, Conclusion>(
     rule_to_puzzles: Box<dyn Fn(&Rule) -> Vec<Vec<Rune>>>,
     rule_to_runes: &dyn Fn(&Rule) -> Vec<Rune>,
     initial_rules: Vec<Rule>,
-    initially_known_runes: HashMap<Rune, Conclusion>,
+    initially_known_runes: IndexMap<Rune, Conclusion>,
     all_runes: Vec<Rune>,
 ) -> SimpleSolverState<Rule, Rune, Conclusion>
 where
@@ -189,7 +190,7 @@ where
         vec![],
         initially_known_runes,
         initial_rules,
-        HashSet::new(),
+        IndexSet::new(),
     ) {
         Ok(()) => {},
         Err(_) => panic!("Initial commitStep should not fail"),

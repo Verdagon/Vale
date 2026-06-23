@@ -1,3 +1,4 @@
+use indexmap::{IndexMap, IndexSet};
 use std::collections::{HashMap, HashSet};
 use crate::typing::compiler::Compiler;
 use crate::typing::function::function_compiler::*;
@@ -195,7 +196,7 @@ where 's: 't,
         let initial_sends = self.assemble_initial_sends_from_args(call_range[0], function, &args.iter().map(|a| Some(*a)).collect::<Vec<_>>());
         let initial_knowns = self.assemble_known_templatas(function, already_specified_template_args);
 
-        let rune_to_type: HashMap<IRuneS<'s>, ITemplataType<'s>> =
+        let rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>> =
             function.rune_to_type.iter().map(|(k, v)| (*k, *v)).collect();
 
         let call_range_t: &'t [RangeS<'s>] = self.typing_interner.alloc_slice_copy(call_range);
@@ -372,7 +373,7 @@ where 's: 't,
         let initial_sends = self.assemble_initial_sends_from_args(call_range[0], function, &args.iter().map(|a| Some(*a)).collect::<Vec<_>>());
         let initial_knowns = self.assemble_known_templatas(function, explicit_template_args);
 
-        let rune_to_type: HashMap<IRuneS<'s>, ITemplataType<'s>> =
+        let rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>> =
             function.rune_to_type.iter().map(|(k, v)| (*k, *v)).collect();
 
         let call_range_t: &'t [RangeS<'s>] = self.typing_interner.alloc_slice_copy(call_range);
@@ -592,7 +593,7 @@ where 's: 't,
         &self,
         near_env: &BuildingFunctionEnvironmentWithClosuredsT<'s, 't>,
         identifying_runes: &[IRuneS<'s>],
-        templatas_by_rune: &HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+        templatas_by_rune: &IndexMap<IRuneS<'s>, ITemplataT<'s, 't>>,
         reachable_bounds_from_params_and_return: &[PrototypeTemplataT<'s, 't>],
     ) -> BuildingFunctionEnvironmentWithClosuredsAndTemplateArgsT<'s, 't> {
         let identifying_templatas: Vec<ITemplataT<'s, 't>> =
@@ -704,7 +705,7 @@ where 's: 't,
             self_env: IEnvironmentT::BuildingWithClosureds(outer_env),
             context_region,
         };
-        let rune_to_type: HashMap<IRuneS<'s>, ITemplataType<'s>> =
+        let rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>> =
             function.rune_to_type.iter().map(|(k, v)| (*k, *v)).collect();
         let invocation_range = call_range;
         let initial_knowns: Vec<InitialKnown<'s, 't>> = {
@@ -748,7 +749,7 @@ where 's: 't,
                         match &generic_param.default {
                             Some(default_rules) => {
                                 match solver_state.commit_step::<ITypingPassSolverError>(
-                                    false, vec![], HashMap::new(),
+                                    false, vec![], IndexMap::new(),
                                     default_rules.rules.iter().map(|r| **r).collect(),
                                     default_rules.rune_to_type.iter().map(|(k, _)| *k).collect()) {
                                     Ok(()) => {}
@@ -950,7 +951,7 @@ where 's: 't,
             self_env: IEnvironmentT::BuildingWithClosureds(near_env),
             context_region: RegionT { region: IRegionT::Default },
         };
-        let preliminary_rune_to_type: HashMap<IRuneS<'s>, ITemplataType<'s>> =
+        let preliminary_rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>> =
             function.rune_to_type.iter().map(|(k, v)| (*k, *v)).collect();
         let mut preliminary_solver_state =
             self.make_solver_state(
@@ -970,7 +971,7 @@ where 's: 't,
             Err(_f) => { panic!("implement: TypingPassSolverError from preliminary continue"); }
         }
 
-        let preliminary_inferences: HashMap<IRuneS<'s>, ITemplataT<'s, 't>> =
+        let preliminary_inferences: IndexMap<IRuneS<'s>, ITemplataT<'s, 't>> =
             preliminary_solver_state.userify_conclusions().into_iter().collect();
 
         let placeholder_initial_knowns_from_function: Vec<InitialKnown<'s, 't>> =
@@ -1197,7 +1198,7 @@ where 's: 't,
             context_region: RegionT { region: IRegionT::Default },
         };
 
-        let rune_to_type: HashMap<IRuneS<'s>, ITemplataType<'s>> = function.rune_to_type.iter()
+        let rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>> = function.rune_to_type.iter()
             .map(|(k, v)| (*k, *v))
             .collect();
         let mut solver = self.make_solver_state(
@@ -1221,10 +1222,10 @@ where 's: 't,
                             generic_param, index, &rune_to_type, placeholder_pure_height, true);
                         solver_state.commit_step::<()>(
                             false, vec![], {
-                                let mut m = HashMap::new();
+                                let mut m = IndexMap::new();
                                 m.insert(generic_param.rune.rune, templata);
                                 m
-                            }, vec![], HashSet::new()).unwrap();
+                            }, vec![], IndexSet::new()).unwrap();
                         true
                     }
                 }

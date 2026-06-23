@@ -24,6 +24,7 @@ use crate::typing::infer_compiler::InitialKnown;
 use crate::typing::infer_compiler::IResolvingError;
 use crate::typing::ast::ast::PrototypeT;
 use crate::typing::overload_resolver::IFindFunctionFailureReason;
+use indexmap::IndexMap;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
@@ -113,7 +114,7 @@ trait IEvaluateFunctionResult
 */
 pub struct EvaluateFunctionSuccess<'s, 't> {
     pub prototype: &'t PrototypeTemplataT<'s, 't>,
-    pub inferences: HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+    pub inferences: IndexMap<IRuneS<'s>, ITemplataT<'s, 't>>,
     pub instantiation_bound_args: &'t InstantiationBoundArgumentsT<'s, 't>,
 }
 /*
@@ -143,7 +144,7 @@ trait IDefineFunctionResult
 */
 pub struct DefineFunctionSuccess<'s, 't> {
     pub prototype: &'t PrototypeTemplataT<'s, 't>,
-    pub inferences: HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+    pub inferences: IndexMap<IRuneS<'s>, ITemplataT<'s, 't>>,
     pub instantiation_bound_params: &'t InstantiationBoundArgumentsT<'s, 't>,
 }
 /*
@@ -174,7 +175,7 @@ trait IResolveFunctionResult
 */
 pub struct ResolveFunctionSuccess<'s, 't> {
     pub prototype: &'t PrototypeTemplataT<'s, 't>,
-    pub inferences: HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+    pub inferences: IndexMap<IRuneS<'s>, ITemplataT<'s, 't>>,
 }
 /*
 case class ResolveFunctionSuccess(
@@ -203,7 +204,7 @@ trait IStampFunctionResult
 */
 pub struct StampFunctionSuccess<'s, 't> {
     pub prototype: &'t PrototypeT<'s, 't>,
-    pub inferences: HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+    pub inferences: IndexMap<IRuneS<'s>, ITemplataT<'s, 't>>,
 }
 /*
 case class StampFunctionSuccess(

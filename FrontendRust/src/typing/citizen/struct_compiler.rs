@@ -22,6 +22,7 @@ use crate::postparsing::rules::rules::*;
 use std::marker::PhantomData;
 use crate::postparsing::ast::ICitizenAttributeS;
 use crate::typing::templata::conversions::evaluate_mutability;
+use indexmap::IndexMap;
 use std::collections::HashMap;
 
 /*
@@ -60,7 +61,7 @@ pub struct UncheckedDefiningConclusions<'s, 't> {
     pub ranges: Vec<RangeS<'s>>,
     pub call_location: LocationInDenizen<'s>,
     pub definition_rules: Vec<IRulexSR<'s>>,
-    pub conclusions: HashMap<IRuneS<'s>, ITemplataT<'s, 't>>,
+    pub conclusions: IndexMap<IRuneS<'s>, ITemplataT<'s, 't>>,
 }
 /*
 case class UncheckedDefiningConclusions(

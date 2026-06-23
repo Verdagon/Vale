@@ -2326,7 +2326,7 @@ pub(crate) fn predict_rune_types(
   ArenaIndexMap<'s, IRuneS<'s>, ITemplataType<'s>>,
   ICompileErrorS<'s>,
 > {
-  let mut grouped_explicit_types = HashMap::<
+  let mut grouped_explicit_types = indexmap::IndexMap::<
     IRuneS<'s>,
     Vec<ITemplataType<'s>>,
   >::new();
