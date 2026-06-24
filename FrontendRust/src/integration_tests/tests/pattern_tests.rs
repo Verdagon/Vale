@@ -25,7 +25,6 @@ use crate::typing::types::types::RegionT;
 use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonInt;
-// mig: struct PatternTests
 pub struct PatternTests;
 
 /*
@@ -53,7 +52,6 @@ class PatternTests extends FunSuite with Matchers {
   //  compile.evalForKind(Vector()) match { case VonInt(4) => }
   //}
 */
-// mig: fn test_matching_a_multiple_member_seq_of_immutables
 #[test]
 fn test_matching_a_multiple_member_seq_of_immutables() {
     let compilation_bump = bumpalo::Bump::new();
@@ -100,7 +98,6 @@ fn test_matching_a_multiple_member_seq_of_immutables() {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn test_matching_a_multiple_member_seq_of_mutables
 #[test]
 fn test_matching_a_multiple_member_seq_of_mutables() {
     let compilation_bump = bumpalo::Bump::new();
@@ -151,7 +148,6 @@ fn test_matching_a_multiple_member_seq_of_mutables() {
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 */
-// mig: fn test_matching_a_multiple_member_pack_of_immutable_and_own
 #[test]
 fn test_matching_a_multiple_member_pack_of_immutable_and_own() {
     let compilation_bump = bumpalo::Bump::new();
@@ -201,7 +197,6 @@ fn test_matching_a_multiple_member_pack_of_immutable_and_own() {
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 */
-// mig: fn test_matching_a_multiple_member_pack_of_immutable_and_borrow
 #[test]
 fn test_matching_a_multiple_member_pack_of_immutable_and_borrow() {
     let compilation_bump = bumpalo::Bump::new();
@@ -306,7 +301,6 @@ fn test_matching_a_multiple_member_pack_of_immutable_and_borrow() {
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 */
-// mig: fn test_destructuring_a_shared
 #[test]
 fn test_destructuring_a_shared() {
     let compilation_bump = bumpalo::Bump::new();
@@ -411,7 +405,6 @@ fn test_destructuring_a_shared() {
 //  }
 
 */
-// mig: fn ignore_destructure
 #[test]
 fn ignore_destructure() {
     let compilation_bump = bumpalo::Bump::new();

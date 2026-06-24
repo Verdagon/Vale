@@ -31,7 +31,6 @@ import dev.vale.solver._
 class ErrorTests extends FunSuite with Matchers  {
 */
 
-// mig: fn compile_program_for_error
 fn compile_program_for_error<'s, 'ctx, 'p>(
     compilation: &mut HigherTypingCompilation<'s, 'ctx, 'p>,
 ) -> ICompileErrorA<'s> {
@@ -49,7 +48,6 @@ fn compile_program_for_error<'s, 'ctx, 'p>(
   }
 */
 
-// mig: fn report_type_not_found
 #[test]
 fn report_type_not_found() {
     let parse_bump = bumpalo::Bump::new();

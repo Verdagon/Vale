@@ -27,12 +27,10 @@ import dev.vale.von.VonInt
 import org.scalatest._
 
 */
-// mig: struct BlockTests
 pub struct BlockTests;
 /*
 class BlockTests extends FunSuite with Matchers {
 */
-// mig: fn empty_block
 #[test]
 fn empty_block() {
     let compilation_bump = bumpalo::Bump::new();
@@ -108,7 +106,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_block_with_a_variable
 #[test]
 fn simple_block_with_a_variable() {
     let compilation_bump = bumpalo::Bump::new();
@@ -206,7 +203,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_block_with_a_variable_another_variable_outside_with_same_name
 #[test]
 fn simple_block_with_a_variable_another_variable_outside_with_same_name() {
     let compilation_bump = bumpalo::Bump::new();

@@ -31,7 +31,6 @@ import dev.vale.vimpl
 // RR = Runtime Result. Don't use these to determine behavior, just use
 // these to check that things are as we expect.
 */
-// mig: struct RRReferenceV
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub struct RRReferenceV<'v, 'h, 's>
@@ -44,12 +43,10 @@ where 's: 'h, 'h: 'v,
 case class RRReference(hamut: CoordH[KindHT]) {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for RRReferenceV<'v, 'h, 's>` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct RRKindV<'v, 'h, 's>
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct RRKindV<'v, 'h, 's>
@@ -62,12 +59,10 @@ where 's: 'h, 'h: 'v,
 case class RRKind(hamut: KindHT) {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for RRKindV<'v, 'h, 's>` below.)
 /*
 override def hashCode(): Int = hash; }
 */
-// mig: struct AllocationV<'v, 'h, 's>
 /// Temporary state
 pub struct AllocationV<'v, 'h, 's> {
   pub reference: ReferenceV<'v, 'h, 's>,
@@ -81,7 +76,6 @@ class Allocation(
 ) {
   private var referrers = Map[IObjectReferrer, Int]()
 */
-// mig: fn id
 impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
   pub fn id(&self) -> AllocationIdV<'v, 'h, 's> {
     panic!("Unimplemented: id");
@@ -89,7 +83,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
 /*
   def id = reference.allocId
 */
-// mig: fn increment_ref_count
   pub fn increment_ref_count(&mut self, referrer: IObjectReferrerV<'v, 'h, 's>) {
     if matches!(self.kind, KindV::Void(_)) {
       return;
@@ -127,7 +120,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
     referrers = referrers + (referrer -> (referrers.getOrElse(referrer, 0) + 1))
   }
 */
-// mig: fn decrement_ref_count
   pub fn decrement_ref_count(&mut self, referrer: IObjectReferrerV<'v, 'h, 's>) {
     if matches!(self.kind, KindV::Void(_)) {
       return;
@@ -159,7 +151,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
     }
   }
 */
-// mig: fn get_ref_count
   pub fn get_ref_count(&self) -> i32 {
     panic!("Unimplemented: get_ref_count");
   }
@@ -175,7 +166,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
       .sum
   }
 */
-// mig: fn ensure_ref_count
   pub fn ensure_ref_count(&self, scout_arena: &ScoutArena<'s>, maybe_ownership_filter: Option<&'v [OwnershipH]>, expected_num: i32) -> Result<(), VmRuntimeErrorV<'s>> {
     if matches!(self.kind, KindV::Void(_)) {
       // Void has no RC
@@ -219,7 +209,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
       ConstraintViolatedException)
   }
 */
-// mig: fn print_refs
   pub fn print_refs(&self, vivem_dout: &mut PrintStream) {
     if self.get_total_ref_count(None) > 0 {
       let referrers_str = self.referrers.iter().map(|(_k, _v)| -> String { panic!("vimpl: referrers.mkString entry toString") }).collect::<Vec<_>>().join(" ");
@@ -233,7 +222,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
     }
   }
 */
-// mig: fn get_total_ref_count
   pub fn get_total_ref_count(&self, maybe_ownership_filter: Option<OwnershipH>) -> i32 {
     if matches!(self.kind, KindV::Void(_)) {
       return 1;
@@ -257,7 +245,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
     }
   }
 */
-// mig: fn finalize
   pub fn finalize(&self) {
     panic!("Unimplemented: finalize");
   }
@@ -267,7 +254,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
 //    vassert(referrers.isEmpty)
   }
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom<Wide> for Narrow` or inline match.)
 /*
   def unapply(arg: Allocation): Option[KindV] = Some(kind)
@@ -275,7 +261,6 @@ impl<'v, 'h, 's> AllocationV<'v, 'h, 's> {
 
 object Allocation {
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom<Wide> for Narrow` or inline match.)
 /*
   def unapply(arg: Allocation): Option[KindV] = {
@@ -283,7 +268,6 @@ object Allocation {
   }
 }
 */
-// mig: enum KindV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub enum KindV<'v, 'h, 's> {
@@ -299,7 +283,6 @@ pub enum KindV<'v, 'h, 's> {
 /*
 sealed trait KindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> KindV<'v, 'h, 's> where 's: 'h, 'h: 'v {
   pub fn tyype(&self, interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     match self {
@@ -318,7 +301,6 @@ impl<'v, 'h, 's> KindV<'v, 'h, 's> where 's: 'h, 'h: 'v {
   def tyype: RRKind
 }
 */
-// mig: enum PrimitiveKindV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone)]
 pub enum PrimitiveKindV<'v, 'h, 's> {
@@ -348,13 +330,11 @@ impl<'v, 'h, 's> From<PrimitiveKindV<'v, 'h, 's>> for KindV<'v, 'h, 's> {
   }
 }
 /* Guardian: disable-all */
-// mig: VoidV
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct VoidV;
 /*
 case object VoidV extends PrimitiveKindV {
 */
-// mig: fn tyype
 impl VoidV {
   pub fn tyype<'v, 'h, 's>(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> where 's: 'h, 'h: 'v, {
     RRKindV { hamut: KindHT::VoidHT(VoidHT), _phantom: PhantomData }
@@ -364,7 +344,6 @@ impl VoidV {
   override def tyype = RRKind(VoidHT())
 }
 */
-// mig: struct IntV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct IntV<'v, 'h, 's>
@@ -377,7 +356,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class IntV(value: Long, bits: Int) extends PrimitiveKindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> IntV<'v, 'h, 's> {
   pub fn tyype(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: KindHT::IntHT(IntHT { bits: self.bits }), _phantom: PhantomData }
@@ -387,7 +365,6 @@ impl<'v, 'h, 's> IntV<'v, 'h, 's> {
   override def tyype = RRKind(IntHT(bits))
 }
 */
-// mig: struct BoolV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct BoolV<'v, 'h, 's>
@@ -399,7 +376,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class BoolV(value: Boolean) extends PrimitiveKindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> BoolV<'v, 'h, 's> {
   pub fn tyype(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: KindHT::BoolHT(BoolHT), _phantom: PhantomData }
@@ -409,7 +385,6 @@ impl<'v, 'h, 's> BoolV<'v, 'h, 's> {
   override def tyype = RRKind(BoolHT())
 }
 */
-// mig: struct FloatV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct FloatV<'v, 'h, 's>
@@ -421,7 +396,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class FloatV(value: Double) extends PrimitiveKindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> FloatV<'v, 'h, 's> {
   pub fn tyype(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: KindHT::FloatHT(FloatHT), _phantom: PhantomData }
@@ -431,7 +405,6 @@ impl<'v, 'h, 's> FloatV<'v, 'h, 's> {
   override def tyype = RRKind(FloatHT())
 }
 */
-// mig: struct StrV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StrV<'v, 'h, 's>
@@ -443,7 +416,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class StrV(value: String) extends PrimitiveKindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> StrV<'v, 'h, 's> {
   pub fn tyype(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: KindHT::StrHT(StrHT), _phantom: PhantomData }
@@ -453,7 +425,6 @@ impl<'v, 'h, 's> StrV<'v, 'h, 's> {
   override def tyype = RRKind(StrHT())
 }
 */
-// mig: struct OpaqueV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct OpaqueV<'v, 'h, 's>
@@ -465,7 +436,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class OpaqueV(opaqueHT: OpaqueHT) extends PrimitiveKindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> OpaqueV<'v, 'h, 's> {
   pub fn tyype(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: KindHT::OpaqueHT(_interner.bump().alloc(self.opaque_ht)), _phantom: PhantomData }
@@ -475,7 +445,6 @@ impl<'v, 'h, 's> OpaqueV<'v, 'h, 's> {
   override def tyype = RRKind(opaqueHT)
 }
 */
-// mig: struct StructInstanceV<'v, 'h, 's>
 /// Temporary state
 #[derive(Debug)]
 pub struct StructInstanceV<'v, 'h, 's>
@@ -491,7 +460,6 @@ case class StructInstanceV(
 ) extends KindV {
   vassert(members.get.size == structH.members.size)
 */
-// mig: fn tyype
 impl<'v, 'h, 's> StructInstanceV<'v, 'h, 's> {
   pub fn tyype(&self, interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: KindHT::StructHT(self.struct_h.get_ref(interner)), _phantom: PhantomData }
@@ -499,7 +467,6 @@ impl<'v, 'h, 's> StructInstanceV<'v, 'h, 's> {
 /*
   override def tyype = RRKind(structH.getRef)
 */
-// mig: fn get_reference_member
   pub fn get_reference_member(&self, index: i32) -> ReferenceV<'v, 'h, 's> {
     let members = self.members.get().expect("StructInstance has no members");
     let (_tyype, r#ref) = (self.struct_h.members[index as usize].tyype, members[index as usize]);
@@ -512,7 +479,6 @@ impl<'v, 'h, 's> StructInstanceV<'v, 'h, 's> {
     }
   }
 */
-// mig: fn set_reference_member
   pub fn set_reference_member(&self, vivem_bump: &'v bumpalo::Bump, index: i32, reference: ReferenceV<'v, 'h, 's>) {
     let mut new_members: Vec<ReferenceV<'v, 'h, 's>> = self.members.get().expect("StructInstance has no members").to_vec();
     new_members[index as usize] = reference;
@@ -523,7 +489,6 @@ impl<'v, 'h, 's> StructInstanceV<'v, 'h, 's> {
     members = Some(members.get.updated(index, reference))
   }
 */
-// mig: fn zero
   pub fn zero(&self) {
     self.members.set(None);
   }
@@ -537,7 +502,6 @@ impl<'v, 'h, 's> StructInstanceV<'v, 'h, 's> {
   }
 }
 */
-// mig: struct ArrayInstanceV<'v, 'h, 's>
 /// Temporary state
 #[derive(Debug)]
 pub struct ArrayInstanceV<'v, 'h, 's> {
@@ -554,7 +518,6 @@ case class ArrayInstanceV(
     private var elements: Vector[ReferenceV]
 ) extends KindV {
 */
-// mig: fn tyype
 impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
   pub fn tyype(&self, _interner: &HammerInterner<'s, 'h>) -> RRKindV<'v, 'h, 's> {
     RRKindV { hamut: self.type_h.kind, _phantom: PhantomData }
@@ -562,7 +525,6 @@ impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
 /*
   override def tyype = RRKind(typeH.kind)
 */
-// mig: fn get_element
   pub fn get_element(&self, index: i64) -> ReferenceV<'v, 'h, 's> {
     let elements = self.elements.get();
     if index < 0 || index as usize >= elements.len() {
@@ -578,7 +540,6 @@ impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
     elements(index.toInt)
   }
 */
-// mig: fn set_element
   pub fn set_element(&self, vivem_bump: &'v bumpalo::Bump, index: i64, ref_: ReferenceV<'v, 'h, 's>) {
     let elements = self.elements.get();
     if index < 0 || index as usize >= elements.len() {
@@ -597,7 +558,6 @@ impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
     elements = elements.updated(index.toInt, ref)
   }
 */
-// mig: fn initialize_element
   pub fn initialize_element(&self, vivem_bump: &'v bumpalo::Bump, ref_: ReferenceV<'v, 'h, 's>) {
     let elements = self.elements.get();
     assert!(elements.len() < self.capacity as usize);
@@ -612,7 +572,6 @@ impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
     elements = elements :+ ref
   }
 */
-// mig: fn deinitialize_element
   pub fn deinitialize_element(&self) -> ReferenceV<'v, 'h, 's> {
     let elements = self.elements.get();
     assert!(!elements.is_empty());
@@ -628,7 +587,6 @@ impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
     ref
   }
 */
-// mig: fn get_size
   pub fn get_size(&self) -> i64 {
     self.elements.get().len() as i64
   }
@@ -639,7 +597,6 @@ impl<'v, 'h, 's> ArrayInstanceV<'v, 'h, 's> {
   }
 }
 */
-// mig: struct AllocationIdV<'v, 'h, 's>
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub struct AllocationIdV<'v, 'h, 's> {
@@ -649,13 +606,11 @@ pub struct AllocationIdV<'v, 'h, 's> {
 /*
 case class AllocationId(tyype: RRKind, num: Int) {
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for AllocationIdV<'v, 'h, 's>` below.)
 /*
   override def hashCode(): Int = num
 }
 */
-// mig: struct ReferenceV<'v, 'h, 's>
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct ReferenceV<'v, 'h, 's> {
@@ -684,12 +639,10 @@ case class ReferenceV(
   num: Int
 ) {
 */
-// mig: fn alloc_id
 impl<'v, 'h, 's> ReferenceV<'v, 'h, 's> {
   pub fn alloc_id(&self) -> AllocationIdV<'v, 'h, 's> {
     AllocationIdV { tyype: RRKindV { hamut: self.actual_kind.hamut, _phantom: PhantomData }, num: self.num }
   }
-// mig: fn actual_coord (val actualCoord — Scala synthesized field)
   pub fn actual_coord(&self) -> RRReferenceV<'v, 'h, 's> {
     RRReferenceV {
       hamut: CoordH {
@@ -700,7 +653,6 @@ impl<'v, 'h, 's> ReferenceV<'v, 'h, 's> {
       _phantom: PhantomData,
     }
   }
-// mig: fn seen_as_coord (val seenAsCoord — Scala synthesized field)
   pub fn seen_as_coord(&self) -> RRReferenceV<'v, 'h, 's> {
     RRReferenceV {
       hamut: CoordH {
@@ -718,7 +670,6 @@ impl<'v, 'h, 's> ReferenceV<'v, 'h, 's> {
   val seenAsCoord: RRReference = RRReference(CoordH(ownership, location, seenAsKind.hamut))
 }
 */
-// mig: enum IObjectReferrerV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub enum IObjectReferrerV<'v, 'h, 's> {
@@ -732,7 +683,6 @@ pub enum IObjectReferrerV<'v, 'h, 's> {
 /*
 sealed trait IObjectReferrer {
 */
-// mig: fn ownership
 impl<'v, 'h, 's> IObjectReferrerV<'v, 'h, 's> {
   pub fn ownership(&self) -> OwnershipH {
     match self {
@@ -749,7 +699,6 @@ impl<'v, 'h, 's> IObjectReferrerV<'v, 'h, 's> {
   def ownership: OwnershipH
 }
 */
-// mig: struct VariableToObjectReferrerV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct VariableToObjectReferrerV<'v, 'h, 's> {
@@ -760,12 +709,10 @@ pub struct VariableToObjectReferrerV<'v, 'h, 's> {
 case class VariableToObjectReferrer(varAddr: VariableAddressV, ownership: OwnershipH) extends IObjectReferrer {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for VariableToObjectReferrerV` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct MemberToObjectReferrerV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MemberToObjectReferrerV<'v, 'h, 's> {
@@ -776,12 +723,10 @@ pub struct MemberToObjectReferrerV<'v, 'h, 's> {
 case class MemberToObjectReferrer(memberAddr: MemberAddressV, ownership: OwnershipH) extends IObjectReferrer {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for MemberToObjectReferrerV` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct ElementToObjectReferrerV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ElementToObjectReferrerV<'v, 'h, 's> {
@@ -792,12 +737,10 @@ pub struct ElementToObjectReferrerV<'v, 'h, 's> {
 case class ElementToObjectReferrer(elementAddr: ElementAddressV, ownership: OwnershipH) extends IObjectReferrer {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ElementToObjectReferrerV` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct RegisterToObjectReferrerV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct RegisterToObjectReferrerV<'v, 'h, 's> {
@@ -808,12 +751,10 @@ pub struct RegisterToObjectReferrerV<'v, 'h, 's> {
 case class RegisterToObjectReferrer(callId: CallId, ownership: OwnershipH) extends IObjectReferrer {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for RegisterToObjectReferrerV` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct RegisterHoldToObjectReferrerV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct RegisterHoldToObjectReferrerV<'v, 'h, 's> {
@@ -825,7 +766,6 @@ pub struct RegisterHoldToObjectReferrerV<'v, 'h, 's> {
 case class RegisterHoldToObjectReferrer(expressionId: ExpressionId, ownership: OwnershipH) extends IObjectReferrer {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for RegisterHoldToObjectReferrerV` below.)
 /*
 override def hashCode(): Int = hash;  }
@@ -833,7 +773,6 @@ override def hashCode(): Int = hash;  }
   //val hash = runtime.ScalaRunTime._hashCode(this);
 //override def hashCode(): Int = hash;  }
 */
-// mig: struct ArgumentToObjectReferrerV
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ArgumentToObjectReferrerV<'v, 'h, 's> {
@@ -844,12 +783,10 @@ pub struct ArgumentToObjectReferrerV<'v, 'h, 's> {
 case class ArgumentToObjectReferrer(argumentId: ArgumentId, ownership: OwnershipH) extends IObjectReferrer {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ArgumentToObjectReferrerV` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct VariableAddressV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct VariableAddressV<'v, 'h, 's>
@@ -861,7 +798,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class VariableAddressV(callId: CallId, local: Local) {
 */
-// mig: fn to_string (realized-by-impl Display)
 // (Realized by `impl Display for VariableAddressV<'v, 'h, 's>` below.)
 /*
   override def toString: String = "*v:" + callId + "#v" + local.id.number
@@ -872,7 +808,6 @@ impl<'v, 'h, 's> Display for VariableAddressV<'v, 'h, 's> where 's: 'h, 'h: 'v {
   }
 }
 /* Guardian: disable-all */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for VariableAddressV<'v, 'h, 's>` below.)
 /*
   override def equals(obj: Any): Boolean = {
@@ -885,7 +820,6 @@ impl<'v, 'h, 's> Display for VariableAddressV<'v, 'h, 's> where 's: 'h, 'h: 'v {
   }
 }
 */
-// mig: struct MemberAddressV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MemberAddressV<'v, 'h, 's> {
@@ -895,7 +829,6 @@ pub struct MemberAddressV<'v, 'h, 's> {
 /*
 case class MemberAddressV(structId: AllocationId, fieldIndex: Int) {
 */
-// mig: fn to_string
 impl<'v, 'h, 's> MemberAddressV<'v, 'h, 's> {
   pub fn to_string(&self) -> String {
     format!("*o:{}.{}", self.struct_id.num, self.field_index)
@@ -905,7 +838,6 @@ impl<'v, 'h, 's> MemberAddressV<'v, 'h, 's> {
   override def toString: String = "*o:" + structId.num + "." + fieldIndex
 }
 */
-// mig: struct ElementAddressV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ElementAddressV<'v, 'h, 's> {
@@ -915,7 +847,6 @@ pub struct ElementAddressV<'v, 'h, 's> {
 /*
 case class ElementAddressV(arrayId: AllocationId, elementIndex: Long) {
 */
-// mig: fn to_string
 impl<'v, 'h, 's> ElementAddressV<'v, 'h, 's> {
   pub fn to_string(&self) -> String {
     format!("*o:{}.{}", self.array_id.num, self.element_index)
@@ -927,7 +858,6 @@ impl<'v, 'h, 's> ElementAddressV<'v, 'h, 's> {
 
 // Used in tracking reference counts/maps.
 */
-// mig: struct CallIdV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct CallIdV<'v, 'h, 's>
@@ -940,7 +870,6 @@ where 's: 'h, 'h: 'v,
 /*
 case class CallId(callDepth: Int, function: PrototypeH) {
 */
-// mig: fn to_string
 impl<'v, 'h, 's> CallIdV<'v, 'h, 's> {
   pub fn to_string(&self) -> StrI<'s> {
     panic!("Unimplemented: to_string_call_id");
@@ -959,7 +888,6 @@ impl<'v, 'h, 's> Display for CallIdV<'v, 'h, 's> {
   }
 }
 /* Guardian: disable-all */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for CallIdV<'v, 'h, 's>` below.)
 /*
   override def hashCode(): Int = callDepth + function.id.shortenedName.hashCode
@@ -968,7 +896,6 @@ impl<'v, 'h, 's> Display for CallIdV<'v, 'h, 's> {
   //val hash = runtime.ScalaRunTime._hashCode(this);
 //override def hashCode(): Int = hash;  }
 */
-// mig: struct ArgumentIdV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ArgumentIdV<'v, 'h, 's> {
@@ -979,12 +906,10 @@ pub struct ArgumentIdV<'v, 'h, 's> {
 case class ArgumentId(callId: CallId, index: Int) {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ArgumentIdV<'v, 'h, 's>` below.)
 /*
 override def hashCode(): Int = hash;  }
 */
-// mig: struct VariableV<'v, 'h, 's>
 /// Temporary state
 #[derive(Clone)]
 pub struct VariableV<'v, 'h, 's> {
@@ -999,7 +924,6 @@ case class VariableV(
     expectedType: CoordH[KindHT]) {
 }
 */
-// mig: struct ExpressionIdV<'v, 'h, 's>
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ExpressionIdV<'v, 'h, 's> {
@@ -1012,7 +936,6 @@ case class ExpressionId(
   path: Vector[Int]
 ) {
 */
-// mig: fn add_step
 impl<'v, 'h, 's> ExpressionIdV<'v, 'h, 's> {
   pub fn add_step(&self, bump: &'v bumpalo::Bump, i: i32) -> ExpressionIdV<'v, 'h, 's> {
     let old_len = self.path.len();
@@ -1026,7 +949,6 @@ impl<'v, 'h, 's> ExpressionIdV<'v, 'h, 's> {
   def addStep(i: Int): ExpressionId = ExpressionId(callId, path :+ i)
 }
 */
-// mig: enum RegisterV<'v, 'h, 's>
 /// Temporary state
 pub enum RegisterV<'v, 'h, 's> {
   ReferenceRegister(&'v ReferenceRegisterV<'v, 'h, 's>),
@@ -1034,7 +956,6 @@ pub enum RegisterV<'v, 'h, 's> {
 /*
 sealed trait RegisterV {
 */
-// mig: fn expect_reference_register
 impl<'v, 'h, 's> RegisterV<'v, 'h, 's> {
   pub fn expect_reference_register(&self) -> ReferenceRegisterV<'v, 'h, 's> {
     panic!("Unimplemented: expect_reference_register");
@@ -1050,7 +971,6 @@ impl<'v, 'h, 's> RegisterV<'v, 'h, 's> {
   }
 }
 */
-// mig: struct ReferenceRegisterV
 /// Temporary state
 pub struct ReferenceRegisterV<'v, 'h, 's> {
   pub reference: ReferenceV<'v, 'h, 's>,
@@ -1059,13 +979,11 @@ pub struct ReferenceRegisterV<'v, 'h, 's> {
 case class ReferenceRegisterV(reference: ReferenceV) extends RegisterV {
   val hash = runtime.ScalaRunTime._hashCode(this);
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ReferenceRegisterV` below.)
 /*
 override def hashCode(): Int = hash;  }
 
 */
-// mig: struct VivemPanicV
 /// Temporary state
 pub struct VivemPanicV<'v, 'h, 's>
 where 's: 'h, 'h: 'v,

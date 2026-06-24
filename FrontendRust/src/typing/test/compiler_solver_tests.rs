@@ -109,7 +109,6 @@ import scala.io.Source
 class CompilerSolverTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 */
-// mig: fn read_code_from_resource
 fn read_code_from_resource(resource_filename: &str) -> String {
     panic!("Unimplemented: read_code_from_resource");
 }
@@ -120,7 +119,6 @@ fn read_code_from_resource(resource_filename: &str) -> String {
     is.mkString("")
   }
 */
-// mig: fn test_simple_generic_function
 #[test]
 fn test_simple_generic_function() {
 
@@ -151,7 +149,6 @@ fn test_simple_generic_function() {
     vassert(coutputs.getAllUserFunctions.size == 1)
   }
 */
-// mig: fn test_lacking_drop_function
 #[test]
 fn test_lacking_drop_function() {
 
@@ -195,7 +192,6 @@ Couldn't find a suitable function drop(Kind$bork.T). No function with that name 
     }
   }
 */
-// mig: fn test_having_drop_function_concept_function
 #[test]
 fn test_having_drop_function_concept_function() {
 
@@ -300,7 +296,6 @@ fn test_having_drop_function_concept_function() {
     }
   }
 */
-// mig: fn test_calling_a_generic_function_with_a_concept_function
 #[test]
 fn test_calling_a_generic_function_with_a_concept_function() {
 
@@ -378,7 +373,6 @@ exported func main() {
     }
   }
 */
-// mig: fn test_rune_type_in_generic_param
 #[test]
 fn test_rune_type_in_generic_param() {
 
@@ -418,7 +412,6 @@ fn test_rune_type_in_generic_param() {
     }
   }
 */
-// mig: fn test_single_parameter_function
 #[test]
 fn test_single_parameter_function() {
 
@@ -466,7 +459,6 @@ exported func main() int {
 
   }
 */
-// mig: fn test_calling_a_generic_function_with_a_drop_concept_function
 #[test]
 fn test_calling_a_generic_function_with_a_drop_concept_function() {
 
@@ -583,7 +575,6 @@ exported func main() {
     }
   }
 */
-// mig: fn humanize_errors
 #[test]
 fn humanize_errors() {
 
@@ -762,14 +753,12 @@ fn humanize_errors() {
     val codeStr = "Hello I am A large piece Of code [that has An error]"
     val filenamesAndSources = FileCoordinateMap.test(interner, codeStr)
 */
-// mig: fn make_loc
 fn make_loc(pos: i32) {
     panic!("Unimplemented: make_loc");
 }
 /*
     def makeLoc(pos: Int) = CodeLocationS(FileCoordinate.test(interner), pos)
 */
-// mig: fn make_range
 fn make_range(begin: i32, end: i32) {
     panic!("Unimplemented: make_range");
 }
@@ -838,7 +827,6 @@ fn make_range(begin: i32, end: i32) {
     vassert(errorText.contains("\n                                 ^^^^^^^^^^^^^^^^^^^ _7: (unknown)"))
   }
 */
-// mig: fn simple_int_rule
 #[test]
 fn simple_int_rule() {
 
@@ -880,7 +868,6 @@ exported func main() int where N Int = 3 {
     Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplataT(3), 32, _) => })
   }
 */
-// mig: fn equals_transitive
 #[test]
 fn equals_transitive() {
 
@@ -922,7 +909,6 @@ exported func main() int where N Int = 3, M Int = N {
     Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplataT(3), 32, _) => })
   }
 */
-// mig: fn one_of
 #[test]
 fn one_of() {
 
@@ -964,7 +950,6 @@ exported func main() int where N Int = any(2, 3, 4), N = 3 {
     Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplataT(3), 32, _) => })
   }
 */
-// mig: fn components
 #[test]
 fn components() {
 
@@ -1058,7 +1043,6 @@ where
     }
   }
 */
-// mig: fn prototype_rule_call_via_rune
 #[test]
 fn prototype_rule_call_via_rune() {
 
@@ -1109,7 +1093,6 @@ where mooFunc Prot = func moo(int, bool)str
     })
   }
 */
-// mig: fn prototype_rule_call_directly
 #[test]
 fn prototype_rule_call_directly() {
 
@@ -1160,7 +1143,6 @@ where func moo(int, bool)str
     })
   }
 */
-// mig: fn send_struct_to_struct
 #[test]
 fn send_struct_to_struct() {
 
@@ -1200,7 +1182,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn send_struct_to_interface
 #[test]
 fn send_struct_to_interface() {
 
@@ -1244,7 +1225,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn assume_most_specific_generic_param
 #[test]
 fn assume_most_specific_generic_param() {
     let parse_bump = Bump::new();
@@ -1305,7 +1285,6 @@ exported func main() {
     }
   }
 */
-// mig: fn assume_most_specific_common_ancestor
 #[test]
 fn assume_most_specific_common_ancestor() {
 
@@ -1388,7 +1367,6 @@ exported func main() {
     }).size shouldEqual 2
   }
 */
-// mig: fn descendant_satisfying_call
 #[test]
 fn descendant_satisfying_call() {
 
@@ -1489,7 +1467,6 @@ exported func main() {
     }
   }
 */
-// mig: fn reports_incomplete_solve
 #[test]
 fn reports_incomplete_solve() {
 
@@ -1561,7 +1538,6 @@ Unsolved runes: N
     }
   }
 */
-// mig: fn stamps_an_interface_template_via_a_function_return
 #[test]
 fn stamps_an_interface_template_via_a_function_return() {
 
@@ -1620,7 +1596,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn pointer_becomes_share_if_kind_is_immutable
 #[test]
 fn pointer_becomes_share_if_kind_is_immutable() {
 
@@ -1672,7 +1647,6 @@ exported func main() int {
     coutputs.lookupFunction("bork").header.params.head.tyype.ownership shouldEqual ShareT
   }
 */
-// mig: fn detects_conflict_between_types
 #[test]
 fn detects_conflict_between_types() {
 
@@ -1773,7 +1747,6 @@ Unsolved runes: _3 _3.kind
     }
   }
 */
-// mig: fn can_match_kind_templata_type_against_struct_env_entry_struct_templata
 #[test]
 fn can_match_kind_templata_type_against_struct_env_entry_struct_templata() {
 
@@ -1835,7 +1808,6 @@ exported func main() int {
     coutputs.lookupFunction("bork").header.id.localName.templateArgs.last shouldEqual CoordTemplataT(CoordT(ShareT, RegionT(DefaultRegionT), IntT(32)))
   }
 */
-// mig: fn can_destructure_and_assemble_static_sized_array
 #[test]
 fn can_destructure_and_assemble_static_sized_array() {
 
@@ -1951,7 +1923,6 @@ exported func main() int {
     }
   }
 */
-// mig: fn test_equivalent_identifying_runes_in_functions
 #[test]
 fn test_equivalent_identifying_runes_in_functions() {
 
@@ -1986,7 +1957,6 @@ fn test_equivalent_identifying_runes_in_functions() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn iragp_test_equivalent_identifying_runes_in_struct
 #[test]
 fn iragp_test_equivalent_identifying_runes_in_struct() {
 

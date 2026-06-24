@@ -55,12 +55,10 @@ import dev.vale.von.{IVonData, VonBool, VonFloat, VonInt}
 import scala.collection.immutable.List
 
 */
-// mig: struct IntegrationTestsA
 pub struct IntegrationTestsA;
 /*
 class IntegrationTestsA extends FunSuite with Matchers {
 */
-// mig: fn roguelike_typing_pass
 #[test]
 fn roguelike_typing_pass() {
     let compilation_bump = bumpalo::Bump::new();
@@ -105,7 +103,6 @@ fn roguelike_typing_pass() {
   //    compile.evalForKind(Vector())
   //  }
 */
-// mig: fn simple_program_returning_an_int
 #[test]
 fn simple_program_returning_an_int() {
     let compilation_bump = bumpalo::Bump::new();
@@ -137,7 +134,6 @@ fn simple_program_returning_an_int() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_drop
 #[test]
 fn simple_program_with_drop() {
     let compilation_bump = bumpalo::Bump::new();
@@ -169,7 +165,6 @@ fn simple_program_with_drop() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_arith
 #[test]
 fn simple_program_with_arith() {
     let compilation_bump = bumpalo::Bump::new();
@@ -201,7 +196,6 @@ fn simple_program_with_arith() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_logic
 #[test]
 fn simple_program_with_logic() {
     let compilation_bump = bumpalo::Bump::new();
@@ -233,7 +227,6 @@ fn simple_program_with_logic() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_migrate
 #[test]
 fn simple_program_with_migrate() {
     let compilation_bump = bumpalo::Bump::new();
@@ -265,7 +258,6 @@ fn simple_program_with_migrate() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_str
 #[test]
 fn simple_program_with_str() {
     let compilation_bump = bumpalo::Bump::new();
@@ -297,7 +289,6 @@ fn simple_program_with_str() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_arrays
 #[test]
 fn simple_program_with_arrays() {
     let compilation_bump = bumpalo::Bump::new();
@@ -329,7 +320,6 @@ fn simple_program_with_arrays() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_mainargs
 #[test]
 fn simple_program_with_mainargs() {
     let compilation_bump = bumpalo::Bump::new();
@@ -361,7 +351,6 @@ fn simple_program_with_mainargs() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_as
 #[test]
 fn simple_program_with_as() {
     let compilation_bump = bumpalo::Bump::new();
@@ -393,7 +382,6 @@ fn simple_program_with_as() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_print
 #[test]
 fn simple_program_with_print() {
     let compilation_bump = bumpalo::Bump::new();
@@ -425,7 +413,6 @@ fn simple_program_with_print() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_tup
 #[test]
 fn simple_program_with_tup() {
     let compilation_bump = bumpalo::Bump::new();
@@ -457,7 +444,6 @@ fn simple_program_with_tup() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_panic
 #[test]
 fn simple_program_with_panic() {
     let compilation_bump = bumpalo::Bump::new();
@@ -489,7 +475,6 @@ fn simple_program_with_panic() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_opt
 #[test]
 fn simple_program_with_opt() {
     let compilation_bump = bumpalo::Bump::new();
@@ -521,7 +506,6 @@ fn simple_program_with_opt() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_result
 #[test]
 fn simple_program_with_result() {
     let compilation_bump = bumpalo::Bump::new();
@@ -553,7 +537,6 @@ fn simple_program_with_result() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_sameinstance
 #[test]
 fn simple_program_with_sameinstance() {
     let compilation_bump = bumpalo::Bump::new();
@@ -585,7 +568,6 @@ fn simple_program_with_sameinstance() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_program_with_weak
 #[test]
 fn simple_program_with_weak() {
     let compilation_bump = bumpalo::Bump::new();
@@ -617,7 +599,6 @@ fn simple_program_with_weak() {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn hardcoding_negative_numbers
 #[test]
 fn hardcoding_negative_numbers() {
     let compilation_bump = bumpalo::Bump::new();
@@ -649,7 +630,6 @@ fn hardcoding_negative_numbers() {
     compile.evalForKind(Vector()) match { case VonInt(-3) => }
   }
 */
-// mig: fn taking_an_argument_and_returning_it
 #[test]
 fn taking_an_argument_and_returning_it() {
     let compilation_bump = bumpalo::Bump::new();
@@ -685,7 +665,6 @@ fn taking_an_argument_and_returning_it() {
     compile.evalForKind(Vector(IntV(5, 32))) match { case VonInt(5) => }
   }
 */
-// mig: fn tests_adding_two_numbers
 #[test]
 fn tests_adding_two_numbers() {
     let compilation_bump = bumpalo::Bump::new();
@@ -717,7 +696,6 @@ fn tests_adding_two_numbers() {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn tests_adding_two_floats
 #[test]
 fn tests_adding_two_floats() {
     let compilation_bump = bumpalo::Bump::new();
@@ -749,7 +727,6 @@ fn tests_adding_two_floats() {
     compile.evalForKind(Vector()) match { case VonFloat(6.0f) => }
   }
 */
-// mig: fn tests_inline_adding
 #[test]
 fn tests_inline_adding() {
     let compilation_bump = bumpalo::Bump::new();
@@ -781,7 +758,6 @@ fn tests_inline_adding() {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn test_constraint_ref
 #[test]
 fn test_constraint_ref() {
     let compilation_bump = bumpalo::Bump::new();
@@ -814,7 +790,6 @@ fn test_constraint_ref() {
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 */
-// mig: fn test_borrow_ref
 #[test]
 fn test_borrow_ref() {
     let compilation_bump = bumpalo::Bump::new();
@@ -847,7 +822,6 @@ fn test_borrow_ref() {
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 */
-// mig: fn tests_inline_adding_more
 #[test]
 fn tests_inline_adding_more() {
     let compilation_bump = bumpalo::Bump::new();
@@ -879,7 +853,6 @@ fn tests_inline_adding_more() {
     compile.evalForKind(Vector()) match { case VonInt(20) => }
   }
 */
-// mig: fn simple_lambda
 #[test]
 fn simple_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -911,7 +884,6 @@ fn simple_lambda() {
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 */
-// mig: fn lambda_with_one_magic_arg
 #[test]
 fn lambda_with_one_magic_arg() {
     let compilation_bump = bumpalo::Bump::new();
@@ -944,7 +916,6 @@ fn lambda_with_one_magic_arg() {
   }
 
 */
-// mig: fn lambda_with_a_type_specified_param
 #[test]
 fn lambda_with_a_type_specified_param() {
     let compilation_bump = bumpalo::Bump::new();
@@ -977,7 +948,6 @@ fn lambda_with_a_type_specified_param() {
     compile.evalForKind(Vector()) match { case VonInt(6) => }
   }
 */
-// mig: fn test_overloads
 #[test]
 fn test_overloads() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1011,7 +981,6 @@ fn test_overloads() {
   }
 
 */
-// mig: fn test_block
 #[test]
 fn test_block() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1043,7 +1012,6 @@ fn test_block() {
     compile.evalForKind(Vector()) match { case VonInt(300) => }
   }
 */
-// mig: fn test_generic
 #[test]
 fn test_generic() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1089,7 +1057,6 @@ exported func main() {
     compile.evalForKind(Vector())
   }
 */
-// mig: fn test_multiple_invocations_of_generic
 #[test]
 fn test_multiple_invocations_of_generic() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1128,7 +1095,6 @@ exported func main() int {true bork false; 2 bork 2; return 3 bork 3;}
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn test_mutating_a_local_var
 #[test]
 fn test_mutating_a_local_var() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1157,7 +1123,6 @@ fn test_mutating_a_local_var() {
     compile.run(Vector())
   }
 */
-// mig: fn test_returning_a_local_mutable_var
 #[test]
 fn test_returning_a_local_mutable_var() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1189,7 +1154,6 @@ fn test_returning_a_local_mutable_var() {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn test_taking_a_callable_param
 #[test]
 fn test_taking_a_callable_param() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1228,7 +1192,6 @@ exported func main() int { return do({ 3 }); }
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn stamps_an_interface_template_via_a_function_parameter
 #[test]
 fn stamps_an_interface_template_via_a_function_parameter() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1306,7 +1269,6 @@ exported func main(a SomeStruct<int>) {
     compile.run(heap, Vector(ref))
   }
 */
-// mig: fn tests_unstackifying_a_variable_multiple_times_in_a_function
 #[test]
 fn tests_unstackifying_a_variable_multiple_times_in_a_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1339,7 +1301,6 @@ fn tests_unstackifying_a_variable_multiple_times_in_a_function() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn reads_a_struct_member
 #[test]
 fn reads_a_struct_member() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1375,7 +1336,6 @@ fn reads_a_struct_member() {
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 */
-// mig: fn add_two_i64
 #[test]
 fn add_two_i64() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1412,7 +1372,6 @@ fn add_two_i64() {
     compile.evalForKind(Vector()) match { case VonInt(42L) => }
   }
 */
-// mig: fn equals_equals_equals_true
 #[test]
 fn equals_equals_equals_true() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1457,7 +1416,6 @@ exported func main() bool {
     compile.evalForKind(Vector()) match { case VonBool(true) => }
   }
 */
-// mig: fn equals_equals_equals_false
 #[test]
 fn equals_equals_equals_false() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1504,7 +1462,6 @@ exported func main() bool {
     compile.evalForKind(Vector()) match { case VonBool(false) => }
   }
 */
-// mig: fn lambda_can_call_sibling_lambda
 // See LCCSL
 #[test]
 fn lambda_can_call_sibling_lambda() {
@@ -1553,7 +1510,6 @@ exported func main() int {
     }
   }
 */
-// mig: fn set_swapping_locals
 #[test]
 fn set_swapping_locals() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1586,7 +1542,6 @@ fn set_swapping_locals() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn simple_extern_function
 #[test]
 fn simple_extern_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1624,7 +1579,6 @@ fn simple_extern_function() {
     }
   }
 */
-// mig: fn extern_function_returning_extern_struct
 #[test]
 fn extern_function_returning_extern_struct() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1675,7 +1629,6 @@ exported func main() int {
 
 
 */
-// mig: fn extern_rust_vec
 #[test]
 fn extern_rust_vec() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1726,7 +1679,6 @@ exported func main() int {
     }
   }
 */
-// mig: fn extern_rust_vec_capacity
 #[test]
 fn extern_rust_vec_capacity() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1779,7 +1731,6 @@ exported func main() i64 {
     }
   }
 */
-// mig: fn extern_method_on_generic_extern_struct_returns_expected_value
 #[test]
 fn extern_method_on_generic_extern_struct_returns_expected_value() {
     let compilation_bump = bumpalo::Bump::new();

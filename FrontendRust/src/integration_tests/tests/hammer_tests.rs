@@ -37,7 +37,6 @@ import org.scalatest._
 import scala.collection.immutable.List
 
 */
-// mig: struct HammerTests
 pub struct HammerTests;
 /*
 class HammerTests extends FunSuite with Matchers {
@@ -45,7 +44,6 @@ class HammerTests extends FunSuite with Matchers {
   // The generated nodes will be tested by end-to-end tests.
 
 */
-// mig: fn simple_main
 #[test]
 pub fn simple_main() {
     let parse_bump = bumpalo::Bump::new();
@@ -97,7 +95,6 @@ pub fn simple_main() {
 //  }
 
 */
-// mig: fn two_templated_structs_make_it_into_hamuts
 #[test]
 pub fn two_templated_structs_make_it_into_hamuts() {
     let parse_bump = bumpalo::Bump::new();
@@ -194,7 +191,6 @@ exported func main() {
 //  }
 
 */
-// mig: fn tests_stripping_things_after_panic
 #[test]
 pub fn tests_stripping_things_after_panic() {
     let parse_bump = bumpalo::Bump::new();
@@ -256,7 +252,6 @@ exported func main() int {
   }
 
 */
-// mig: fn panic_in_expr
 #[test]
 #[ignore = "blocked on CoordSendSR Some-receiver solver-conflict fix (see investigations/coord_send_some_branch_fix.md)"]
 pub fn panic_in_expr() {
@@ -342,7 +337,6 @@ exported func main() int {
   }
 
 */
-// mig: fn tests_export_function
 #[test]
 pub fn tests_export_function() {
     let parse_bump = bumpalo::Bump::new();
@@ -381,7 +375,6 @@ pub fn tests_export_function() {
   }
 
 */
-// mig: fn tests_export_struct
 #[test]
 pub fn tests_export_struct() {
     let parse_bump = bumpalo::Bump::new();
@@ -421,7 +414,6 @@ pub fn tests_export_struct() {
   }
 
 */
-// mig: fn tests_export_interface
 #[test]
 pub fn tests_export_interface() {
     let parse_bump = bumpalo::Bump::new();
@@ -461,7 +453,6 @@ pub fn tests_export_interface() {
   }
 
 */
-// mig: fn tests_exports_from_two_modules_different_names
 #[test]
 pub fn tests_exports_from_two_modules_different_names() {
     let parse_bump = bumpalo::Bump::new();
@@ -596,7 +587,6 @@ pub fn tests_exports_from_two_modules_different_names() {
 //  }
 */
 
-// mig: fn top_level_extern_functions_wire_format_simple_id_has_flat_shape
 #[test]
 pub fn top_level_extern_functions_wire_format_simple_id_has_flat_shape() {
     // numInheritedGenericParameters is 0 for a top-level extern, so Hammer should not reshape.
@@ -660,7 +650,6 @@ exported func main() int {
   }
 */
 
-// mig: fn mixed_own_inherited_template_args_split_correctly_in_wire_format_simple_id
 #[test]
 pub fn mixed_own_inherited_template_args_split_correctly_in_wire_format_simple_id() {
     // Per @PRIIROZ, the function's templateArgs are ordered [own..., inherited...]. For
@@ -742,7 +731,6 @@ exported func main() int {
   }
 */
 
-// mig: fn extern_method_in_generic_extern_struct_puts_container_args_on_citizen_step_in_wire_format_simple_id
 #[test]
 pub fn extern_method_in_generic_extern_struct_puts_container_args_on_citizen_step_in_wire_format_simple_id() {
     // The reshape moves the inherited container template args (T -> i32) off the leaf function

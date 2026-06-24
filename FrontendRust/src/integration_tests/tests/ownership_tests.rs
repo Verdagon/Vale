@@ -28,7 +28,6 @@ use crate::typing::types::types::VariabilityT;
 use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonInt;
-// mig: struct OwnershipTests
 pub struct OwnershipTests;
 
 /*
@@ -51,7 +50,6 @@ import dev.vale.von.VonInt
 
 class OwnershipTests extends FunSuite with Matchers {
 */
-// mig: fn borrowing_a_temporary_mutable_makes_a_local_var
 #[test]
 fn borrowing_a_temporary_mutable_makes_a_local_var() {
     let compilation_bump = bumpalo::Bump::new();
@@ -134,7 +132,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 */
-// mig: fn owning_ref_method_call
 #[test]
 fn owning_ref_method_call() {
     let compilation_bump = bumpalo::Bump::new();
@@ -191,7 +188,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 */
-// mig: fn derive_drop
 #[test]
 fn derive_drop() {
     let compilation_bump = bumpalo::Bump::new();
@@ -258,7 +254,6 @@ exported func main() {
     compile.evalForKind(Vector())
   }
 */
-// mig: fn custom_drop_result_is_an_owning_ref_calls_destructor
 #[test]
 fn custom_drop_result_is_an_owning_ref_calls_destructor() {
     let compilation_bump = bumpalo::Bump::new();
@@ -337,7 +332,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
 */
-// mig: fn saves_return_value_then_destroys_temporary
 #[test]
 fn saves_return_value_then_destroys_temporary() {
     let compilation_bump = bumpalo::Bump::new();
@@ -413,7 +407,6 @@ exported func main() int {
     compile.evalForKindAndStdout(Vector()) match { case (VonInt(10), "Destroying!\n") => }
   }
 */
-// mig: fn calls_destructor_on_local_var
 #[test]
 fn calls_destructor_on_local_var() {
     let compilation_bump = bumpalo::Bump::new();
@@ -492,7 +485,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
 */
-// mig: fn calls_destructor_on_local_var_unless_moved
 #[test]
 fn calls_destructor_on_local_var_unless_moved() {
     let compilation_bump = bumpalo::Bump::new();
@@ -652,7 +644,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
 */
-// mig: fn saves_return_value_then_destroys_local_var
 #[test]
 fn saves_return_value_then_destroys_local_var() {
     let compilation_bump = bumpalo::Bump::new();
@@ -736,7 +727,6 @@ exported func main() int {
     compile.evalForKindAndStdout(Vector()) match { case (VonInt(10), "Destroying!\n") => }
   }
 */
-// mig: fn gets_from_temporary_struct_a_members_member
 #[test]
 fn gets_from_temporary_struct_a_members_member() {
     let compilation_bump = bumpalo::Bump::new();
@@ -796,7 +786,6 @@ exported func main() int {
 
   // test that when we borrow an owning, we hoist its destructor to the end.
 */
-// mig: fn unstackifies_local_vars
 #[test]
 fn unstackifies_local_vars() {
     let compilation_bump = bumpalo::Bump::new();
@@ -855,7 +844,6 @@ exported func main() int {
     Collector.all(main, { case UnletTE(_) => }).size shouldEqual numVariables
   }
 */
-// mig: fn basic_builder_pattern
 #[test]
 fn basic_builder_pattern() {
     let compilation_bump = bumpalo::Bump::new();
@@ -918,7 +906,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn member_access_on_returned_owning_ref
 #[test]
 fn member_access_on_returned_owning_ref() {
     let compilation_bump = bumpalo::Bump::new();

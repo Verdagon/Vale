@@ -232,7 +232,6 @@ object U {
     return (result.toVector, remainder.toVector)
   }
 */
-// mig: fn repeat
 pub fn repeat<T: Clone>(elem: T, n: i32) -> Vec<T> {
     let mut result: Vec<T> = Vec::new();
     for _ in 0..n {
@@ -262,7 +261,6 @@ pub fn repeat<T: Clone>(elem: T, n: i32) -> Vec<T> {
   }
 
 */
-// mig: fn union_maps_expect_no_conflict
 pub fn union_maps_expect_no_conflict<K, V, F>(
     a: &indexmap::IndexMap<K, V>,
     b: &indexmap::IndexMap<K, V>,
@@ -334,7 +332,6 @@ where K: Copy + Eq + Hash, V: Copy, F: Fn(V, V) -> bool,
 //    arr
 //  }
 */
-// mig: fn replace_all
 pub fn replace_all(original: &str, replacements: &indexmap::IndexMap<&str, &str>) -> String {
     let mut str_acc: String = original.to_string();
     for (from, to) in replacements {
@@ -351,7 +348,6 @@ pub fn replace_all(original: &str, replacements: &indexmap::IndexMap<&str, &str>
     str
   }
 */
-// mig: fn scrambles
 // Get all possible versions of original_map where the keys are the same
 // but the value for each is randomized.
 pub fn scrambles<T, Y>(original_map: &indexmap::IndexMap<T, Y>) -> Vec<indexmap::IndexMap<T, Y>>

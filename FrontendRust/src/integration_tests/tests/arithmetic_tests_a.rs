@@ -20,12 +20,10 @@ import dev.vale.{finalast => m}
 import org.scalatest.{FunSuite, Matchers}
 
 */
-// mig: struct ArithmeticTestsA
 pub struct ArithmeticTestsA;
 /*
 class ArithmeticTestsA extends FunSuite with Matchers {
 */
-// mig: fn dividing
 #[test]
 fn dividing() {
     let compilation_bump = bumpalo::Bump::new();

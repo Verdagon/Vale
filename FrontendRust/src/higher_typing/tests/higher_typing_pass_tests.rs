@@ -23,7 +23,6 @@ import org.scalatest._
 class HigherTypingPassTests extends FunSuite with Matchers  {
 */
 
-// mig: fn compile_program_for_error
 fn compile_program_for_error<'s, 'ctx, 'p>(
     compilation: &mut HigherTypingCompilation<'s, 'ctx, 'p>,
 ) -> ICompileErrorA<'s>
@@ -68,7 +67,6 @@ fn setup_test<'s, 'ctx, 'p>(
     )
 }
 
-// mig: fn type_simple_main_function
 #[test]
 fn type_simple_main_function() {
     let scout_bump = Bump::new();
@@ -92,7 +90,6 @@ fn type_simple_main_function() {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn type_simple_generic_function
 #[test]
 fn type_simple_generic_function() {
     let scout_bump = Bump::new();
@@ -116,7 +113,6 @@ fn type_simple_generic_function() {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn infer_coord_type_from_parameters
 #[test]
 fn infer_coord_type_from_parameters() {
     let scout_bump = Bump::new();
@@ -153,7 +149,6 @@ fn infer_coord_type_from_parameters() {
     main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 */
-// mig: fn type_simple_struct
 #[test]
 fn type_simple_struct() {
     let scout_bump = Bump::new();
@@ -177,7 +172,6 @@ fn type_simple_struct() {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn type_simple_generic_struct
 #[test]
 fn type_simple_generic_struct() {
     let scout_bump = Bump::new();
@@ -206,7 +200,6 @@ struct Moo<T> {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn template_call_recursively_evaluate
 #[test]
 fn template_call_recursively_evaluate() {
     let scout_bump = Bump::new();
@@ -254,7 +247,6 @@ struct Bork<T> {
     main.headerRuneToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 */
-// mig: fn type_simple_interface
 #[test]
 fn type_simple_interface() {
     let scout_bump = Bump::new();
@@ -278,7 +270,6 @@ fn type_simple_interface() {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn type_simple_generic_interface
 #[test]
 fn type_simple_generic_interface() {
     let scout_bump = Bump::new();
@@ -302,7 +293,6 @@ fn type_simple_generic_interface() {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn type_simple_generic_interface_method
 #[test]
 fn type_simple_generic_interface_method() {
     let scout_bump = Bump::new();
@@ -331,7 +321,6 @@ interface Moo<T> where T Ref {
     val astrouts = compilation.expectAstrouts()
   }
 */
-// mig: fn infer_generic_type_through_param_type_template_call
 #[test]
 fn infer_generic_type_through_param_type_template_call() {
     let scout_bump = Bump::new();
@@ -377,7 +366,6 @@ exported func moo<T>(x List<T>) {
     main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 */
-// mig: fn test_evaluate_pack
 #[test]
 fn test_evaluate_pack() {
     let scout_bump = Bump::new();
@@ -424,7 +412,6 @@ Guardian: disable: NRAFX
     main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual PackTemplataType(CoordTemplataType())
   }
 */
-// mig: fn test_infer_pack_from_result
 #[test]
 fn test_infer_pack_from_result() {
     let scout_bump = Bump::new();
@@ -468,7 +455,6 @@ where func moo(T, bool)str
     main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 */
-// mig: fn test_infer_pack_from_empty_result
 #[test]
 fn test_infer_pack_from_empty_result() {
     let scout_bump = Bump::new();
@@ -529,7 +515,6 @@ where P = Refs(), Prot[P, str]
 //  }
 }
 */
-// mig: fn type_simple_impl
 // NOVEL CODE
 #[test]
 fn type_simple_impl() {

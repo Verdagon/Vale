@@ -24,7 +24,6 @@ import dev.vale.solver.FailedSolve
 object HigherTypingErrorHumanizer {
 */
 
-// mig: fn assemble_error
 pub fn assemble_error<'s>(
     filenames_and_sources: &dyn Fn(CodeLocationS<'s>) -> String,
     line_containing: &dyn Fn(CodeLocationS<'s>) -> String,
@@ -49,7 +48,6 @@ pub fn assemble_error<'s>(
   }
 */
 
-// mig: fn humanize_rune_type_solve_error
 pub fn humanize_rune_type_solve_error() -> String { panic!("Unimplemented: humanize_rune_type_solve_error"); }
 /*
   def humanizeRuneTypeSolveError(
@@ -76,7 +74,6 @@ pub fn humanize_rune_type_solve_error() -> String { panic!("Unimplemented: human
   }
 */
 
-// mig: fn humanize
 pub fn humanize<'s>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     lines_between: &dyn Fn(CodeLocationS<'s>, CodeLocationS<'s>) -> Vec<RangeS<'s>>,

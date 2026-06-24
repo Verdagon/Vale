@@ -30,17 +30,14 @@ use crate::tests::tests::get_package_to_resource_resolver;
 use std::collections::HashMap;
 use crate::collect_where_hnode;
 use crate::typing::typing_interner::TypingInterner;
-// mig: struct HammerTest
 pub struct HammerTest {
 }
 
-// mig: impl HammerTest
 // (impl block suppressed per simplifying-pass policy — test fns emitted at module scope)
 
 /*
 class HammerTest extends FunSuite with Matchers with Collector {
 */
-// mig: fn local_ids_unique
 #[test]
 fn local_ids_unique() {
     let parse_bump = Bump::new();

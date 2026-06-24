@@ -139,7 +139,6 @@ pub enum ICompileErrorT<'s, 't> {
 /*
 sealed trait ICompileErrorT { def range: List[RangeS] }
 */
-// mig: fn range
 impl<'s, 't> ICompileErrorT<'s, 't> {
     pub fn range(&self) -> &[RangeS<'s>] {
         match self {

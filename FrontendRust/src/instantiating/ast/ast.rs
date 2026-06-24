@@ -33,7 +33,6 @@ import scala.collection.immutable._
 //   type to avoid a cyclical definition.
 // - If not in declared banners, then tell FunctionCompiler to start evaluating it.
 */
-// mig: struct KindExportI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct KindExportI<'s, 'i> {
@@ -52,20 +51,16 @@ case class KindExportI(
   exportedName: StrI
 )  {
 */
-// mig: impl KindExportI
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for KindExportI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for KindExportI` below.)
 /*
 override def hashCode(): Int = vcurious()
 
 }
 */
-// mig: struct FunctionExportI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct FunctionExportI<'s, 'i> where 's: 'i {
@@ -82,13 +77,10 @@ case class FunctionExportI(
   exportedName: StrI
 )  {
 */
-// mig: impl FunctionExportI
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for FunctionExportI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for FunctionExportI` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -105,7 +97,6 @@ override def hashCode(): Int = vcurious()
 //
 //}
 */
-// mig: struct FunctionExternI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct FunctionExternI<'s, 'i> where 's: 'i {
@@ -128,18 +119,14 @@ case class FunctionExternI(
     numInheritedGenericParameters: Int) {
   vpass()
 */
-// mig: impl FunctionExternI
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for FunctionExternI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Canonical groups equals/hashCode on one physical line — see the eq block above.)
 /*
 }
 */
-// mig: struct KindExternI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct KindExternI<'s, 'i> where 's: 'i {
@@ -148,19 +135,15 @@ pub struct KindExternI<'s, 'i> where 's: 'i {
 /*
 case class KindExternI(struct: StructIT[cI]) {
 */
-// mig: impl KindExternI
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by the #[derive(PartialEq, Eq)] above.)
 /*
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Canonical groups equals/hashCode on one physical line — see the eq block above.)
 /*
 }
 */
 
-// mig: struct InterfaceEdgeBlueprintI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct InterfaceEdgeBlueprintI<'s, 'i> where 's: 'i {
@@ -173,19 +156,15 @@ case class InterfaceEdgeBlueprintI(
   interface: IdI[cI, IInterfaceNameI[cI]],
   superFamilyRootHeaders: Vector[(PrototypeI[cI], Int)]) {
 */
-// mig: impl InterfaceEdgeBlueprintI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for InterfaceEdgeBlueprintI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this);
 override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for InterfaceEdgeBlueprintI` below.)
 /*
 override def equals(obj: Any): Boolean = vcurious(); }
 */
-// mig: struct EdgeI
 /// Temporary state
 #[derive(PartialEq, Eq, Debug)]
 pub struct EdgeI<'s, 'i> where 's: 'i {
@@ -211,14 +190,11 @@ case class EdgeI(
   abstractFuncToOverrideFunc: Map[IdI[cI, IFunctionNameI[cI]], PrototypeI[cI]]
 ) {
 */
-// mig: impl EdgeI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for EdgeI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for EdgeI` below.)
 /*
   override def equals(obj: Any): Boolean = {
@@ -234,7 +210,6 @@ case class EdgeI(
   }
 }
 */
-// mig: struct FunctionDefinitionI
 /// Temporary state
 #[derive(Debug)]
 pub struct FunctionDefinitionI<'s, 'i> where 's: 'i {
@@ -250,13 +225,10 @@ case class FunctionDefinitionI(
   runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
   body: ReferenceExpressionIE)  {
 */
-// mig: impl FunctionDefinitionI
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for FunctionDefinitionI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for FunctionDefinitionI` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -264,7 +236,6 @@ override def hashCode(): Int = vcurious()
   // We always end a function with a ret, whose result is a Never.
   vassert(body.result.kind == NeverIT[cI](false))
 */
-// mig: fn is_pure
 impl<'s, 'i> FunctionDefinitionI<'s, 'i> {
     pub fn is_pure(&self) -> bool {
         panic!("Unimplemented: is_pure")
@@ -276,30 +247,25 @@ impl<'s, 'i> FunctionDefinitionI<'s, 'i> {
 
 object getFunctionLastName {
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom<FunctionDefinitionI> for IFunctionNameI` or inline match.)
 /*
   def unapply(f: FunctionDefinitionI): Option[IFunctionNameI[cI]] = Some(f.header.id.localName)
 }
 */
-// mig: struct LocationInFunctionEnvironmentI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct LocationInFunctionEnvironmentI<'i> {
     pub path: &'i [i32],
 }
-// mig: impl LocationInFunctionEnvironmentI
 /*
 // A unique location in a function. Environment is in the name so it spells LIFE!
 case class LocationInFunctionEnvironmentI(path: Vector[Int]) {
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for LocationInFunctionEnvironmentI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn add
 impl<'i> LocationInFunctionEnvironmentI<'i> {
     pub fn add(&self, sub_location: i32) -> LocationInFunctionEnvironmentI<'i> {
         panic!("Unimplemented: add")
@@ -309,7 +275,6 @@ impl<'i> LocationInFunctionEnvironmentI<'i> {
     LocationInFunctionEnvironmentI(path :+ subLocation)
   }
 */
-// mig: fn to_string
     pub fn to_string(&self) -> String {
         self.path.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(".")
     }
@@ -318,15 +283,12 @@ impl<'i> LocationInFunctionEnvironmentI<'i> {
   override def toString: String = path.mkString(".")
 }
 */
-// mig: struct AbstractI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct AbstractI;
-// mig: impl AbstractI
 /*
 case class AbstractI()
 */
-// mig: struct ParameterI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ParameterI<'s, 'i> where 's: 'i {
@@ -342,21 +304,17 @@ case class ParameterI(
   preChecked: Boolean,
   tyype: CoordI[cI]) {
 */
-// mig: impl ParameterI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ParameterI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
 
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ParameterI` below.)
 /*
   // Use same instead, see EHCFBD for why we dont like equals.
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn same
 impl<'s, 'i> ParameterI<'s, 'i> {
     pub fn same(&self, that: &ParameterI<'_, '_>) -> bool {
         panic!("Unimplemented: same")
@@ -370,7 +328,6 @@ impl<'s, 'i> ParameterI<'s, 'i> {
   }
 }
 */
-// mig: struct SignatureI
 /// Interned (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct SignatureI<'s, 'i, R> {
@@ -383,7 +340,6 @@ pub struct SignatureI<'s, 'i, R> {
 pub struct SignatureIValI<'s, 'i, R> {
     pub id: IdI<'s, 'i, R>,
 }
-// mig: impl SignatureI
 /*
 // A "signature" is just the things required for overload resolution, IOW function name and arg types.
 
@@ -399,13 +355,11 @@ pub struct SignatureIValI<'s, 'i, R> {
 
 case class SignatureI[+R <: IRegionsModeI](id: IdI[R, IFunctionNameI[R]]) {
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for SignatureI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn param_types
 impl<'s, 'i, R> SignatureI<'s, 'i, R> {
     pub fn param_types(&self) -> Vec<()> {
         panic!("Unimplemented: param_types")
@@ -415,7 +369,6 @@ impl<'s, 'i, R> SignatureI<'s, 'i, R> {
   def paramTypes: Vector[CoordI[R]] = id.localName.parameters
 }
 */
-// mig: enum IFunctionAttributeI
 /// Polyvalue
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum IFunctionAttributeI<'s> {
@@ -426,8 +379,6 @@ pub enum IFunctionAttributeI<'s> {
 /*
 sealed trait IFunctionAttributeI
 */
-// mig: impl IFunctionAttributeI
-// mig: enum ICitizenAttributeI
 /// Polyvalue
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ICitizenAttributeI<'s> {
@@ -437,17 +388,13 @@ pub enum ICitizenAttributeI<'s> {
 /*
 sealed trait ICitizenAttributeI
 */
-// mig: impl ICitizenAttributeI
-// mig: struct ExternI
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ExternI<'s> {
     pub package_coord: PackageCoordinate<'s>,
 }
-// mig: impl ExternI
 /*
 case class ExternI(packageCoord: PackageCoordinate) extends IFunctionAttributeI with ICitizenAttributeI { // For optimization later
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ExternI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -459,7 +406,6 @@ case object PureI extends IFunctionAttributeI
 case object SealedI extends ICitizenAttributeI
 case object UserFunctionI extends IFunctionAttributeI // Whether it was written by a human. Mostly for tests right now.
 */
-// mig: struct RegionI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RegionI<'s, 'i> where 's: 'i {
@@ -471,8 +417,6 @@ case class RegionI(
   name: IRegionNameI[cI],
   mutable: Boolean)
 */
-// mig: impl RegionI
-// mig: struct FunctionHeaderI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct FunctionHeaderI<'s, 'i> where 's: 'i {
@@ -492,8 +436,6 @@ case class FunctionHeaderI(
   params: Vector[ParameterI],
   returnType: CoordI[cI]) {
 */
-// mig: impl FunctionHeaderI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for FunctionHeaderI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -512,7 +454,6 @@ case class FunctionHeaderI(
 //    vassert(perspectiveRegion.localName.originalMaybeNearestPureLocation == Some(LocationInDenizen(Vector())))
 //  }
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for FunctionHeaderI` below.)
 /*
   override def equals(obj: Any): Boolean = {
@@ -529,7 +470,6 @@ case class FunctionHeaderI(
 
   vassert(id.localName.parameters == paramTypes)
 */
-// mig: fn is_extern
 impl<'s, 'i> FunctionHeaderI<'s, 'i> {
     pub fn is_extern(&self) -> bool {
         panic!("Unimplemented: is_extern")
@@ -538,7 +478,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
   def isExtern = attributes.exists({ case ExternI(_) => true case _ => false })
   //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
 */
-// mig: fn is_user_function
     pub fn is_user_function(&self) -> bool {
         self.attributes.contains(&IFunctionAttributeI::UserFunctionI)
     }
@@ -557,7 +496,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
 //  }
 //  def paramTypes: Vector[CoordI[cI]] = params.map(_.tyype)
 */
-// mig: fn get_abstract_interface
     pub fn get_abstract_interface(&self) -> Option<&'i InterfaceIT<'s, 'i, cI>> {
         let abstract_interfaces: Vec<_> = self.params.iter().filter_map(|p| match (p.virtuality, p.tyype.kind) {
             (Some(AbstractI), KindIT::InterfaceIT(ir)) => Some(ir),
@@ -576,7 +514,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
     abstractInterfaces.headOption
   }
 */
-// mig: fn get_virtual_index
     pub fn get_virtual_index(&self) -> Option<i32> {
         panic!("Unimplemented: get_virtual_index")
     }
@@ -596,7 +533,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
 //    }
 //  })
 */
-// mig: fn to_prototype
     pub fn to_prototype(&self, interner: &InstantiatingInterner<'s, 'i>) -> PrototypeI<'s, 'i, cI> {
         //    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
         //    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
@@ -613,7 +549,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
     PrototypeI(id, returnType)
   }
 */
-// mig: fn to_signature
     pub fn to_signature(&self) -> SignatureI<'_, '_, ()> {
         panic!("Unimplemented: to_signature")
     }
@@ -623,7 +558,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
     toPrototype.toSignature
   }
 */
-// mig: fn param_types
 impl<'s, 'i> FunctionHeaderI<'s, 'i> where 's: 'i {
     pub fn param_types(&self) -> Vec<CoordI<'s, 'i, cI>> {
         IFunctionNameI::try_from(self.id.local_name).unwrap().parameters().to_vec()
@@ -632,14 +566,12 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> where 's: 'i {
 /*
   def paramTypes: Vector[CoordI[cI]] = id.localName.parameters
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom<FunctionHeaderI> for (IdI, Vec<ParameterI>, CoordI)` or inline match.)
 /*
   def unapply(arg: FunctionHeaderI): Option[(IdI[cI, IFunctionNameI[cI]], Vector[ParameterI], CoordI[cI])] = {
     Some(id, params, returnType)
   }
 */
-// mig: fn is_pure
 impl<'s, 'i> FunctionHeaderI<'s, 'i> {
     pub fn is_pure(&self) -> bool {
         panic!("Unimplemented: is_pure")
@@ -651,7 +583,6 @@ impl<'s, 'i> FunctionHeaderI<'s, 'i> {
   }
 }
 */
-// mig: struct PrototypeI
 /// Interned (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct PrototypeI<'s, 'i, R> {
@@ -666,19 +597,16 @@ pub struct PrototypeIValI<'s, 'i, R> {
     pub id: IdI<'s, 'i, R>,
     pub return_type: CoordI<'s, 'i, R>,
 }
-// mig: impl PrototypeI
 /*
 case class PrototypeI[+R <: IRegionsModeI](
     id: IdI[R, IFunctionNameI[R]],
     returnType: CoordI[R]) {
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for PrototypeI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn param_types
 impl<'s, 'i, R: Copy> PrototypeI<'s, 'i, R> where 's: 'i {
     pub fn param_types(&self) -> Vec<CoordI<'s, 'i, R>> {
         IFunctionNameI::try_from(self.id.local_name).unwrap().parameters().to_vec()
@@ -687,7 +615,6 @@ impl<'s, 'i, R: Copy> PrototypeI<'s, 'i, R> where 's: 'i {
 /*
   def paramTypes: Vector[CoordI[R]] = id.localName.parameters
 */
-// mig: fn to_signature
 impl<'s, 'i, R: Copy> PrototypeI<'s, 'i, R> {
     pub fn to_signature(&self) -> SignatureIValI<'s, 'i, R> {
         SignatureIValI { id: self.id }
@@ -697,7 +624,6 @@ impl<'s, 'i, R: Copy> PrototypeI<'s, 'i, R> {
   def toSignature: SignatureI[R] = SignatureI[R](id)
 }
 */
-// mig: enum IVariableI
 /// Polyvalue
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum IVariableI<'s, 'i> where 's: 'i {
@@ -709,8 +635,6 @@ pub enum IVariableI<'s, 'i> where 's: 'i {
 /*
 sealed trait IVariableI  {
 */
-// mig: impl IVariableI
-// mig: fn name
 impl<'s, 'i> IVariableI<'s, 'i> {
     pub fn name(&self) -> () {
         panic!("Unimplemented: name")
@@ -718,14 +642,12 @@ impl<'s, 'i> IVariableI<'s, 'i> {
 /*
   def name: IVarNameI[cI]
 */
-// mig: fn variability
     pub fn variability(&self) -> () {
         panic!("Unimplemented: variability")
     }
 /*
   def variability: VariabilityI
 */
-// mig: fn collapsed_coord
     pub fn collapsed_coord(&self) -> () {
         panic!("Unimplemented: collapsed_coord")
     }
@@ -734,7 +656,6 @@ impl<'s, 'i> IVariableI<'s, 'i> {
   def collapsedCoord: CoordI[cI]
 }
 */
-// mig: enum ILocalVariableI
 /// Polyvalue
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ILocalVariableI<'s, 'i> where 's: 'i {
@@ -744,8 +665,6 @@ pub enum ILocalVariableI<'s, 'i> where 's: 'i {
 /*
 sealed trait ILocalVariableI extends IVariableI {
 */
-// mig: impl ILocalVariableI
-// mig: fn name
 impl<'s, 'i> ILocalVariableI<'s, 'i> {
     pub fn name(&self) -> IVarNameI<'s, 'i, cI> {
         match self {
@@ -756,7 +675,6 @@ impl<'s, 'i> ILocalVariableI<'s, 'i> {
 /*
   def name: IVarNameI[cI]
 */
-// mig: fn collapsed_coord
     pub fn collapsed_coord(&self) -> CoordI<'s, 'i, cI> {
         match self {
             ILocalVariableI::AddressibleLocalVariableI(alv) => alv.collapsed_coord,
@@ -767,7 +685,6 @@ impl<'s, 'i> ILocalVariableI<'s, 'i> {
   def collapsedCoord: CoordI[cI]
 }
 */
-// mig: fn variability (inherited from IVariableI, no direct ILocalVariableI Scala decl)
     pub fn variability(&self) -> VariabilityI {
         match self {
             ILocalVariableI::AddressibleLocalVariableI(alv) => alv.variability,
@@ -776,7 +693,6 @@ impl<'s, 'i> ILocalVariableI<'s, 'i> {
     }
 }
 /* */
-// mig: struct AddressibleLocalVariableI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct AddressibleLocalVariableI<'s, 'i> where 's: 'i {
@@ -797,20 +713,16 @@ case class AddressibleLocalVariableI(
   collapsedCoord: CoordI[cI]
 ) extends ILocalVariableI {
 */
-// mig: impl AddressibleLocalVariableI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for AddressibleLocalVariableI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for AddressibleLocalVariableI` below.)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 }
 */
-// mig: struct ReferenceLocalVariableI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ReferenceLocalVariableI<'s, 'i> where 's: 'i {
@@ -825,21 +737,17 @@ case class ReferenceLocalVariableI(
   collapsedCoord: CoordI[cI]
 ) extends ILocalVariableI {
 */
-// mig: impl ReferenceLocalVariableI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ReferenceLocalVariableI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ReferenceLocalVariableI` below.)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vpass()
 }
 */
-// mig: struct AddressibleClosureVariableI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct AddressibleClosureVariableI<'s, 'i> where 's: 'i {
@@ -858,8 +766,6 @@ case class AddressibleClosureVariableI(
   vpass()
 }
 */
-// mig: impl AddressibleClosureVariableI
-// mig: struct ReferenceClosureVariableI
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ReferenceClosureVariableI<'s, 'i> where 's: 'i {
@@ -876,14 +782,11 @@ case class ReferenceClosureVariableI(
   collapsedCoord: CoordI[cI]
 ) extends IVariableI {
 */
-// mig: impl ReferenceClosureVariableI
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ReferenceClosureVariableI` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(this)
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ReferenceClosureVariableI` below.)
 /*
 override def equals(obj: Any): Boolean = vcurious();

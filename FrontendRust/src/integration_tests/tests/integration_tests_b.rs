@@ -19,12 +19,10 @@ import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonFloat, VonInt}
 import org.scalatest._
 */
-// mig: struct IntegrationTestsB
 pub struct IntegrationTestsB;
 /*
 class IntegrationTestsB extends FunSuite with Matchers {
 */
-// mig: fn tests_single_expression_and_single_statement_functions_returns
 #[test]
 fn tests_single_expression_and_single_statement_functions_returns() {
     let compilation_bump = bumpalo::Bump::new();
@@ -62,7 +60,6 @@ exported func main() { moo(); }
     compile.run(Vector())
   }
 */
-// mig: fn tests_calling_a_templated_struct_constructor
 #[test]
 fn tests_calling_a_templated_struct_constructor() {
     let compilation_bump = bumpalo::Bump::new();
@@ -108,7 +105,6 @@ exported func main() int {
     compile.evalForKind(Vector())
   }
 */
-// mig: fn test_array_push_pop_len_capacity_drop
 #[test]
 fn test_array_push_pop_len_capacity_drop() {
     let compilation_bump = bumpalo::Bump::new();
@@ -173,7 +169,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 */
-// mig: fn test_int_generic
 #[test]
 fn test_int_generic() {
     let compilation_bump = bumpalo::Bump::new();
@@ -227,7 +222,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn tests_upcasting_from_a_struct_to_an_interface
 #[test]
 fn tests_upcasting_from_a_struct_to_an_interface() {
     let compilation_bump = bumpalo::Bump::new();
@@ -257,7 +251,6 @@ fn tests_upcasting_from_a_struct_to_an_interface() {
     compile.run(Vector())
   }
 */
-// mig: fn tests_upcasting_from_if
 #[test]
 fn tests_upcasting_from_if() {
     let compilation_bump = bumpalo::Bump::new();
@@ -290,7 +283,6 @@ fn tests_upcasting_from_if() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn tests_lambda
 #[test]
 fn tests_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -331,7 +323,6 @@ exported func main() int {
     compile.run(Vector())
   }
 */
-// mig: fn tests_generic_with_a_lambda
 #[test]
 fn tests_generic_with_a_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -377,7 +368,6 @@ exported func main() int {
   }
 */
 // See LCCPGB for explanation.
-// mig: fn tests_generic_s_lambda_calling_parent_function_s_bound
 #[test]
 fn tests_generic_s_lambda_calling_parent_function_s_bound() {
     let compilation_bump = bumpalo::Bump::new();
@@ -426,7 +416,6 @@ exported func main() {
   }
 */
 // This lambda has an implicit <Y> template param
-// mig: fn tests_generic_with_a_polymorphic_lambda
 #[test]
 fn tests_generic_with_a_polymorphic_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -473,7 +462,6 @@ exported func main() int {
   }
 */
 // This lambda has an implicit <Y> template param, invoked with a bool then a string
-// mig: fn tests_generic_with_a_polymorphic_lambda_invoked_twice
 #[test]
 fn tests_generic_with_a_polymorphic_lambda_invoked_twice() {
     let compilation_bump = bumpalo::Bump::new();
@@ -540,7 +528,6 @@ exported func main() int {
 //    compile.evalForKind(Vector()) match { case VonInt(5) => }
 //  }
 */
-// mig: fn tests_double_closure
 #[test]
 fn tests_double_closure() {
     let compilation_bump = bumpalo::Bump::new();
@@ -570,7 +557,6 @@ fn tests_double_closure() {
     compile.run(Vector())
   }
 */
-// mig: fn tests_from_subdir_file
 #[test]
 fn tests_from_subdir_file() {
     let compilation_bump = bumpalo::Bump::new();
@@ -603,7 +589,6 @@ fn tests_from_subdir_file() {
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 */
-// mig: fn test_generic_param_default
 #[test]
 fn test_generic_param_default() {
     let compilation_bump = bumpalo::Bump::new();
@@ -642,7 +627,6 @@ exported func main() int { bork() }
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn tests_calling_a_virtual_function
 #[test]
 fn tests_calling_a_virtual_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -675,7 +659,6 @@ fn tests_calling_a_virtual_function() {
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 */
-// mig: fn tests_making_a_variable_with_a_pattern
 #[test]
 fn tests_making_a_variable_with_a_pattern() {
     let compilation_bump = bumpalo::Bump::new();
@@ -723,7 +706,6 @@ fn tests_making_a_variable_with_a_pattern() {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 */
-// mig: fn tests_a_linked_list
 #[test]
 fn tests_a_linked_list() {
     let compilation_bump = bumpalo::Bump::new();
@@ -754,7 +736,6 @@ fn tests_a_linked_list() {
     compile.evalForKind(Vector())
   }
 */
-// mig: fn tests_a_templated_linked_list
 #[test]
 fn tests_a_templated_linked_list() {
     let compilation_bump = bumpalo::Bump::new();
@@ -785,7 +766,6 @@ fn tests_a_templated_linked_list() {
     compile.evalForKind(Vector())
   }
 */
-// mig: fn tests_calling_an_abstract_function
 #[test]
 fn tests_calling_an_abstract_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -818,7 +798,6 @@ fn tests_calling_an_abstract_function() {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn template_overrides_are_stamped
 #[test]
 fn template_overrides_are_stamped() {
     // See TIBANFC: Translate Impl Bound Argument Names For Case
@@ -854,7 +833,6 @@ fn template_overrides_are_stamped() {
     compile.evalForKind(Vector()) match { case VonInt(1) => }
   }
 */
-// mig: fn tests_a_foreach_for_a_linked_list
 #[test]
 fn tests_a_foreach_for_a_linked_list() {
     let compilation_bump = bumpalo::Bump::new();
@@ -897,7 +875,6 @@ fn tests_a_foreach_for_a_linked_list() {
 //    compile.evalForKind(Vector())
 //  }
 */
-// mig: fn tests_recursion
 #[test]
 fn tests_recursion() {
     let compilation_bump = bumpalo::Bump::new();
@@ -930,7 +907,6 @@ fn tests_recursion() {
     compile.evalForKind(Vector()) match { case VonInt(120) => }
   }
 */
-// mig: fn tests_generic_recursion
 #[test]
 fn tests_generic_recursion() {
     let compilation_bump = bumpalo::Bump::new();

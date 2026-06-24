@@ -16,7 +16,6 @@ use std::collections::HashSet;
 use std::convert::Infallible;
 use std::hash::Hash;
 
-// mig: struct Step
 #[derive(Clone, Debug, PartialEq)]
 pub struct Step<Rule, Rune, Conclusion>
 where
@@ -27,7 +26,6 @@ where
     pub added_rules: Vec<Rule>,
     pub conclusions: HashMap<Rune, Conclusion>,
 }
-// mig: impl Step
 impl<Rule, Rune, Conclusion> Step<Rule, Rune, Conclusion>
 where
     Rune: Eq + Hash,
@@ -47,7 +45,6 @@ case class FailedSolve[Rule, Rune, Conclusion, ErrType](
 
 */
 
-// mig: struct FailedSolve
 #[derive(Clone, Debug, PartialEq)]
 pub struct FailedSolve<Rule, Rune, Conclusion, ErrType>
 where
@@ -59,14 +56,12 @@ where
     pub unsolved_runes: Vec<Rune>,
     pub error: ISolverError<Rune, Conclusion, ErrType>,
 }
-// mig: impl FailedSolve
 impl<Rule, Rune, Conclusion, ErrType> FailedSolve<Rule, Rune, Conclusion, ErrType>
 where
     Rune: Eq + Hash,
 {
 }
 
-// mig: trait ISolverError
 #[derive(Clone, Debug, PartialEq)]
 pub enum ISolverError<Rune, Conclusion, ErrType> {
   SolverConflict(SolverConflict<Rune, Conclusion, ErrType>),
@@ -77,12 +72,10 @@ pub enum ISolverError<Rune, Conclusion, ErrType> {
 sealed trait ISolverError[Rune, Conclusion, ErrType]
 case class SolveIncomplete[Rune, Conclusion, ErrType]() extends ISolverError[Rune, Conclusion, ErrType]
 */
-// mig: struct SolveIncomplete
 #[derive(Clone, Debug, PartialEq)]
 pub struct SolveIncomplete<Rune, Conclusion, ErrType> {
     pub _phantom: PhantomData<(Rune, Conclusion, ErrType)>,
 }
-// mig: struct SolverConflict
 #[derive(Clone, Debug, PartialEq)]
 pub struct SolverConflict<Rune, Conclusion, ErrType> {
     pub rune: Rune,
@@ -90,7 +83,6 @@ pub struct SolverConflict<Rune, Conclusion, ErrType> {
     pub new_conclusion: Conclusion,
     pub _phantom: PhantomData<ErrType>,
 }
-// mig: impl SolverConflict
 impl<Rune, Conclusion, ErrType> SolverConflict<Rune, Conclusion, ErrType> {}
 /*
 case class SolverConflict[Rune, Conclusion, ErrType](
@@ -99,13 +91,11 @@ case class SolverConflict[Rune, Conclusion, ErrType](
   newConclusion: Conclusion
 ) extends ISolverError[Rune, Conclusion, ErrType]
 */
-// mig: struct RuleError
 #[derive(Clone, Debug, PartialEq)]
 pub struct RuleError<Rune, Conclusion, ErrType> {
     pub err: ErrType,
     pub _phantom: PhantomData<(Rune, Conclusion)>,
 }
-// mig: impl RuleError
 impl<Rune, Conclusion, ErrType> RuleError<Rune, Conclusion, ErrType> {}
 /*
 case class RuleError[Rune, Conclusion, ErrType](
@@ -152,7 +142,6 @@ object Solver {
       allRunes: Vector[Rune]
   ): SimpleSolverState[Rule, Rune, Conclusion] = {
 */
-// mig: fn make_solver_state (matches Scala's Solver.makeSolverState)
 pub fn make_solver_state<Rule, Rune, Conclusion>(
     sanity_check: bool,
     _use_optimized_solver: bool,

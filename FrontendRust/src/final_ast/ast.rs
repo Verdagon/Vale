@@ -49,7 +49,6 @@ object ProgramH {
 
 */
 
-// mig: case class RegionH
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RegionH;
@@ -60,7 +59,6 @@ override def hashCode(): Int = hash;
 override def equals(obj: Any): Boolean = vcurious(); }
 */
 
-// mig: case class Export
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Export<'s, 'h> where 's: 'h {
@@ -77,7 +75,6 @@ override def hashCode(): Int = hash;
 override def equals(obj: Any): Boolean = vcurious(); }
 */
 
-// mig: case class PackageH
 /// Temporary state
 //
 // PartialEq/Eq/Hash dropped because ArenaIndexMap doesn't implement them
@@ -120,7 +117,6 @@ case class PackageH(
   override def equals(obj: Any): Boolean = vcurious();
 override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 */
-// mig: fn extern_functions
 impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
   pub fn extern_functions(&self) -> Vec<&'h FunctionH<'s, 'h>> {
     panic!("Unimplemented: extern_functions");
@@ -129,14 +125,12 @@ impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
   // These are convenience functions for the tests to look up various functions.
   def externFunctions = functions.filter(_.isExtern)
 */
-// mig: fn abstract_functions
   pub fn abstract_functions(&self) -> Vec<&'h FunctionH<'s, 'h>> {
     panic!("Unimplemented: abstract_functions");
   }
 /*
   def abstractFunctions = functions.filter(_.isAbstract)
 */
-// mig: fn get_all_user_implemented_functions
   pub fn get_all_user_implemented_functions(&self) -> Vec<&'h FunctionH<'s, 'h>> {
     panic!("Unimplemented: get_all_user_implemented_functions");
   }
@@ -144,7 +138,6 @@ impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
   // Functions that are neither extern nor abstract
   def getAllUserImplementedFunctions = functions.filter(f => f.isUserFunction && !f.isExtern && !f.isAbstract)
 */
-// mig: fn non_extern_functions
   pub fn non_extern_functions(&self) -> Vec<&'h FunctionH<'s, 'h>> {
     panic!("Unimplemented: non_extern_functions");
   }
@@ -152,14 +145,12 @@ impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
   // Abstract or implemented
   def nonExternFunctions = functions.filter(!_.isExtern)
 */
-// mig: fn get_all_user_functions
   pub fn get_all_user_functions(&self) -> Vec<&FunctionH<'s, 'h>> {
     self.functions.iter().filter(|f| f.is_user_function()).collect()
   }
 /*
   def getAllUserFunctions = functions.filter(_.isUserFunction)
 */
-// mig: fn lookup_function
   pub fn lookup_function(&self, readable_name: &str) -> &'h FunctionH<'s, 'h> {
     let from_exports: Vec<&'h PrototypeH<'s, 'h>> = self.export_name_to_function.iter().filter(|(k, _)| k.0 == readable_name).map(|(_, v)| *v).collect();
     let from_functions: Vec<&'h PrototypeH<'s, 'h>> = self.functions.iter().filter(|f| f.prototype.id.local_name.0 == readable_name).map(|f| f.prototype).collect();
@@ -188,7 +179,6 @@ impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
     functions.find(_.prototype == matches.head).get
   }
 */
-// mig: fn lookup_struct
   pub fn lookup_struct(&self, human_name: &str) -> &'h StructDefinitionH<'s, 'h> {
     let matches: Vec<&StructDefinitionH<'s, 'h>> = self.structs.iter().filter(|s| s.id.local_name.0 == human_name).collect();
     assert_eq!(matches.len(), 1);
@@ -203,7 +193,6 @@ impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
     matches.head
   }
 */
-// mig: fn lookup_interface
   pub fn lookup_interface(&self, human_name: &str) -> &'h InterfaceDefinitionH<'s, 'h> {
     let matches: Vec<&InterfaceDefinitionH<'s, 'h>> = self.interfaces.iter().filter(|i| i.id.shortened_name.0 == human_name).collect();
     assert_eq!(matches.len(), 1);
@@ -221,7 +210,6 @@ impl<'s, 'h> PackageH<'s, 'h> where 's: 'h {
 }
 */
 
-// mig: case class ProgramH
 /// Temporary state
 pub struct ProgramH<'s, 'h> where 's: 'h {
     pub packages: PackageCoordinateMap<'s, PackageH<'s, 'h>>,
@@ -232,7 +220,6 @@ case class ProgramH(
   override def equals(obj: Any): Boolean = vcurious();
 override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 */
-// mig: fn lookup_package
 impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
   pub fn lookup_package(&self, package_coordinate: PackageCoordinate<'s>) -> PackageH<'s, 'h> {
     *self.packages.get(&package_coordinate).expect("lookup_package: missing")
@@ -242,7 +229,6 @@ impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
     vassertSome(packages.get(packageCoordinate))
   }
 */
-// mig: fn lookup_function
     pub fn lookup_function(&self, prototype: &PrototypeH<'s, 'h>) -> &'h FunctionH<'s, 'h> {
         let paackage = self.lookup_package(prototype.id.package_coordinate);
         let result = paackage.functions.iter().find(|f| f.prototype.id == prototype.id).expect("lookup_function: missing");
@@ -257,7 +243,6 @@ impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
     result
   }
 */
-// mig: fn lookup_struct
     pub fn lookup_struct(&self, interner: &HammerInterner<'s, 'h>, struct_ref_h: &StructHT<'s, 'h>) -> &'h StructDefinitionH<'s, 'h> {
         let paackage = self.lookup_package(struct_ref_h.id.package_coordinate);
         paackage.structs.iter().find(|s| *s.get_ref(interner) == *struct_ref_h).expect("lookup_struct: missing")
@@ -268,7 +253,6 @@ impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
     vassertSome(paackage.structs.find(_.getRef == structRefH))
   }
 */
-// mig: fn lookup_interface
     pub fn lookup_interface(&self, interner: &HammerInterner<'s, 'h>, interface_ref_h: &InterfaceHT<'s, 'h>) -> &'h InterfaceDefinitionH<'s, 'h> {
         let paackage = self.lookup_package(interface_ref_h.id.package_coordinate);
         paackage.interfaces.iter().find(|i| *i.get_ref(interner) == *interface_ref_h).expect("lookup_interface: missing")
@@ -279,7 +263,6 @@ impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
     vassertSome(paackage.interfaces.find(_.getRef == interfaceRefH))
   }
 */
-// mig: fn lookup_static_sized_array
     pub fn lookup_static_sized_array(&self, ssa_th: &StaticSizedArrayHT<'s, 'h>) -> &'h StaticSizedArrayDefinitionHT<'s, 'h> {
         let paackage = self.lookup_package(ssa_th.id.package_coordinate);
         paackage.static_sized_arrays.iter().find(|s| s.name == ssa_th.id).expect("vassertSome: lookup_static_sized_array")
@@ -290,7 +273,6 @@ impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
     vassertSome(paackage.staticSizedArrays.find(_.name == ssaTH.id))
   }
 */
-// mig: fn lookup_runtime_sized_array
     pub fn lookup_runtime_sized_array(&self, rsa_th: &RuntimeSizedArrayHT<'s, 'h>) -> &'h RuntimeSizedArrayDefinitionHT<'s, 'h> {
         let paackage = self.lookup_package(rsa_th.name.package_coordinate);
         paackage.runtime_sized_arrays.iter().find(|s| s.name == rsa_th.name).expect("vassertSome: lookup_runtime_sized_array")
@@ -304,7 +286,6 @@ impl<'s, 'h> ProgramH<'s, 'h> where 's: 'h {
 }
 */
 
-// mig: case class StructDefinitionH
 /// Temporary state
 //
 // PartialEq/Eq/Hash dropped because the edges field's EdgeH transitively
@@ -318,7 +299,6 @@ pub struct StructDefinitionH<'s, 'h> where 's: 'h {
     pub edges: &'h [EdgeH<'s, 'h>],
     pub members: &'h [StructMemberH<'s, 'h>],
 }
-// mig: fn get_ref (on StructDefinitionH — see Scala `def getRef: StructHT = StructHT(id)` in the StructDefinitionH audit block below)
 impl<'s, 'h> StructDefinitionH<'s, 'h> where 's: 'h {
     pub fn get_ref(&self, interner: &HammerInterner<'s, 'h>) -> &'h StructHT<'s, 'h> {
         interner.intern_struct_ht(StructHTValH { id: self.id })
@@ -356,7 +336,6 @@ override def equals(obj: Any): Boolean = vcurious();
 }
 */
 
-// mig: case class StructMemberH
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StructMemberH<'s, 'h> where 's: 'h {
@@ -385,7 +364,6 @@ override def equals(obj: Any): Boolean = vcurious();
 }
 */
 
-// mig: case class InterfaceDefinitionH
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct InterfaceDefinitionH<'s, 'h> where 's: 'h {
@@ -395,7 +373,6 @@ pub struct InterfaceDefinitionH<'s, 'h> where 's: 'h {
     pub super_interfaces: &'h [&'h InterfaceHT<'s, 'h>],
     pub methods: &'h [InterfaceMethodH<'s, 'h>],
 }
-// mig: fn get_ref (on InterfaceDefinitionH — see Scala `def getRef = InterfaceHT(id)` in audit-trail below)
 impl<'s, 'h> InterfaceDefinitionH<'s, 'h> where 's: 'h {
     pub fn get_ref(&self, interner: &HammerInterner<'s, 'h>) -> &'h InterfaceHT<'s, 'h> {
         interner.intern_interface_ht(InterfaceHTValH { id: self.id })
@@ -428,7 +405,6 @@ override def equals(obj: Any): Boolean = vcurious();
 }
 */
 
-// mig: case class InterfaceMethodH
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct InterfaceMethodH<'s, 'h> where 's: 'h {
@@ -449,7 +425,6 @@ case class InterfaceMethodH(
 }
 */
 
-// mig: case class EdgeH
 /// Temporary state
 //
 // PartialEq/Eq/Hash dropped because ArenaIndexMap doesn't implement them
@@ -476,7 +451,6 @@ override def hashCode(): Int = hash;
 override def equals(obj: Any): Boolean = vcurious(); }
 */
 
-// mig: sealed trait IFunctionAttributeH + case objects UserFunctionH, PureH
 /// Polyvalue
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum IFunctionAttributeH {
@@ -489,7 +463,6 @@ case object UserFunctionH extends IFunctionAttributeH // Whether it was written 
 case object PureH extends IFunctionAttributeH
 */
 
-// mig: case class FunctionH
 /// Temporary state
 //
 // Drops PartialEq/Eq/Hash because the `body: ExpressionH` field opts out
@@ -529,7 +502,6 @@ override def equals(obj: Any): Boolean = vcurious();
   def isUserFunction = attributes.contains(UserFunctionH)
 }
 */
-// mig: fn is_user_function
 impl<'s, 'h> FunctionH<'s, 'h> where 's: 'h {
     pub fn is_user_function(&self) -> bool {
         self.attributes.contains(&IFunctionAttributeH::UserFunctionH)
@@ -537,7 +509,6 @@ impl<'s, 'h> FunctionH<'s, 'h> where 's: 'h {
 }
 /* Guardian: disable-all */
 
-// mig: case class PrototypeH
 /// Interning permanent (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct PrototypeH<'s, 'h> where 's: 'h {
@@ -557,7 +528,6 @@ case class PrototypeH(
 override def hashCode(): Int = hash; }
 */
 
-// mig: case class PrototypeH (transient companion)
 /// Interning transient (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct PrototypeHValH<'s, 'h> where 's: 'h {
@@ -566,7 +536,6 @@ pub struct PrototypeHValH<'s, 'h> where 's: 'h {
     pub return_type: CoordH<'s, 'h>,
 }
 
-// mig: case class IdH
 /// Interning permanent (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct IdH<'s> {
@@ -625,7 +594,6 @@ case class IdH(
 //}
 */
 
-// mig: case class IdH (transient companion)
 /// Interning transient (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct IdHValH<'s> {

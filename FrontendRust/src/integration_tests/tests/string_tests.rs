@@ -21,12 +21,10 @@ import dev.vale.von.{VonInt, VonStr}
 import org.scalatest._
 
 */
-// mig: struct StringTests
 pub struct StringTests;
 /*
 class StringTests extends FunSuite with Matchers {
 */
-// mig: fn simple_string
 #[test]
 fn simple_string() {
     let compilation_bump = bumpalo::Bump::new();
@@ -79,7 +77,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("sprogwoggle") => }
   }
 */
-// mig: fn empty_string
 #[test]
 fn empty_string() {
     let compilation_bump = bumpalo::Bump::new();
@@ -132,7 +129,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("") => }
   }
 */
-// mig: fn string_with_escapes
 #[test]
 fn string_with_escapes() {
     let compilation_bump = bumpalo::Bump::new();
@@ -185,7 +181,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("sprog\nwoggle") => }
   }
 */
-// mig: fn string_with_hex_escape
 #[test]
 fn string_with_hex_escape() {
     let code = "exported func main() str { return \"sprog\\u001bwoggle\"; }";
@@ -252,7 +247,6 @@ fn string_with_hex_escape() {
   }
 
 */
-// mig: fn int_to_string
 #[test]
 fn int_to_string() {
     let compilation_bump = bumpalo::Bump::new();
@@ -285,7 +279,6 @@ fn int_to_string() {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn i64_to_string
 #[test]
 fn i64_to_string() {
     let compilation_bump = bumpalo::Bump::new();
@@ -318,7 +311,6 @@ fn i64_to_string() {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn string_length
 #[test]
 fn string_length() {
     let compilation_bump = bumpalo::Bump::new();
@@ -352,7 +344,6 @@ fn string_length() {
     compile.evalForKind(Vector()) match { case VonInt(12) => }
   }
 */
-// mig: fn strings_equal
 #[test]
 fn strings_equal() {
     let compilation_bump = bumpalo::Bump::new();
@@ -386,7 +377,6 @@ fn strings_equal() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn string_interpolate
 #[test]
 fn string_interpolate() {
     let compilation_bump = bumpalo::Bump::new();
@@ -422,7 +412,6 @@ fn string_interpolate() {
     compile.evalForKind(Vector()) match { case VonStr("bl\"4rg") => }
   }
 */
-// mig: fn slice_a_slice
 #[test]
 fn slice_a_slice() {
     let compilation_bump = bumpalo::Bump::new();

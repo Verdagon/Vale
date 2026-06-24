@@ -479,7 +479,6 @@ where 's: 't,
         }
 
 */
-    // mig: fn is_descendant_kind
     // Rust adaptation: collides with Compiler::is_descendant lifted from
     // ImplCompiler.scala (which Rust flattened onto Compiler); appended `_kind`
     // suffix to disambiguate this delegate-class isDescendant from
@@ -529,7 +528,6 @@ where 's: 't,
           }
         }
 */
-    // mig: fn is_ancestor_kind
     // Rust adaptation: see is_descendant_kind above for the `_kind` suffix
     // rationale (ImplCompiler/Compiler flattening collision).
     pub fn is_ancestor_kind(
@@ -579,7 +577,6 @@ where 's: 't,
           templataCompiler.coerceToCoord(state, envs.originalCallingEnv, range, templata, region)
         }
 */
-    // mig: fn lookup_templata_imprecise
     pub fn lookup_templata_imprecise(
         &self,
         envs: InferEnv<'s, 't>,
@@ -600,7 +597,6 @@ where 's: 't,
             Compiler.getMutability(state, kind)
         }
 */
-    // mig: fn predict_static_sized_array_kind
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn predict_static_sized_array_kind(
@@ -629,7 +625,6 @@ where 's: 't,
         }
 
 */
-    // mig: fn predict_runtime_sized_array_kind
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn predict_runtime_sized_array_kind(
@@ -674,7 +669,6 @@ where 's: 't,
         }
 
 */
-    // mig: fn kind_is_from_template
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn kind_is_from_template(
@@ -709,7 +703,6 @@ where 's: 't,
         }
 
 */
-    // mig: fn get_ancestors
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn get_ancestors(
@@ -752,7 +745,6 @@ where 's: 't,
         }
 
 */
-    // mig: fn struct_is_closure
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn struct_is_closure(
@@ -768,7 +760,6 @@ where 's: 't,
             structDef.isClosure
         }
 */
-    // mig: fn predict_function
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn predict_function(
@@ -806,7 +797,6 @@ where 's: 't,
               returnCoord))
         }
 */
-    // mig: fn resolve_function_from_infer_env
     // Per "Compiler/ImplCompiler Name-Collision Disambiguation": Scala's inner
     // IInfererDelegate (solver-side) anonymous-class `resolveFunction`
     // (Compiler.scala:395-413) is flattened onto Rust's Compiler. The 5-arg
@@ -864,7 +854,6 @@ where 's: 't,
             true)
         }
 */
-    // mig: fn assemble_prototype
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn assemble_prototype(
@@ -919,7 +908,6 @@ where 's: 't,
           result
         }
 */
-    // mig: fn assemble_impl
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn assemble_impl(
@@ -1088,7 +1076,6 @@ where 's: 't,
       inferCompiler,
       new IStructCompilerDelegate {
     */
-    // mig: fn evaluate_generic_function_from_non_call_for_header
     // Per "Compiler/ImplCompiler Name-Collision Disambiguation": Scala's IStructCompilerDelegate
     // anonymous-class `evaluateGenericFunctionFromNonCallForHeader` (Compiler.scala:536-544) is
     // flattened onto Rust's Compiler struct. Its body delegates to functionCompiler.evaluateGenericFunctionFromNonCall.
@@ -1113,7 +1100,6 @@ where 's: 't,
         }
 
 */
-    // mig: fn scout_expected_function_for_prototype
     // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
     // (which Rust flattened onto Compiler).
     pub fn scout_expected_function_for_prototype(
@@ -1204,7 +1190,6 @@ where 's: 't,
 //    }
 
 */
-    // mig: fn generate_function
     // Rust adaptation: lifted from Compiler.scala's anonymous IFunctionCompilerDelegate
     // (which Rust flattened onto Compiler). Scala's `functionCompilerCore: FunctionCompilerCore`,
     // `structCompiler`, `destructorCompiler`, `arrayCompiler` parameters are absorbed

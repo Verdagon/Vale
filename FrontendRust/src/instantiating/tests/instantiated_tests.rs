@@ -23,7 +23,6 @@ import org.scalatest._
 
 object InstantiatingCompilation {
 */
-// mig: fn test
 pub fn test<'s, 'ctx, 't, 'i, 'p>(
     compilation_bump: &'ctx bumpalo::Bump,
     typing_interner: &'ctx TypingInterner<'s, 't>,
@@ -84,18 +83,15 @@ where 's: 't, 's: 'i, 'p: 'ctx,
   }
 }
 */
-// mig: struct InstantiatedTests
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct InstantiatedTests<'s, 't> {
   pub _marker: PhantomData<(&'s (), &'t ())>,
 }
 
-// mig: impl InstantiatedTests
 /*
 class InstantiatedTests extends FunSuite with Matchers {
 */
-// mig: fn test_templates
 #[test]
 fn test_templates() {
 

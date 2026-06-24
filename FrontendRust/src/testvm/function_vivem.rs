@@ -65,7 +65,6 @@ import dev.vale.{finalast => m}
 
 object FunctionVivem {
 */
-// mig: fn execute_function
 pub fn execute_function<'h, 's, 'v>(
     program_h: &'h ProgramH<'s, 'h>,
     interner: &HammerInterner<'s, 'h>, scout_arena: &ScoutArena<'s>, stdin: &'v dyn Fn() -> StrI<'s>,
@@ -157,7 +156,6 @@ pub fn execute_function<'h, 's, 'v>(
     (callId, returnRef)
   }
 */
-// mig: fn get_extern_function
 pub fn get_extern_function<'h, 's, 'v>(
     _program_h: &ProgramH<'s, 'h>,
     ref_: &PrototypeH<'s, 'h>,

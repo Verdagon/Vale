@@ -35,7 +35,6 @@ use crate::typing::types::types::KindPlaceholderT;
 use crate::typing::types::types::OwnershipT;
 use std::collections::HashSet;
 
-// mig: struct AfterRegionsTests
 pub struct AfterRegionsTests {}
 /*
 package dev.vale.typing
@@ -59,7 +58,6 @@ import OverloadResolver._
 
 class AfterRegionsTests extends FunSuite with Matchers {
 */
-// mig: fn method_call_on_generic_data
 #[test]
 fn method_call_on_generic_data() {
     let parse_bump = Bump::new();
@@ -184,7 +182,6 @@ exported func main() {
     })
   }
 */
-// mig: fn tests_overload_set_and_concept_function
 #[test]
 #[ignore = "ignored upstream in Scala"]
 fn tests_overload_set_and_concept_function() { panic!("Unmigrated test: tests_overload_set_and_concept_function"); }
@@ -208,7 +205,6 @@ fn tests_overload_set_and_concept_function() { panic!("Unmigrated test: tests_ov
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn generic_interface_anonymous_subclass
 #[test]
 #[ignore = "ignored upstream in Scala"]
 fn generic_interface_anonymous_subclass() { panic!("Unmigrated test: generic_interface_anonymous_subclass"); }
@@ -228,7 +224,6 @@ fn generic_interface_anonymous_subclass() { panic!("Unmigrated test: generic_int
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn lambda_body_type_matches_anonymous_interface_return_type
 #[test]
 fn lambda_body_type_matches_anonymous_interface_return_type() {
     let parse_bump = Bump::new();
@@ -293,7 +288,6 @@ exported func main() {
 //    }
 //  }
 */
-// mig: fn tuple_with_all_imm_fields_is_imm
 #[test]
 #[ignore = "ignored upstream in Scala"]
 fn tuple_with_all_imm_fields_is_imm() { panic!("Unmigrated test: tuple_with_all_imm_fields_is_imm"); }
@@ -330,7 +324,6 @@ fn tuple_with_all_imm_fields_is_imm() { panic!("Unmigrated test: tuple_with_all_
     }))
   }
 */
-// mig: fn can_destructure_and_assemble_tuple
 #[test]
 fn can_destructure_and_assemble_tuple() {
     let parse_bump = Bump::new();
@@ -393,7 +386,6 @@ exported func main() bool {
 //    }
   }
 */
-// mig: fn can_turn_a_borrow_coord_into_an_owning_coord
 #[test]
 fn can_turn_a_borrow_coord_into_an_owning_coord() {
     let parse_bump = Bump::new();
@@ -458,7 +450,6 @@ exported func main() {
     }
   }
 */
-// mig: fn impl_rule
 #[test]
 fn impl_rule() {
     let parse_bump = Bump::new();
@@ -562,7 +553,6 @@ exported func main() int {
     })
   }
 */
-// mig: fn can_downcast_interface_to_interface_through_registered_impl
 #[test]
 fn can_downcast_interface_to_interface_through_registered_impl() {
     let parse_bump = Bump::new();
@@ -634,7 +624,6 @@ exported func main() bool {
     }
   }
 */
-// mig: fn test_two_instantiations_of_anonymous_param_lambda
 #[test]
 fn test_two_instantiations_of_anonymous_param_lambda() {
     let parse_bump = Bump::new();
@@ -709,7 +698,6 @@ exported func main() {
     paramTypeTuples.size shouldEqual 2 // distinct per-call-site instantiations
   }
 */
-// mig: fn test_interface_default_generic_argument_in_type
 #[test]
 fn test_interface_default_generic_argument_in_type() {
     let parse_bump = Bump::new();
@@ -784,7 +772,6 @@ struct MyStruct {
     }
   }
 */
-// mig: fn reports_when_we_give_too_many_args
 #[test]
 fn reports_when_we_give_too_many_args() {
     let parse_bump = Bump::new();
@@ -853,7 +840,6 @@ Number of params doesn't match! Supplied 4 but function takes 3
     }
   }
 */
-// mig: fn reports_when_ownership_doesnt_match
 #[test]
 #[ignore = "unmigrated - pending typing-pass body migration"]
 fn reports_when_ownership_doesnt_match() { panic!("Unmigrated test: reports_when_ownership_doesnt_match"); }
@@ -888,7 +874,6 @@ fn reports_when_ownership_doesnt_match() { panic!("Unmigrated test: reports_when
     }
   }
 */
-// mig: fn failure_to_resolve_a_prot_rules_function_doesnt_halt
 #[test]
 fn failure_to_resolve_a_prot_rules_function_doesnt_halt() {
     // In the below example, it should disqualify the first foo() because T = bool
@@ -964,7 +949,6 @@ func main() { foo("hello"); }
         |""".stripMargin).expectCompilerOutputs()
   }
 */
-// mig: fn bound_driven_return_rune_cannot_be_inferred_from_lambda_msae_general
 // Canonical minimal repro for @BRRZ. The generic function `callAndReturn` has a
 // bound `func(&G)E` where E is an identifying generic rune appearing only in the
 // bound's return position. The caller supplies a lambda for G but does not (and
@@ -1019,7 +1003,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn brrz_nested_bound_return_inference_through_a_lambda_body
 // Edge case for @BRRZ: the lambda body itself invokes another generic function
 // with its own bound. Exercises stamping-during-solve recursing into a nested
 // generic. The CompilerOutputs.signatureToFunction cache terminates recursion.
@@ -1072,7 +1055,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn brrz_two_bound_return_inferences_in_the_same_call
 // Edge case for @BRRZ: two bounds on the same function, each resolving to a
 // different lambda. Exercises multiple ResolveSR rules firing in the same solve
 // under the relaxed puzzle.
@@ -1125,7 +1107,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn basic_ifunction1_anonymous_subclass
 // Depends on IFunction1, and maybe Generic interface anonymous subclass
 #[test]
 fn basic_ifunction1_anonymous_subclass() {

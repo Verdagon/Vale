@@ -48,7 +48,6 @@ class TypeHammer(
     structHammer: StructHammer) {
 */
 
-// mig: fn translate_kind
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -116,7 +115,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_region
     pub fn translate_region(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -136,7 +134,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_coord
     pub fn translate_coord(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -182,7 +179,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_coords
     pub fn translate_coords(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -202,7 +198,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn check_conversion
     pub fn check_conversion(
         &self,
         expected: CoordH<'s, 'h>,
@@ -218,7 +213,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_static_sized_array
     pub fn translate_static_sized_array(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -280,7 +274,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_runtime_sized_array
     pub fn translate_runtime_sized_array(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -335,7 +328,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_prototype
     pub fn translate_prototype(
         &self,
         hinputs: &HinputsI<'s, 'i>,

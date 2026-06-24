@@ -52,7 +52,6 @@ import dev.vale.postparsing.ICompileErrorS
 import scala.collection.immutable.List
 */
 
-// mig: case class FunctionRefH (moved to src/final_ast/ast.rs — Scala has it
 // in `Hammer.scala`, but it's a pure data type that colocates with the other
 // finalast H-side AST. Field shape `{ prototype: &'h PrototypeH<...> }` per Scala.)
 /*
@@ -65,7 +64,6 @@ override def equals(obj: Any): Boolean = vcurious();
 }
 */
 
-// mig: case class LocalsBox (collapsed into Locals; see architect directive)
 // Scala's LocalsBox was a mutable wrapper around an immutable Locals. Per
 // architect directive (matching typing-pass `CompilerOutputs` precedent and
 // the `HamutsBox` → `Hamuts` collapse), the Rust port has a single mutable
@@ -78,7 +76,6 @@ case class LocalsBox(var inner: Locals) {
 override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 */
 
-// mig: fn snapshot
 impl<'s, 'i, 'h> Locals<'s, 'i, 'h>
 where 's: 'i, 'i: 'h,
 {
@@ -94,7 +91,6 @@ where 's: 'i, 'i: 'h,
   def snapshot = inner
 */
 
-// mig: fn typing_pass_locals
     pub fn typing_pass_locals(&self) -> &HashMap<&'i IVarNameI<'s, 'i, cI>, VariableIdH<'s, 'h>> {
         panic!("Unimplemented: typing_pass_locals");
     }
@@ -102,7 +98,6 @@ where 's: 'i, 'i: 'h,
   def typingPassLocals: Map[IVarNameI[cI], VariableIdH] = inner.typingPassLocals
 */
 
-// mig: fn unstackified_vars
     pub fn unstackified_vars(&self) -> &HashSet<VariableIdH<'s, 'h>> {
         panic!("Unimplemented: unstackified_vars");
     }
@@ -110,7 +105,6 @@ where 's: 'i, 'i: 'h,
   def unstackifiedVars: Set[VariableIdH] = inner.unstackifiedVars
 */
 
-// mig: fn locals
     pub fn locals(&self) -> &HashMap<VariableIdH<'s, 'h>, Local<'s, 'h>> {
         panic!("Unimplemented: locals");
     }
@@ -118,7 +112,6 @@ where 's: 'i, 'i: 'h,
   def locals: Map[VariableIdH, Local] = inner.locals
 */
 
-// mig: fn next_local_id_number
     pub fn next_local_id_number(&self) -> i32 {
         panic!("Unimplemented: next_local_id_number");
     }
@@ -126,7 +119,6 @@ where 's: 'i, 'i: 'h,
   def nextLocalIdNumber: Int = inner.nextLocalIdNumber
 */
 
-// mig: fn get_by_var_name (Scala overload `get(IVarNameI[cI])` —
 // disambiguated per instantiating overload-suffix pattern.)
     pub fn get_by_var_name(&self, id: &IVarNameI<'s, 'i, cI>) -> Option<Local<'s, 'h>> {
         self.typing_pass_locals.get(id).copied().and_then(|var_id| self.locals.get(&var_id).copied())
@@ -135,7 +127,6 @@ where 's: 'i, 'i: 'h,
   def get(id: IVarNameI[cI]) = inner.get(id)
 */
 
-// mig: fn get (Scala overload `get(VariableIdH)`.)
     pub fn get(&self, id: VariableIdH<'s, 'h>) -> Option<Local<'s, 'h>> {
         panic!("Unimplemented: get");
     }
@@ -143,7 +134,6 @@ where 's: 'i, 'i: 'h,
   def get(id: VariableIdH) = inner.get(id)
 */
 
-// mig: fn mark_unstackified_by_var_name (Scala overload disambiguated.)
     pub fn mark_unstackified_by_var_name(&mut self, var_id: &'i IVarNameI<'s, 'i, cI>) {
         let var_id_h = *self.typing_pass_locals.get(var_id).expect("typing_pass_locals missing");
         self.mark_unstackified(var_id_h);
@@ -154,7 +144,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mark_restackified_by_var_name (Scala overload disambiguated.)
     pub fn mark_restackified_by_var_name(&mut self, var_id: &'i IVarNameI<'s, 'i, cI>) {
         let var_id_h = *self.typing_pass_locals.get(var_id).expect("typing_pass_locals missing");
         self.mark_restackified(var_id_h);
@@ -165,7 +154,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mark_unstackified
     pub fn mark_unstackified(&mut self, var_id_h: VariableIdH<'s, 'h>) {
         assert!(self.locals.contains_key(&var_id_h));
         if self.unstackified_vars.contains(&var_id_h) {
@@ -179,7 +167,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn set_next_local_id_number
     pub fn set_next_local_id_number(&mut self, next_local_id_number: i32) {
         self.next_local_id_number = next_local_id_number;
     }
@@ -189,7 +176,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn add_hammer_local
     pub fn add_hammer_local(
         &mut self,
         tyype: CoordH<'s, 'h>,
@@ -214,7 +200,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn add_typing_pass_local (Scala name; matches Scala `addTypingPassLocal`.)
     pub fn add_typing_pass_local(
         &mut self,
         var_id: &'i IVarNameI<'s, 'i, cI>,
@@ -240,7 +225,6 @@ where 's: 'i, 'i: 'h,
 }
 */
 
-// mig: case class Locals
 /// Temporary state
 pub struct Locals<'s, 'i, 'h>
 where 's: 'i, 'i: 'h,
@@ -269,7 +253,6 @@ case class Locals(
 override def hashCode(): Int = vcurious()
 */
 
-// mig: fn add_compiler_local (Scala name on Locals — distinct from
 // add_typing_pass_local on LocalsBox in Scala. With LocalsBox collapsed, both
 // methods live here.)
 impl<'s, 'i, 'h> Locals<'s, 'i, 'h>
@@ -320,7 +303,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn add_hammer_local (collapsed into the &mut self method above)
 /*
   def addHammerLocal(
     tyype: CoordH[KindHT],
@@ -340,21 +322,18 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mark_unstackified_by_var_name (collapsed into the &mut self method above)
 /*
   def markUnstackified(varId2: IVarNameI[cI]): Locals = {
     markUnstackified(typingPassLocals(varId2))
   }
 */
 
-// mig: fn mark_restackified_by_var_name (collapsed into the &mut self method above)
 /*
   def markRestackified(varId2: IVarNameI[cI]): Locals = {
     markRestackified(typingPassLocals(varId2))
   }
 */
 
-// mig: fn mark_unstackified (collapsed into the &mut self method above)
 /*
   def markUnstackified(varIdH: VariableIdH): Locals = {
     // Make sure it existed and wasnt already unstackified
@@ -366,7 +345,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mark_restackified
     pub fn mark_restackified(&mut self, var_id_h: VariableIdH<'s, 'h>) {
         // Make sure it existed and was unstackified
         assert!(self.locals.contains_key(&var_id_h));
@@ -387,7 +365,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn get_by_var_name (collapsed into the &self method above)
 /*
   def get(varId: IVarNameI[cI]): Option[Local] = {
     typingPassLocals.get(varId) match {
@@ -397,7 +374,6 @@ where 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn get (collapsed into the &self method above)
 /*
   def get(varId: VariableIdH): Option[Local] = {
     locals.get(varId)
@@ -405,7 +381,6 @@ where 's: 'i, 'i: 'h,
 }
 */
 
-// mig: class Hammer
 /// Temporary state
 //
 // Central god struct (typing-pass `Compiler` precedent). Sub-hammer
@@ -435,7 +410,6 @@ class Hammer(interner: Interner, keywords: Keywords) {
   val vonHammer = new VonHammer(nameHammer, typeHammer)
 */
 
-// mig: fn mangle_func
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -469,7 +443,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mangle_name
     pub fn mangle_name(&self, name: &INameI<'s, 'i, cI>, stuff_after: bool) -> String {
         panic!("Unimplemented: mangle_name");
     }
@@ -488,7 +461,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mangle_struct
     pub fn mangle_struct(&self, id: &IdI<'s, 'i, cI>) -> String {
         String::new()
     }
@@ -500,7 +472,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mangle_kind
     pub fn mangle_kind(&self, kind: &KindIT<'s, 'i, cI>) -> String {
         panic!("Unimplemented: mangle_kind");
     }
@@ -514,7 +485,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mangle_coord
     pub fn mangle_coord(&self, coord: &CoordI<'s, 'i, cI>) -> String {
         panic!("Unimplemented: mangle_coord");
     }
@@ -533,7 +503,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn mangle_templata
     pub fn mangle_templata(&self, templata: &ITemplataI<'s, 'i, cI>) -> String {
         panic!("Unimplemented: mangle_templata");
     }
@@ -547,7 +516,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate
     pub fn translate(&self, hinputs: &HinputsI<'s, 'i>) -> &'h ProgramH<'s, 'h> {
         let HinputsI {
             interfaces,
@@ -859,7 +827,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
 }
 */
 
-// mig: fn flatten_and_filter_voids
 pub fn flatten_and_filter_voids<'s, 'h>(
     unfiltered_exprs_h: &[ExpressionH<'s, 'h>],
 ) -> Vec<ExpressionH<'s, 'h>>
@@ -921,7 +888,6 @@ object Hammer {
   }
 */
 
-// mig: fn consecutive
 pub fn consecutive<'s, 'h>(
     interner: &HammerInterner<'s, 'h>,
     unfiltered_exprs_h: &[ExpressionH<'s, 'h>],
@@ -947,7 +913,6 @@ where 's: 'h,
   }
 */
 
-// mig: fn consecrash
 pub fn consecrash<'s, 'i, 'h>(
     interner: &HammerInterner<'s, 'h>,
     locals: &mut Locals<'s, 'i, 'h>,

@@ -47,7 +47,6 @@ import dev.vale.finalast._
 import dev.vale.instantiating.ast._
 */
 
-// mig: const BOX_MEMBER_INDEX
 pub const BOX_MEMBER_INDEX: i32 = 0;
 /*
 object LetHammer {
@@ -62,7 +61,6 @@ class LetHammer(
     loadHammer: LoadHammer) {
 */
 
-// mig: fn translate_let
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -131,7 +129,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_restackify
     pub fn translate_restackify(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -197,7 +194,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_let_and_point
     pub fn translate_let_and_point(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -253,7 +249,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_addressible_let
     pub(crate) fn translate_addressible_let(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -321,7 +316,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_addressible_restackify
     pub(crate) fn translate_addressible_restackify(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -367,7 +361,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_addressible_let_and_point
     pub(crate) fn translate_addressible_let_and_point(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -416,7 +409,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_let
     pub(crate) fn translate_mundane_let(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -470,7 +462,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_restackify
     pub(crate) fn translate_mundane_restackify(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -520,7 +511,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_let_and_point
     pub(crate) fn translate_mundane_let_and_point(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -582,7 +572,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_unlet
     pub fn translate_unlet(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -672,7 +661,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_destructure_static_sized_array
     pub fn translate_destructure_static_sized_array(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -757,7 +745,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_destroy
     pub fn translate_destroy(
         &self,
         hinputs: &HinputsI<'s, 'i>,

@@ -27,12 +27,10 @@ import org.scalatest._
 
 import scala.collection.immutable.List
 */
-// mig: struct ImportTests
 pub struct ImportTests;
 /*
 class ImportTests extends FunSuite with Matchers {
 */
-// mig: fn tests_import
 #[test]
 fn tests_import() {
     let module_a_code =
@@ -151,7 +149,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn tests_non_imported_module_isnt_brought_in
 #[test]
 fn tests_non_imported_module_isnt_brought_in() {
     let module_a_code =
@@ -265,7 +262,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn tests_import_with_paackage
 #[test]
 fn tests_import_with_paackage() {
     let module_a_code =
@@ -378,7 +374,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn tests_import_of_directory_with_no_vale_files
 #[test]
 fn tests_import_of_directory_with_no_vale_files() {
     let module_a_code =

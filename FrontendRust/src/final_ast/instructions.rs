@@ -28,7 +28,6 @@ import dev.vale.{vassert, vcurious, vfail, vimpl, vpass, vwat}
 
 // Common trait for all instructions.
 */
-// mig: enum ExpressionH
 /// Polyvalue
 #[derive(Copy, Clone, Debug)]
 pub enum ExpressionH<'s, 'h> where 's: 'h {
@@ -86,7 +85,6 @@ pub enum ExpressionH<'s, 'h> where 's: 'h {
 /*
 sealed trait ExpressionH[+T <: KindHT] {
 */
-// mig: fn result_type
 impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     pub fn result_type(&self) -> CoordH<'s, 'h> {
     match self {
@@ -188,7 +186,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
   // Convenience functions for accessing this expression as the kind returning
   // a certain type.
 */
-// mig: fn expect_struct_access
     pub fn expect_struct_access(&self) -> ExpressionH<'s, 'h> {
         match self.result_type().kind {
             KindHT::StructHT(_) => *self,
@@ -205,7 +202,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     }
   }
 */
-// mig: fn expect_interface_access
     pub fn expect_interface_access(&self) -> ExpressionH<'s, 'h> {
         panic!("Unimplemented: expect_interface_access");
     }
@@ -218,7 +214,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     }
   }
 */
-// mig: fn expect_runtime_sized_array_access
     pub fn expect_runtime_sized_array_access(&self) -> ExpressionH<'s, 'h> {
         match self.result_type().kind {
             KindHT::RuntimeSizedArrayHT(_) => *self,
@@ -234,7 +229,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     }
   }
 */
-// mig: fn expect_static_sized_array_access
     pub fn expect_static_sized_array_access(&self) -> ExpressionH<'s, 'h> {
         match self.result_type().kind {
             KindHT::StaticSizedArrayHT(_) => *self,
@@ -250,7 +244,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     }
   }
 */
-// mig: fn expect_int_access
     pub fn expect_int_access(&self) -> ExpressionH<'s, 'h> {
         match self.result_type().kind {
             KindHT::IntHT(_) => *self,
@@ -266,7 +259,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     }
   }
 */
-// mig: fn expect_i64_access
     pub fn expect_i64_access(&self) -> ExpressionH<'s, 'h> {
         panic!("Unimplemented: expect_i64_access");
     }
@@ -279,7 +271,6 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
     }
   }
 */
-// mig: fn expect_bool_access
     pub fn expect_bool_access(&self) -> ExpressionH<'s, 'h> {
         match self.result_type().kind {
             KindHT::BoolHT(_) => *self,
@@ -299,29 +290,24 @@ impl<'s, 'h> ExpressionH<'s, 'h> where 's: 'h {
 
 // Produces a void.
 */
-// mig: struct ConstantVoidH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantVoidH;
 /*
 case class ConstantVoidH() extends ExpressionH[VoidHT] {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
 override def hashCode(): Int = 1337
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Produces an integer.
 */
-// mig: struct ConstantIntH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantIntH {
@@ -336,22 +322,18 @@ case class ConstantIntH(
 ) extends ExpressionH[IntHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[IntHT] = CoordH(MutableShareH, InlineH, IntHT(bits))
 }
 
 // Produces a boolean.
 */
-// mig: struct ConstantBoolH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantBoolH {
@@ -364,22 +346,18 @@ case class ConstantBoolH(
 ) extends ExpressionH[BoolHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[BoolHT] = CoordH(MutableShareH, InlineH, BoolHT())
 }
 
 // Produces a string.
 */
-// mig: struct ConstantStrH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantStrH<'h> {
@@ -392,22 +370,18 @@ case class ConstantStrH(
 ) extends ExpressionH[StrHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[StrHT] = CoordH(MutableShareH, YonderH, StrHT())
 }
 
 // Produces a float.
 */
-// mig: struct ConstantF64H
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantF64H {
@@ -420,15 +394,12 @@ case class ConstantF64H(
 ) extends ExpressionH[FloatHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[FloatHT] = CoordH(MutableShareH, InlineH, FloatHT())
 }
@@ -437,7 +408,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // There can only be one of these per argument; this conceptually destroys
 // the containing argument and produces its value.
 */
-// mig: struct ArgumentH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ArgumentH<'s, 'h> where 's: 'h {
@@ -454,7 +424,6 @@ case class ArgumentH(
 // Takes a value from the source expression and puts it into a local
 // variable on the stack.
 */
-// mig: struct StackifyH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct StackifyH<'s, 'h> where 's: 'h {
@@ -473,11 +442,9 @@ case class StackifyH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 
@@ -486,7 +453,6 @@ override def equals(obj: Any): Boolean = vcurious();
   vassert(sourceExpr.resultType == local.typeH)
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
@@ -494,7 +460,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Takes a value from the source expression and puts it into a local
 // variable on the stack.
 */
-// mig: struct RestackifyH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct RestackifyH<'s, 'h> where 's: 'h {
@@ -513,11 +478,9 @@ case class RestackifyH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 
@@ -526,7 +489,6 @@ override def equals(obj: Any): Boolean = vcurious();
   vassert(sourceExpr.resultType == local.typeH)
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
@@ -535,7 +497,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // The local variable is now invalid, since its value has been taken out.
 // See LocalLoadH for a similar instruction that *doesnt* invalidate the local var.
 */
-// mig: struct UnstackifyH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct UnstackifyH<'s, 'h> where 's: 'h {
@@ -549,18 +510,15 @@ case class UnstackifyH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   // Panics if this is ever not the case.
   vcurious(local.typeH == resultType)
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = local.typeH
 }
@@ -571,7 +529,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // This creates those local variables, much as a StackifyH would, and puts into them
 // the values from the dying struct instance.
 */
-// mig: struct DestroyH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyH<'s, 'h> where 's: 'h {
@@ -591,11 +548,9 @@ case class DestroyH(
 ) extends ExpressionH[VoidHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(localTypes.size == localIndices.size)
@@ -606,7 +561,6 @@ override def equals(obj: Any): Boolean = vcurious();
   // structExpression.resultType.kind match { case NeverH(_) => vwat() case _ => }
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
@@ -617,7 +571,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // This creates those local variables, much as a StackifyH would, and puts into them
 // the values from the dying struct instance.
 */
-// mig: struct DestroyStaticSizedArrayIntoLocalsH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyStaticSizedArrayIntoLocalsH<'s, 'h> where 's: 'h {
@@ -637,11 +590,9 @@ case class DestroyStaticSizedArrayIntoLocalsH(
 ) extends ExpressionH[VoidHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(localTypes.size == localIndices.size)
@@ -652,7 +603,6 @@ override def equals(obj: Any): Boolean = vcurious();
   // structExpression.resultType.kind match { case NeverH(_) => vwat() case _ => }
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
@@ -660,7 +610,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Takes a struct reference from the "source" expressions, and makes an interface reference
 // to it, as the "target" reference, and puts it into another expressions.
 */
-// mig: struct StructToInterfaceUpcastH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct StructToInterfaceUpcastH<'s, 'h> where 's: 'h {
@@ -682,16 +631,13 @@ case class StructToInterfaceUpcastH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   // The resulting type will have the same ownership as the source expressions had.
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   def resultType = CoordH(sourceExpression.resultType.ownership, sourceExpression.resultType.location, targetInterface)
 }
@@ -699,7 +645,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Takes an interface reference from the "source" expressions, and makes another reference
 // to it, as the "target" inference, and puts it into another expressions.
 */
-// mig: struct InterfaceToInterfaceUpcastH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct InterfaceToInterfaceUpcastH<'s, 'h> where 's: 'h {
@@ -721,16 +666,13 @@ case class InterfaceToInterfaceUpcastH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   // The resulting type will have the same ownership as the source expressions had.
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   def resultType = CoordH(sourceExpression.resultType.ownership, sourceExpression.resultType.location, targetInterface)
 }
@@ -738,7 +680,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Takes a reference from the given "source" expressions, and puts it into an *existing*
 // local variable.
 */
-// mig: struct LocalStoreH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct LocalStoreH<'s, 'h> where 's: 'h {
@@ -762,15 +703,12 @@ case class LocalStoreH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = local.typeH
 }
@@ -779,7 +717,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // This can never move a reference, only alias it. The instruction which can move a
 // reference is UnstackifyH.
 */
-// mig: struct LocalLoadH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct LocalLoadH<'s, 'h> where 's: 'h {
@@ -800,17 +737,14 @@ case class LocalLoadH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(targetOwnership != OwnH) // must unstackify to get an owning reference
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = {
     val location =
@@ -827,7 +761,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Takes a reference from the given "source" expressions, and swaps it into the given
 // struct's member. The member's old reference is put into a new expressions.
 */
-// mig: struct MemberStoreH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct MemberStoreH<'s, 'h> where 's: 'h {
@@ -861,7 +794,6 @@ case class MemberStoreH(
 // Takes a reference from the given "struct" expressions, and copies it into a new
 // expressions. This can never move a reference, only alias it.
 */
-// mig: struct MemberLoadH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct MemberLoadH<'s, 'h> where 's: 'h {
@@ -893,11 +825,9 @@ case class MemberLoadH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 //  vassert(resultType.ownership == targetOwnership)
@@ -909,7 +839,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Produces an array whose size is fixed and known at compile time, and puts it into
 // a expressions.
 */
-// mig: struct NewArrayFromValuesH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct NewArrayFromValuesH<'s, 'h> where 's: 'h {
@@ -938,7 +867,6 @@ case class NewArrayFromValuesH(
 // doesn't need to carry around a size. For the corresponding instruction for the
 // unknown-size-at-compile-time array, see RuntimeSizedArrayStoreH.
 */
-// mig: struct StaticSizedArrayStoreH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct StaticSizedArrayStoreH<'s, 'h> where 's: 'h {
@@ -959,11 +887,9 @@ case class StaticSizedArrayStoreH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(indexExpression.resultType.kind == IntHT.i32)
@@ -982,7 +908,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // that needs to carry around a size. For the corresponding instruction for the
 // known-size-at-compile-time array, see StaticSizedArrayStoreH.
 */
-// mig: struct RuntimeSizedArrayStoreH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct RuntimeSizedArrayStoreH<'s, 'h> where 's: 'h {
@@ -1003,11 +928,9 @@ case class RuntimeSizedArrayStoreH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(indexExpression.resultType.kind == IntHT.i32)
@@ -1025,7 +948,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // that needs to carry around a size. For the corresponding instruction for the
 // known-size-at-compile-time array, see StaticSizedArrayLoadH.
 */
-// mig: struct RuntimeSizedArrayLoadH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct RuntimeSizedArrayLoadH<'s, 'h> where 's: 'h {
@@ -1049,11 +971,9 @@ case class RuntimeSizedArrayLoadH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(indexExpression.resultType.kind == IntHT.i32)
@@ -1070,7 +990,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // doesn't need to carry around a size. For the corresponding instruction for the
 // known-size-at-compile-time array, see StaticSizedArrayStoreH.
 */
-// mig: struct StaticSizedArrayLoadH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct StaticSizedArrayLoadH<'s, 'h> where 's: 'h {
@@ -1096,11 +1015,9 @@ case class StaticSizedArrayLoadH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(indexExpression.resultType.kind == IntHT.i32)
@@ -1113,7 +1030,6 @@ override def equals(obj: Any): Boolean = vcurious();
 
 // Calls a function.
 */
-// mig: struct CallH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct CallH<'s, 'h> where 's: 'h {
@@ -1135,22 +1051,18 @@ case class CallH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = function.returnType
 }
 
 // Calls a function defined in some other module.
 */
-// mig: struct ExternCallH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ExternCallH<'s, 'h> where 's: 'h {
@@ -1174,22 +1086,18 @@ case class ExternCallH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = function.returnType
 }
 
 // Calls a function on an interface.
 */
-// mig: struct InterfaceCallH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct InterfaceCallH<'s, 'h> where 's: 'h {
@@ -1224,15 +1132,12 @@ case class InterfaceCallH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = functionType.returnType
   vassert(indexInEdge >= 0)
@@ -1242,7 +1147,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // call thenBlock or elseBlock. The result of the thenBlock or elseBlock will be put into
 // expressionsId.
 */
-// mig: struct IfH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct IfH<'s, 'h> where 's: 'h {
@@ -1267,11 +1171,9 @@ case class IfH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   (thenBlock.resultType.kind, elseBlock.resultType.kind) match {
@@ -1283,14 +1185,12 @@ override def equals(obj: Any): Boolean = vcurious();
     case _ => vwat()
   }
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = commonSupertype
 }
 
 // A while loop. Continuously runs bodyBlock until it returns false.
 */
-// mig: struct WhileH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct WhileH<'s, 'h> where 's: 'h {
@@ -1303,11 +1203,9 @@ case class WhileH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 
@@ -1320,14 +1218,12 @@ override def equals(obj: Any): Boolean = vcurious();
     }
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = resultCoord
 }
 
 // A collection of instructions. The last one will be used as the block's result.
 */
-// mig: struct ConsecutorH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ConsecutorH<'s, 'h> where 's: 'h {
@@ -1340,11 +1236,9 @@ case class ConsecutorH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   // We should simplify these away
@@ -1374,7 +1268,6 @@ override def equals(obj: Any): Boolean = vcurious();
   }
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = exprs.last.resultType
 }
@@ -1425,7 +1318,6 @@ override def equals(obj: Any): Boolean = vcurious();
 
 // An expression where all locals declared inside will be destroyed by the time we exit.
 */
-// mig: struct BlockH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct BlockH<'s, 'h> where 's: 'h {
@@ -1438,22 +1330,18 @@ case class BlockH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = inner.resultType
 }
 
 // Casts an immutable reference to a mutable one.
 */
-// mig: struct MutabilifyH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct MutabilifyH<'s, 'h> where 's: 'h {
@@ -1465,15 +1353,12 @@ case class MutabilifyH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = {
     val CoordH(ownership, location, kind) = inner.resultType
@@ -1491,7 +1376,6 @@ override def equals(obj: Any): Boolean = vcurious();
 
 // Casts a mutable reference to an immutable one.
 */
-// mig: struct ImmutabilifyH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ImmutabilifyH<'s, 'h> where 's: 'h {
@@ -1503,15 +1387,12 @@ case class ImmutabilifyH(
 ) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = {
     val CoordH(ownership, location, kind) = inner.resultType
@@ -1530,7 +1411,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Ends the current function and returns a reference. A function will always end
 // with a return statement.
 */
-// mig: struct ReturnH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ReturnH<'s, 'h> where 's: 'h {
@@ -1547,15 +1427,12 @@ case class ReturnH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[NeverHT] = CoordH(MutableShareH, InlineH, NeverHT(false))
 }
@@ -1564,7 +1441,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // whose values are generated from the function from generatorExpression. Puts the
 // result in a new expressions.
 */
-// mig: struct NewImmRuntimeSizedArrayH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct NewImmRuntimeSizedArrayH<'s, 'h> where 's: 'h {
@@ -1601,11 +1477,9 @@ case class NewImmRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   generatorExpression.resultType.ownership match {
@@ -1619,7 +1493,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // whose values are generated from the function from generatorExpression. Puts the
 // result in a new expressions.
 */
-// mig: struct NewMutRuntimeSizedArrayH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct NewMutRuntimeSizedArrayH<'s, 'h> where 's: 'h {
@@ -1644,18 +1517,15 @@ case class NewMutRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 }
 
 // Adds a new element to the end of a mutable unknown-size array.
 */
-// mig: struct PushRuntimeSizedArrayH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct PushRuntimeSizedArrayH<'s, 'h> where 's: 'h {
@@ -1677,23 +1547,19 @@ case class PushRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Adds a new element to the end of a mutable unknown-size array.
 */
-// mig: struct PopRuntimeSizedArrayH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct PopRuntimeSizedArrayH<'s, 'h> where 's: 'h {
@@ -1714,16 +1580,13 @@ case class PopRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = elementType
 }
@@ -1732,7 +1595,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // whose values are generated from the function from generatorExpression. Puts the
 // result in a new expressions.
 */
-// mig: struct StaticArrayFromCallableH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct StaticArrayFromCallableH<'s, 'h> where 's: 'h {
@@ -1764,11 +1626,9 @@ case class StaticArrayFromCallableH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vassert(
@@ -1780,7 +1640,6 @@ override def equals(obj: Any): Boolean = vcurious();
 
 // Destroys an array previously created with NewArrayFromValuesH.
 */
-// mig: struct DestroyStaticSizedArrayIntoFunctionH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyStaticSizedArrayIntoFunctionH<'s, 'h> where 's: 'h {
@@ -1810,22 +1669,18 @@ case class DestroyStaticSizedArrayIntoFunctionH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Destroys an array previously created with ConstructRuntimeSizedArrayH.
 */
-// mig: struct DestroyImmRuntimeSizedArrayH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyImmRuntimeSizedArrayH<'s, 'h> where 's: 'h {
@@ -1853,22 +1708,18 @@ case class DestroyImmRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Destroys an array previously created with ConstructRuntimeSizedArrayH.
 */
-// mig: struct DestroyMutRuntimeSizedArrayH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyMutRuntimeSizedArrayH<'s, 'h> where 's: 'h {
@@ -1887,22 +1738,18 @@ case class DestroyMutRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Jumps to after the closest containing loop.
 */
-// mig: struct BreakH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct BreakH;
@@ -1910,22 +1757,18 @@ pub struct BreakH;
 case class BreakH() extends ExpressionH[NeverHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[NeverHT] = CoordH(MutableShareH, InlineH, NeverHT(true))
 }
 
 // Creates a new struct instance.
 */
-// mig: struct NewStructH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct NewStructH<'s, 'h> where 's: 'h {
@@ -1950,7 +1793,6 @@ case class NewStructH(
 
 // Gets the length of an unknown-sized array.
 */
-// mig: struct ArrayLengthH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ArrayLengthH<'s, 'h> where 's: 'h {
@@ -1967,22 +1809,18 @@ case class ArrayLengthH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[IntHT] = CoordH(MutableShareH, InlineH, IntHT.i32)
 }
 
 // Gets the capacity of an unknown-sized array.
 */
-// mig: struct ArrayCapacityH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ArrayCapacityH<'s, 'h> where 's: 'h {
@@ -1999,22 +1837,18 @@ case class ArrayCapacityH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[IntHT] = CoordH(MutableShareH, InlineH, IntHT.i32)
 }
 
 // Turns a borrow ref into a weak ref.
 */
-// mig: struct BorrowToWeakH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct BorrowToWeakH<'s, 'h> where 's: 'h {
@@ -2033,22 +1867,18 @@ case class BorrowToWeakH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = CoordH(WeakH, YonderH, refExpression.resultType.kind)
 }
 
 // Checks if the given args are the same instance.
 */
-// mig: struct IsSameInstanceH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct IsSameInstanceH<'s, 'h> where 's: 'h {
@@ -2073,15 +1903,12 @@ case class IsSameInstanceH(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = CoordH(MutableShareH, InlineH, BoolHT())
 }
@@ -2089,7 +1916,6 @@ override def equals(obj: Any): Boolean = vcurious();
 // Tries to downcast to the specified subtype and wrap in a Some.
 // If it fails, will result in a None.
 */
-// mig: struct AsSubtypeH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct AsSubtypeH<'s, 'h> where 's: 'h {
@@ -2121,7 +1947,6 @@ case class AsSubtypeH(
 
 // Locks a weak ref to turn it into an optional of borrow ref.
 */
-// mig: struct LockWeakH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct LockWeakH<'s, 'h> where 's: 'h {
@@ -2148,7 +1973,6 @@ case class LockWeakH(
 // See DINSIE for why this isn't three instructions, and why we don't have the
 // destructor prototype in it.
 */
-// mig: struct DiscardH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct DiscardH<'s, 'h> where 's: 'h {
@@ -2162,24 +1986,20 @@ case class DiscardH(sourceExpression: ExpressionH[KindHT]) extends ExpressionH[V
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   sourceExpression.resultType.ownership match {
     case MutableBorrowH | ImmutableBorrowH | MutableShareH | ImmutableShareH | WeakH =>
   }
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 */
-// mig: struct PreCheckBorrowH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct PreCheckBorrowH<'s, 'h> where 's: 'h {
@@ -2189,24 +2009,20 @@ pub struct PreCheckBorrowH<'s, 'h> where 's: 'h {
 case class PreCheckBorrowH(innerExpression: ExpressionH[KindHT]) extends ExpressionH[KindHT] {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   innerExpression.resultType.ownership match {
     case MutableBorrowH =>
   }
 */
-// mig: fn result_type (realized-by-dispatcher)
 /*
   override def resultType: CoordH[KindHT] = innerExpression.resultType
 }
 
 */
-// mig: trait IExpressionH
 /// Polyvalue
 #[derive(Copy, Clone, Debug)]
 pub enum IExpressionH<'s, 'h> where 's: 'h {
@@ -2216,7 +2032,6 @@ pub enum IExpressionH<'s, 'h> where 's: 'h {
 /*
 trait IExpressionH {
 */
-// mig: fn expect_reference_expression
 pub fn expect_reference_expression<'s, 'h>(this: &IExpressionH<'s, 'h>) -> &'h ReferenceExpressionH<'s, 'h> {
     panic!("Unimplemented: expect_reference_expression");
 }
@@ -2228,7 +2043,6 @@ pub fn expect_reference_expression<'s, 'h>(this: &IExpressionH<'s, 'h>) -> &'h R
     }
   }
 */
-// mig: fn expect_address_expression
 pub fn expect_address_expression<'s, 'h>(this: &IExpressionH<'s, 'h>) -> &'h AddressExpressionH<'s, 'h> {
     panic!("Unimplemented: expect_address_expression");
 }
@@ -2241,7 +2055,6 @@ pub fn expect_address_expression<'s, 'h>(this: &IExpressionH<'s, 'h>) -> &'h Add
   }
 }
 */
-// mig: struct ReferenceExpressionH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct ReferenceExpressionH<'s, 'h> where 's: 'h {
@@ -2251,15 +2064,12 @@ pub struct ReferenceExpressionH<'s, 'h> where 's: 'h {
 case class ReferenceExpressionH(reference: CoordH[KindHT]) extends IExpressionH {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious(); }
 */
-// mig: struct AddressExpressionH
 /// Temporary state
 #[derive(Copy, Clone, Debug)]
 pub struct AddressExpressionH<'s, 'h> where 's: 'h {
@@ -2269,17 +2079,14 @@ pub struct AddressExpressionH<'s, 'h> where 's: 'h {
 case class AddressExpressionH(reference: CoordH[KindHT]) extends IExpressionH {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious(); }
 
 // Identifies a local variable.
 */
-// mig: struct Local
 /// Temporary state
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Local<'s, 'h> where 's: 'h {
@@ -2305,17 +2112,14 @@ case class Local(
   val hash = runtime.ScalaRunTime._hashCode(this)
 
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 /*
 override def equals(obj: Any): Boolean = vcurious();
 }
 
 */
-// mig: struct VariableIdH
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct VariableIdH<'s, 'h> where 's: 'h {
@@ -2334,7 +2138,6 @@ case class VariableIdH(
   name: Option[IdH]) {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 /*
   override def hashCode(): Int = hash;
 }

@@ -21,7 +21,6 @@ use crate::instantiating::ast::types::StrIT;
 use crate::instantiating::ast::types::VoidIT;
 use std::marker::PhantomData;
 
-// mig: trait ExpressionIE — realized as enum per @ATDCX (no dyn, mirrors typing-pass ExpressionTE).
 /// Arena-allocated (see @TFITCX)
 //
 // No PartialEq/Hash derive: Scala uses `vcurious` (panic on equals) on every
@@ -35,7 +34,6 @@ pub enum ExpressionIE<'s, 'i, R> {
 /*
 trait ExpressionI  {
 */
-// mig: fn result
 impl<'s, 'i, R: Copy> ExpressionIE<'s, 'i, R> {
     pub fn result(&self) -> CoordI<'s, 'i, R> {
         match self {
@@ -103,7 +101,6 @@ impl<'s, 'i, R: Copy> ReferenceExpressionIE<'s, 'i, R> {
   def result: CoordI[cI]
 }
 */
-// mig: trait ReferenceExpressionIE — realized as enum per @ATDCX.
 #[derive(Copy, Clone, Debug)]
 pub enum ReferenceExpressionIE<'s, 'i, R> {
     LetAndLend(&'i LetAndLendIE<'s, 'i, R>),
@@ -159,7 +156,6 @@ pub enum ReferenceExpressionIE<'s, 'i, R> {
 /*
 trait ReferenceExpressionIE extends ExpressionI { }
 */
-// mig: trait AddressExpressionIE — realized as enum per @ATDCX.
 #[derive(Copy, Clone, Debug)]
 pub enum AddressExpressionIE<'s, 'i, R> {
     LocalLookup(&'i LocalLookupIE<'s, 'i, R>),
@@ -178,7 +174,6 @@ trait AddressExpressionIE extends ExpressionI {
 //  def variability: VariabilityI
 }
 */
-// mig: struct LetAndLendIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct LetAndLendIE<'s, 'i, R> {
@@ -187,7 +182,6 @@ pub struct LetAndLendIE<'s, 'i, R> {
 	pub target_ownership: OwnershipI,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl LetAndLendIE
 /*
 case class LetAndLendIE(
   variable: ILocalVariableI,
@@ -196,12 +190,10 @@ case class LetAndLendIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for LetAndLendIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for LetAndLendIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -220,7 +212,6 @@ override def hashCode(): Int = vcurious()
   }
 }
 */
-// mig: struct LockWeakIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct LockWeakIE<'s, 'i, R> {
@@ -232,7 +223,6 @@ pub struct LockWeakIE<'s, 'i, R> {
 	pub none_impl_name: IdI<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl LockWeakIE
 /*
 case class LockWeakIE(
   innerExpr: ReferenceExpressionIE,
@@ -255,26 +245,22 @@ case class LockWeakIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for LockWeakIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for LockWeakIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe: CoordI[cI] = resultOptBorrowType
 }
 */
-// mig: struct BorrowToWeakIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct BorrowToWeakIE<'s, 'i, R> {
 	pub inner_expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl BorrowToWeakIE
 /*
 // Turns a borrow ref into a weak ref
 // NoIE that we can also get a weak ref from LocalLoad2'ing a
@@ -288,12 +274,10 @@ case class BorrowToWeakIE(
       innerExpr.result.ownership == MutableBorrowI)
 
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for BorrowToWeakIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for BorrowToWeakIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -307,7 +291,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct LetNormalIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct LetNormalIE<'s, 'i, R> {
@@ -315,7 +298,6 @@ pub struct LetNormalIE<'s, 'i, R> {
 	pub expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl LetNormalIE
 /*
 case class LetNormalIE(
   variable: ILocalVariableI,
@@ -323,12 +305,10 @@ case class LetNormalIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for LetNormalIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for LetNormalIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -349,7 +329,6 @@ override def hashCode(): Int = vcurious()
   }
 }
 */
-// mig: struct RestackifyIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct RestackifyIE<'s, 'i, R> {
@@ -357,7 +336,6 @@ pub struct RestackifyIE<'s, 'i, R> {
 	pub expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl RestackifyIE
 /*
 case class RestackifyIE(
   variable: ILocalVariableI,
@@ -365,12 +343,10 @@ case class RestackifyIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for RestackifyIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for RestackifyIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -391,14 +367,12 @@ override def hashCode(): Int = vcurious()
   }
 }
 */
-// mig: struct UnletIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct UnletIE<'s, 'i, R> {
 	pub variable: ILocalVariableI<'s, 'i>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl UnletIE
 /*
 // Only ExpressionCompiler.unletLocal should make these
 case class UnletIE(
@@ -406,12 +380,10 @@ case class UnletIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for UnletIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for UnletIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -420,13 +392,11 @@ override def hashCode(): Int = vcurious()
   vpass()
 }
 */
-// mig: struct DiscardIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DiscardIE<'s, 'i, R> {
 	pub expr: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl DiscardIE
 /*
 // Throws away a reference.
 // Unless given to an instruction which consumes it, all borrow and share
@@ -440,17 +410,14 @@ case class DiscardIE(
   expr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for DiscardIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for DiscardIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> DiscardIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -475,7 +442,6 @@ impl<'s, 'i, R> DiscardIE<'s, 'i, R> {
   }
 }
 */
-// mig: struct DeferIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DeferIE<'s, 'i, R> {
@@ -483,7 +449,6 @@ pub struct DeferIE<'s, 'i, R> {
 	pub deferred_expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl DeferIE
 /*
 case class DeferIE(
   innerExpr: ReferenceExpressionIE,
@@ -492,12 +457,10 @@ case class DeferIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for DeferIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for DeferIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -507,7 +470,6 @@ override def hashCode(): Int = vcurious()
   vassert(deferredExpr.result == CoordI[cI](MutableShareI, VoidIT()))
 }
 */
-// mig: struct IfIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct IfIE<'s, 'i, R> {
@@ -516,7 +478,6 @@ pub struct IfIE<'s, 'i, R> {
 	pub else_call: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl IfIE
 /*
 // Eventually, when we want to do if-let, we'll have a different construct
 // entirely. See comment below If2.
@@ -528,12 +489,10 @@ case class IfIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for IfIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for IfIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -562,14 +521,12 @@ override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(commonSupertype)
 }
 */
-// mig: struct WhileIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct WhileIE<'s, 'i, R> {
 	pub block: BlockIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl WhileIE
 /*
 // The block is expected to return a boolean (false = stop, true = keep going).
 // The block will probably contain an If2(the condition, the body, false)
@@ -578,12 +535,10 @@ case class WhileIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for WhileIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for WhileIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -591,7 +546,6 @@ override def hashCode(): Int = vcurious()
   vpass()
 }
 */
-// mig: struct MutateIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct MutateIE<'s, 'i, R> {
@@ -599,7 +553,6 @@ pub struct MutateIE<'s, 'i, R> {
 	pub source_expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl MutateIE
 /*
 case class MutateIE(
   destinationExpr: AddressExpressionIE,
@@ -607,41 +560,34 @@ case class MutateIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for MutateIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for MutateIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(destinationExpr.result)
 }
 */
-// mig: struct ReturnIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ReturnIE<'s, 'i, R> {
 	pub source_expr: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl ReturnIE
 /*
 case class ReturnIE(
   sourceExpr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ReturnIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ReturnIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> ReturnIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -649,25 +595,20 @@ impl<'s, 'i, R> ReturnIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, NeverIT(false))
 }
 */
-// mig: struct BreakIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct BreakIE<R>(pub PhantomData<R>);
-// mig: impl BreakIE
 /*
 case class BreakIE() extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for BreakIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for BreakIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<R> BreakIE<R> {
 	pub fn result<'s, 'i>(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -676,14 +617,12 @@ impl<R> BreakIE<R> {
 }
 
 */
-// mig: struct BlockIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct BlockIE<'s, 'i, R> {
 	pub inner: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl BlockIE
 /*
 // when we make a closure, we make a struct full of pointers to all our variables
 // and the first element is our parent closure
@@ -697,26 +636,22 @@ case class BlockIE(
 ) extends ReferenceExpressionIE {
   vpass()
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for BlockIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for BlockIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = inner.result
 }
 */
-// mig: struct MutabilifyIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct MutabilifyIE<'s, 'i, R> {
 	pub inner: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl MutabilifyIE
 /*
 // A pure block will:
 // 1. Create a new region (someday possibly with an allocator)
@@ -732,25 +667,21 @@ case class MutabilifyIE(
   vpass()
   vassert(inner.result.kind == result.kind)
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for MutabilifyIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for MutabilifyIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 }
 */
-// mig: struct ImmutabilifyIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ImmutabilifyIE<'s, 'i, R> {
 	pub inner: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl ImmutabilifyIE
 /*
 // See NPFCASTN
 case class ImmutabilifyIE(
@@ -770,24 +701,20 @@ case class ImmutabilifyIE(
     case _ =>
   }
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ImmutabilifyIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ImmutabilifyIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 }
 */
-// mig: struct PreCheckBorrowIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct PreCheckBorrowIE<'s, 'i, R> {
 	pub inner: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl PreCheckBorrowIE
 /*
 case class PreCheckBorrowIE(
   inner: ReferenceExpressionIE
@@ -795,44 +722,37 @@ case class PreCheckBorrowIE(
   vpass()
   vassert(inner.result.ownership == MutableBorrowI)
 */
-// mig: fn result
 impl<'s, 'i, R> PreCheckBorrowIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
 /*
   override def result: CoordI[cI] = inner.result
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for PreCheckBorrowIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for PreCheckBorrowIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 }
 */
-// mig: struct ConsecutorIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ConsecutorIE<'s, 'i, R> {
 	pub exprs: &'i[ReferenceExpressionIE<'s, 'i, R>],
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl ConsecutorIE
 /*
 case class ConsecutorIE(
   exprs: Vector[ReferenceExpressionIE],
   result: CoordI[cI]
   ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConsecutorIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConsecutorIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -841,33 +761,28 @@ override def hashCode(): Int = vcurious()
   vassert(exprs.nonEmpty)
 }
 */
-// mig: struct TupleIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct TupleIE<'s, 'i, R> {
 	pub elements: &'i[ReferenceExpressionIE<'s, 'i, R>],
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl TupleIE
 /*
 case class TupleIE(
   elements: Vector[ReferenceExpressionIE],
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for TupleIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for TupleIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(resultReference)
 }
 */
-// mig: struct StaticArrayFromValuesIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct StaticArrayFromValuesIE<'s, 'i, R> {
@@ -875,7 +790,6 @@ pub struct StaticArrayFromValuesIE<'s, 'i, R> {
 	pub result_reference: CoordI<'s, 'i, R>,
 	pub array_type: StaticSizedArrayIT<'s, 'i, R>,
 }
-// mig: impl StaticArrayFromValuesIE
 /*
 //// Discards a reference, whether it be owned or borrow or whatever.
 //// This is used after panics or other never-returning things, to signal that a certain
@@ -897,17 +811,14 @@ case class StaticArrayFromValuesIE(
   arrayType: StaticSizedArrayIT[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for StaticArrayFromValuesIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for StaticArrayFromValuesIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> StaticArrayFromValuesIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -915,40 +826,34 @@ impl<'s, 'i, R> StaticArrayFromValuesIE<'s, 'i, R> {
   override def result: CoordI[cI] = resultReference
 }
 */
-// mig: struct ArraySizeIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ArraySizeIE<'s, 'i, R> {
 	pub array: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl ArraySizeIE
 /*
 case class ArraySizeIE(
   array: ReferenceExpressionIE,
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ArraySizeIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ArraySizeIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(CoordI[cI](MutableShareI, IntIT.i32))
 }
 */
-// mig: struct IsSameInstanceIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct IsSameInstanceIE<'s, 'i, R> {
 	pub left: ReferenceExpressionIE<'s, 'i, R>,
 	pub right: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl IsSameInstanceIE
 /*
 // Can we do an === of objects in two regions? It could be pretty useful.
 case class IsSameInstanceIE(
@@ -956,18 +861,15 @@ case class IsSameInstanceIE(
   right: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for IsSameInstanceIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for IsSameInstanceIE` below.)
 /*
 override def hashCode(): Int = vcurious()
   vassert(left.result == right.result)
 */
-// mig: fn result
 impl<'s, 'i, R> IsSameInstanceIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::BoolIT(BoolIT { _marker: PhantomData }) }
@@ -977,7 +879,6 @@ impl<'s, 'i, R> IsSameInstanceIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, BoolIT())
 }
 */
-// mig: struct AsSubtypeIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct AsSubtypeIE<'s, 'i, R> {
@@ -991,7 +892,6 @@ pub struct AsSubtypeIE<'s, 'i, R> {
 	pub err_impl_name: IdI<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl AsSubtypeIE
 /*
 case class AsSubtypeIE(
   sourceExpr: ReferenceExpressionIE,
@@ -1017,37 +917,30 @@ case class AsSubtypeIE(
 ) extends ReferenceExpressionIE {
   vpass()
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for AsSubtypeIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for AsSubtypeIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(resultResultType)
 }
 */
-// mig: struct VoidLiteralIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct VoidLiteralIE<R>(pub PhantomData<R>);
-// mig: impl VoidLiteralIE
 /*
 case class VoidLiteralIE() extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for VoidLiteralIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for VoidLiteralIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<R> VoidLiteralIE<R> {
 	pub fn result<'s, 'i>(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::VoidIT(VoidIT { _marker: PhantomData }) }
@@ -1057,7 +950,6 @@ impl<R> VoidLiteralIE<R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 */
-// mig: struct ConstantIntIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantIntIE<R> {
@@ -1065,21 +957,17 @@ pub struct ConstantIntIE<R> {
 	pub bits: i32,
 	pub _marker: PhantomData<R>,
 }
-// mig: impl ConstantIntIE
 /*
 case class ConstantIntIE(value: Long, bits: Int) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConstantIntIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConstantIntIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<R> ConstantIntIE<R> {
 	pub fn result<'s, 'i>(&self) -> CoordI<'s, 'i, R> {
 		CoordI {
@@ -1092,28 +980,23 @@ impl<R> ConstantIntIE<R> {
   override def result = CoordI[cI](MutableShareI, IntIT(bits))
 }
 */
-// mig: struct ConstantBoolIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantBoolIE<R> {
 	pub _marker: PhantomData<R>,
 	pub value: bool,
 }
-// mig: impl ConstantBoolIE
 /*
 case class ConstantBoolIE(value: Boolean) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConstantBoolIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConstantBoolIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<R> ConstantBoolIE<R> {
 	pub fn result<'s, 'i>(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::BoolIT(BoolIT { _marker: PhantomData }) }
@@ -1123,28 +1006,23 @@ impl<R> ConstantBoolIE<R> {
   override def result = CoordI[cI](MutableShareI, BoolIT())
 }
 */
-// mig: struct ConstantStrIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantStrIE<'s, R> {
 	pub _marker: PhantomData<(&'s (), R)>,
 	pub value: &'s str,
 }
-// mig: impl ConstantStrIE
 /*
 case class ConstantStrIE(value: String) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConstantStrIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConstantStrIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, R> ConstantStrIE<'s, R> {
 	pub fn result<'i>(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::StrIT(StrIT { _marker: PhantomData }) }
@@ -1154,28 +1032,23 @@ impl<'s, R> ConstantStrIE<'s, R> {
   override def result = CoordI[cI](MutableShareI, StrIT())
 }
 */
-// mig: struct ConstantFloatIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ConstantFloatIE<R> {
 	pub _marker: PhantomData<R>,
 	pub value: f64,
 }
-// mig: impl ConstantFloatIE
 /*
 case class ConstantFloatIE(value: Double) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConstantFloatIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConstantFloatIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<R> ConstantFloatIE<R> {
 	pub fn result<'s, 'i>(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::FloatIT(FloatIT { _marker: PhantomData }) }
@@ -1186,14 +1059,12 @@ impl<R> ConstantFloatIE<R> {
 }
 
 */
-// mig: struct LocalLookupIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct LocalLookupIE<'s, 'i, R> {
 	pub local_variable: ILocalVariableI<'s, 'i>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl LocalLookupIE
 /*
 case class LocalLookupIE(
   // This is the local variable at the time it was created
@@ -1209,43 +1080,36 @@ case class LocalLookupIE(
   result: CoordI[cI]
 ) extends AddressExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for LocalLookupIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for LocalLookupIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def variability: VariabilityI = localVariable.variability
 }
 */
-// mig: struct ArgLookupIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ArgLookupIE<'s, 'i, R> {
 	pub param_index: i32,
 	pub coord: CoordI<'s, 'i, R>,
 }
-// mig: impl ArgLookupIE
 /*
 case class ArgLookupIE(
   paramIndex: Int,
   coord: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ArgLookupIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ArgLookupIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> ArgLookupIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1253,7 +1117,6 @@ impl<'s, 'i, R> ArgLookupIE<'s, 'i, R> {
   override def result: CoordI[cI] = coord
 }
 */
-// mig: struct StaticSizedArrayLookupIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct StaticSizedArrayLookupIE<'s, 'i, R> {
@@ -1263,7 +1126,6 @@ pub struct StaticSizedArrayLookupIE<'s, 'i, R> {
 	pub element_type: CoordI<'s, 'i, R>,
 	pub variability: VariabilityI,
 }
-// mig: impl StaticSizedArrayLookupIE
 /*
 case class StaticSizedArrayLookupIE(
   range: RangeS,
@@ -1275,17 +1137,14 @@ case class StaticSizedArrayLookupIE(
   variability: VariabilityI
 ) extends AddressExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for StaticSizedArrayLookupIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for StaticSizedArrayLookupIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> StaticSizedArrayLookupIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1294,7 +1153,6 @@ impl<'s, 'i, R> StaticSizedArrayLookupIE<'s, 'i, R> {
   override def result: CoordI[cI] = elementType
 }
 */
-// mig: struct RuntimeSizedArrayLookupIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct RuntimeSizedArrayLookupIE<'s, 'i, R> {
@@ -1303,7 +1161,6 @@ pub struct RuntimeSizedArrayLookupIE<'s, 'i, R> {
 	pub element_type: CoordI<'s, 'i, R>,
 	pub variability: VariabilityI,
 }
-// mig: impl RuntimeSizedArrayLookupIE
 /*
 case class RuntimeSizedArrayLookupIE(
   arrayExpr: ReferenceExpressionIE,
@@ -1315,18 +1172,15 @@ case class RuntimeSizedArrayLookupIE(
   variability: VariabilityI
 ) extends AddressExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for RuntimeSizedArrayLookupIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for RuntimeSizedArrayLookupIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  vassert(arrayExpr.result.kind == arrayType)
 */
-// mig: fn result
 impl<'s, 'i, R> RuntimeSizedArrayLookupIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1335,27 +1189,22 @@ impl<'s, 'i, R> RuntimeSizedArrayLookupIE<'s, 'i, R> {
   override def result: CoordI[cI] = elementType
 }
 */
-// mig: struct ArrayLengthIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ArrayLengthIE<'s, 'i, R> {
 	pub array_expr: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl ArrayLengthIE
 /*
 case class ArrayLengthIE(arrayExpr: ReferenceExpressionIE) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ArrayLengthIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ArrayLengthIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> ArrayLengthIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> {
 		CoordI {
@@ -1368,7 +1217,6 @@ impl<'s, 'i, R> ArrayLengthIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, IntIT(32))
 }
 */
-// mig: struct ReferenceMemberLookupIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ReferenceMemberLookupIE<'s, 'i, R> {
@@ -1378,7 +1226,6 @@ pub struct ReferenceMemberLookupIE<'s, 'i, R> {
 	pub member_reference: CoordI<'s, 'i, R>,
 	pub variability: VariabilityI,
 }
-// mig: impl ReferenceMemberLookupIE
 /*
 case class ReferenceMemberLookupIE(
   range: RangeS,
@@ -1391,17 +1238,14 @@ case class ReferenceMemberLookupIE(
 ) extends AddressExpressionIE {
   vpass()
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ReferenceMemberLookupIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ReferenceMemberLookupIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> ReferenceMemberLookupIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1410,7 +1254,6 @@ impl<'s, 'i, R> ReferenceMemberLookupIE<'s, 'i, R> {
   override def result: CoordI[cI] = memberReference
 }
 */
-// mig: struct AddressMemberLookupIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct AddressMemberLookupIE<'s, 'i, R> {
@@ -1419,7 +1262,6 @@ pub struct AddressMemberLookupIE<'s, 'i, R> {
 	pub member_reference: CoordI<'s, 'i, R>,
 	pub variability: VariabilityI,
 }
-// mig: impl AddressMemberLookupIE
 /*
 case class AddressMemberLookupIE(
   structExpr: ReferenceExpressionIE,
@@ -1429,17 +1271,14 @@ case class AddressMemberLookupIE(
   variability: VariabilityI
 ) extends AddressExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for AddressMemberLookupIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for AddressMemberLookupIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> AddressMemberLookupIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1448,7 +1287,6 @@ impl<'s, 'i, R> AddressMemberLookupIE<'s, 'i, R> {
   override def result: CoordI[cI] = memberReference
 }
 */
-// mig: struct InterfaceFunctionCallIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct InterfaceFunctionCallIE<'s, 'i, R> {
@@ -1457,7 +1295,6 @@ pub struct InterfaceFunctionCallIE<'s, 'i, R> {
 	pub args: &'i[ReferenceExpressionIE<'s, 'i, R>],
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl InterfaceFunctionCallIE
 /*
 case class InterfaceFunctionCallIE(
   superFunctionPrototype: PrototypeI[cI],
@@ -1466,19 +1303,16 @@ case class InterfaceFunctionCallIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for InterfaceFunctionCallIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for InterfaceFunctionCallIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe: CoordI[cI] = ReferenceResultI(resultReference)
 }
 */
-// mig: struct ExternFunctionCallIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ExternFunctionCallIE<'s, 'i, R> {
@@ -1486,7 +1320,6 @@ pub struct ExternFunctionCallIE<'s, 'i, R> {
 	pub args: &'i[ReferenceExpressionIE<'s, 'i, R>],
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl ExternFunctionCallIE
 /*
 case class ExternFunctionCallIE(
   prototype2: PrototypeI[cI],
@@ -1494,12 +1327,10 @@ case class ExternFunctionCallIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ExternFunctionCallIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ExternFunctionCallIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1519,7 +1350,6 @@ override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(prototype2.returnType)
 }
 */
-// mig: struct FunctionCallIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct FunctionCallIE<'s, 'i, R> {
@@ -1527,7 +1357,6 @@ pub struct FunctionCallIE<'s, 'i, R> {
 	pub args: &'i[ReferenceExpressionIE<'s, 'i, R>],
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl FunctionCallIE
 /*
 case class FunctionCallIE(
   callable: PrototypeI[cI],
@@ -1535,12 +1364,10 @@ case class FunctionCallIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for FunctionCallIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for FunctionCallIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1556,7 +1383,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct ReinterpretIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ReinterpretIE<'s, 'i, R> {
@@ -1564,7 +1390,6 @@ pub struct ReinterpretIE<'s, 'i, R> {
 	pub result_reference: CoordI<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl ReinterpretIE
 /*
 // A typingpass reinterpret is interpreting a type as a different one which is hammer-equivalent.
 // For example, a pack and a struct are the same thing to hammer.
@@ -1577,12 +1402,10 @@ case class ReinterpretIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ReinterpretIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ReinterpretIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1602,7 +1425,6 @@ override def hashCode(): Int = vcurious()
   }
 }
 */
-// mig: struct ConstructIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct ConstructIE<'s, 'i, R> {
@@ -1610,7 +1432,6 @@ pub struct ConstructIE<'s, 'i, R> {
 	pub result: CoordI<'s, 'i, R>,
 	pub args: &'i[ExpressionIE<'s, 'i, R>],
 }
-// mig: impl ConstructIE
 /*
 case class ConstructIE(
   structTT: StructIT[cI],
@@ -1618,12 +1439,10 @@ case class ConstructIE(
   args: Vector[ExpressionI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConstructIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConstructIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1632,7 +1451,6 @@ override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(resultReference)
 }
 */
-// mig: struct NewMutRuntimeSizedArrayIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct NewMutRuntimeSizedArrayIE<'s, 'i, R> {
@@ -1640,7 +1458,6 @@ pub struct NewMutRuntimeSizedArrayIE<'s, 'i, R> {
 	pub capacity_expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl NewMutRuntimeSizedArrayIE
 /*
 // NoIE: the functionpointercall's last argument is a Placeholder2,
 // it's up to later stages to replace that with an actual index
@@ -1650,12 +1467,10 @@ case class NewMutRuntimeSizedArrayIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for NewMutRuntimeSizedArrayIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for NewMutRuntimeSizedArrayIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1670,7 +1485,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct StaticArrayFromCallableIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct StaticArrayFromCallableIE<'s, 'i, R> {
@@ -1679,7 +1493,6 @@ pub struct StaticArrayFromCallableIE<'s, 'i, R> {
 	pub generator_method: PrototypeI<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl StaticArrayFromCallableIE
 /*
 case class StaticArrayFromCallableIE(
   arrayType: StaticSizedArrayIT[cI],
@@ -1688,12 +1501,10 @@ case class StaticArrayFromCallableIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for StaticArrayFromCallableIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for StaticArrayFromCallableIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1708,7 +1519,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct DestroyStaticSizedArrayIntoFunctionIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyStaticSizedArrayIntoFunctionIE<'s, 'i, R> {
@@ -1717,7 +1527,6 @@ pub struct DestroyStaticSizedArrayIntoFunctionIE<'s, 'i, R> {
 	pub consumer: ReferenceExpressionIE<'s, 'i, R>,
 	pub consumer_method: PrototypeI<'s, 'i, R>,
 }
-// mig: impl DestroyStaticSizedArrayIntoFunctionIE
 /*
 // NoIE: the functionpointercall's last argument is a Placeholder2,
 // it's up to later stages to replace that with an actual index
@@ -1730,12 +1539,10 @@ case class DestroyStaticSizedArrayIntoFunctionIE(
   consumerMethod: PrototypeI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for DestroyStaticSizedArrayIntoFunctionIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for DestroyStaticSizedArrayIntoFunctionIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1752,7 +1559,6 @@ override def hashCode(): Int = vcurious()
     case _ => vwat()
   }
 */
-// mig: fn result
 impl<'s, 'i, R> DestroyStaticSizedArrayIntoFunctionIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::VoidIT(VoidIT { _marker: PhantomData }) }
@@ -1762,7 +1568,6 @@ impl<'s, 'i, R> DestroyStaticSizedArrayIntoFunctionIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 */
-// mig: struct DestroyStaticSizedArrayIntoLocalsIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyStaticSizedArrayIntoLocalsIE<'s, 'i, R> {
@@ -1770,7 +1575,6 @@ pub struct DestroyStaticSizedArrayIntoLocalsIE<'s, 'i, R> {
 	pub static_sized_array: StaticSizedArrayIT<'s, 'i, R>,
 	pub destination_reference_variables: &'i[ReferenceLocalVariableI<'s, 'i>],
 }
-// mig: impl DestroyStaticSizedArrayIntoLocalsIE
 /*
 // We destroy both Share and Own things
 // If the struct contains any addressibles, those die immediately and aren't stored
@@ -1781,17 +1585,14 @@ case class DestroyStaticSizedArrayIntoLocalsIE(
   destinationReferenceVariables: Vector[ReferenceLocalVariableI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for DestroyStaticSizedArrayIntoLocalsIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for DestroyStaticSizedArrayIntoLocalsIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> DestroyStaticSizedArrayIntoLocalsIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1801,19 +1602,16 @@ impl<'s, 'i, R> DestroyStaticSizedArrayIntoLocalsIE<'s, 'i, R> {
   vassert(expr.result.kind == staticSizedArray)
 }
 */
-// mig: struct DestroyMutRuntimeSizedArrayIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyMutRuntimeSizedArrayIE<'s, 'i, R> {
 	pub array_expr: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl DestroyMutRuntimeSizedArrayIE
 /*
 case class DestroyMutRuntimeSizedArrayIE(
   arrayExpr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
 */
-// mig: fn result
 impl<'s, 'i, R> DestroyMutRuntimeSizedArrayIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1821,19 +1619,16 @@ impl<'s, 'i, R> DestroyMutRuntimeSizedArrayIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 */
-// mig: struct RuntimeSizedArrayCapacityIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct RuntimeSizedArrayCapacityIE<'s, 'i, R> {
 	pub array_expr: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl RuntimeSizedArrayCapacityIE
 /*
 case class RuntimeSizedArrayCapacityIE(
   arrayExpr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
 */
-// mig: fn result
 impl<'s, 'i, R> RuntimeSizedArrayCapacityIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> {
 		CoordI { ownership: OwnershipI::MutableShare, kind: KindIT::IntIT(IntIT { bits: 32, _marker: PhantomData }) }
@@ -1844,14 +1639,12 @@ impl<'s, 'i, R> RuntimeSizedArrayCapacityIE<'s, 'i, R> {
 //  override def resultRemoveMe: CoordI[cI] = ReferenceResultI(CoordI[cI](MutableShareI, IntIT(32)))
 }
 */
-// mig: struct PushRuntimeSizedArrayIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct PushRuntimeSizedArrayIE<'s, 'i, R> {
 	pub array_expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub new_element_expr: ReferenceExpressionIE<'s, 'i, R>,
 }
-// mig: impl PushRuntimeSizedArrayIE
 /*
 case class PushRuntimeSizedArrayIE(
   arrayExpr: ReferenceExpressionIE,
@@ -1860,7 +1653,6 @@ case class PushRuntimeSizedArrayIE(
   //  newElementType: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn result
 impl<'s, 'i, R> PushRuntimeSizedArrayIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -1868,14 +1660,12 @@ impl<'s, 'i, R> PushRuntimeSizedArrayIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 */
-// mig: struct PopRuntimeSizedArrayIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct PopRuntimeSizedArrayIE<'s, 'i, R> {
 	pub array_expr: ReferenceExpressionIE<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl PopRuntimeSizedArrayIE
 /*
 case class PopRuntimeSizedArrayIE(
   arrayExpr: ReferenceExpressionIE,
@@ -1889,7 +1679,6 @@ case class PopRuntimeSizedArrayIE(
 //  override def resultRemoveMe: CoordI[cI] = ReferenceResultI(elementType)
 }
 */
-// mig: struct InterfaceToInterfaceUpcastIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct InterfaceToInterfaceUpcastIE<'s, 'i, R> {
@@ -1897,7 +1686,6 @@ pub struct InterfaceToInterfaceUpcastIE<'s, 'i, R> {
 	pub target_interface: InterfaceIT<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl InterfaceToInterfaceUpcastIE
 /*
 case class InterfaceToInterfaceUpcastIE(
   innerExpr: ReferenceExpressionIE,
@@ -1905,12 +1693,10 @@ case class InterfaceToInterfaceUpcastIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for InterfaceToInterfaceUpcastIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for InterfaceToInterfaceUpcastIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1922,7 +1708,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct UpcastIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct UpcastIE<'s, 'i, R> {
@@ -1931,7 +1716,6 @@ pub struct UpcastIE<'s, 'i, R> {
 	pub impl_name: IdI<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl UpcastIE
 /*
 // This used to be StructToInterfaceUpcastIE, and then we added generics.
 // Now, it could be that we're upcasting a placeholder to an interface, or a
@@ -1947,12 +1731,10 @@ case class UpcastIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for UpcastIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for UpcastIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -1964,7 +1746,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct SoftLoadIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct SoftLoadIE<'s, 'i, R> {
@@ -1972,7 +1753,6 @@ pub struct SoftLoadIE<'s, 'i, R> {
 	pub target_ownership: OwnershipI,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl SoftLoadIE
 /*
 // A soft load is one that turns an int&& into an int*. a hard load turns an int* into an int.
 // Turns an Addressible(Pointer) into an OwningPointer. Makes the source owning pointer into null
@@ -1985,12 +1765,10 @@ case class SoftLoadIE(
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for SoftLoadIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for SoftLoadIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -2016,7 +1794,6 @@ override def hashCode(): Int = vcurious()
 //  }
 }
 */
-// mig: struct DestroyIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyIE<'s, 'i, R> {
@@ -2024,7 +1801,6 @@ pub struct DestroyIE<'s, 'i, R> {
 	pub struct_tt: StructIT<'s, 'i, R>,
 	pub destination_reference_variables: &'i[ReferenceLocalVariableI<'s, 'i>],
 }
-// mig: impl DestroyIE
 /*
 // Destroy an object.
 // If the struct contains any addressibles, those die immediately and aren't stored
@@ -2037,17 +1813,14 @@ case class DestroyIE(
   destinationReferenceVariables: Vector[ReferenceLocalVariableI]
 ) extends ReferenceExpressionIE {
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for DestroyIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for DestroyIE` below.)
 /*
 override def hashCode(): Int = vcurious()
 */
-// mig: fn result
 impl<'s, 'i, R> DestroyIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -2055,7 +1828,6 @@ impl<'s, 'i, R> DestroyIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 */
-// mig: struct DestroyImmRuntimeSizedArrayIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct DestroyImmRuntimeSizedArrayIE<'s, 'i, R> {
@@ -2064,7 +1836,6 @@ pub struct DestroyImmRuntimeSizedArrayIE<'s, 'i, R> {
 	pub consumer: ReferenceExpressionIE<'s, 'i, R>,
 	pub consumer_method: PrototypeI<'s, 'i, R>,
 }
-// mig: impl DestroyImmRuntimeSizedArrayIE
 /*
 case class DestroyImmRuntimeSizedArrayIE(
   arrayExpr: ReferenceExpressionIE,
@@ -2077,12 +1848,10 @@ case class DestroyImmRuntimeSizedArrayIE(
     case _ => vwat()
   }
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for DestroyImmRuntimeSizedArrayIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for DestroyImmRuntimeSizedArrayIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -2096,7 +1865,6 @@ override def hashCode(): Int = vcurious()
     case VoidIT() =>
   }
 */
-// mig: fn result
 impl<'s, 'i, R> DestroyImmRuntimeSizedArrayIE<'s, 'i, R> {
 	pub fn result(&self) -> CoordI<'s, 'i, R> { panic!("Unimplemented: result"); }
 }
@@ -2104,7 +1872,6 @@ impl<'s, 'i, R> DestroyImmRuntimeSizedArrayIE<'s, 'i, R> {
   override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 */
-// mig: struct NewImmRuntimeSizedArrayIE
 /// Arena-allocated (see @TFITCX) — no equality; mirrors Scala vcurious.
 #[derive(Copy, Clone, Debug)]
 pub struct NewImmRuntimeSizedArrayIE<'s, 'i, R> {
@@ -2114,7 +1881,6 @@ pub struct NewImmRuntimeSizedArrayIE<'s, 'i, R> {
 	pub generator_method: PrototypeI<'s, 'i, R>,
 	pub result: CoordI<'s, 'i, R>,
 }
-// mig: impl NewImmRuntimeSizedArrayIE
 /*
 // NoIE: the functionpointercall's last argument is a Placeholder2,
 // it's up to later stages to replace that with an actual index
@@ -2139,12 +1905,10 @@ case class NewImmRuntimeSizedArrayIE(
     case other => vwat(other)
   }
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for NewImmRuntimeSizedArrayIE` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for NewImmRuntimeSizedArrayIE` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -2161,7 +1925,6 @@ override def hashCode(): Int = vcurious()
 
 object referenceExprResultStructName {
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom<ReferenceExpressionIE>` or inline match.)
 /*
   def unapply(expr: ReferenceExpressionIE): Option[StrI] = {
@@ -2174,7 +1937,6 @@ object referenceExprResultStructName {
 
 object referenceExprResultKind {
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom<ReferenceExpressionIE>` or inline match.)
 /*
   def unapply(expr: ReferenceExpressionIE): Option[KindIT[cI]] = {

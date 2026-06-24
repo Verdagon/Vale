@@ -17,7 +17,6 @@ import dev.vale.options.GlobalOptions
 
 object HigherTypingTestCompilation {
 */
-// mig: fn test
 pub fn test<'s, 'ctx, 'p>(
     compilation_bump: &'ctx bumpalo::Bump,
     scout_arena: &'ctx ScoutArena<'s>,

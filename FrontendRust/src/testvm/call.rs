@@ -18,7 +18,6 @@ import dev.vale.vfail
 import scala.collection.mutable
 
 */
-// mig: struct CallV<'v, 'h, 's>
 /// Temporary state
 pub struct CallV<'v, 'h, 's> {
   pub call_id: CallIdV<'v, 'h, 's>,
@@ -33,7 +32,6 @@ class Call(callId: CallId, in_args: Vector[ReferenceV]) {
   private val locals = mutable.HashMap[VariableAddressV, VariableV]()
 
 */
-// mig: fn add_local
 impl<'v, 'h, 's> CallV<'v, 'h, 's> {
   pub fn add_local(&mut self, var_addr: VariableAddressV<'v, 'h, 's>, reference: ReferenceV<'v, 'h, 's>, tyype: CoordH<'s, 'h>) {
     assert_eq!(var_addr.call_id, self.call_id);
@@ -55,7 +53,6 @@ impl<'v, 'h, 's> CallV<'v, 'h, 's> {
   }
 
 */
-// mig: fn remove_local
   pub fn remove_local(&mut self, var_addr: VariableAddressV<'v, 'h, 's>) {
     assert_eq!(var_addr.call_id, self.call_id);
     let locals = &mut self.locals;
@@ -70,7 +67,6 @@ impl<'v, 'h, 's> CallV<'v, 'h, 's> {
   }
 
 */
-// mig: fn get_local
   pub fn get_local(&self, addr: VariableAddressV<'v, 'h, 's>) -> VariableV<'v, 'h, 's> {
     let locals = &self.locals;
     let result = locals.get(&addr).expect("get_local: not found").clone();
@@ -82,7 +78,6 @@ impl<'v, 'h, 's> CallV<'v, 'h, 's> {
   }
 
 */
-// mig: fn mutate_local
   pub fn mutate_local(&mut self, var_addr: VariableAddressV<'v, 'h, 's>, reference: ReferenceV<'v, 'h, 's>, _expected_type: CoordH<'s, 'h>) {
     self.locals.get_mut(&var_addr).expect("mutate_local: not found").reference = reference;
   }
@@ -92,7 +87,6 @@ impl<'v, 'h, 's> CallV<'v, 'h, 's> {
   }
 
 */
-// mig: fn take_argument
   pub fn take_argument(&mut self, index: i32) -> ReferenceV<'v, 'h, 's> {
     assert!((index as usize) < self.args.len());
     match self.args.get(&index).copied() {
@@ -119,7 +113,6 @@ impl<'v, 'h, 's> CallV<'v, 'h, 's> {
   }
 
 */
-// mig: fn prepare_to_die
   pub fn prepare_to_die(&mut self) {
     let locals = &self.locals;
     assert!(locals.is_empty());

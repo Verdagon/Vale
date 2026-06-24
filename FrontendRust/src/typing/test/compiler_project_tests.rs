@@ -47,7 +47,6 @@ import scala.collection.immutable.List
 
 class CompilerProjectTests extends FunSuite with Matchers {
 */
-// mig: fn function_has_correct_name
 #[test]
 fn function_has_correct_name() {
     let parse_bump = Bump::new();
@@ -110,7 +109,6 @@ fn function_has_correct_name() {
     vassertSome(coutputs.functions.headOption).header.id shouldEqual id
   }
 */
-// mig: fn lambda_has_correct_name
 #[test]
 fn lambda_has_correct_name() {
     let parse_bump = Bump::new();
@@ -217,7 +215,6 @@ fn lambda_has_correct_name() {
     lamFunc.header.id shouldEqual lambdaFuncId
   }
 */
-// mig: fn struct_has_correct_name
 #[test]
 fn struct_has_correct_name() {
     let parse_bump = Bump::new();

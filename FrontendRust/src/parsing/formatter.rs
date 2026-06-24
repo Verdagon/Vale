@@ -10,8 +10,6 @@ import dev.vale.vimpl
 object Formatter {
 */
 
-// mig: enum IClass
-// mig: case objects W, Ab, Ext, Fn, FnName, FnTplSep, Rune
 pub enum IClass {
     W,
     Ab,
@@ -32,7 +30,6 @@ pub enum IClass {
   case object Rune extends IClass
 */
 
-// mig: enum IElement
 pub enum IElement {
     Span(Span),
     Text(Text),
@@ -41,7 +38,6 @@ pub enum IElement {
   sealed trait IElement
 */
 
-// mig: struct Span
 pub struct Span {
     pub classs: IClass,
     pub elements: Vec<IElement>,
@@ -56,7 +52,6 @@ pub struct Span {
 override def hashCode(): Int = vcurious(); }
 */
 
-// mig: struct Text
 pub struct Text {
     pub string: String,
 }

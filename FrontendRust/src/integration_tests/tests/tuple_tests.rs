@@ -21,12 +21,10 @@ import dev.vale.typing._
 import dev.vale.von.{VonBool, VonInt}
 import org.scalatest._
 */
-// mig: struct TupleTests
 pub struct TupleTests;
 /*
 class TupleTests extends FunSuite with Matchers {
 */
-// mig: fn returning_tuple_from_function_and_dotting_it
 #[test]
 fn returning_tuple_from_function_and_dotting_it() {
     let compilation_bump = bumpalo::Bump::new();
@@ -76,7 +74,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn tuple_with_two_things
 #[test]
 fn tuple_with_two_things() {
     let compilation_bump = bumpalo::Bump::new();
@@ -123,7 +120,6 @@ exported func main() bool {
     compile.evalForKind(Vector()) match { case VonBool(true) => }
   }
 */
-// mig: fn tuple_type
 #[test]
 fn tuple_type() {
     let compilation_bump = bumpalo::Bump::new();
@@ -174,7 +170,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn simple_tuple_with_one_int
 #[test]
 fn simple_tuple_with_one_int() {
     let compilation_bump = bumpalo::Bump::new();

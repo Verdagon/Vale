@@ -62,7 +62,6 @@ use crate::instantiating::ast::types::ICitizenIT;
 use crate::instantiating::ast::types::InterfaceITValI;
 use crate::instantiating::ast::types::StructITValI;
 
-// mig: fn collapse_prototype
 pub fn collapse_prototype<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: HashMap<i32, i32>, prototype: &PrototypeI<'s, 'i, sI>) -> PrototypeI<'s, 'i, nI>
 where 's: 'i {
     let PrototypeI { id, return_type, .. } = *prototype;
@@ -80,7 +79,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_id
 pub fn collapse_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, id_i: &IdI<'s, 'i, sI>, func: impl Fn(&INameI<'s, 'i, sI>) -> INameI<'s, 'i, nI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     let init_steps_c = id_i.init_steps.iter().map(|x| collapse_name(interner, map, x)).collect::<Vec<_>>();
@@ -104,7 +102,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_function_id
 pub fn collapse_function_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, id, |x| INameI::from(collapse_function_name(interner, map, &IFunctionNameI::try_from(*x).unwrap())))
@@ -121,7 +118,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_function_name
 pub fn collapse_function_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, name: &IFunctionNameI<'s, 'i, sI>) -> IFunctionNameI<'s, 'i, nI>
 where 's: 'i {
     match *name {
@@ -229,7 +225,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_var_name
 pub fn collapse_var_name() { panic!("Unimplemented: collapse_var_name"); }
 /*
   def collapseVarName(
@@ -244,7 +239,6 @@ pub fn collapse_var_name() { panic!("Unimplemented: collapse_var_name"); }
   }
 
 */
-// mig: fn collapse_name
 pub fn collapse_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, name: &INameI<'s, 'i, sI>) -> INameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -295,7 +289,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_coord_templata
 pub fn collapse_coord_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, templata: CoordTemplataI<'s, 'i, sI>) -> CoordTemplataI<'s, 'i, nI>
 where 's: 'i {
     let CoordTemplataI { region, coord } = templata;
@@ -314,7 +307,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_templata
 pub fn collapse_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, templata: &ITemplataI<'s, 'i, sI>) -> ITemplataI<'s, 'i, nI>
 where 's: 'i {
     match templata {
@@ -344,7 +336,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_region_templata
 pub fn collapse_region_templata<'s, 'i>(map: &HashMap<i32, i32>, templata: RegionTemplataI<sI>) -> RegionTemplataI<nI>
 where 's: 'i {
     let RegionTemplataI { pure_height: old_pure_height, .. } = templata;
@@ -360,7 +351,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_coord
 pub fn collapse_coord<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, coord: &CoordI<'s, 'i, sI>) -> CoordI<'s, 'i, nI>
 where 's: 'i {
     let CoordI { ownership, kind } = *coord;
@@ -376,7 +366,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_kind
 pub fn collapse_kind<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, kind: &KindIT<'s, 'i, sI>) -> KindIT<'s, 'i, nI>
 where 's: 'i {
     match kind {
@@ -412,7 +401,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_runtime_sized_array
 pub fn collapse_runtime_sized_array<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) -> RuntimeSizedArrayIT<'s, 'i, nI>
 where 's: 'i {
     let rsa_id = rsa.name;
@@ -456,7 +444,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_static_sized_array
 pub fn collapse_static_sized_array<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, ssa: &StaticSizedArrayIT<'s, 'i, sI>) -> StaticSizedArrayIT<'s, 'i, nI>
 where 's: 'i {
     let ssa_id = ssa.name;
@@ -504,7 +491,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_citizen
 pub fn collapse_citizen<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, citizen: &ICitizenIT<'s, 'i, sI>) -> ICitizenIT<'s, 'i, nI>
 where 's: 'i {
     match citizen {
@@ -524,7 +510,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_citizen_id
 pub fn collapse_citizen_id() { panic!("Unimplemented: collapse_citizen_id"); }
 /*
   def collapseCitizenId(
@@ -538,7 +523,6 @@ pub fn collapse_citizen_id() { panic!("Unimplemented: collapse_citizen_id"); }
   }
 
 */
-// mig: fn collapse_citizen_name
 pub fn collapse_citizen_name() { panic!("Unimplemented: collapse_citizen_name"); }
 /*
   def collapseCitizenName(
@@ -552,7 +536,6 @@ pub fn collapse_citizen_name() { panic!("Unimplemented: collapse_citizen_name");
   }
 
 */
-// mig: fn collapse_struct_name
 pub fn collapse_struct_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, struct_name: &IStructNameI<'s, 'i, sI>) -> IStructNameI<'s, 'i, nI>
 where 's: 'i {
     match struct_name {
@@ -603,7 +586,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_struct_id
 pub fn collapse_struct_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, struct_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, struct_id, |x| {
@@ -623,7 +605,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_interface_name
 pub fn collapse_interface_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, interface_name: &IInterfaceNameI<'s, 'i, sI>) -> IInterfaceNameI<'s, 'i, nI>
 where 's: 'i {
     match interface_name {
@@ -652,7 +633,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_interface_id
 pub fn collapse_interface_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, interface_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, interface_id, |x| {
@@ -676,7 +656,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_export_id
 pub fn collapse_export_id() { panic!("Unimplemented: collapse_export_id"); }
 /*
   def collapseExportId(
@@ -694,7 +673,6 @@ pub fn collapse_export_id() { panic!("Unimplemented: collapse_export_id"); }
   }
 
 */
-// mig: fn collapse_extern_id
 pub fn collapse_extern_id() { panic!("Unimplemented: collapse_extern_id"); }
 /*
   def collapseExternId(
@@ -712,7 +690,6 @@ pub fn collapse_extern_id() { panic!("Unimplemented: collapse_extern_id"); }
   }
 
 */
-// mig: fn collapse_citizen_template_name
 pub fn collapse_citizen_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, citizen_name: &ICitizenTemplateNameI<'s, 'i, sI>) -> ICitizenTemplateNameI<'s, 'i, nI> where 's: 'i {
     match citizen_name {
         ICitizenTemplateNameI::StructTemplate(_) | ICitizenTemplateNameI::LambdaCitizenTemplate(_) | ICitizenTemplateNameI::AnonymousSubstructTemplate(_) => {
@@ -741,7 +718,6 @@ pub fn collapse_citizen_template_name<'s, 'i>(interner: &InstantiatingInterner<'
   }
 
 */
-// mig: fn collapse_struct_template_name
 pub fn collapse_struct_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, struct_name: &IStructTemplateNameI<'s, 'i, sI>) -> IStructTemplateNameI<'s, 'i, nI>
 where 's: 'i {
     match struct_name {
@@ -766,7 +742,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_function_template_name
 pub fn collapse_function_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, function_name: &IFunctionTemplateNameI<'s, 'i, sI>) -> IFunctionTemplateNameI<'s, 'i, nI> where 's: 'i {
     match function_name {
         IFunctionTemplateNameI::FunctionTemplate(FunctionTemplateNameI { human_name, code_location, .. }) => IFunctionTemplateNameI::FunctionTemplate(interner.intern_function_template_name_ni(FunctionTemplateNameI { _marker: PhantomData, human_name: *human_name, code_location: *code_location })),
@@ -783,7 +758,6 @@ pub fn collapse_function_template_name<'s, 'i>(interner: &InstantiatingInterner<
   }
 
 */
-// mig: fn collapse_interface_template_name
 pub fn collapse_interface_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IInterfaceTemplateNameI<'s, 'i, sI>) -> IInterfaceTemplateNameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -802,7 +776,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_impl_name
 pub fn collapse_impl_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, name: &IImplNameI<'s, 'i, sI>) -> IImplNameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -857,7 +830,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_impl_id
 pub fn collapse_impl_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, impl_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, impl_id, |x| {
@@ -877,7 +849,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn collapse_impl_template_id
 pub fn collapse_impl_template_id() { panic!("Unimplemented: collapse_impl_template_id"); }
 /*
   def collapseImplTemplateId(
@@ -891,7 +862,6 @@ pub fn collapse_impl_template_id() { panic!("Unimplemented: collapse_impl_templa
   }
 
 */
-// mig: fn collapse_impl_template_name
 pub fn collapse_impl_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, _map: &HashMap<i32, i32>, name: &IImplTemplateNameI<'s, 'i, sI>) -> IImplTemplateNameI<'s, 'i, nI>
 where 's: 'i {
     match name {

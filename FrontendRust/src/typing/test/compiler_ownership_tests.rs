@@ -41,7 +41,6 @@ import scala.io.Source
 class CompilerOwnershipTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 */
-// mig: fn read_code_from_resource
 fn read_code_from_resource(resource_filename: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src/tests")
@@ -56,7 +55,6 @@ fn read_code_from_resource(resource_filename: &str) -> String {
   }
 
 */
-// mig: fn parenthesized_method_syntax_will_move_instead_of_borrow
 #[test]
 fn parenthesized_method_syntax_will_move_instead_of_borrow() {
 
@@ -101,7 +99,6 @@ func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn calling_a_method_on_a_returned_own_ref_will_supply_owning_arg
 #[test]
 fn calling_a_method_on_a_returned_own_ref_will_supply_owning_arg() {
 
@@ -144,7 +141,6 @@ func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn explicit_borrow_method_call
 #[test]
 fn explicit_borrow_method_call() {
 
@@ -187,7 +183,6 @@ func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn calling_a_method_on_a_local_will_supply_borrow_ref
 #[test]
 fn calling_a_method_on_a_local_will_supply_borrow_ref() {
 
@@ -232,7 +227,6 @@ func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn calling_a_method_on_a_member_will_supply_borrow_ref
 #[test]
 fn calling_a_method_on_a_member_will_supply_borrow_ref() {
 
@@ -279,7 +273,6 @@ func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn no_derived_or_custom_drop_gives_error
 #[test]
 fn no_derived_or_custom_drop_gives_error() {
 
@@ -339,7 +332,6 @@ Couldn't find a suitable function drop(Muta). No function with that name exists.
     }
   }
 */
-// mig: fn opt_with_undroppable_contents
 #[test]
 fn opt_with_undroppable_contents() {
 
@@ -430,7 +422,6 @@ exported func main() {
     compile.expectCompilerOutputs()
   }
 */
-// mig: fn opt_with_undroppable_mutable_ref_contents
 #[test]
 fn opt_with_undroppable_mutable_ref_contents() {
 
@@ -529,7 +520,6 @@ exported func main() {
     compile.expectCompilerOutputs()
   }
 */
-// mig: fn restackify
 #[test]
 fn restackify() {
 
@@ -570,7 +560,6 @@ fn restackify() {
     })
   }
 */
-// mig: fn loop_restackify
 #[test]
 fn loop_restackify() {
 
@@ -611,7 +600,6 @@ fn loop_restackify() {
     })
   }
 */
-// mig: fn destructure_restackify
 #[test]
 fn destructure_restackify() {
 

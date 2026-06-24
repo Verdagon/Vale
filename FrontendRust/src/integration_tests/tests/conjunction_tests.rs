@@ -13,12 +13,10 @@ import dev.vale.von.VonBool
 import org.scalatest._
 
 */
-// mig: struct ConjunctionTests
 pub struct ConjunctionTests;
 /*
 class ConjunctionTests extends FunSuite with Matchers {
 */
-// mig: fn and
 #[test]
 fn and() {
     let compilation_bump = bumpalo::Bump::new();
@@ -50,7 +48,6 @@ fn and() {
     compile.evalForKind(Vector()) match { case VonBool(true) => }
   }
 */
-// mig: fn or
 #[test]
 fn or() {
     let compilation_bump = bumpalo::Bump::new();
@@ -82,7 +79,6 @@ fn or() {
     compile.evalForKind(Vector()) match { case VonBool(true) => }
   }
 */
-// mig: fn and_short_circuiting
 #[test]
 fn and_short_circuiting() {
     let compilation_bump = bumpalo::Bump::new();
@@ -116,7 +112,6 @@ fn and_short_circuiting() {
     compile.evalForStdout(Vector()) shouldEqual "bork!"
   }
 */
-// mig: fn or_short_circuiting
 #[test]
 fn or_short_circuiting() {
     let compilation_bump = bumpalo::Bump::new();

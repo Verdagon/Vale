@@ -43,12 +43,10 @@ import dev.vale.finalast._
 import dev.vale.von.{VonArray, VonInt, VonMember, VonObject, VonStr}
 import org.scalatest._
 */
-// mig: struct VivemTests
 pub struct VivemTests {}
 /*
 class VivemTests extends FunSuite with Matchers {
 */
-// mig: fn return_7
 #[test]
 fn return_7() {
 
@@ -143,7 +141,6 @@ fn return_7() {
     result match { case VonInt(7) => }
   }
 */
-// mig: fn adding
 #[test]
 fn adding() {
 

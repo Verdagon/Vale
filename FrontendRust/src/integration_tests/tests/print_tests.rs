@@ -9,12 +9,10 @@ package dev.vale
 
 import org.scalatest._
 */
-// mig: struct PrintTests
 pub struct PrintTests;
 /*
 class PrintTests extends FunSuite with Matchers {
 */
-// mig: fn printlning_an_int
 #[test]
 fn printlning_an_int() {
     let compilation_bump = bumpalo::Bump::new();
@@ -55,7 +53,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "6\n"
   }
 */
-// mig: fn printlning_a_bool
 #[test]
 fn printlning_a_bool() {
     let compilation_bump = bumpalo::Bump::new();

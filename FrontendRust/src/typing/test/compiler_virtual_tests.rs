@@ -27,7 +27,6 @@ import scala.collection.immutable.Set
 
 class CompilerVirtualTests extends FunSuite with Matchers {
 */
-// mig: fn regular_interface_and_struct
 #[test]
 fn regular_interface_and_struct() {
 
@@ -84,7 +83,6 @@ impl Opt for Some;
     interface.internalMethods
   }
 */
-// mig: fn regular_open_interface_and_struct_no_anonymous_interface
 #[test]
 fn regular_open_interface_and_struct_no_anonymous_interface() {
     let parse_bump = Bump::new();
@@ -142,7 +140,6 @@ impl Opt for Some;
 //    }).size shouldEqual 1
   }
 */
-// mig: fn implementing_two_interfaces_causes_no_vdrop_conflict
 #[test]
 fn implementing_two_interfaces_causes_no_vdrop_conflict() {
     let parse_bump = Bump::new();
@@ -197,7 +194,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn upcast
 #[test]
 fn upcast() {
     let parse_bump = Bump::new();
@@ -239,7 +235,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn virtual_with_body
 #[test]
 fn virtual_with_body() {
     let parse_bump = Bump::new();
@@ -279,7 +274,6 @@ exported func main() {
         |""".stripMargin)
   }
 */
-// mig: fn templated_interface_and_struct
 #[test]
 fn templated_interface_and_struct() {
     let parse_bump = Bump::new();
@@ -338,7 +332,6 @@ where func drop(T)void;
     dropFuncNames.size shouldEqual 2
   }
 */
-// mig: fn custom_drop_with_concept_function
 #[test]
 fn custom_drop_with_concept_function() {
     let parse_bump = Bump::new();
@@ -394,7 +387,6 @@ where func drop(T)void
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn test_complex_interface
 #[test]
 fn test_complex_interface() {
     let parse_bump = Bump::new();
@@ -419,7 +411,6 @@ fn test_complex_interface() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn test_specializing_interface
 #[test]
 fn test_specializing_interface() {
     let parse_bump = Bump::new();
@@ -444,7 +435,6 @@ fn test_specializing_interface() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn use_bound_from_struct
 #[test]
 fn use_bound_from_struct() {
     let parse_bump = Bump::new();
@@ -512,7 +502,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn basic_interface_forwarder
 #[test]
 fn basic_interface_forwarder() {
     let parse_bump = Bump::new();
@@ -584,7 +573,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn generic_interface_forwarder
 #[test]
 fn generic_interface_forwarder() {
     let parse_bump = Bump::new();
@@ -656,7 +644,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn generic_interface_forwarder_with_bound
 #[test]
 fn generic_interface_forwarder_with_bound() {
     let parse_bump = Bump::new();
@@ -734,7 +721,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn basic_interface_anonymous_subclass
 #[test]
 fn basic_interface_anonymous_subclass() {
     let parse_bump = Bump::new();
@@ -778,7 +764,6 @@ exported func main() int {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn integer_is_compatible_with_interface_anonymous_substruct
 #[test]
 fn integer_is_compatible_with_interface_anonymous_substruct() {
     let parse_bump = Bump::new();
@@ -831,7 +816,6 @@ exported func main() str {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn lambda_is_compatible_with_interface_anonymous_substruct
 #[test]
 fn lambda_is_compatible_with_interface_anonymous_substruct() {
     let parse_bump = Bump::new();
@@ -876,7 +860,6 @@ exported func main() str {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn implementing_a_non_generic_interface_call
 #[test]
 fn implementing_a_non_generic_interface_call() {
     let parse_bump = Bump::new();
@@ -918,7 +901,6 @@ impl<T> IObserver<T> for MyThing;
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn anonymous_substruct_8
 #[test]
 fn anonymous_substruct_8() {
     let parse_bump = Bump::new();

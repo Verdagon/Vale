@@ -16,7 +16,6 @@ import dev.vale.Err
 import scala.collection.immutable.List
 */
 
-// mig: struct VirtualCompiler
 pub struct VirtualCompiler {}
 /*
 class VirtualCompiler(opts: TypingPassOptions, interner: Interner, overloadCompiler: OverloadResolver) {

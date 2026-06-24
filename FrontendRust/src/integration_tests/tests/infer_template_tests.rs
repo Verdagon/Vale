@@ -39,12 +39,10 @@ import dev.vale.typing.types.StructTT
 import dev.vale.von.VonInt
 import org.scalatest._
 */
-// mig: struct InferTemplateTests
 pub struct InferTemplateTests;
 /*
 class InferTemplateTests extends FunSuite with Matchers {
 */
-// mig: fn test_inferring_a_borrowed_argument
 #[test]
 pub fn test_inferring_a_borrowed_argument() {
     let compilation_bump = bumpalo::Bump::new();
@@ -156,7 +154,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(10) => }
   }
 */
-// mig: fn test_inferring_a_borrowed_static_sized_array
 #[test]
 pub fn test_inferring_a_borrowed_static_sized_array() {
     let compilation_bump = bumpalo::Bump::new();
@@ -204,7 +201,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(10) => }
   }
 */
-// mig: fn test_inferring_an_owning_static_sized_array
 #[test]
 pub fn test_inferring_an_owning_static_sized_array() {
     let compilation_bump = bumpalo::Bump::new();

@@ -14,7 +14,6 @@ import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale.RangeS
 */
 
-// mig: struct CompileErrorExceptionA
 pub struct CompileErrorExceptionA<'s> {
     pub err: ICompileErrorA<'s>,
 }
@@ -22,19 +21,15 @@ pub struct CompileErrorExceptionA<'s> {
 case class CompileErrorExceptionA(err: ICompileErrorA) extends RuntimeException {
   vpass()
 */
-// mig: impl CompileErrorExceptionA
 impl<'s> CompileErrorExceptionA<'s> {
-// mig: fn equals
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 }
 /*
   override def hashCode(): Int = vcurious()
 }
 */
-// mig: trait ICompileErrorA
 pub enum ICompileErrorA<'s> {
     /*
     sealed trait ICompileErrorA {
@@ -64,7 +59,6 @@ impl<'s> ICompileErrorA<'s> {
 /*
 }
 */
-// mig: trait ILookupFailedErrorA
 pub enum ILookupFailedErrorA<'s> {
     CouldntFindType(CouldntFindTypeA<'s>),
     TooManyMatchingTypes(TooManyMatchingTypesA<'s>),
@@ -80,7 +74,6 @@ impl<'s> From<ILookupFailedErrorA<'s>> for ICompileErrorA<'s> {
 /*
 sealed trait ILookupFailedErrorA extends ICompileErrorA
 */
-// mig: struct TooManyMatchingTypesA
 pub struct TooManyMatchingTypesA<'s> {
     pub range: RangeS<'s>,
     pub name: IImpreciseNameS<'s>,
@@ -88,9 +81,6 @@ pub struct TooManyMatchingTypesA<'s> {
 /*
 case class TooManyMatchingTypesA(range: RangeS, name: IImpreciseNameS) extends ILookupFailedErrorA {
 */
-// mig: impl TooManyMatchingTypesA
-// mig: fn equals
-// mig: fn hash_code
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
@@ -99,7 +89,6 @@ case class TooManyMatchingTypesA(range: RangeS, name: IImpreciseNameS) extends I
   vpass()
 }
 */
-// mig: struct CouldntFindTypeA
 pub struct CouldntFindTypeA<'s> {
     pub range: RangeS<'s>,
     pub name: IImpreciseNameS<'s>,
@@ -107,9 +96,6 @@ pub struct CouldntFindTypeA<'s> {
 /*
 case class CouldntFindTypeA(range: RangeS, name: IImpreciseNameS) extends ILookupFailedErrorA {
 */
-// mig: impl CouldntFindTypeA
-// mig: fn equals
-// mig: fn hash_code
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
@@ -118,7 +104,6 @@ case class CouldntFindTypeA(range: RangeS, name: IImpreciseNameS) extends ILooku
   vpass()
 }
 */
-// mig: struct CouldntSolveRulesA
 pub struct CouldntSolveRulesA<'s> {
     pub range: RangeS<'s>,
     pub error: RuneTypeSolveError<'s>,
@@ -126,9 +111,6 @@ pub struct CouldntSolveRulesA<'s> {
 /*
 case class CouldntSolveRulesA(range: RangeS, error: RuneTypeSolveError) extends ICompileErrorA {
 */
-// mig: impl CouldntSolveRulesA
-// mig: fn equals
-// mig: fn hash_code
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
@@ -136,7 +118,6 @@ case class CouldntSolveRulesA(range: RangeS, error: RuneTypeSolveError) extends 
   override def hashCode(): Int = vcurious()
 }
 */
-// mig: struct CircularModuleDependency
 pub struct CircularModuleDependency<'s> {
     pub range: RangeS<'s>,
     pub modules: HashSet<String>,
@@ -145,9 +126,7 @@ pub struct CircularModuleDependency<'s> {
 case class CircularModuleDependency(range: RangeS, modules: Set[String]) extends ICompileErrorA { override def equals(obj: Any): Boolean = vcurious();
 override def hashCode(): Int = vcurious() }
 */
-// mig: impl CircularModuleDependency
 impl<'s> CircularModuleDependency<'s> {}
-// mig: struct WrongNumArgsForTemplateA
 pub struct WrongNumArgsForTemplateA<'s> {
     pub range: RangeS<'s>,
     pub expected_num_args: i32,
@@ -157,9 +136,7 @@ pub struct WrongNumArgsForTemplateA<'s> {
 case class WrongNumArgsForTemplateA(range: RangeS, expectedNumArgs: Int, actualNumArgs: Int) extends ICompileErrorA { override def equals(obj: Any): Boolean = vcurious();
 override def hashCode(): Int = vcurious() }
 */
-// mig: impl WrongNumArgsForTemplateA
 impl<'s> WrongNumArgsForTemplateA<'s> {}
-// mig: struct RangedInternalErrorA
 pub struct RangedInternalErrorA<'s> {
     pub range: RangeS<'s>,
     pub message: String,
@@ -170,10 +147,8 @@ override def hashCode(): Int = vcurious() }
 
 object ErrorReporter {
 */
-// mig: impl RangedInternalErrorA
 impl<'s> RangedInternalErrorA<'s> {}
 
-// mig: fn report
 pub fn report<'s>(_err: ICompileErrorA<'s>) -> ! {
     panic!("Unimplemented: report");
 }

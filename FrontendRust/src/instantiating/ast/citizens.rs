@@ -15,7 +15,6 @@ import scala.collection.immutable.Map
 
 // A "citizen" is a struct or an interface.
 */
-// mig: trait CitizenDefinitionI
 pub trait CitizenDefinitionI<'s, 'i, R> {}
 /*
 trait CitizenDefinitionI {
@@ -32,7 +31,6 @@ pub enum ICitizenDefinitionI<'s, 'i, R> {
     StructDefinitionI(&'i StructDefinitionI<'s, 'i, R>),
     InterfaceDefinitionI(&'i InterfaceDefinitionI<'s, 'i, R>),
 }
-// mig: struct StructDefinitionI
 /// Temporary state
 pub struct StructDefinitionI<'s, 'i, R> {
     pub instantiated_citizen: &'i StructIT<'s, 'i, cI>,
@@ -44,7 +42,6 @@ pub struct StructDefinitionI<'s, 'i, R> {
     pub rune_to_function_bound: ArenaIndexMap<'i, IRuneS<'s>, IdI<'s, 'i, cI>>,
     pub rune_to_impl_bound: ArenaIndexMap<'i, IRuneS<'s>, IdI<'s, 'i, cI>>,
 }
-// mig: impl StructDefinitionI
 /*
 case class StructDefinitionI(
 //  templateName: IdI[cI, IStructTemplateNameI],
@@ -62,12 +59,10 @@ case class StructDefinitionI(
 //    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
 //  }
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for StructDefinitionI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for StructDefinitionI` below.)
 /*
 override def hashCode(): Int = vcurious()
@@ -88,7 +83,6 @@ override def hashCode(): Int = vcurious()
 //    }
 //  }
 */
-// mig: fn get_member_and_index
 impl<'s, 'i, R> StructDefinitionI<'s, 'i, R> {
     pub fn get_member_and_index(&self, needle_name: IVarNameI<'s, 'i, cI>) -> Option<(&StructMemberI<'s, 'i, R>, usize)> {
         panic!("Unimplemented: get_member_and_index")
@@ -107,7 +101,6 @@ impl<'s, 'i, R> StructDefinitionI<'s, 'i, R> {
   }
 }
 */
-// mig: struct StructMemberI
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct StructMemberI<'s, 'i, R> {
@@ -115,7 +108,6 @@ pub struct StructMemberI<'s, 'i, R> {
     pub variability: VariabilityI,
     pub tyype: IMemberTypeI<'s, 'i, R>,
 }
-// mig: impl StructMemberI
 /*
 case class StructMemberI(
   name: IVarNameI[cI],
@@ -126,18 +118,15 @@ case class StructMemberI(
   vpass()
 }
 */
-// mig: enum IMemberTypeI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum IMemberTypeI<'s, 'i, R> {
     ReferenceMemberTypeI(&'i ReferenceMemberTypeI<'s, 'i, R>),
     AddressMemberTypeI(&'i AddressMemberTypeI<'s, 'i, R>),
 }
-// mig: impl IMemberTypeI
 /*
 sealed trait IMemberTypeI  {
 */
-// mig: fn expect_reference_member
 /* Guardian: disable-all */
 impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
     pub fn expect_reference_member(&self) -> () {
@@ -154,7 +143,6 @@ impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
     }
   }
 */
-// mig: fn expect_address_member
 /* Guardian: disable-all */
 impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
     pub fn expect_address_member(&self) -> &'i AddressMemberTypeI<'s, 'i, R> {
@@ -174,29 +162,24 @@ impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
   }
 }
 */
-// mig: struct AddressMemberTypeI
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct AddressMemberTypeI<'s, 'i, R> {
     pub reference: CoordI<'s, 'i, cI>,
     pub _marker: PhantomData<R>,
 }
-// mig: impl AddressMemberTypeI
 /*
 case class AddressMemberTypeI(reference: CoordI[cI]) extends IMemberTypeI
 */
-// mig: struct ReferenceMemberTypeI
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct ReferenceMemberTypeI<'s, 'i, R> {
     pub reference: CoordI<'s, 'i, cI>,
     pub _marker: PhantomData<R>,
 }
-// mig: impl ReferenceMemberTypeI
 /*
 case class ReferenceMemberTypeI(reference: CoordI[cI]) extends IMemberTypeI
 */
-// mig: struct InterfaceDefinitionI
 /// Temporary state
 pub struct InterfaceDefinitionI<'s, 'i, R> {
     pub instantiated_interface: &'i InterfaceIT<'s, 'i, cI>,
@@ -208,7 +191,6 @@ pub struct InterfaceDefinitionI<'s, 'i, R> {
     pub internal_methods: &'i [(&'i PrototypeI<'s, 'i, cI>, i32)],
     pub _marker: PhantomData<R>,
 }
-// mig: impl InterfaceDefinitionI
 /*
 case class InterfaceDefinitionI(
 //  templateName: IdI[cI, IInterfaceTemplateNameI],
@@ -228,7 +210,6 @@ case class InterfaceDefinitionI(
 //    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
 //  }
 */
-// mig: fn instantiated_citizen
 impl<'s, 'i, R> InterfaceDefinitionI<'s, 'i, R> {
     pub fn instantiated_citizen(&self) -> ICitizenIT<'s, 'i, cI> {
         panic!("Unimplemented: instantiated_citizen")
@@ -237,12 +218,10 @@ impl<'s, 'i, R> InterfaceDefinitionI<'s, 'i, R> {
 /*
   override def instantiatedCitizen: ICitizenIT[cI] = instantiatedInterface
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for InterfaceDefinitionI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for InterfaceDefinitionI` below.)
 /*
 override def hashCode(): Int = vcurious()

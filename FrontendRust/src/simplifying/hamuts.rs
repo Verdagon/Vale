@@ -38,7 +38,6 @@ import dev.vale.instantiating.ast._
 import dev.vale.von.IVonData
 */
 
-// mig: case class HamutsBox (collapsed into Hamuts; see Slab 17 architect directive)
 // Scala's HamutsBox was a mutable wrapper around an immutable Hamuts. Per
 // architect directive, the Rust port mirrors typing pass's `CompilerOutputs`:
 // a single mutable struct (`Hamuts` below) with HashMap fields and `&mut self`
@@ -50,7 +49,6 @@ case class HamutsBox(var inner: Hamuts) {
 override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 */
 
-// mig: fn package_coord_to_export_name_to_function (HamutsBox accessor)
 impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
     pub fn package_coord_to_export_name_to_function(&self) -> &HashMap<PackageCoordinate<'s>, HashMap<StrI<'s>, &'h PrototypeH<'s, 'h>>> {
         &self.package_coord_to_export_name_to_function
@@ -59,7 +57,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def packageCoordToExportNameToFunction: Map[PackageCoordinate, Map[StrI, PrototypeH]] = inner.packageCoordToExportNameToFunction
 */
 
-// mig: fn package_coord_to_export_name_to_kind (HamutsBox accessor)
     pub fn package_coord_to_export_name_to_kind(&self) -> &HashMap<PackageCoordinate<'s>, HashMap<StrI<'s>, KindHT<'s, 'h>>> {
         &self.package_coord_to_export_name_to_kind
     }
@@ -67,7 +64,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def packageCoordToExportNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]] = inner.packageCoordToExportNameToKind
 */
 
-// mig: fn package_coord_to_prototype_to_extern (HamutsBox accessor)
     pub fn package_coord_to_prototype_to_extern(&self) -> &HashMap<PackageCoordinate<'s>, HashMap<&'h PrototypeH<'s, 'h>, HamutsFunctionExtern<'s, 'h>>> {
         &self.package_coord_to_prototype_to_extern
     }
@@ -75,7 +71,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def packageCoordToPrototypeToExtern: Map[PackageCoordinate, Map[PrototypeH, HamutsFunctionExtern]] = inner.packageCoordToPrototypeToExtern
 */
 
-// mig: fn package_coord_to_kind_to_extern (HamutsBox accessor)
     pub fn package_coord_to_kind_to_extern(&self) -> &HashMap<PackageCoordinate<'s>, HashMap<&'h OpaqueHT<'s, 'h>, HamutsKindExtern<'s, 'h>>> {
         &self.package_coord_to_kind_to_extern
     }
@@ -83,7 +78,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def packageCoordToKindToExtern: Map[PackageCoordinate, Map[OpaqueHT, HamutsKindExtern]] = inner.packageCoordToKindToExtern
 */
 
-// mig: fn struct_t_to_opaque_h (HamutsBox accessor)
     pub fn struct_t_to_opaque_h(&self) -> &HashMap<&'i StructIT<'s, 'i, cI>, &'h OpaqueHT<'s, 'h>> {
         &self.struct_t_to_opaque_h
     }
@@ -91,7 +85,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def structTToOpaqueH: Map[StructIT[cI], OpaqueHT] = inner.structTToOpaqueH
 */
 
-// mig: fn struct_t_to_struct_h (HamutsBox accessor)
     pub fn struct_t_to_struct_h(&self) -> &HashMap<&'i StructIT<'s, 'i, cI>, &'h StructHT<'s, 'h>> {
         &self.struct_t_to_struct_h
     }
@@ -99,7 +92,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def structTToStructH: Map[StructIT[cI], StructHT] = inner.structTToStructH
 */
 
-// mig: fn struct_t_to_struct_def_h (HamutsBox accessor)
     pub fn struct_t_to_struct_def_h(&self) -> &HashMap<&'i StructIT<'s, 'i, cI>, StructDefinitionH<'s, 'h>> {
         &self.struct_t_to_struct_def_h
     }
@@ -107,7 +99,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def structTToStructDefH: Map[StructIT[cI], StructDefinitionH] = inner.structTToStructDefH
 */
 
-// mig: fn struct_defs (HamutsBox accessor)
     pub fn struct_defs(&self) -> &Vec<StructDefinitionH<'s, 'h>> {
         &self.struct_defs
     }
@@ -115,7 +106,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def structDefs: Vector[StructDefinitionH] = inner.structDefs
 */
 
-// mig: fn interface_t_to_interface_h (HamutsBox accessor)
     pub fn interface_t_to_interface_h(&self) -> &HashMap<&'i InterfaceIT<'s, 'i, cI>, &'h InterfaceHT<'s, 'h>> {
         &self.interface_t_to_interface_h
     }
@@ -123,7 +113,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def interfaceTToInterfaceH: Map[InterfaceIT[cI], InterfaceHT] = inner.interfaceTToInterfaceH
 */
 
-// mig: fn interface_t_to_interface_def_h (HamutsBox accessor)
     pub fn interface_t_to_interface_def_h(&self) -> &HashMap<&'i InterfaceIT<'s, 'i, cI>, InterfaceDefinitionH<'s, 'h>> {
         &self.interface_t_to_interface_def_h
     }
@@ -131,7 +120,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def interfaceTToInterfaceDefH: Map[InterfaceIT[cI], InterfaceDefinitionH] = inner.interfaceTToInterfaceDefH
 */
 
-// mig: fn function_refs (HamutsBox accessor)
     pub fn function_refs(&self) -> &HashMap<&'i PrototypeI<'s, 'i, cI>, FunctionRefH<'s, 'h>> {
         &self.function_refs
     }
@@ -139,7 +127,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def functionRefs: Map[PrototypeI[cI], FunctionRefH] = inner.functionRefs
 */
 
-// mig: fn function_defs (HamutsBox accessor)
     pub fn function_defs(&self) -> &HashMap<&'i PrototypeI<'s, 'i, cI>, FunctionH<'s, 'h>> {
         &self.function_defs
     }
@@ -147,7 +134,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def functionDefs: Map[PrototypeI[cI], FunctionH] = inner.functionDefs
 */
 
-// mig: fn static_sized_arrays (HamutsBox accessor)
     pub fn static_sized_arrays(&self) -> &HashMap<&'i StaticSizedArrayIT<'s, 'i, cI>, StaticSizedArrayDefinitionHT<'s, 'h>> {
         &self.static_sized_arrays
     }
@@ -155,7 +141,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def staticSizedArrays: Map[StaticSizedArrayIT[cI], StaticSizedArrayDefinitionHT] = inner.staticSizedArrays
 */
 
-// mig: fn runtime_sized_arrays (HamutsBox accessor)
     pub fn runtime_sized_arrays(&self) -> &HashMap<&'i RuntimeSizedArrayIT<'s, 'i, cI>, RuntimeSizedArrayDefinitionHT<'s, 'h>> {
         &self.runtime_sized_arrays
     }
@@ -163,7 +148,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   def runtimeSizedArrays: Map[RuntimeSizedArrayIT[cI], RuntimeSizedArrayDefinitionHT] = inner.runtimeSizedArrays
 */
 
-// mig: fn forward_declare_struct (HamutsBox mutator)
     pub fn forward_declare_struct(&mut self, struct_it: &'i StructIT<'s, 'i, cI>, struct_ref_h: &'h StructHT<'s, 'h>) {
         self.struct_t_to_struct_h.insert(struct_it, struct_ref_h);
     }
@@ -173,7 +157,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_struct_originating_from_typing_pass (HamutsBox mutator)
     pub fn add_struct_originating_from_typing_pass(&mut self, struct_it: &'i StructIT<'s, 'i, cI>, struct_def_h: StructDefinitionH<'s, 'h>) {
         assert!(self.struct_t_to_struct_h.contains_key(&struct_it));
         self.struct_t_to_struct_def_h.insert(struct_it, struct_def_h);
@@ -185,7 +168,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_opaque (HamutsBox mutator)
     pub fn add_opaque(&mut self, struct_it: &'i StructIT<'s, 'i, cI>, opaque_h: &'h OpaqueHT<'s, 'h>) {
         assert!(!self.struct_t_to_opaque_h.contains_key(&struct_it));
         self.struct_t_to_opaque_h.insert(struct_it, opaque_h);
@@ -196,7 +178,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_struct_originating_from_hammer (HamutsBox mutator)
     pub fn add_struct_originating_from_hammer(&mut self, struct_def_h: StructDefinitionH<'s, 'h>) {
         assert!(!self.struct_defs.iter().any(|d| d.id == struct_def_h.id));
         self.struct_defs.push(struct_def_h);
@@ -207,7 +188,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn forward_declare_interface (HamutsBox mutator)
     pub fn forward_declare_interface(&mut self, interface_it: &'i InterfaceIT<'s, 'i, cI>, interface_ref_h: &'h InterfaceHT<'s, 'h>) {
         self.interface_t_to_interface_h.insert(interface_it, interface_ref_h);
     }
@@ -217,7 +197,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_interface (HamutsBox mutator)
     pub fn add_interface(&mut self, interface_it: &'i InterfaceIT<'s, 'i, cI>, interface_def_h: InterfaceDefinitionH<'s, 'h>) {
         self.interface_t_to_interface_def_h.insert(interface_it, interface_def_h);
     }
@@ -227,7 +206,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_static_sized_array (HamutsBox mutator)
     pub fn add_static_sized_array(&mut self, ssa_it: &'i StaticSizedArrayIT<'s, 'i, cI>, static_sized_array_definition_th: StaticSizedArrayDefinitionHT<'s, 'h>) {
         self.static_sized_arrays.insert(ssa_it, static_sized_array_definition_th);
     }
@@ -237,7 +215,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_runtime_sized_array (HamutsBox mutator)
     pub fn add_runtime_sized_array(&mut self, rsa_it: &'i RuntimeSizedArrayIT<'s, 'i, cI>, runtime_sized_array_definition_th: RuntimeSizedArrayDefinitionHT<'s, 'h>) {
         self.runtime_sized_arrays.insert(rsa_it, runtime_sized_array_definition_th);
     }
@@ -247,7 +224,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn forward_declare_function (HamutsBox mutator)
     pub fn forward_declare_function(&mut self, function_ref2: &'i PrototypeI<'s, 'i, cI>, function_ref_h: FunctionRefH<'s, 'h>) {
         assert!(!self.function_refs.contains_key(&function_ref2));
         self.function_refs.insert(function_ref2, function_ref_h);
@@ -258,7 +234,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_function (HamutsBox mutator)
     pub fn add_function(&mut self, function_ref2: &'i PrototypeI<'s, 'i, cI>, function_def_h: FunctionH<'s, 'h>) {
         assert!(self.function_refs.contains_key(&function_ref2));
         if self.function_defs.values().any(|f| f.prototype.id == function_def_h.prototype.id) {
@@ -272,7 +247,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_kind_export (HamutsBox mutator)
     pub fn add_kind_export(&mut self, kind: KindHT<'s, 'h>, package_coordinate: PackageCoordinate<'s>, exported_name: StrI<'s>) {
         let export_name_to_kind = self.package_coord_to_export_name_to_kind.entry(package_coordinate).or_insert_with(HashMap::new);
         if let Some(existing) = export_name_to_kind.get(&exported_name) {
@@ -290,7 +264,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
 //  }
 */
 
-// mig: fn add_function_export (HamutsBox mutator)
     pub fn add_function_export(&mut self, prototype: &'h PrototypeH<'s, 'h>, package_coordinate: PackageCoordinate<'s>, exported_name: StrI<'s>) {
         let export_name_to_function = self.package_coord_to_export_name_to_function.entry(package_coordinate).or_insert_with(HashMap::new);
         if let Some(existing_full_name) = export_name_to_function.get(&exported_name) {
@@ -304,7 +277,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_kind_extern (HamutsBox mutator)
     pub fn add_kind_extern(&mut self, scout_arena: &ScoutArena<'s>, opaque_h: &'h OpaqueHT<'s, 'h>, simple_id: SimpleId<'s, 'h>, exported_name: String) {
         let package_coordinate = opaque_h.package_coord;
         let kind_to_extern = self.package_coord_to_kind_to_extern.entry(package_coordinate).or_insert_with(HashMap::new);
@@ -327,7 +299,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn add_function_extern (HamutsBox mutator)
     pub fn add_function_extern(&mut self, prototype: &'h PrototypeH<'s, 'h>, simple_id: SimpleId<'s, 'h>, exported_name: StrI<'s>) {
         let package_coordinate = prototype.id.package_coordinate;
         let prototype_to_extern = self.package_coord_to_prototype_to_extern.entry(package_coordinate).or_insert_with(HashMap::new);
@@ -348,7 +319,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
 //  }
 */
 
-// mig: fn get_static_sized_array (HamutsBox accessor)
     pub fn get_static_sized_array(&self, static_sized_array_th: &'h StaticSizedArrayHT<'s, 'h>) -> StaticSizedArrayDefinitionHT<'s, 'h> {
         *self.static_sized_arrays.iter().find(|(_, def)| std::ptr::eq(def.name as *const _, static_sized_array_th.id as *const _)).expect("get_static_sized_array: not found").1
     }
@@ -358,7 +328,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
   }
 */
 
-// mig: fn get_runtime_sized_array (HamutsBox accessor)
     pub fn get_runtime_sized_array(&self, runtime_sized_array_th: &'h RuntimeSizedArrayHT<'s, 'h>) -> RuntimeSizedArrayDefinitionHT<'s, 'h> {
         *self.runtime_sized_arrays.iter().find(|(_, def)| std::ptr::eq(def.name as *const _, runtime_sized_array_th.name as *const _)).expect("get_runtime_sized_array: not found").1
     }
@@ -370,7 +339,6 @@ impl<'s, 'i, 'h> Hamuts<'s, 'i, 'h> where 's: 'i, 'i: 'h {
 }
 */
 
-// mig: case class Hamuts
 /// Temporary state
 //
 // Mutable accumulator. `'s` is the scout/parser arena (matches Scala's
@@ -420,7 +388,6 @@ case class Hamuts(
   vassert(runtimeSizedArrays.values.map(_.name).toVector.distinct.size == runtimeSizedArrays.size)
 */
 
-// mig: fn forward_declare_struct (collapsed into the &mut self method above)
 /*
   def forwardDeclareStruct(structIT: StructIT[cI], structRefH: StructHT): Hamuts = {
     Hamuts(
@@ -442,7 +409,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_struct_originating_from_typing_pass (collapsed into the &mut self method above)
 /*
   def addStructOriginatingFromTypingPass(structTT: StructIT[cI], structDefH: StructDefinitionH): Hamuts = {
     vassert(structTToStructH.contains(structTT))
@@ -477,7 +443,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_opaque (collapsed into the &mut self method above)
 /*
   def addOpaque(structIT: StructIT[cI], opaqueH: OpaqueHT): Hamuts = {
     vassert(!structTToOpaqueH.contains(structIT)) // I think we only do this function once and use the cached thing
@@ -524,7 +489,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn forward_declare_interface (collapsed into the &mut self method above)
 /*
   def forwardDeclareInterface(interfaceIT: InterfaceIT[cI], interfaceRefH: InterfaceHT): Hamuts = {
     Hamuts(
@@ -546,7 +510,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_interface (collapsed into the &mut self method above)
 /*
   def addInterface(interfaceIT: InterfaceIT[cI], interfaceDefH: InterfaceDefinitionH): Hamuts = {
     vassert(interfaceTToInterfaceH.contains(interfaceIT))
@@ -569,7 +532,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn forward_declare_function (collapsed into the &mut self method above)
 /*
   def forwardDeclareFunction(functionRef2: PrototypeI[cI], functionRefH: FunctionRefH): Hamuts = {
     vassert(!functionRefs.contains(functionRef2))
@@ -593,7 +555,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_function (collapsed into the &mut self method above)
 /*
   def addFunction(functionRef2: PrototypeI[cI], functionDefH: FunctionH): Hamuts = {
     vassert(functionRefs.contains(functionRef2))
@@ -623,7 +584,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_kind_export (collapsed into the &mut self method above)
 /*
   def addKindExport(kind: KindHT, packageCoordinate: PackageCoordinate, exportedName: StrI): Hamuts = {
     val newPackageCoordToExportNameToKind =
@@ -662,7 +622,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_function_export (collapsed into the &mut self method above)
 /*
   def addFunctionExport(function: PrototypeH, packageCoordinate: PackageCoordinate, exportedName: StrI): Hamuts = {
     val newPackageCoordToExportNameToFunction =
@@ -701,7 +660,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_kind_extern (collapsed into the &mut self method above)
 /*
   def addKindExtern(opaqueH: OpaqueHT, simpleId: SimpleId, exportedName: String): Hamuts = {
     val packageCoordinate = opaqueH.packageCoord
@@ -741,7 +699,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_function_extern (collapsed into the &mut self method above)
 /*
   def addFunctionExtern(function: PrototypeH, simpleId: SimpleId, exportedName: String): Hamuts = {
     val packageCoordinate = function.id.packageCoordinate
@@ -781,7 +738,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_static_sized_array (collapsed into the &mut self method above)
 /*
   def addStaticSizedArray(
     ssaIT: StaticSizedArrayIT[cI],
@@ -806,7 +762,6 @@ case class Hamuts(
   }
 */
 
-// mig: fn add_runtime_sized_array (collapsed into the &mut self method above)
 /*
   def addRuntimeSizedArray(
     rsaIT: RuntimeSizedArrayIT[cI],
@@ -867,14 +822,12 @@ case class Hamuts(
 //  }
 */
 
-// mig: fn get_static_sized_array (collapsed into the &self method above)
 /*
   def getStaticSizedArray(staticSizedArrayHT: StaticSizedArrayHT): StaticSizedArrayDefinitionHT = {
     staticSizedArrays.values.find(_.kind == staticSizedArrayHT).get
   }
 */
 
-// mig: fn get_runtime_sized_array (collapsed into the &self method above)
 /*
   def getRuntimeSizedArray(runtimeSizedArrayTH: RuntimeSizedArrayHT): RuntimeSizedArrayDefinitionHT = {
     runtimeSizedArrays.values.find(_.kind == runtimeSizedArrayTH).get

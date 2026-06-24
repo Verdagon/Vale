@@ -77,7 +77,6 @@ use crate::instantiating::ast::types::ICitizenIT;
 use crate::instantiating::ast::types::InterfaceITValI;
 use crate::instantiating::ast::types::StructITValI;
 
-// mig: fn collapse_prototype
 pub fn collapse_prototype<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, prototype: &PrototypeI<'s, 'i, sI>) -> PrototypeI<'s, 'i, cI>
 where 's: 'i {
     let PrototypeI { id, return_type, .. } = *prototype;
@@ -94,7 +93,6 @@ where 's: 'i {
       collapseCoord(returnType))
   }
 */
-// mig: fn collapse_id
 pub fn collapse_id<'s, 'i>(
     interner: &InstantiatingInterner<'s, 'i>,
     id_i: &IdI<'s, 'i, sI>,
@@ -120,7 +118,6 @@ where 's: 'i {
       func(localName))
   }
 */
-// mig: fn collapse_function_id
 pub fn collapse_function_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, cI>
 where 's: 'i {
     collapse_id(interner, id, |x| INameI::from(collapse_function_name(interner, &IFunctionNameI::try_from(*x).unwrap())))
@@ -134,7 +131,6 @@ where 's: 'i {
       x => collapseFunctionName(x))
   }
 */
-// mig: fn collapse_function_name
 pub fn collapse_function_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IFunctionNameI<'s, 'i, sI>) -> IFunctionNameI<'s, 'i, cI>
 where 's: 'i {
     match *name {
@@ -256,7 +252,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_citizen_template_name
 pub fn collapse_citizen_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, citizen: &ICitizenTemplateNameI<'s, 'i, sI>) -> ICitizenTemplateNameI<'s, 'i, cI> where 's: 'i {
     match citizen {
         ICitizenTemplateNameI::StructTemplate(_) | ICitizenTemplateNameI::LambdaCitizenTemplate(_) | ICitizenTemplateNameI::AnonymousSubstructTemplate(_) => {
@@ -283,7 +278,6 @@ pub fn collapse_citizen_template_name<'s, 'i>(interner: &InstantiatingInterner<'
     }
   }
 */
-// mig: fn collapse_var_name
 pub fn collapse_var_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IVarNameI<'s, 'i, sI>) -> IVarNameI<'s, 'i, cI>
 where 's: 'i {
     match name {
@@ -332,7 +326,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_function_template_name
 pub fn collapse_function_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, function_name: &IFunctionTemplateNameI<'s, 'i, sI>) -> IFunctionTemplateNameI<'s, 'i, cI> where 's: 'i {
     match function_name {
         IFunctionTemplateNameI::FunctionTemplate(FunctionTemplateNameI { human_name, code_location, .. }) => IFunctionTemplateNameI::FunctionTemplate(interner.intern_function_template_name_ci(FunctionTemplateNameI { _marker: PhantomData, human_name: *human_name, code_location: *code_location })),
@@ -348,7 +341,6 @@ pub fn collapse_function_template_name<'s, 'i>(interner: &InstantiatingInterner<
     }
   }
 */
-// mig: fn collapse_name
 pub fn collapse_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &INameI<'s, 'i, sI>) -> INameI<'s, 'i, cI>
 where 's: 'i {
     match name {
@@ -404,7 +396,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_coord_templata
 pub fn collapse_coord_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, templata: CoordTemplataI<'s, 'i, sI>) -> CoordTemplataI<'s, 'i, cI> where 's: 'i {
     let CoordTemplataI { region, coord } = templata;
     CoordTemplataI {
@@ -421,7 +412,6 @@ pub fn collapse_coord_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>,
     CoordTemplataI(collapseRegionTemplata(map, region), collapseCoord(coord))
   }
 */
-// mig: fn collapse_templata
 pub fn collapse_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, templata: &ITemplataI<'s, 'i, sI>) -> ITemplataI<'s, 'i, cI>
 where 's: 'i {
     match templata {
@@ -450,7 +440,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_region_templata
 pub fn collapse_region_templata<'s, 'i>(map: &HashMap<i32, i32>, templata: RegionTemplataI<sI>) -> RegionTemplataI<cI>
 where 's: 'i {
     let RegionTemplataI { pure_height: old_pure_height, .. } = templata;
@@ -465,7 +454,6 @@ where 's: 'i {
     RegionTemplataI[cI](vassertSome(map.get(oldPureHeight)))
   }
 */
-// mig: fn collapse_coord
 pub fn collapse_coord<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, coord: &CoordI<'s, 'i, sI>) -> CoordI<'s, 'i, cI>
 where 's: 'i {
     let CoordI { ownership, kind } = *coord;
@@ -479,7 +467,6 @@ where 's: 'i {
     CoordI(ownership, collapseKind(kind))
   }
 */
-// mig: fn collapse_kind
 pub fn collapse_kind<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, kind: &KindIT<'s, 'i, sI>) -> KindIT<'s, 'i, cI>
 where 's: 'i {
     match kind {
@@ -513,7 +500,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_runtime_sized_array
 pub fn collapse_runtime_sized_array<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) -> RuntimeSizedArrayIT<'s, 'i, cI>
 where 's: 'i {
     let rsa_id = rsa.name;
@@ -556,7 +542,6 @@ where 's: 'i {
         }))
   }
 */
-// mig: fn collapse_static_sized_array
 pub fn collapse_static_sized_array<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, ssa: &StaticSizedArrayIT<'s, 'i, sI>) -> StaticSizedArrayIT<'s, 'i, cI>
 where 's: 'i {
     let ssa_id = ssa.name;
@@ -603,7 +588,6 @@ where 's: 'i {
         }))
   }
 */
-// mig: fn collapse_interface_id
 pub fn collapse_interface_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, interface_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, cI> where 's: 'i {
     collapse_id(interner, interface_id, |x| {
         match x {
@@ -623,7 +607,6 @@ pub fn collapse_interface_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, i
       x => collapseInterfaceName(x))
   }
 */
-// mig: fn collapse_struct_id
 pub fn collapse_struct_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, struct_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, cI> where 's: 'i {
     collapse_id(interner, struct_id, |x| {
         let narrowed: IStructNameI<'s, 'i, sI> = (*x).try_into().unwrap();
@@ -639,7 +622,6 @@ pub fn collapse_struct_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, stru
       x => collapseStructName(x))
   }
 */
-// mig: fn collapse_struct_name
 pub fn collapse_struct_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, struct_name: &IStructNameI<'s, 'i, sI>) -> IStructNameI<'s, 'i, cI> where 's: 'i {
     match struct_name {
         IStructNameI::Struct(StructNameI { template, template_args }) => {
@@ -691,7 +673,6 @@ pub fn collapse_struct_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, st
     }
   }
 */
-// mig: fn collapse_impl_name
 pub fn collapse_impl_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IImplNameI<'s, 'i, sI>) -> IImplNameI<'s, 'i, cI>
 where 's: 'i {
     match name {
@@ -749,7 +730,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_interface_name
 pub fn collapse_interface_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, interface_name: &IInterfaceNameI<'s, 'i, sI>) -> IInterfaceNameI<'s, 'i, cI> where 's: 'i {
     match interface_name {
         IInterfaceNameI::Interface(InterfaceNameI { template: IInterfaceTemplateNameI::InterfaceTemplate(InterfaceTemplateNameI { human_namee, .. }), template_args }) => {
@@ -777,7 +757,6 @@ pub fn collapse_interface_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>,
     }
   }
 */
-// mig: fn collapse_export_id
 pub fn collapse_export_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: HashMap<i32, i32>, export_id_s: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, cI>
 where 's: 'i {
     collapse_id(interner, export_id_s, |name| {
@@ -806,7 +785,6 @@ where 's: 'i {
       })
   }
 */
-// mig: fn collapse_extern_id
 pub fn collapse_extern_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: HashMap<i32, i32>, extern_id_s: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, cI>
 where 's: 'i {
     collapse_id(interner, extern_id_s, |name| {
@@ -835,7 +813,6 @@ where 's: 'i {
       })
   }
 */
-// mig: fn collapse_struct_template_name
 pub fn collapse_struct_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, struct_name: &IStructTemplateNameI<'s, 'i, sI>) -> IStructTemplateNameI<'s, 'i, cI> where 's: 'i {
     match struct_name {
         IStructTemplateNameI::StructTemplate(StructTemplateNameI { human_name, .. }) => IStructTemplateNameI::StructTemplate(interner.intern_struct_template_name_ci(StructTemplateNameI { _marker: PhantomData, human_name: *human_name })),
@@ -855,7 +832,6 @@ pub fn collapse_struct_template_name<'s, 'i>(interner: &InstantiatingInterner<'s
     }
   }
 */
-// mig: fn collapse_interface_template_name
 pub fn collapse_interface_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IInterfaceTemplateNameI<'s, 'i, sI>) -> IInterfaceTemplateNameI<'s, 'i, cI> where 's: 'i {
     match name {
         IInterfaceTemplateNameI::InterfaceTemplate(InterfaceTemplateNameI { human_namee, .. }) => IInterfaceTemplateNameI::InterfaceTemplate(interner.intern_interface_template_name_ci(InterfaceTemplateNameI { _marker: PhantomData, human_namee: *human_namee })),
@@ -870,7 +846,6 @@ pub fn collapse_interface_template_name<'s, 'i>(interner: &InstantiatingInterner
     }
   }
 */
-// mig: fn collapse_impl_id
 pub fn collapse_impl_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, impl_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, cI>
 where 's: 'i {
     collapse_id(interner, impl_id, |x| {
@@ -895,7 +870,6 @@ where 's: 'i {
   //     x => collapseImplTemplateName(x))
   // }
 */
-// mig: fn collapse_impl_template_name
 pub fn collapse_impl_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IImplTemplateNameI<'s, 'i, sI>) -> IImplTemplateNameI<'s, 'i, cI>
 where 's: 'i {
     match name {
@@ -915,7 +889,6 @@ where 's: 'i {
     }
   }
 */
-// mig: fn collapse_citizen
 pub fn collapse_citizen<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, citizen: &ICitizenIT<'s, 'i, sI>) -> ICitizenIT<'s, 'i, cI>
 where 's: 'i {
     match citizen {

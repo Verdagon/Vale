@@ -30,7 +30,6 @@ import dev.vale.postparsing._
 import scala.collection.immutable.List
 */
 
-// mig: struct ProgramA
 #[derive(Debug)]
 pub struct ProgramA<'s> {
     pub structs: &'s [&'s StructA<'s>],
@@ -47,20 +46,16 @@ case class ProgramA(
     functions: Vector[FunctionA],
     exports: Vector[ExportAsA]) {
 */
-// mig: impl ProgramA
 impl<'s> ProgramA<'s> {
 /*
 */
-// mig: fn equals
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = vcurious()
 
 */
-// mig: fn lookup_function_by_name
 pub fn lookup_function_by_name(&self, _name: &INameS<'s>) -> &FunctionA<'s> {
     panic!("Unimplemented: lookup_function_by_name");
 }
@@ -71,7 +66,6 @@ pub fn lookup_function_by_name(&self, _name: &INameS<'s>) -> &FunctionA<'s> {
     matches.head
   }
 */
-// mig: fn lookup_function_by_str
 pub fn lookup_function_by_str(&self, name: &str) -> &'s FunctionA<'s> {
     let matches: Vec<_> = self.functions.iter().filter(|function| {
       match &function.name {
@@ -94,7 +88,6 @@ pub fn lookup_function_by_str(&self, name: &str) -> &'s FunctionA<'s> {
     matches.head
   }
 */
-// mig: fn lookup_interface
 pub fn lookup_interface(&self, _name: &INameS<'s>) -> &InterfaceA<'s> {
     panic!("Unimplemented: lookup_interface");
 }
@@ -107,7 +100,6 @@ pub fn lookup_interface(&self, _name: &INameS<'s>) -> &InterfaceA<'s> {
     }
   }
 */
-// mig: fn lookup_struct_by_name
 pub fn lookup_struct_by_name(&self, _name: &INameS<'s>) -> &StructA<'s> {
     panic!("Unimplemented: lookup_struct_by_name");
 }
@@ -120,7 +112,6 @@ pub fn lookup_struct_by_name(&self, _name: &INameS<'s>) -> &StructA<'s> {
     }
   }
 */
-// mig: fn lookup_struct_by_str
 pub fn lookup_struct_by_str(&self, name: &str) -> &StructA<'s> {
     let matches: Vec<_> = self.structs.iter().filter(|s| {
       match &s.name {
@@ -145,7 +136,6 @@ pub fn lookup_struct_by_str(&self, name: &str) -> &StructA<'s> {
   }
 }
 */
-// mig: struct StructA
 #[derive(Debug)]
 pub struct StructA<'s> {
     pub range: RangeS<'s>,
@@ -192,7 +182,6 @@ case class StructA(
 ) extends CitizenA {
   val hash = range.hashCode() + name.hashCode()
 */
-// mig: impl StructA
 impl<'s> StructA<'s> {
 pub fn new(
     range: RangeS<'s>,
@@ -241,7 +230,6 @@ pub fn new(
 }
 /*
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = hash;
 
@@ -279,7 +267,6 @@ pub fn new(
       }
     }))
 */
-// mig: fn equals
 }
 /*
   override def equals(obj: Any): Boolean = {
@@ -292,7 +279,6 @@ pub fn new(
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 }
 */
-// mig: struct ImplA
 #[derive(Debug)]
 pub struct ImplA<'s> {
     pub range: RangeS<'s>,
@@ -325,7 +311,6 @@ case class ImplA(
 
   val hash = range.hashCode() + name.hashCode()
 */
-// mig: impl ImplA
 impl<'s> ImplA<'s> {
 pub fn new(
     range: RangeS<'s>,
@@ -350,11 +335,9 @@ pub fn new(
 }
 /*
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn equals
 }
 /*
   override def equals(obj: Any): Boolean = {
@@ -364,7 +347,6 @@ pub fn new(
   }
 }
 */
-// mig: struct ExportAsA
 #[derive(Debug)]
 pub struct ExportAsA<'s> {
     pub range: RangeS<'s>,
@@ -383,15 +365,12 @@ case class ExportAsA(
 {
   val hash = range.hashCode() + exportedName.hashCode
 */
-// mig: impl ExportAsA
 impl<'s> ExportAsA<'s> {
 /*
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn equals
 }
 /*
   override def equals(obj: Any): Boolean = {
@@ -401,17 +380,14 @@ impl<'s> ExportAsA<'s> {
   }
 }
 */
-// mig: trait CitizenA
 pub trait CitizenA<'s> {
 /*
 sealed trait CitizenA {
 */
-// mig: fn tyype
 fn tyype(&self) -> &TemplateTemplataType<'s>;
 /*
   def tyype: TemplateTemplataType
 */
-// mig: fn generic_parameters
 fn generic_parameters(&self) -> &[GenericParameterS<'s>];
 /*
   def genericParameters: Vector[GenericParameterS]
@@ -420,7 +396,6 @@ fn generic_parameters(&self) -> &[GenericParameterS<'s>];
 /*
 }
 */
-// mig: struct InterfaceA
 #[derive(Debug)]
 pub struct InterfaceA<'s> {
     pub range: RangeS<'s>,
@@ -480,7 +455,6 @@ case class InterfaceA(
 
   val hash = range.hashCode() + name.hashCode()
 */
-// mig: impl InterfaceA
 impl<'s> InterfaceA<'s> {
 pub fn new(
     range: RangeS<'s>,
@@ -521,11 +495,9 @@ pub fn new(
 }
 /*
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn equals
 }
 /*
   override def equals(obj: Any): Boolean = {
@@ -544,13 +516,11 @@ pub fn new(
 /*
 }
 */
-// mig: mod interface_name
 pub mod interface_name {
     use super::*;
 /*
 object interfaceName {
 */
-// mig: fn unapply
 pub fn unapply<'s>(_interface_a: &'s InterfaceA<'s>) -> Option<&'s TopLevelInterfaceDeclarationNameS<'s>> {
     panic!("Unimplemented: unapply");
 }
@@ -564,13 +534,11 @@ pub fn unapply<'s>(_interface_a: &'s InterfaceA<'s>) -> Option<&'s TopLevelInter
 /*
 }
 */
-// mig: mod struct_name
 pub mod struct_name {
     use super::*;
 /*
 object structName {
 */
-// mig: fn unapply
 pub fn unapply<'s>(_struct_a: &'s StructA<'s>) -> Option<&'s IStructDeclarationNameS<'s>> {
     panic!("Unimplemented: unapply");
 }
@@ -600,7 +568,6 @@ pub fn unapply<'s>(_struct_a: &'s StructA<'s>) -> Option<&'s IStructDeclarationN
 
 // Underlying class for all XYZFunctionS types
 */
-// mig: struct FunctionA
 #[derive(Debug)]
 pub struct FunctionA<'s> {
     pub range: RangeS<'s>,
@@ -640,7 +607,6 @@ case class FunctionA(
     body: IBodyS
 ) {
 */
-// mig: impl FunctionA
 impl<'s> FunctionA<'s> {
 pub fn new(
     range: RangeS<'s>,
@@ -700,11 +666,9 @@ pub fn new(
 
   vassert(range.begin.file.packageCoordinate == name.packageCoordinate)
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn equals
 /*
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[FunctionA]) { return false }
@@ -724,7 +688,6 @@ pub fn new(
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 
 */
-// mig: fn is_light
 pub fn is_light(&self) -> bool {
     match &self.body {
         IBodyS::ExternBody(_) | IBodyS::AbstractBody(_) | IBodyS::GeneratedBody(_) => true,
@@ -739,7 +702,6 @@ pub fn is_light(&self) -> bool {
     }
   }
 */
-// mig: fn is_lambda
 pub fn is_lambda(&self) -> bool {
     match &self.name {
         IFunctionDeclarationNameS::LambdaDeclarationName(_) => true,

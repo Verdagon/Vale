@@ -18,12 +18,10 @@ import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
 import org.scalatest._
 */
-// mig: struct PureFunctionTests
 pub struct PureFunctionTests;
 /*
 class PureFunctionTests extends FunSuite with Matchers {
 */
-// mig: fn simple_pure_function
 #[test]
 fn simple_pure_function() {
     let compilation_bump = bumpalo::Bump::new();

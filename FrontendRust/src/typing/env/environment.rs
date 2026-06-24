@@ -71,7 +71,6 @@ where 's: 't,
 /*
 trait IEnvironmentT {
 */
-// mig: fn to_string
 impl<'s, 't> IEnvironmentT<'s, 't> where 's: 't {
   pub fn to_string(&self) -> String {
     panic!("Unimplemented: to_string");
@@ -81,11 +80,9 @@ impl<'s, 't> IEnvironmentT<'s, 't> where 's: 't {
       "#Environment:" + id
     }
   */
-// mig: fn eq
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 /*
 override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
 */
@@ -105,14 +102,12 @@ override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
   /*
     def globalEnv: GlobalEnvironment
   */
-// mig: fn templatas
   pub fn templatas(&self) -> &TemplatasStoreT<'s, 't> {
     panic!("Unimplemented: templatas");
   }
   /*
     def templatas: TemplatasStore
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &self,
     name_s: IImpreciseNameS<'s>,
@@ -139,7 +134,6 @@ override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
       getOnlyNearest: Boolean):
     Array[ITemplataT[ITemplataType]]
   */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &self,
     name_s: INameT<'s, 't>,
@@ -162,7 +156,6 @@ override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
       getOnlyNearest: Boolean):
     Array[ITemplataT[ITemplataType]]
   */
-// mig: fn lookup_all_with_imprecise_name
   pub fn lookup_all_with_imprecise_name(
     &self,
     name_s: IImpreciseNameS<'s>,
@@ -181,7 +174,6 @@ override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
       })
     }
   */
-// mig: fn lookup_all_with_name
   pub fn lookup_all_with_name(
     &self,
     name_s: INameT<'s, 't>,
@@ -199,7 +191,6 @@ override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
       })
     }
   */
-// mig: fn lookup_nearest_with_name
   pub fn lookup_nearest_with_name(
     &self,
     name_s: INameT<'s, 't>,
@@ -227,7 +218,6 @@ override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
       })
     }
   */
-// mig: fn lookup_nearest_with_imprecise_name
   pub fn lookup_nearest_with_imprecise_name(
     &self,
     name_s: IImpreciseNameS<'s>,
@@ -425,11 +415,9 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
 /*
 trait IDenizenEnvironmentBoxT extends IInDenizenEnvironmentT {
 */
-// mig: fn snapshot
 /*
   def snapshot: IInDenizenEnvironmentT
 */
-// mig: fn to_string
 /*
   override def toString: String = {
     "#Environment:" + id
@@ -527,7 +515,6 @@ case class GlobalEnvironment(
 /*
 object TemplatasStore {
 */
-// mig: fn entry_matches_filter
 pub fn entry_matches_filter<'s, 't>(
   entry: &IEnvEntryT<'s, 't>,
   contexts: &HashSet<ILookupContext>,
@@ -599,7 +586,6 @@ pub fn entry_matches_filter<'s, 't>(
     }
   }
 */
-// mig: fn entry_to_templata
 pub fn entry_to_templata<'s, 't>(
   defining_env: IEnvironmentT<'s, 't>,
   entry: IEnvEntryT<'s, 't>,
@@ -645,7 +631,6 @@ where 's: 't,
     }
   }
 */
-// mig: fn get_imprecise_name
 pub fn get_imprecise_name<'s, 't>(
   scout_arena: &ScoutArena<'s>,
   name_t: INameT<'s, 't>,
@@ -762,7 +747,6 @@ pub fn get_imprecise_name<'s, 't>(
     }
   }
 */
-// mig: fn code_locations_match
 pub fn code_locations_match<'s>(
   code_location_a: &CodeLocationS<'s>,
   code_location_b: &CodeLocationS<'s>,
@@ -953,11 +937,9 @@ where 's: 't,
   }
   /* Guardian: disable-all */
 }
-// mig: fn eq
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 /*
 override def hashCode(): Int = vcurious()
 
@@ -971,7 +953,6 @@ override def hashCode(): Int = vcurious()
   //  // The above map, indexed by human name. If it has no human name, it won't be in here.
   //  private var entriesByHumanName = Map[String, Vector[IEnvEntry]]()
 */
-// mig: fn add_entries
 impl<'s, 't> TemplatasStoreT<'s, 't> where 's: 't {
   pub fn add_entries(
     &self,
@@ -1166,7 +1147,6 @@ impl<'s, 't> TemplatasStoreT<'s, 't> where 's: 't {
     TemplatasStore(templatasStoreName, combinedEntries, combinedEntriesByNameS)
   }
 */
-// mig: fn add_entry
   pub fn add_entry(
     &self,
     interner: &TypingInterner<'s, 't>,
@@ -1181,7 +1161,6 @@ impl<'s, 't> TemplatasStoreT<'s, 't> where 's: 't {
     addEntries(interner, Vector(name -> entry))
   }
 */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &self,
     defining_env: IEnvironmentT<'s, 't>,
@@ -1205,7 +1184,6 @@ impl<'s, 't> TemplatasStoreT<'s, 't> where 's: 't {
         .map(entryToTemplata(definingEnv, _))
     }
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &self,
     defining_env: IEnvironmentT<'s, 't>,
@@ -1236,7 +1214,6 @@ impl<'s, 't> TemplatasStoreT<'s, 't> where 's: 't {
 /*
 object PackageEnvironmentT {
 */
-// mig: fn make_top_level_environment
 pub fn make_top_level_environment<'s, 't>(
   global_env: &'t GlobalEnvironmentT<'s, 't>,
   namespace_name: IdT<'s, 't>,
@@ -1280,13 +1257,11 @@ case class PackageEnvironmentT[+T <: INameT](
   globalNamespaces: Vector[TemplatasStore]
 ) extends IEnvironmentT {
 */
-// mig: fn hash_code
 // (Realized by `impl Hash for PackageEnvironmentT` below.)
 /*
   val hash = runtime.ScalaRunTime._hashCode(id);
 override def hashCode(): Int = hash;
 */
-// mig: fn templatas
 impl<'s, 't> PackageEnvironmentT<'s, 't> where 's: 't {
   pub fn templatas(&self) -> &TemplatasStoreT<'s, 't> {
     panic!("Unimplemented: templatas");
@@ -1298,7 +1273,6 @@ impl<'s, 't> PackageEnvironmentT<'s, 't> where 's: 't {
 
   //  override def rootCompilingDenizenEnv: IInDenizenEnvironment = vwat()
   */
-// mig: fn eq
 /*
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[PackageEnvironmentT[T]]) {
@@ -1307,7 +1281,6 @@ impl<'s, 't> PackageEnvironmentT<'s, 't> where 's: 't {
     return id.equals(obj.asInstanceOf[PackageEnvironmentT[T]].id)
   }
 */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &'t self,
     name: INameT<'s, 't>,
@@ -1344,7 +1317,6 @@ impl<'s, 't> PackageEnvironmentT<'s, 't> where 's: 't {
       })
     }
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &'t self,
     name: IImpreciseNameS<'s>,
@@ -1428,7 +1400,6 @@ case class CitizenEnvironmentT[+T <: INameT, +Y <: ITemplateNameT](
   vassert(templatas.templatasStoreName == id)
 
 */
-// mig: fn denizen_id
 impl<'s, 't> CitizenEnvironmentT<'s, 't> where 's: 't {
   pub fn denizen_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_id");
@@ -1436,19 +1407,16 @@ impl<'s, 't> CitizenEnvironmentT<'s, 't> where 's: 't {
   /*
     override def denizenId: IdT[INameT] = templateId
   */
-// mig: fn denizen_template_id
   pub fn denizen_template_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_template_id");
   }
   /*
     override def denizenTemplateId: IdT[ITemplateNameT] = templateId
   */
-// mig: fn hash_code
 /*
   val hash = runtime.ScalaRunTime._hashCode(id);
 override def hashCode(): Int = hash;
 */
-// mig: fn eq
 /*
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IInDenizenEnvironmentT]) {
@@ -1457,7 +1425,6 @@ override def hashCode(): Int = hash;
     return id.equals(obj.asInstanceOf[IInDenizenEnvironmentT].id)
   }
 */
-// mig: fn root_compiling_denizen_env
   pub fn root_compiling_denizen_env(&'t self) -> IInDenizenEnvironmentT<'s, 't> {
     match (self.id.local_name, self.parent_env.id().local_name) {
       (id_local, parent_local)
@@ -1501,7 +1468,6 @@ override def hashCode(): Int = hash;
       }
     }
   */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &'t self,
     name: INameT<'s, 't>,
@@ -1535,7 +1501,6 @@ override def hashCode(): Int = hash;
       }
     }
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &'t self,
     name: IImpreciseNameS<'s>,
@@ -1644,7 +1609,6 @@ case class ExportEnvironmentT(
     templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
 */
-// mig: fn root_compiling_denizen_env
 impl<'s, 't> ExportEnvironmentT<'s, 't> where 's: 't {
   pub fn root_compiling_denizen_env(&'t self) -> IInDenizenEnvironmentT<'s, 't> {
     panic!("Unimplemented: root_compiling_denizen_env");
@@ -1652,21 +1616,18 @@ impl<'s, 't> ExportEnvironmentT<'s, 't> where 's: 't {
   /*
     override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = this
   */
-// mig: fn denizen_id
   pub fn denizen_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_id");
   }
   /*
     override def denizenId: IdT[INameT] = id
   */
-// mig: fn denizen_template_id
   pub fn denizen_template_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_template_id");
   }
   /*
     override def denizenTemplateId: IdT[ITemplateNameT] = templateId
   */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &'t self,
     name: INameT<'s, 't>,
@@ -1685,7 +1646,6 @@ impl<'s, 't> ExportEnvironmentT<'s, 't> where 's: 't {
         this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
     }
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &'t self,
     name: IImpreciseNameS<'s>,
@@ -1748,7 +1708,6 @@ case class ExternEnvironmentT(
     templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
 */
-// mig: fn root_compiling_denizen_env
 impl<'s, 't> ExternEnvironmentT<'s, 't> where 's: 't {
   pub fn root_compiling_denizen_env(&'t self) -> IInDenizenEnvironmentT<'s, 't> {
     panic!("Unimplemented: root_compiling_denizen_env");
@@ -1756,21 +1715,18 @@ impl<'s, 't> ExternEnvironmentT<'s, 't> where 's: 't {
   /*
     override def rootCompilingDenizenEnv: IInDenizenEnvironmentT = this
   */
-// mig: fn denizen_id
   pub fn denizen_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_id");
   }
   /*
     override def denizenId: IdT[INameT] = id
   */
-// mig: fn denizen_template_id
   pub fn denizen_template_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_template_id");
   }
   /*
     override def denizenTemplateId: IdT[ITemplateNameT] = templateId
   */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &'t self,
     name: INameT<'s, 't>,
@@ -1789,7 +1745,6 @@ impl<'s, 't> ExternEnvironmentT<'s, 't> where 's: 't {
         this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
     }
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &'t self,
     name: IImpreciseNameS<'s>,
@@ -1841,7 +1796,6 @@ case class GeneralEnvironmentT[+T <: INameT](
   templatas: TemplatasStore
 ) extends IInDenizenEnvironmentT {
 */
-// mig: fn denizen_id
 impl<'s, 't> GeneralEnvironmentT<'s, 't> where 's: 't {
   pub fn denizen_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_id");
@@ -1849,22 +1803,18 @@ impl<'s, 't> GeneralEnvironmentT<'s, 't> where 's: 't {
   /*
     override def denizenId: IdT[INameT] = id
   */
-// mig: fn denizen_template_id
   pub fn denizen_template_id(&self) -> IdT<'s, 't> {
     panic!("Unimplemented: denizen_template_id");
   }
   /*
     override def denizenTemplateId: IdT[ITemplateNameT] = templateId
   */
-// mig: fn eq
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = vcurious()
 */
-// mig: fn root_compiling_denizen_env
   pub fn root_compiling_denizen_env(&'t self) -> IInDenizenEnvironmentT<'s, 't> {
     self.parent_env.root_compiling_denizen_env()
   }
@@ -1877,7 +1827,6 @@ impl<'s, 't> GeneralEnvironmentT<'s, 't> where 's: 't {
       parentEnv.rootCompilingDenizenEnv
     }
   */
-// mig: fn lookup_with_name_inner
   pub fn lookup_with_name_inner(
     &'t self,
     name: INameT<'s, 't>,
@@ -1896,7 +1845,6 @@ impl<'s, 't> GeneralEnvironmentT<'s, 't> where 's: 't {
         this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
     }
   */
-// mig: fn lookup_with_imprecise_name_inner
   pub fn lookup_with_imprecise_name_inner(
     &'t self,
     name: IImpreciseNameS<'s>,

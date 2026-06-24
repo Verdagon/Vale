@@ -26,7 +26,6 @@ import dev.vale.{vassert, vcurious, vfail, vimpl, vwat, finalast => m}
 class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
 */
 
-// mig: fn translate_block
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -108,7 +107,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mutabilify
     pub fn translate_mutabilify(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -149,7 +147,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_immutabilify
     pub fn translate_immutabilify(
         &self,
         hinputs: &HinputsI<'s, 'i>,

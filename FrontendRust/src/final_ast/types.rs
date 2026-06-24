@@ -19,7 +19,6 @@ package dev.vale.finalast
 import dev.vale.{FileCoordinate, Interner, Keywords, PackageCoordinate, vassert, vfail, vimpl}
 */
 
-// mig: case class CoordH[+T <: KindHT]
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct CoordH<'s, 'h> where 's: 'h {
@@ -126,7 +125,6 @@ case class CoordH[+T <: KindHT](
 }
 */
 
-// mig: fn expect_static_sized_array_coord
 impl<'s, 'h> CoordH<'s, 'h> where 's: 'h {
     pub fn expect_static_sized_array_coord(&self) -> Self {
         match self.kind {
@@ -134,21 +132,18 @@ impl<'s, 'h> CoordH<'s, 'h> where 's: 'h {
             _ => panic!("expect_static_sized_array_coord: not a static sized array"),
         }
     }
-// mig: fn expect_runtime_sized_array_coord
     pub fn expect_runtime_sized_array_coord(&self) -> Self {
         match self.kind {
             KindHT::RuntimeSizedArrayHT(_) => *self,
             _ => panic!("expect_runtime_sized_array_coord: not a runtime sized array"),
         }
     }
-// mig: fn expect_struct_coord
     pub fn expect_struct_coord(&self) -> Self {
         match self.kind {
             KindHT::StructHT(_) => *self,
             _ => panic!("expect_struct_coord: not a struct"),
         }
     }
-// mig: fn expect_interface_coord
     pub fn expect_interface_coord(&self) -> Self {
         match self.kind {
             KindHT::InterfaceHT(_) => *self,
@@ -177,7 +172,6 @@ impl<'s, 'h> KindHT<'s, 'h> where 's: 'h {
         }
     }
 }
-// mig: sealed trait KindHT
 /// Polyvalue
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum KindHT<'s, 'h> where 's: 'h {
@@ -201,14 +195,12 @@ sealed trait KindHT {
 }
 */
 
-// mig: object IntHT
 /*
 object IntHT {
   val i32 = IntHT(32)
 }
 */
 
-// mig: case class IntHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct IntHT {
@@ -223,7 +215,6 @@ case class IntHT(bits: Int) extends KindHT {
 }
 */
 
-// mig: case class VoidHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct VoidHT;
@@ -236,7 +227,6 @@ case class VoidHT() extends KindHT {
 }
 */
 
-// mig: case class OpaqueHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct OpaqueHT<'s, 'h> where 's: 'h {
@@ -256,7 +246,6 @@ case class OpaqueHT(
 }
 */
 
-// mig: case class BoolHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct BoolHT;
@@ -269,7 +258,6 @@ case class BoolHT() extends KindHT {
 }
 */
 
-// mig: case class StrHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StrHT;
@@ -282,7 +270,6 @@ case class StrHT() extends KindHT {
 }
 */
 
-// mig: case class FloatHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct FloatHT;
@@ -295,7 +282,6 @@ case class FloatHT() extends KindHT {
 }
 */
 
-// mig: case class NeverHT
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct NeverHT {
@@ -316,7 +302,6 @@ case class NeverHT(fromBreak: Boolean) extends KindHT {
 }
 */
 
-// mig: case class InterfaceHT
 /// Interning permanent (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct InterfaceHT<'s, 'h> where 's: 'h {
@@ -324,7 +309,6 @@ pub struct InterfaceHT<'s, 'h> where 's: 'h {
     pub _must_intern: MustIntern,
 }
 
-// mig: case class InterfaceHT (transient companion)
 /// Interning transient (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct InterfaceHTValH<'s, 'h> where 's: 'h {
@@ -342,7 +326,6 @@ case class InterfaceHT(
 }
 */
 
-// mig: case class StructHT
 /// Interning permanent (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StructHT<'s, 'h> where 's: 'h {
@@ -350,7 +333,6 @@ pub struct StructHT<'s, 'h> where 's: 'h {
     pub _must_intern: MustIntern,
 }
 
-// mig: case class StructHT (transient companion)
 /// Interning transient (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StructHTValH<'s, 'h> where 's: 'h {
@@ -368,7 +350,6 @@ case class StructHT(
 }
 */
 
-// mig: case class StaticSizedArrayHT
 /// Interning permanent (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StaticSizedArrayHT<'s, 'h> where 's: 'h {
@@ -376,7 +357,6 @@ pub struct StaticSizedArrayHT<'s, 'h> where 's: 'h {
     pub _must_intern: MustIntern,
 }
 
-// mig: case class StaticSizedArrayHT (transient companion)
 /// Interning transient (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StaticSizedArrayHTValH<'s, 'h> where 's: 'h {
@@ -396,7 +376,6 @@ case class StaticSizedArrayHT(
 }
 */
 
-// mig: case class StaticSizedArrayDefinitionHT
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StaticSizedArrayDefinitionHT<'s, 'h> where 's: 'h {
@@ -406,7 +385,6 @@ pub struct StaticSizedArrayDefinitionHT<'s, 'h> where 's: 'h {
     pub variability: Variability,
     pub element_type: CoordH<'s, 'h>,
 }
-// mig: fn kind (on StaticSizedArrayDefinitionHT — see Scala `def kind = StaticSizedArrayHT(name)` in audit block below)
 impl<'s, 'h> StaticSizedArrayDefinitionHT<'s, 'h> where 's: 'h {
     pub fn kind(&self, interner: &HammerInterner<'s, 'h>) -> &'h StaticSizedArrayHT<'s, 'h> {
         interner.intern_static_sized_array_ht(StaticSizedArrayHTValH { id: self.name })
@@ -430,7 +408,6 @@ case class StaticSizedArrayDefinitionHT(
 }
 */
 
-// mig: case class RuntimeSizedArrayHT
 /// Interning permanent (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RuntimeSizedArrayHT<'s, 'h> where 's: 'h {
@@ -438,7 +415,6 @@ pub struct RuntimeSizedArrayHT<'s, 'h> where 's: 'h {
     pub _must_intern: MustIntern,
 }
 
-// mig: case class RuntimeSizedArrayHT (transient companion)
 /// Interning transient (see @TFITCX)
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RuntimeSizedArrayHTValH<'s, 'h> where 's: 'h {
@@ -456,7 +432,6 @@ case class RuntimeSizedArrayHT(
 }
 */
 
-// mig: case class RuntimeSizedArrayDefinitionHT
 /// Temporary state
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct RuntimeSizedArrayDefinitionHT<'s, 'h> where 's: 'h {
@@ -464,7 +439,6 @@ pub struct RuntimeSizedArrayDefinitionHT<'s, 'h> where 's: 'h {
     pub mutability: Mutability,
     pub element_type: CoordH<'s, 'h>,
 }
-// mig: fn kind (on RuntimeSizedArrayDefinitionHT — see Scala `def kind = RuntimeSizedArrayHT(name)` in audit block below)
 impl<'s, 'h> RuntimeSizedArrayDefinitionHT<'s, 'h> where 's: 'h {
     pub fn kind(&self, interner: &HammerInterner<'s, 'h>) -> &'h RuntimeSizedArrayHT<'s, 'h> {
         interner.intern_runtime_sized_array_ht(RuntimeSizedArrayHTValH { name: self.name })
@@ -483,7 +457,6 @@ case class RuntimeSizedArrayDefinitionHT(
 }
 */
 
-// mig: case class CodeLocation
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct CodeLocation<'s> {
@@ -500,8 +473,6 @@ case class CodeLocation(
 override def hashCode(): Int = hash; }
 */
 
-// mig: sealed trait OwnershipH
-// mig: case objects OwnH, MutableBorrowH, ImmutableBorrowH, MutableShareH, ImmutableShareH, WeakH
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum OwnershipH {
@@ -524,8 +495,6 @@ case object ImmutableShareH extends OwnershipH
 case object WeakH extends OwnershipH
 */
 
-// mig: sealed trait LocationH
-// mig: case objects InlineH, YonderH
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum LocationH {
@@ -561,8 +530,6 @@ case object InlineH extends LocationH
 case object YonderH extends LocationH
 */
 
-// mig: sealed trait Mutability
-// mig: case objects Immutable, Mutable
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum Mutability {
@@ -583,8 +550,6 @@ case object Immutable extends Mutability
 case object Mutable extends Mutability
 */
 
-// mig: sealed trait Variability
-// mig: case objects Final, Varying
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum Variability {
@@ -624,7 +589,6 @@ case object Final extends Variability
 case object Varying extends Variability
 */
 
-// mig: case class SimpleId
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct SimpleId<'s, 'h> where 's: 'h {
@@ -636,7 +600,6 @@ case class SimpleId(steps: Vector[SimpleIdStep]) {
 }
 */
 
-// mig: case class SimpleIdStep
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct SimpleIdStep<'s, 'h> where 's: 'h {
@@ -649,7 +612,6 @@ case class SimpleIdStep(
     templateArgs: Vector[SimpleId])
 */
 
-// mig: case class HamutsFunctionExtern
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct HamutsFunctionExtern<'s, 'h> where 's: 'h {
@@ -664,7 +626,6 @@ case class HamutsFunctionExtern(
     simpleId: SimpleId)
 */
 
-// mig: case class HamutsKindExtern
 /// Value-type
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct HamutsKindExtern<'s, 'h> where 's: 'h {

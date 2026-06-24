@@ -71,14 +71,12 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 */
-// mig: struct Astrouts
 pub struct Astrouts<'s> {
   code_location_to_maybe_type: HashMap<CodeLocationS<'s>, Option<ITemplataType<'s>>>,
   code_location_to_struct: HashMap<CodeLocationS<'s>, &'s StructA<'s>>,
   code_location_to_interface: HashMap<CodeLocationS<'s>, &'s InterfaceA<'s>>,
 }
 
-// mig: impl Astrouts
 /*
 case class Astrouts(
   codeLocationToMaybeType: mutable.HashMap[CodeLocationS, Option[ITemplataType]],
@@ -86,7 +84,6 @@ case class Astrouts(
   codeLocationToInterface: mutable.HashMap[CodeLocationS, InterfaceA])
 
 */
-// mig: struct EnvironmentA
 pub struct EnvironmentA<'s> {
   maybe_name: Option<&'s INameS<'s>>,
   maybe_parent_env: Option<&'s EnvironmentA<'s>>,
@@ -94,7 +91,6 @@ pub struct EnvironmentA<'s> {
   rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>>,
 }
 
-// mig: impl EnvironmentA
 impl<'s> EnvironmentA<'s> {
 /*
 // Environments dont have an AbsoluteName, because an environment can span multiple
@@ -105,11 +101,9 @@ case class EnvironmentA(
     codeMap: PackageCoordinateMap[ProgramS],
     runeToType: Map[IRuneS, ITemplataType]) {
 */
-// mig: fn equals
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 /*
   override def hashCode(): Int = vcurious()
 */
@@ -150,7 +144,6 @@ case class EnvironmentA(
     val imports: Vector[ImportS] = codeMap.packageCoordToContents.values.flatMap(_.imports).toVector
 */
 
-// mig: fn add_runes
 fn add_runes(&self, new_rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>>) -> EnvironmentA<'s> {
   let mut merged = self.rune_to_type.clone();
   merged.extend(new_rune_to_type);
@@ -172,7 +165,6 @@ fn add_runes(&self, new_rune_to_type: IndexMap<IRuneS<'s>, ITemplataType<'s>>) -
 object HigherTypingPass {
 */
 
-// mig: fn explicify_lookups
 pub fn explicify_lookups<'s: 's, E: IRuneTypeSolverEnv<'s>>(env: &E, scout_arena: &ScoutArena<'s>, rune_a_to_type: &mut IndexMap<IRuneS<'s>, ITemplataType<'s>>, rule_builder: &mut Vec<IRulexSR<'s>>, all_rules_with_implicitly_coercing_lookups_s: Vec<IRulexSR<'s>>) -> Result<(), IRuneTypingLookupFailedError<'s>> {
   // Only two rules' results can be coerced: LookupSR and CallSR.
   // Let's look for those and rewrite them to put an explicit coercion in there.
@@ -377,7 +369,6 @@ pub fn explicify_lookups<'s: 's, E: IRuneTypeSolverEnv<'s>>(env: &E, scout_arena
   }
 
 */
-// mig: fn coerce_kind_lookup_to_coord
 fn coerce_kind_lookup_to_coord<'s>(scout_arena: &ScoutArena<'s>, rune_a_to_type: &mut IndexMap<IRuneS<'s>, ITemplataType<'s>>, rule_builder: &mut Vec<IRulexSR<'s>>, range: RangeS<'s>, result_rune: RuneUsage<'s>, name: &IImpreciseNameS<'s>) {
   let kind_rune_s = scout_arena.intern_rune(IRuneValS::ImplicitCoercionKindRune(ImplicitCoercionKindRuneValS {
     range: range.clone(),
@@ -403,7 +394,6 @@ fn coerce_kind_lookup_to_coord<'s>(scout_arena: &ScoutArena<'s>, rune_a_to_type:
   }
 
 */
-// mig: fn coerce_kind_template_lookup_to_kind
 fn coerce_kind_template_lookup_to_kind<'s>(scout_arena: &ScoutArena<'s>, rune_a_to_type: &mut IndexMap<IRuneS<'s>, ITemplataType<'s>>, rule_builder: &mut Vec<IRulexSR<'s>>, range: RangeS<'s>, result_rune: RuneUsage<'s>, name: &IImpreciseNameS<'s>, actual_template_type: TemplateTemplataType<'s>) {
   let template_rune_s = scout_arena.intern_rune(IRuneValS::ImplicitCoercionTemplateRune(ImplicitCoercionTemplateRuneValS {
     range: range.clone(),
@@ -430,7 +420,6 @@ fn coerce_kind_template_lookup_to_kind<'s>(scout_arena: &ScoutArena<'s>, rune_a_
   }
 
 */
-// mig: fn coerce_kind_template_lookup_to_coord
 fn coerce_kind_template_lookup_to_coord<'s>(scout_arena: &ScoutArena<'s>, rune_a_to_type: &mut IndexMap<IRuneS<'s>, ITemplataType<'s>>, rule_builder: &mut Vec<IRulexSR<'s>>, range: RangeS<'s>, result_rune: RuneUsage<'s>, name: &IImpreciseNameS<'s>, ttt: TemplateTemplataType<'s>) {
 
   let template_rune_s = scout_arena.intern_rune(IRuneValS::ImplicitCoercionTemplateRune(ImplicitCoercionTemplateRuneValS {
@@ -471,7 +460,6 @@ fn coerce_kind_template_lookup_to_coord<'s>(scout_arena: &ScoutArena<'s>, rune_a
 }
 
 */
-// mig: struct HigherTypingPass
 pub struct HigherTypingPass<'s, 'ctx> {
   global_options: GlobalOptions,
   scout_arena: &'ctx ScoutArena<'s>,
@@ -479,7 +467,6 @@ pub struct HigherTypingPass<'s, 'ctx> {
   primitives: HashMap<StrI<'s>, ITemplataType<'s>>,
 }
 
-// mig: impl HigherTypingPass
 impl<'s, 'ctx> HigherTypingPass<'s, 'ctx> {
   pub fn new(
     global_options: GlobalOptions,
@@ -542,7 +529,6 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
 */
 // Returns whether the imprecise name could be referring to the absolute name.
 // See MINAAN for what we're doing here.
-// mig: fn imprecise_name_matches_absolute_name
 fn imprecise_name_matches_absolute_name(&self, needle_imprecise_name_s: &IImpreciseNameS, absolute_name: &INameS) -> bool {
   match (needle_imprecise_name_s, absolute_name) {
     (IImpreciseNameS::CodeName(code_name), INameS::TopLevelStructDeclaration(s)) => {
@@ -571,7 +557,6 @@ fn imprecise_name_matches_absolute_name(&self, needle_imprecise_name_s: &IImprec
 
 */
 // See MINAAN for what we're doing here.
-// mig: fn lookup_types
 fn lookup_types(&self, astrouts: &Astrouts<'s>, env: &EnvironmentA<'s>, needle_imprecise_name_s: &IImpreciseNameS<'s>) -> Vec<IRuneTypeSolverLookupResult<'s>> {
 
   match needle_imprecise_name_s {
@@ -669,7 +654,6 @@ fn lookup_types(&self, astrouts: &Astrouts<'s>, env: &EnvironmentA<'s>, needle_i
   }
 
 */
-// mig: fn lookup_type
 fn lookup_type(&self, astrouts: &Astrouts<'s>, env: &EnvironmentA<'s>, range: RangeS<'s>, name: &IImpreciseNameS<'s>) -> Result<IRuneTypeSolverLookupResult<'s>, ILookupFailedErrorA<'s>> {
   let results = self.lookup_types(astrouts, env, name);
   let mut distinct = Vec::new();
@@ -699,7 +683,6 @@ fn lookup_type(&self, astrouts: &Astrouts<'s>, env: &EnvironmentA<'s>, range: Ra
   }
 
 */
-// mig: fn translate_struct
 fn translate_struct(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, struct_s: &StructS<'s>) -> Result<&'s StructA<'s>, ICompileErrorA<'s>> {
   let StructS {
     range: range_s,
@@ -959,7 +942,6 @@ fn translate_struct(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, 
   }
 
 */
-// mig: fn get_interface_type
 fn get_interface_type(&self, _astrouts: &mut Astrouts<'s>, _env: &EnvironmentA<'s>, _interface_s: &InterfaceS<'s>) -> ITemplataType<'s> {
   panic!("Unimplemented: get_interface_type");
 }
@@ -973,7 +955,6 @@ fn get_interface_type(&self, _astrouts: &mut Astrouts<'s>, _env: &EnvironmentA<'
   }
 
 */
-// mig: fn translate_interface
 fn translate_interface(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, interface_s: &InterfaceS<'s>) -> Result<&'s InterfaceA<'s>, ICompileErrorA<'s>> {
   let InterfaceS {
     range: range_s,
@@ -1161,7 +1142,6 @@ fn translate_interface(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s
   }
 
 */
-// mig: fn translate_impl
 fn translate_impl(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, impl_s: &ImplS<'s>) -> Result<&'s ImplA<'s>, ICompileErrorA<'s>> {
   let ImplS {
     range: range_s,
@@ -1291,7 +1271,6 @@ fn translate_impl(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, im
   }
 
 */
-// mig: fn translate_export
 fn translate_export(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, export_s: &ExportAsS<'s>) -> Result<&'s ExportAsA<'s>, ICompileErrorA<'s>> {
   let range_s = export_s.range.clone();
   let rules_with_implicitly_coercing_lookups_s = export_s.rules;
@@ -1384,7 +1363,6 @@ fn translate_export(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, 
   }
 
 */
-// mig: fn translate_function
 fn translate_function(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>, function_s: &'s FunctionS<'s>) -> Result<&'s FunctionA<'s>, ICompileErrorA<'s>> {
   let range_s = function_s.range.clone();
   let name_s = function_s.name.clone();
@@ -1498,7 +1476,6 @@ fn translate_function(&self, astrouts: &mut Astrouts<'s>, env: &EnvironmentA<'s>
   }
 
 */
-// mig: fn calculate_rune_types
 fn calculate_rune_types(
   &self,
   astrouts: &mut Astrouts<'s>,
@@ -1579,7 +1556,6 @@ fn calculate_rune_types(
   }
 
 */
-// mig: fn translate_program
 fn translate_program(&self, code_map: &'s PackageCoordinateMap<'s, ProgramS<'s>>, supplied_functions: Vec<&'s FunctionA<'s>>, supplied_interfaces: Vec<&'s InterfaceA<'s>>) -> Result<ProgramA<'s>, ICompileErrorA<'s>> {
   let env = EnvironmentA {
     maybe_name: None,
@@ -1651,7 +1627,6 @@ fn translate_program(&self, code_map: &'s PackageCoordinateMap<'s, ProgramS<'s>>
   }
 
 */
-// mig: fn run_pass
 pub fn run_pass(
   &self,
   separate_programs_s: FileCoordinateMap<'s, ProgramS<'s>>,
@@ -1802,7 +1777,6 @@ pub fn run_pass(
 }
 /*
 */
-// mig: struct HigherTypingCompilation
 pub struct HigherTypingCompilation<'s, 'ctx, 'p> {
   global_options: GlobalOptions,
   pub scout_arena: &'ctx ScoutArena<'s>,
@@ -1811,7 +1785,6 @@ pub struct HigherTypingCompilation<'s, 'ctx, 'p> {
   astrouts_cache: Option<PackageCoordinateMap<'s, ProgramA<'s>>>,
 }
 
-// mig: impl HigherTypingCompilation
 impl<'s, 'ctx, 'p> HigherTypingCompilation<'s, 'ctx, 'p>
 {
   /*
@@ -1854,7 +1827,6 @@ impl<'s, 'ctx, 'p> HigherTypingCompilation<'s, 'ctx, 'p>
     }
   }
 
-// mig: fn get_code_map
 pub fn get_code_map(&mut self) -> Result<FileCoordinateMap<'p, String>, FailedParse<'p>> {
   self.scout_compilation.get_code_map()
 }
@@ -1862,21 +1834,18 @@ pub fn get_code_map(&mut self) -> Result<FileCoordinateMap<'p, String>, FailedPa
 /*
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = scoutCompilation.getCodeMap()
 */
-// mig: fn get_parseds
 pub fn get_parseds(&mut self) -> Result<FileCoordinateMap<'p, (FileP<'p>, Vec<RangeL>)>, FailedParse<'p>> {
   self.scout_compilation.get_parseds()
 }
 /*
   def getParseds(): Result[FileCoordinateMap[(FileP, Vector[RangeL])], FailedParse] = scoutCompilation.getParseds()
 */
-// mig: fn get_vpst_map
 pub fn get_vpst_map(&mut self) -> Result<FileCoordinateMap<'p, String>, FailedParse<'p>> {
   self.scout_compilation.get_vpst_map()
 }
 /*
   def getVpstMap(): Result[FileCoordinateMap[String], FailedParse] = scoutCompilation.getVpstMap()
 */
-// mig: fn get_scoutput
 pub fn get_scoutput(&mut self) -> Result<&FileCoordinateMap<'s, ProgramS<'s>>, ICompileErrorS<'s>> {
   self.scout_compilation.get_scoutput()
 }
@@ -1884,7 +1853,6 @@ pub fn get_scoutput(&mut self) -> Result<&FileCoordinateMap<'s, ProgramS<'s>>, I
   def getScoutput(): Result[FileCoordinateMap[ProgramS], ICompileErrorS] = scoutCompilation.getScoutput()
 
 */
-// mig: fn get_astrouts
 pub fn get_astrouts(&mut self) -> Result<&PackageCoordinateMap<'s, ProgramA<'s>>, ICompileErrorA<'s>> {
   if self.astrouts_cache.is_some() {
     return Ok(self.astrouts_cache.as_ref().unwrap());
@@ -1915,7 +1883,6 @@ pub fn get_astrouts(&mut self) -> Result<&PackageCoordinateMap<'s, ProgramA<'s>>
     }
   }
 */
-// mig: fn expect_astrouts
 pub fn expect_astrouts(&mut self) -> &PackageCoordinateMap<'s, ProgramA<'s>> {
   match self.get_astrouts() {
     Ok(x) => x,

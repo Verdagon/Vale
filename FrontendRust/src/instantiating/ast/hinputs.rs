@@ -27,7 +27,6 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 */
-// mig: struct InstantiationBoundArgumentsI
 /// Temporary state (see @TFITCX)
 pub struct InstantiationBoundArgumentsI<'s, 'i> where 's: 'i {
     pub rune_to_function_bound_arg: ArenaIndexMap<'i, IRuneS<'s>, &'i PrototypeI<'s, 'i, sI>>,
@@ -36,7 +35,6 @@ pub struct InstantiationBoundArgumentsI<'s, 'i> where 's: 'i {
     pub rune_to_impl_bound_arg: ArenaIndexMap<'i, IRuneS<'s>, IdI<'s, 'i, sI>>,
 }
 
-// mig: impl InstantiationBoundArgumentsI
 /*
 case class InstantiationBoundArgumentsI(
   runeToFunctionBoundArg: Map[IRuneS, PrototypeI[sI]],
@@ -44,7 +42,6 @@ case class InstantiationBoundArgumentsI(
   runeToImplBoundArg: Map[IRuneS, IdI[sI, IImplNameI[sI]]])
 
 */
-// mig: struct HinputsI
 /// Temporary state (see @TFITCX) — top-level container for instantiated output.
 pub struct HinputsI<'s, 'i> where 's: 'i {
     pub interfaces: &'i [InterfaceDefinitionI<'s, 'i, cI>],
@@ -80,12 +77,10 @@ case class HinputsI(
   functionExterns: Vector[FunctionExternI],
 ) {
 */
-// mig: fn to_string
 impl<'s, 'i> HinputsI<'s, 'i> where 's: 'i {
     pub fn to_string(&self) -> String {
         panic!("Unimplemented: to_string")
     }
-// mig: fn lookup_function (humanName: String overload)
     pub fn lookup_function_by_str(&self, human_name: &str) -> &'i FunctionDefinitionI<'s, 'i> {
         let matches: Vec<&&'i FunctionDefinitionI<'s, 'i>> = self.functions.iter().filter(|f| {
             match f.header.id.local_name {
@@ -115,19 +110,15 @@ impl<'s, 'i> HinputsI<'s, 'i> where 's: 'i {
     subCitizenToInterfaceToEdgeMutable.mapValues(_.toMap).toMap
 
 */
-// mig: impl HinputsI
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for HinputsI` below.)
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for HinputsI` below.)
 /*
 override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
 */
-// mig: fn lookup_struct
     pub fn lookup_struct(
         &self,
         _struct_id: &IdI<'s, 'i, cI>,
@@ -140,7 +131,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_interface
     pub fn lookup_interface(
         &self,
         _interface_id: &IdI<'s, 'i, cI>,
@@ -153,7 +143,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_citizen
     pub fn lookup_citizen(
         &self,
         _citizen_id: &IdI<'s, 'i, cI>,
@@ -167,7 +156,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_struct_by_template
     pub fn lookup_struct_by_template(
         &self,
         _struct_template_name: &IStructTemplateNameI<'s, 'i, cI>,
@@ -180,7 +168,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_interface_by_template
     pub fn lookup_interface_by_template(
         &self,
         _interface_template_name: &IInterfaceTemplateNameI<'s, 'i, cI>,
@@ -193,7 +180,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_impl_by_template
     pub fn lookup_impl_by_template(
         &self,
         _impl_template_name: &IImplTemplateNameI<'s, 'i, cI>,
@@ -206,7 +192,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_edge
     pub fn lookup_edge(
         &self,
         _impl_id: &IdI<'s, 'i, cI>,
@@ -254,7 +239,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   // }
 
 */
-// mig: fn lookup_function
     pub fn lookup_function_by_template(
         &self,
         _func_template_name: &IFunctionTemplateNameI<'s, 'i, cI>,
@@ -267,7 +251,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_function
     pub fn lookup_function(
         &self,
         _human_name: &str,
@@ -291,7 +274,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_struct
     pub fn lookup_struct_by_name(
         &self,
         human_name: &str,
@@ -326,7 +308,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_impl
     pub fn lookup_impl(
         &self,
         _sub_citizen_it: &IdI<'s, 'i, cI>,
@@ -345,7 +326,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_interface
     pub fn lookup_interface_by_name(
         &self,
         _human_name: &str,
@@ -369,7 +349,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn lookup_user_function
     pub fn lookup_user_function(
         &self,
         _human_name: &str,
@@ -413,7 +392,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
 //  }
 
 */
-// mig: fn get_all_non_extern_functions
     pub fn get_all_non_extern_functions(
         &self,
     ) -> Vec<&'i FunctionDefinitionI<'s, 'i>> {
@@ -425,7 +403,6 @@ override def hashCode(): Int = vfail() // Would need a really good reason to has
   }
 
 */
-// mig: fn get_all_user_functions
     pub fn get_all_user_functions(
         &self,
     ) -> Vec<&'i FunctionDefinitionI<'s, 'i>> {

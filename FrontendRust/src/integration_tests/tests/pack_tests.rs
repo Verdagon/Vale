@@ -17,12 +17,10 @@ import dev.vale.typing.ast.TupleTE
 import dev.vale.von.VonInt
 import org.scalatest._
 */
-// mig: struct PackTests
 pub struct PackTests;
 /*
 class PackTests extends FunSuite with Matchers {
 */
-// mig: fn extract_seq
 #[test]
 fn extract_seq() {
     let compilation_bump = bumpalo::Bump::new();
@@ -79,7 +77,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn nested_seqs
 #[test]
 fn nested_seqs() {
     let compilation_bump = bumpalo::Bump::new();
@@ -148,7 +145,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(6) => }
   }
 */
-// mig: fn nested_tuples
 #[test]
 fn nested_tuples() {
     let compilation_bump = bumpalo::Bump::new();

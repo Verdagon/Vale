@@ -7,7 +7,6 @@ use crate::simplifying::hammer_interner::HammerInterner;
 use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonInt;
-// mig: struct OptTests
 pub struct OptTests;
 /*
 package dev.vale
@@ -20,7 +19,6 @@ import org.scalatest._
 
 class OptTests extends FunSuite with Matchers {
 */
-// mig: fn test_empty_and_get_for_some
 #[test]
 fn test_empty_and_get_for_some() {
     let compilation_bump = bumpalo::Bump::new();
@@ -70,7 +68,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 */
-// mig: fn test_empty_and_get_for_none
 #[test]
 fn test_empty_and_get_for_none() {
     let compilation_bump = bumpalo::Bump::new();
@@ -116,7 +113,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(0) => }
   }
 */
-// mig: fn test_empty_and_get_for_borrow
 #[test]
 fn test_empty_and_get_for_borrow() {
     let compilation_bump = bumpalo::Bump::new();

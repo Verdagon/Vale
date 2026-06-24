@@ -17,12 +17,10 @@ import dev.vale.typing.types._
 import dev.vale.von.VonInt
 import org.scalatest._
 */
-// mig: struct FloatTests
 pub struct FloatTests;
 /*
 class FloatTests extends FunSuite with Matchers {
 */
-// mig: fn print_float
 #[test]
 fn print_float() {
     let compilation_bump = bumpalo::Bump::new();
@@ -67,7 +65,6 @@ exported func main() {
     compile.evalForStdout(Vector()).trim() shouldEqual "42.125"
   }
 */
-// mig: fn float_arithmetic
 #[test]
 fn float_arithmetic() {
     let compilation_bump = bumpalo::Bump::new();
@@ -101,7 +98,6 @@ fn float_arithmetic() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn float_equals
 #[test]
 fn float_equals() {
     let compilation_bump = bumpalo::Bump::new();
@@ -135,7 +131,6 @@ fn float_equals() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn concat_string_and_float
 #[test]
 fn concat_string_and_float() {
     let compilation_bump = bumpalo::Bump::new();

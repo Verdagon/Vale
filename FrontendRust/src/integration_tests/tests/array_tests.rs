@@ -45,12 +45,10 @@ import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonInt, VonStr}
 import org.scalatest._
 */
-// mig: struct ArrayTests
 pub struct ArrayTests;
 /*
 class ArrayTests extends FunSuite with Matchers {
 */
-// mig: fn returning_static_array_from_function_and_dotting_it
 #[test]
 fn returning_static_array_from_function_and_dotting_it() {
     let compilation_bump = bumpalo::Bump::new();
@@ -100,7 +98,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn simple_static_array_and_runtime_index_lookup
 #[test]
 fn simple_static_array_and_runtime_index_lookup() {
     let compilation_bump = bumpalo::Bump::new();
@@ -160,7 +157,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn destroy_ssa_of_imms_into_function
 #[test]
 fn destroy_ssa_of_imms_into_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -208,7 +204,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn destroy_rsa_of_imms_into_function
 #[test]
 fn destroy_rsa_of_imms_into_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -256,7 +251,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn destroy_ssa_of_muts_into_function
 #[test]
 fn destroy_ssa_of_muts_into_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -306,7 +300,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn destroy_rsa_of_muts_into_function
 #[test]
 fn destroy_rsa_of_muts_into_function() {
     let compilation_bump = bumpalo::Bump::new();
@@ -358,7 +351,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn migrate_rsa
 #[test]
 fn migrate_rsa() {
     let compilation_bump = bumpalo::Bump::new();
@@ -410,7 +402,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn migrate_ssa
 #[test]
 fn migrate_ssa() {
     let compilation_bump = bumpalo::Bump::new();
@@ -462,7 +453,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn unspecified_mutability_static_array_from_lambda_defaults_to_mutable
 #[test]
 fn unspecified_mutability_static_array_from_lambda_defaults_to_mutable() {
     let compilation_bump = bumpalo::Bump::new();
@@ -527,7 +517,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn immutable_static_array_from_lambda
 #[test]
 fn immutable_static_array_from_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -580,7 +569,6 @@ fn immutable_static_array_from_lambda() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn mutable_static_array_from_lambda
 #[test]
 fn mutable_static_array_from_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -633,7 +621,6 @@ fn mutable_static_array_from_lambda() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn immutable_static_array_from_values
 #[test]
 fn immutable_static_array_from_values() {
     let compilation_bump = bumpalo::Bump::new();
@@ -686,7 +673,6 @@ fn immutable_static_array_from_values() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn mutable_static_array_from_values
 #[test]
 fn mutable_static_array_from_values() {
     let compilation_bump = bumpalo::Bump::new();
@@ -739,7 +725,6 @@ fn mutable_static_array_from_values() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn unspecified_mutability_runtime_array_from_lambda_defaults_to_mutable
 #[test]
 fn unspecified_mutability_runtime_array_from_lambda_defaults_to_mutable() {
     let compilation_bump = bumpalo::Bump::new();
@@ -806,7 +791,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn immutable_runtime_array_from_lambda
 #[test]
 fn immutable_runtime_array_from_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -859,7 +843,6 @@ fn immutable_runtime_array_from_lambda() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn mutable_runtime_array_from_lambda
 #[test]
 fn mutable_runtime_array_from_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -915,7 +898,6 @@ fn mutable_runtime_array_from_lambda() {
   }
 */
 //m [<mut> 3 * [#3]<mut>int] = [mut][ [mut][1, 2, 3], [mut][4, 5, 6], [mut][7, 8, 9] ];
-// mig: fn take_arraysequence_as_a_parameter
 #[test]
 fn take_arraysequence_as_a_parameter() {
     let compilation_bump = bumpalo::Bump::new();
@@ -966,7 +948,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn borrow_arraysequence_as_a_parameter
 #[test]
 fn borrow_arraysequence_as_a_parameter() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1026,7 +1007,6 @@ exported func main() int {
 */
 // the argument to __Array doesnt even have to be a struct or a lambda or an
 // interface or whatever, its just passed straight through to the prototype
-// mig: fn array_map_with_int
 #[test]
 fn array_map_with_int() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1095,7 +1075,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn new_rsa
 #[test]
 fn new_rsa() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1172,7 +1151,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn array_map_with_lambda
 #[test]
 fn array_map_with_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1243,7 +1221,6 @@ where F Prot = func(Lam, int)int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn make_array_map_with_struct
 #[test]
 fn make_array_map_with_struct() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1297,7 +1274,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn make_array_map_with_lambda
 #[test]
 fn make_array_map_with_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1343,7 +1319,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn array_map_with_interface
 #[test]
 fn array_map_with_interface() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1415,7 +1390,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn array_map_taking_a_closure_which_captures_something
 #[test]
 fn array_map_taking_a_closure_which_captures_something() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1461,7 +1435,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(10) => }
   }
 */
-// mig: fn simple_array_map_with_runtime_index_lookup
 #[test]
 fn simple_array_map_with_runtime_index_lookup() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1508,7 +1481,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn nested_array
 #[test]
 fn nested_array() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1551,7 +1523,6 @@ exported func main() int {
   }
 
 */
-// mig: fn two_dimensional_array
 #[test]
 fn two_dimensional_array() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1602,7 +1573,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn array_with_capture
 #[test]
 fn array_with_capture() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1657,7 +1627,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 */
-// mig: fn capture
 #[test]
 fn capture() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1726,7 +1695,6 @@ exported func main() int {
   }
 
 */
-// mig: fn mutate_array
 #[test]
 fn mutate_array() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1773,7 +1741,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(1337) => }
   }
 */
-// mig: fn capture_mutable_array
 #[test]
 fn capture_mutable_array() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1823,7 +1790,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "6"
   }
 */
-// mig: fn swap_out_of_array
 #[test]
 fn swap_out_of_array() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1875,7 +1841,6 @@ exported func main() int {
   }
 
 */
-// mig: fn test_array_length
 #[test]
 fn test_array_length() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1919,7 +1884,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(11) => }
   }
 */
-// mig: fn map_using_array_construct
 #[test]
 fn map_using_array_construct() {
     let compilation_bump = bumpalo::Bump::new();
@@ -1973,7 +1937,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn map_from_hardcoded_values
 #[test]
 fn map_from_hardcoded_values() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2024,7 +1987,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn nested_imm_arrays
 #[test]
 fn nested_imm_arrays() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2075,7 +2037,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(30) => }
   }
 */
-// mig: fn array_foreach
 #[test]
 fn array_foreach() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2124,7 +2085,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(169) => }
   }
 */
-// mig: fn array_has
 #[test]
 fn array_has() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2168,7 +2128,6 @@ exported func main() bool {
   }
 
 */
-// mig: fn each_on_ssa
 #[test]
 fn each_on_ssa() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2216,7 +2175,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "VenusEarthMars"
   }
 */
-// mig: fn change_mutability
 #[test]
 fn change_mutability() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2263,7 +2221,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("3") => }
   }
 */
-// mig: fn reports_when_making_new_imm_rsa_without_lambda
 #[test]
 fn reports_when_making_new_imm_rsa_without_lambda() {
     let compilation_bump = bumpalo::Bump::new();
@@ -2354,7 +2311,6 @@ exported func main() int {
 //    compile.evalForKind(Vector()) match { case VonInt(3) => }
 //  }
 */
-// mig: fn new_immutable_array
 #[test]
 fn new_immutable_array() {
     let compilation_bump = bumpalo::Bump::new();

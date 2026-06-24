@@ -8,7 +8,6 @@ import dev.vale.typing.names._
 
 object simpleNameI {
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom for IdI` below.)
 /*
   def unapply[R <: IRegionsModeI](id: IdI[R, INameI[R]]): Option[String] = {
@@ -34,21 +33,18 @@ object simpleNameI {
 
 object functionNameI {
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom for FunctionDefinitionI` below.)
 /*
   def unapply(function2: FunctionDefinitionI): Option[String] = {
     unapply(function2.header)
   }
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom for FunctionHeaderI` below.)
 /*
   def unapply(header: FunctionHeaderI): Option[String] = {
     simpleNameI.unapply(header.id)
   }
 */
-// mig: fn unapply (realized-by-TryFrom)
 // (Realized via `impl TryFrom for PrototypeI` below.)
 /*
   def unapply[R <: IRegionsModeI](prototype: PrototypeI[R]): Option[String] = {

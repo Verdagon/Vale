@@ -11,7 +11,6 @@ import scala.collection.immutable.List
 
 object PatternSUtils {
 */
-// mig: fn get_rune_types_from_pattern
 pub fn get_rune_types_from_pattern<'s>(
     pattern: &'s AtomSP<'s>,
 ) -> Vec<(IRuneS<'s>, ITemplataType<'s>)> {

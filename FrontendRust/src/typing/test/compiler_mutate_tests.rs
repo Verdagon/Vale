@@ -50,7 +50,6 @@ import scala.io.Source
 class CompilerMutateTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 */
-// mig: fn read_code_from_resource
 pub fn read_code_from_resource(resource_filename: &str) -> String {
   panic!("Unimplemented: read_code_from_resource");
 }
@@ -61,7 +60,6 @@ pub fn read_code_from_resource(resource_filename: &str) -> String {
     is.mkString("")
   }
 */
-// mig: fn test_mutating_a_local_var
 #[test]
 fn test_mutating_a_local_var() {
 
@@ -125,7 +123,6 @@ exported func main() {a = 3; set a = 4; }
     resultCoord shouldEqual CoordT(ShareT, RegionT(DefaultRegionT), IntT.i32)
   }
 */
-// mig: fn test_mutable_member_permission
 #[test]
 fn test_mutable_member_permission() {
 
@@ -190,7 +187,6 @@ exported func main() {
     }
   }
 */
-// mig: fn local_set_upcasts
 #[test]
 fn local_set_upcasts() {
 
@@ -257,7 +253,6 @@ exported func main() {
     })
   }
 */
-// mig: fn expr_set_upcasts
 #[test]
 fn expr_set_upcasts() {
 
@@ -330,7 +325,6 @@ exported func main() {
     })
   }
 */
-// mig: fn reports_when_we_try_to_mutate_an_imm_struct
 #[test]
 fn reports_when_we_try_to_mutate_an_imm_struct() {
 
@@ -405,7 +399,6 @@ Cannot mutate final member 'x' of container Vec3
     }
   }
 */
-// mig: fn reports_when_we_try_to_mutate_a_final_member_in_a_struct
 #[test]
 fn reports_when_we_try_to_mutate_a_final_member_in_a_struct() {
 
@@ -480,7 +473,6 @@ Cannot mutate final member 'x' of container Vec3
     }
   }
 */
-// mig: fn reports_when_we_try_to_mutate_an_element_in_an_imm_static_sized_array
 #[test]
 fn reports_when_we_try_to_mutate_an_element_in_an_imm_static_sized_array() {
 
@@ -565,7 +557,6 @@ Cannot change a slot in array StaticArray<10, imm, final, i32> to point to a dif
     }
   }
 */
-// mig: fn reports_when_we_try_to_mutate_a_local_variable_with_wrong_type
 #[test]
 fn reports_when_we_try_to_mutate_a_local_variable_with_wrong_type() {
 
@@ -620,7 +611,6 @@ Mutate couldn't convert CoordT { ownership: Share, region: RegionT { region: Def
     }
   }
 */
-// mig: fn reports_when_we_try_to_override_a_non_interface
 #[test]
 fn reports_when_we_try_to_override_a_non_interface() {
 
@@ -675,7 +665,6 @@ Can't extend a non-interface: Kind(KindTemplataT { kind: Int(IntT { bits: 32 }) 
     }
   }
 */
-// mig: fn can_mutate_an_element_in_a_runtime_sized_array
 #[test]
 fn can_mutate_an_element_in_a_runtime_sized_array() {
 
@@ -725,7 +714,6 @@ exported func main() int {
     compile.expectCompilerOutputs()
   }
 */
-// mig: fn can_restackify_in_destructure_pattern
 #[test]
 fn can_restackify_in_destructure_pattern() {
 
@@ -866,7 +854,6 @@ exported func main() int {
     compile.expectCompilerOutputs()
   }
 */
-// mig: fn humanize_errors
 #[test]
 fn humanize_errors() {
 

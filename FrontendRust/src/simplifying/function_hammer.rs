@@ -35,7 +35,6 @@ class FunctionHammer(
     new ExpressionHammer(keywords, typeHammer, nameHammer, structHammer, this)
 */
 
-// mig: fn translate_functions
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -70,7 +69,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_function
     pub fn translate_function(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -167,7 +165,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_function_attributes
     pub fn translate_function_attributes(
         &self,
         attributes: &[IFunctionAttributeI<'s>],
@@ -191,7 +188,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_function_ref
     pub fn translate_function_ref(
         &self,
         hinputs: &HinputsI<'s, 'i>,

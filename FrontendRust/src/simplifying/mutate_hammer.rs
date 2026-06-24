@@ -48,7 +48,6 @@ class MutateHammer(
     expressionHammer: ExpressionHammer) {
 */
 
-// mig: fn translate_mutate
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -131,7 +130,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_runtime_sized_array_mutate
     pub fn translate_mundane_runtime_sized_array_mutate(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -192,7 +190,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_static_sized_array_mutate
     pub fn translate_mundane_static_sized_array_mutate(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -236,7 +233,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_addressible_member_mutate
     pub fn translate_addressible_member_mutate(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -354,7 +350,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_member_mutate
     pub fn translate_mundane_member_mutate(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -421,7 +416,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_addressible_local_mutate
     pub fn translate_addressible_local_mutate(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -474,7 +468,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_mundane_local_mutate
     pub fn translate_mundane_local_mutate(
         &self,
         hinputs: &HinputsI<'s, 'i>,

@@ -30,7 +30,6 @@ import dev.vale.von.IVonData
 
 import scala.collection.immutable.List
 */
-// mig: struct PanicExceptionV
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct PanicExceptionV;
@@ -38,19 +37,16 @@ pub struct PanicExceptionV;
 case class PanicException() extends Throwable {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for PanicExceptionV` below.)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for PanicExceptionV` below.)
 /*
 override def equals(obj: Any): Boolean = vcurious();
   vpass()
 }
 */
-// mig: struct ConstraintViolatedExceptionV
 /// Temporary state
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct ConstraintViolatedExceptionV<'s>
@@ -61,12 +57,10 @@ pub struct ConstraintViolatedExceptionV<'s>
 case class ConstraintViolatedException(msg: String) extends Throwable {
   val hash = runtime.ScalaRunTime._hashCode(this)
 */
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for ConstraintViolatedExceptionV` below.)
 /*
   override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for ConstraintViolatedExceptionV` below.)
 /*
 override def equals(obj: Any): Boolean = vcurious();
@@ -85,7 +79,6 @@ pub enum VmRuntimeErrorV<'s>
 
 object Vivem {
 */
-// mig: fn execute_with_primitive_args
 pub fn execute_with_primitive_args<'v, 'h, 's>(program_h: &'h ProgramH<'s, 'h>, interner: &HammerInterner<'s, 'h>, scout_arena: &ScoutArena<'s>, external_argument_kinds: &'v [PrimitiveKindV<'v, 'h, 's>], vivem_dout: &'v mut PrintStream, vivem_bump: &'v bumpalo::Bump, stdin: &'v dyn Fn() -> StrI<'s>, stdout: &'v dyn Fn(StrI<'s>)) -> Result<IVonData, VmRuntimeErrorV<'s>> {
     let mut heap = HeapV::new(interner, vivem_dout, vivem_bump);
     let arg_references: &'v [ReferenceV<'v, 'h, 's>] =
@@ -110,7 +103,6 @@ pub fn execute_with_primitive_args<'v, 'h, 's>(program_h: &'h ProgramH<'s, 'h>, 
     innerExecute(programH, argReferences, heap, vivemDout, stdin, stdout)
   }
 */
-// mig: fn execute_with_heap
 pub fn execute_with_heap<'v, 'h, 's>(program_h: &'h ProgramH<'s, 'h>, interner: &HammerInterner<'s, 'h>, scout_arena: &ScoutArena<'s>, input_heap: &mut HeapV<'v, 'h, 's>, input_argument_references: &'v [ReferenceV<'v, 'h, 's>], stdin: &'v dyn Fn() -> StrI<'s>, stdout: &'v dyn Fn(StrI<'s>)) -> Result<IVonData, VmRuntimeErrorV<'s>> {
     assert_eq!(input_heap.count_unreachable_allocations(interner, input_argument_references), 0);
     inner_execute(program_h, interner, scout_arena, input_argument_references, input_heap, stdin, stdout)
@@ -128,7 +120,6 @@ pub fn execute_with_heap<'v, 'h, 's>(program_h: &'h ProgramH<'s, 'h>, interner: 
     innerExecute(programH, inputArgumentReferences, inputHeap, vivemDout, stdin, stdout)
   }
 */
-// mig: fn empty_stdin
 pub fn empty_stdin<'v, 'h, 's>() -> StrI<'s> {
     panic!("Unimplemented: empty_stdin")
 }
@@ -137,7 +128,6 @@ pub fn empty_stdin<'v, 'h, 's>() -> StrI<'s> {
     vfail("Empty stdin!")
   }
 */
-// mig: fn null_stdout
 pub fn null_stdout<'v, 'h, 's>(str: StrI<'s>) {
     panic!("Unimplemented: null_stdout")
 }
@@ -145,7 +135,6 @@ pub fn null_stdout<'v, 'h, 's>(str: StrI<'s>) {
   def nullStdout(str: String) = {
   }
 */
-// mig: fn regular_stdout
 pub fn regular_stdout<'v, 'h, 's>(str: StrI<'s>) {
     print!("{}", str.0);
 }
@@ -154,7 +143,6 @@ pub fn regular_stdout<'v, 'h, 's>(str: StrI<'s>) {
     print(str)
   }
 */
-// mig: fn stdin_from_list
 pub fn stdin_from_list<'s>(stdin_list: &[StrI<'s>]) -> Box<dyn Fn() -> StrI<'s> + 's> {
     let remaining_stdin = RefCell::new(stdin_list.to_vec());
     let stdin: Box<dyn Fn() -> StrI<'s> + 's> = Box::new(move || {
@@ -178,7 +166,6 @@ pub fn stdin_from_list<'s>(stdin_list: &[StrI<'s>]) -> Box<dyn Fn() -> StrI<'s> 
     stdin
   }
 */
-// mig: fn stdout_collector
 pub fn stdout_collector<'s>() -> (Rc<RefCell<String>>, Box<dyn Fn(StrI<'s>)>) {
     let stdoutput = Rc::new(RefCell::new(String::new()));
     let stdoutput_clone = stdoutput.clone();
@@ -195,7 +182,6 @@ pub fn stdout_collector<'s>() -> (Rc<RefCell<String>>, Box<dyn Fn(StrI<'s>)>) {
     (stdoutput, func)
   }
 */
-// mig: fn inner_execute
 pub fn inner_execute<'v, 'h, 's>(program_h: &'h ProgramH<'s, 'h>, interner: &HammerInterner<'s, 'h>, scout_arena: &ScoutArena<'s>, argument_references: &'v [ReferenceV<'v, 'h, 's>], heap: &mut HeapV<'v, 'h, 's>, stdin: &'v dyn Fn() -> StrI<'s>, stdout: &'v dyn Fn(StrI<'s>)) -> Result<IVonData, VmRuntimeErrorV<'s>> {
     let mains: Vec<&'h FunctionH<'s, 'h>> =
         program_h.packages.package_coord_to_contents.iter().flat_map(|(_package_coord, paackage)| {

@@ -87,7 +87,6 @@ sealed trait IFunctionParent
 case class FunctionNoParent() extends IFunctionParent
 */
 
-// mig: struct ParentCitizen
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParentCitizen<'s> {
   pub citizen_is_interface: bool,

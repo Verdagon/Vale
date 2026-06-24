@@ -41,12 +41,10 @@ import dev.vale.von.{VonInt, VonStr}
 import org.scalatest._
 
 */
-// mig: struct IfTests
 pub struct IfTests;
 /*
 class IfTests extends FunSuite with Matchers {
 */
-// mig: fn simple_true_branch_returning_an_int
 #[test]
 fn simple_true_branch_returning_an_int() {
     let compilation_bump = bumpalo::Bump::new();
@@ -141,7 +139,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 */
-// mig: fn simple_false_branch_returning_an_int
 #[test]
 fn simple_false_branch_returning_an_int() {
     let compilation_bump = bumpalo::Bump::new();
@@ -183,7 +180,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn ladder
 #[test]
 fn ladder() {
     let compilation_bump = bumpalo::Bump::new();
@@ -262,7 +258,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn moving_from_inside_if
 #[test]
 fn moving_from_inside_if() {
     let compilation_bump = bumpalo::Bump::new();
@@ -354,7 +349,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn if_with_complex_condition
 #[test]
 fn if_with_complex_condition() {
     let compilation_bump = bumpalo::Bump::new();
@@ -423,7 +417,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("#") => }
   }
 */
-// mig: fn if_with_condition_declaration
 #[test]
 fn if_with_condition_declaration() {
     let compilation_bump = bumpalo::Bump::new();
@@ -467,7 +460,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn ret_from_inside_if_will_destroy_locals
 #[test]
 fn ret_from_inside_if_will_destroy_locals() {
     let compilation_bump = bumpalo::Bump::new();
@@ -539,7 +531,6 @@ exported func main() int {
     compile.evalForStdout(Vector()) shouldEqual "In then!\nDestroying marine!\n"
   }
 */
-// mig: fn can_continue_if_other_branch_would_have_returned
 #[test]
 fn can_continue_if_other_branch_would_have_returned() {
     let compilation_bump = bumpalo::Bump::new();
@@ -622,7 +613,6 @@ Destroying marine!
     compile.evalForStdout(Vector()) shouldEqual "In else!\nIn rest!\nDestroying marine!\n"
   }
 */
-// mig: fn destructure_inside_if
 #[test]
 fn destructure_inside_if() {
     let compilation_bump = bumpalo::Bump::new();
@@ -705,7 +695,6 @@ exported func main() {
     compile.evalForStdout(Vector()) shouldEqual "5\n5\n5\n5\n"
   }
 */
-// mig: fn if_nevers
 #[test]
 fn if_nevers() {
     let compilation_bump = bumpalo::Bump::new();
@@ -738,7 +727,6 @@ fn if_nevers() {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn if_with_panics_and_rets
 #[test]
 fn if_with_panics_and_rets() {
     let compilation_bump = bumpalo::Bump::new();
@@ -796,7 +784,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn toast
 #[test]
 fn toast() {
     let compilation_bump = bumpalo::Bump::new();

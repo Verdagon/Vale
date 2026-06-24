@@ -25,7 +25,6 @@ use std::collections::HashSet;
 use std::marker::PhantomData;
 
 
-// mig: struct RuneTypeSolveError
 #[derive(Debug)]
 pub struct RuneTypeSolveError<'s> {
   pub range: Vec<RangeS<'s>>,
@@ -36,8 +35,6 @@ case class RuneTypeSolveError(range: List[RangeS], failedSolve: FailedSolve[IRul
   vpass()
 }
 */
-// mig: impl RuneTypeSolveError
-// mig: enum IRuneTypeRuleError
 #[derive(Debug)]
 pub enum IRuneTypeRuleError<'s> {
   FoundCitizenDidntMatchExpectedType(FoundCitizenDidntMatchExpectedType<'s>),
@@ -74,7 +71,6 @@ impl<'s> From<IRuneTypingLookupFailedError<'s>> for IRuneTypeRuleError<'s> {
 /*
 sealed trait IRuneTypeRuleError
 */
-// mig: struct FoundCitizenDidntMatchExpectedType
 #[derive(Debug)]
 pub struct FoundCitizenDidntMatchExpectedType<'s> {
   pub range: Vec<RangeS<'s>>,
@@ -88,8 +84,6 @@ case class FoundCitizenDidntMatchExpectedType(
   actualType: ITemplataType
 ) extends IRuneTypeRuleError
 */
-// mig: impl FoundCitizenDidntMatchExpectedType
-// mig: struct FoundTemplataDidntMatchExpectedType
 #[derive(Debug)]
 pub struct FoundTemplataDidntMatchExpectedType<'s> {
   pub range: Vec<RangeS<'s>>,
@@ -105,8 +99,6 @@ case class FoundTemplataDidntMatchExpectedType(
   vpass()
 }
 */
-// mig: impl FoundTemplataDidntMatchExpectedType
-// mig: struct NotEnoughArgumentsForGenericCall
 #[derive(Debug)]
 pub struct NotEnoughArgumentsForGenericCall<'s> {
   pub range: Vec<RangeS<'s>>,
@@ -121,8 +113,6 @@ case class NotEnoughArgumentsForGenericCall(
   vpass()
 }
   */
-// mig: impl NotEnoughArgumentsForGenericCall
-// mig: struct GenericCallArgTypeMismatch
 #[derive(Debug)]
 pub struct GenericCallArgTypeMismatch<'s> {
   pub range: Vec<RangeS<'s>>,
@@ -139,8 +129,6 @@ case class GenericCallArgTypeMismatch(
   paramIndex: Int
 ) extends IRuneTypeRuleError
 */
-// mig: impl GenericCallArgTypeMismatch
-// mig: enum IRuneTypingLookupFailedError
 pub enum IRuneTypingLookupFailedError<'s> {
   TooManyMatchingTypes(RuneTypingTooManyMatchingTypes<'s>),
   CouldntFindType(RuneTypingCouldntFindType<'s>),
@@ -148,49 +136,40 @@ pub enum IRuneTypingLookupFailedError<'s> {
 /*
 sealed trait IRuneTypingLookupFailedError extends IRuneTypeRuleError
 */
-// mig: struct RuneTypingTooManyMatchingTypes
 #[derive(Debug)]
 pub struct RuneTypingTooManyMatchingTypes<'s> {
   pub range: RangeS<'s>,
   pub name: IImpreciseNameS<'s>,
 }
-// mig: impl RuneTypingTooManyMatchingTypes
 impl<'s> RuneTypingTooManyMatchingTypes<'s> {
 /*
 case class RuneTypingTooManyMatchingTypes(range: RangeS, name: IImpreciseNameS) extends IRuneTypingLookupFailedError {
 */
-// mig: fn equals
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 } // end impl RuneTypingTooManyMatchingTypes
 /*
   override def hashCode(): Int = vcurious()
 }
 */
-// mig: struct RuneTypingCouldntFindType
 #[derive(Debug)]
 pub struct RuneTypingCouldntFindType<'s> {
   pub range: RangeS<'s>,
   pub name: IImpreciseNameS<'s>,
 }
-// mig: impl RuneTypingCouldntFindType
 impl<'s> RuneTypingCouldntFindType<'s> {
 /*
 case class RuneTypingCouldntFindType(range: RangeS, name: IImpreciseNameS) extends IRuneTypingLookupFailedError {
 */
-// mig: fn equals
 /*
   override def equals(obj: Any): Boolean = vcurious();
 */
-// mig: fn hash_code
 } // end impl RuneTypingCouldntFindType
 /*
   override def hashCode(): Int = vcurious()
 }
 */
-// mig: struct FoundTemplataDidntMatchExpectedTypeA
 #[derive(Debug)]
 pub struct FoundTemplataDidntMatchExpectedTypeA<'s> {
   pub range: Vec<RangeS<'s>>,
@@ -206,8 +185,6 @@ case class FoundTemplataDidntMatchExpectedTypeA(
   vpass()
 }
 */
-// mig: impl FoundTemplataDidntMatchExpectedTypeA
-// mig: struct FoundPrimitiveDidntMatchExpectedType
 pub struct FoundPrimitiveDidntMatchExpectedType<'s> {
   pub range: Vec<RangeS<'s>>,
   pub expected_type: ITemplataType<'s>,
@@ -222,8 +199,6 @@ case class FoundPrimitiveDidntMatchExpectedType(
   vpass()
 }
 */
-// mig: impl FoundPrimitiveDidntMatchExpectedType
-// mig: enum IRuneTypeSolverLookupResult
 #[derive(PartialEq)]
 pub enum IRuneTypeSolverLookupResult<'s> {
   Primitive(PrimitiveRuneTypeSolverLookupResult<'s>),
@@ -233,7 +208,6 @@ pub enum IRuneTypeSolverLookupResult<'s> {
 /*
 sealed trait IRuneTypeSolverLookupResult
 */
-// mig: struct PrimitiveRuneTypeSolverLookupResult
 #[derive(PartialEq)]
 pub struct PrimitiveRuneTypeSolverLookupResult<'s> {
   pub tyype: ITemplataType<'s>,
@@ -241,8 +215,6 @@ pub struct PrimitiveRuneTypeSolverLookupResult<'s> {
 /*
 case class PrimitiveRuneTypeSolverLookupResult(tyype: ITemplataType) extends IRuneTypeSolverLookupResult
 */
-// mig: impl PrimitiveRuneTypeSolverLookupResult
-// mig: struct CitizenRuneTypeSolverLookupResult
 #[derive(PartialEq)]
 pub struct CitizenRuneTypeSolverLookupResult<'s> {
   pub tyype: ITemplataType<'s>,
@@ -251,8 +223,6 @@ pub struct CitizenRuneTypeSolverLookupResult<'s> {
 /*
 case class CitizenRuneTypeSolverLookupResult(tyype: TemplateTemplataType, genericParams: Vector[GenericParameterS]) extends IRuneTypeSolverLookupResult
 */
-// mig: impl CitizenRuneTypeSolverLookupResult
-// mig: struct TemplataLookupResult
 #[derive(PartialEq)]
 pub struct TemplataLookupResult<'s> {
   pub templata: ITemplataType<'s>,
@@ -260,8 +230,6 @@ pub struct TemplataLookupResult<'s> {
 /*
 case class TemplataLookupResult(templata: ITemplataType) extends IRuneTypeSolverLookupResult
 */
-// mig: impl TemplataLookupResult
-// mig: trait IRuneTypeSolverEnv
 pub trait IRuneTypeSolverEnv<'s> {
   fn lookup(
     &self,
@@ -277,14 +245,12 @@ trait IRuneTypeSolverEnv {
 }
 */
 
-// mig: struct RuneTypeSolver
 pub struct RuneTypeSolver<'s, 'ctx> {
   pub scout_arena: &'ctx ScoutArena<'s>,
 }
 /*
 class RuneTypeSolver(interner: Interner) {
 */
-// mig: impl RuneTypeSolver
 impl<'s, 'ctx> RuneTypeSolver<'s, 'ctx> {
   pub fn solve_rune_type<E: IRuneTypeSolverEnv<'s>>(
     &self,
@@ -304,7 +270,6 @@ impl<'s, 'ctx> RuneTypeSolver<'s, 'ctx> {
   }
   /* Guardian: disable-all */
 }
-// mig: fn get_runes_rune_type
 fn get_runes_rune_type<'s>(
   rule: &IRulexSR<'s>,
 ) -> Vec<IRuneS<'s>> {
@@ -348,7 +313,6 @@ fn get_runes_rune_type<'s>(
     result.map(_.rune)
   }
 */
-// mig: fn get_puzzles_rune_type
 fn get_puzzles_rune_type<'s>(
   predicting: bool,
   rule: &IRulexSR<'s>,
@@ -473,7 +437,6 @@ fn get_puzzles_rune_type<'s>(
     }
   }
 */
-// mig: fn solve_rule
 
 fn solve_rule<'s, E: IRuneTypeSolverEnv<'s>>(
   scout_arena: &ScoutArena<'s>,
@@ -784,7 +747,6 @@ fn solve_rule<'s, E: IRuneTypeSolverEnv<'s>>(
     }
   }
 */
-// mig: fn lookup
 
 fn lookup_rune_type<'s, E: IRuneTypeSolverEnv<'s>>(
   _env: &E,
@@ -896,7 +858,6 @@ fn lookup_rune_type<'s, E: IRuneTypeSolverEnv<'s>>(
     Ok(())
   }
 */
-// mig: fn solve_rune_type
 pub fn solve_rune_type<'s, E: IRuneTypeSolverEnv<'s>>(
   // V: we took out self here, do we have a coherent story about when something should be self/impl'd
   // VA: In Scala, solveRuneType was a method on class RuneTypeSolver(interner). In Rust, it was
@@ -1202,7 +1163,6 @@ pub fn solve_rune_type<'s, E: IRuneTypeSolverEnv<'s>>(
         (rules.flatMap(getRunes) ++ initiallyKnownRunes.keys).distinct.toVector)
 */
 
-// mig: fn sanity_check_conclusion
 fn sanity_check_conclusion<'s>(
   _rune: IRuneS<'s>,
   _conclusion: &ITemplataType<'s>,
@@ -1231,7 +1191,6 @@ fn sanity_check_conclusion<'s>(
       }
     }) {}
 */
-// mig: fn complex_solve
 fn complex_solve() -> Result<(), ()> {
   panic!("Unimplemented complex_solve");
 }
@@ -1242,7 +1201,6 @@ fn complex_solve() -> Result<(), ()> {
     val allRunes = solverState.getAllRunes() ++ additionalRunes
     val unsolvedRunes = allRunes -- conclusions.keySet
 */
-// mig: fn solve
 fn solve<'s>(
   _state: (),
   _env: (),
@@ -1273,7 +1231,6 @@ fn solve<'s>(
 /*
 object RuneTypeSolver {
 */
-// mig: fn check_generic_call_without_defaults
 fn check_generic_call_without_defaults<'s>(
   _param_types: &[ITemplataType<'s>],
   _arg_types: &[ITemplataType<'s>],
@@ -1303,7 +1260,6 @@ fn check_generic_call_without_defaults<'s>(
     Ok(())
   }
 */
-// mig: fn check_generic_call
 fn check_generic_call<'s>(
   range: Vec<RangeS<'s>>,
   citizen_generic_params: &[&GenericParameterS<'s>],

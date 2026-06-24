@@ -1,4 +1,3 @@
-// mig: struct GlobalOptions
 #[derive(Clone)]
 pub struct GlobalOptions {
   pub sanity_check: bool,
@@ -8,14 +7,12 @@ pub struct GlobalOptions {
   pub debug_output: bool,
 }
 
-// mig: impl GlobalOptions
 impl GlobalOptions {
   /*
   package dev.vale.options
 
   object GlobalOptions {
   */
-  // mig: fn apply
   pub fn apply() -> GlobalOptions {
     GlobalOptions {
       sanity_check: false,
@@ -35,7 +32,6 @@ impl GlobalOptions {
         debugOutput = false)
     }
   */
-  // mig: fn test
   pub fn test() -> GlobalOptions {
     GlobalOptions {
       sanity_check: true,

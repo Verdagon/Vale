@@ -41,12 +41,9 @@ use crate::instantiating::ast::names::InterfaceNameI;
 use crate::instantiating::ast::names::StructNameI;
 use crate::instantiating::ast::templata::ITemplataI;
 
-// mig: struct CounterI
 pub struct CounterI {
     set: HashSet<i32>,
 }
-// mig: impl CounterI
-// mig: fn new
 impl CounterI {
     pub fn new() -> Self {
         CounterI { set: HashSet::new() }
@@ -58,7 +55,6 @@ impl CounterI {
     val set: mutable.HashSet[Int] = mutable.HashSet[Int]()
 
 */
-// mig: fn count
     pub fn count<'s, 'i>(&mut self, region: RegionTemplataI<sI>) where 's: 'i {
         self.set.insert(region.pure_height);
     }
@@ -68,7 +64,6 @@ impl CounterI {
     }
 
 */
-// mig: fn assemble_map
     pub fn assemble_map(&self) -> HashMap<i32, i32> {
         let num_regions = self.set.len();
         // Let's say we have a set that contains 3, 5, -2, 0, 4, it becomes...
@@ -126,7 +121,6 @@ impl CounterI {
   }
 
 */
-// mig: fn count_prototype
 pub fn count_prototype<'s, 'i>(counter: &mut CounterI, prototype: &PrototypeI<'s, 'i, sI>)
 where 's: 'i {
     let PrototypeI { id, return_type, .. } = *prototype;
@@ -141,7 +135,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_id
 pub fn count_id<'s, 'i>(counter: &mut CounterI, id_i: &IdI<'s, 'i, sI>, func: impl Fn(&mut CounterI, &INameI<'s, 'i, sI>))
 where 's: 'i {
     let IdI { package_coord: _package_coord, init_steps, local_name } = *id_i;
@@ -162,7 +155,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_function_id
 pub fn count_function_id<'s, 'i>(counter: &mut CounterI, id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, id, |counter, x| count_function_name(counter, &IFunctionNameI::try_from(*x).unwrap()))
@@ -179,7 +171,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_function_name
 pub fn count_function_name<'s, 'i>(counter: &mut CounterI, name: &IFunctionNameI<'s, 'i, sI>)
 where 's: 'i {
     match *name {
@@ -252,7 +243,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_citizen_name
 pub fn count_citizen_name<'s, 'i>(counter: &mut CounterI, name: &ICitizenNameI<'s, 'i, sI>) {
     match name {
         ICitizenNameI::Struct(StructNameI { template: _, template_args }) => {
@@ -292,7 +282,6 @@ pub fn count_citizen_name<'s, 'i>(counter: &mut CounterI, name: &ICitizenNameI<'
   }
 
 */
-// mig: fn count_var_name
 pub fn count_var_name() {
     panic!("Unimplemented: count_var_name");
 }
@@ -310,7 +299,6 @@ pub fn count_var_name() {
   }
 
 */
-// mig: fn count_name
 pub fn count_name<'s, 'i>(counter: &mut CounterI, name: &INameI<'s, 'i, sI>)
 where 's: 'i {
     match name {
@@ -380,7 +368,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_templata
 pub fn count_templata<'s, 'i>(_counter: &mut CounterI, _templata: &ITemplataI<'s, 'i, sI>) {
     match _templata {
         ITemplataI::Coord(c) => {
@@ -415,7 +402,6 @@ pub fn count_templata<'s, 'i>(_counter: &mut CounterI, _templata: &ITemplataI<'s
   }
 
 */
-// mig: fn count_coord
 pub fn count_coord<'s, 'i>(counter: &mut CounterI, coord: &CoordI<'s, 'i, sI>)
 where 's: 'i {
     let CoordI { ownership: _ownership, kind } = *coord;
@@ -431,7 +417,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_kind
 pub fn count_kind_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_kind");
 }
@@ -443,7 +428,6 @@ pub fn count_kind_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_kind
 pub fn count_kind<'s, 'i>(counter: &mut CounterI, kind: &KindIT<'s, 'i, sI>)
 where 's: 'i {
     match kind {
@@ -521,7 +505,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_runtime_sized_array
 pub fn count_runtime_sized_array<'s, 'i>(counter: &mut CounterI, rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) {
     let rsa_id = rsa.name;
     count_id(counter, &rsa_id, |counter, local_name| {
@@ -552,7 +535,6 @@ pub fn count_runtime_sized_array<'s, 'i>(counter: &mut CounterI, rsa: &RuntimeSi
   }
 
 */
-// mig: fn count_static_sized_array
 pub fn count_static_sized_array<'s, 'i>(counter: &mut CounterI, ssa: &StaticSizedArrayIT<'s, 'i, sI>) {
     let ssa_id = ssa.name;
     count_id(counter, &ssa_id, |counter, local_name| {
@@ -583,7 +565,6 @@ pub fn count_static_sized_array<'s, 'i>(counter: &mut CounterI, ssa: &StaticSize
   }
 
 */
-// mig: fn count_citizen_id
 pub fn count_citizen_id<'s, 'i>(counter: &mut CounterI, citizen_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     match citizen_id.local_name {
@@ -608,7 +589,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_struct_id
 pub fn count_struct_id<'s, 'i>(counter: &mut CounterI, struct_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, struct_id, |counter, x| count_struct_name(counter, &IStructNameI::try_from(*x).unwrap()))
@@ -625,7 +605,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_struct_template_name
 pub fn count_struct_template_name<'s, 'i>(_counter: &mut CounterI, struct_name: &IStructTemplateNameI<'s, 'i, sI>)
 where 's: 'i {
     match struct_name {
@@ -644,7 +623,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_struct_name
 pub fn count_struct_name<'s, 'i>(counter: &mut CounterI, struct_name: &IStructNameI<'s, 'i, sI>)
 where 's: 'i {
     match struct_name {
@@ -677,7 +655,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_impl_id
 pub fn count_impl_id<'s, 'i>(counter: &mut CounterI, struct_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, struct_id, |counter, x| count_impl_name(counter, &IImplNameI::try_from(*x).unwrap()))
@@ -694,7 +671,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_impl_name
 pub fn count_impl_name<'s, 'i>(counter: &mut CounterI, impl_id: &IImplNameI<'s, 'i, sI>)
 where 's: 'i {
     match impl_id {
@@ -734,7 +710,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_impl_template_name
 pub fn count_impl_template_name<'s, 'i>(_counter: &mut CounterI, name: &IImplTemplateNameI<'s, 'i, sI>)
 where 's: 'i {
     match name {
@@ -753,7 +728,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_export_id
 pub fn count_export_id<'s, 'i>(id_i: &IdI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -768,7 +742,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_extern_id
 pub fn count_extern_id<'s, 'i>(id_i: &IdI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -783,7 +756,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_struct_id
 pub fn count_struct_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_struct_id");
 }
@@ -795,7 +767,6 @@ pub fn count_struct_id_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_interface_id
 pub fn count_interface_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_interface_id");
 }
@@ -807,7 +778,6 @@ pub fn count_interface_id_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_interface_id
 pub fn count_interface_id<'s, 'i>(counter: &mut CounterI, interface_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, interface_id, |counter, x| count_name(counter, x))
@@ -821,7 +791,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_function_id
 pub fn count_function_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_function_id");
 }
@@ -833,7 +802,6 @@ pub fn count_function_id_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_impl_id
 pub fn count_impl_id_map<'s, 'i>(id_i: &IdI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -851,7 +819,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_coord
 pub fn count_coord_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_coord");
 }
@@ -863,7 +830,6 @@ pub fn count_coord_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_var_name
 pub fn count_var_name_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_var_name");
 }
@@ -877,7 +843,6 @@ pub fn count_var_name_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_static_sized_array
 pub fn count_static_sized_array_map<'s, 'i>(ssa: &StaticSizedArrayIT<'s, 'i, sI>) -> HashMap<i32, i32> {
     let mut counter = CounterI::new();
     count_static_sized_array(&mut counter, ssa);
@@ -893,7 +858,6 @@ pub fn count_static_sized_array_map<'s, 'i>(ssa: &StaticSizedArrayIT<'s, 'i, sI>
   }
 
 */
-// mig: fn count_runtime_sized_array
 pub fn count_runtime_sized_array_map<'s, 'i>(rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -910,7 +874,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_prototype
 pub fn count_prototype_map<'s, 'i>(prototype: &PrototypeI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -925,7 +888,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_function_name
 pub fn count_function_name_map<'s, 'i>(name: &IFunctionNameI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -942,7 +904,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_impl_name
 pub fn count_impl_name_map<'s, 'i>(name: &IImplNameI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
@@ -959,7 +920,6 @@ where 's: 'i {
   }
 
 */
-// mig: fn count_citizen_name
 pub fn count_citizen_name_map<'s, 'i>(name: &ICitizenNameI<'s, 'i, sI>) -> HashMap<i32, i32> {
     let mut counter = CounterI::new();
     count_citizen_name(&mut counter, name);
@@ -975,7 +935,6 @@ pub fn count_citizen_name_map<'s, 'i>(name: &ICitizenNameI<'s, 'i, sI>) -> HashM
   }
 
 */
-// mig: fn count_citizen_id
 pub fn count_citizen_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_citizen_id");
 }
@@ -989,7 +948,6 @@ pub fn count_citizen_id_map() -> HashMap<i32, i32> {
   }
 
 */
-// mig: fn count_templata
 pub fn count_templata_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_templata");
 }

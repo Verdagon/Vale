@@ -24,15 +24,12 @@ import org.scalatest._
 import scala.collection.immutable.List
 import scala.io.Source
 */
-// mig: struct CompilerGenericsTests
 pub struct CompilerGenericsTests;
-// mig: impl CompilerGenericsTests
 impl CompilerGenericsTests {}
 /*
 class CompilerGenericsTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 */
-// mig: fn read_code_from_resource
 fn read_code_from_resource(resource_filename: &str) -> String {
     panic!("Unimplemented: read_code_from_resource");
 }
@@ -43,7 +40,6 @@ fn read_code_from_resource(resource_filename: &str) -> String {
     is.mkString("")
   }
 */
-// mig: fn upcasting_with_generic_bounds
 #[test]
 fn upcasting_with_generic_bounds() {
     let parse_bump = Bump::new();

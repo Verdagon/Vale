@@ -24,7 +24,6 @@ import dev.vale.instantiating.ast._
 
 object InstantiatedHumanizer {
 */
-// mig: fn humanize_templata
 pub fn humanize_templata<'s, 'i, R: Copy + PartialEq>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     templata: &ITemplataI<'s, 'i, R>,
@@ -100,7 +99,6 @@ pub fn humanize_templata<'s, 'i, R: Copy + PartialEq>(
     }
   }
 */
-// mig: fn humanize_coord
 pub fn humanize_coord<'s, 'i, R: Copy + PartialEq>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     coord: &CoordI<'s, 'i, R>,
@@ -136,7 +134,6 @@ pub fn humanize_coord<'s, 'i, R: Copy + PartialEq>(
     ownershipStr + kindStr
   }
 */
-// mig: fn humanize_kind
 pub fn humanize_kind<'s, 'i, R: Copy + PartialEq>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     kind: &KindIT<'s, 'i, R>,
@@ -173,7 +170,6 @@ pub fn humanize_kind<'s, 'i, R: Copy + PartialEq>(
     }
   }
 */
-// mig: fn humanize_id
 pub fn humanize_id<'s, 'i, R: Copy + PartialEq>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     name: &IdI<'s, 'i, R>,
@@ -200,7 +196,6 @@ pub fn humanize_id<'s, 'i, R: Copy + PartialEq>(
       humanizeName(codeMap, name.localName, containingRegion)
   }
 */
-// mig: fn humanize_name
 pub fn humanize_name<'s, 'i, R: Copy + PartialEq>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     name: INameI<'s, 'i, R>,
@@ -362,7 +357,6 @@ pub fn humanize_name<'s, 'i, R: Copy + PartialEq>(
     }
   }
 */
-// mig: fn humanize_generic_args
 pub fn humanize_generic_args<'s, 'i, R: Copy + PartialEq>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     template_args: &[ITemplataI<'s, 'i, R>],
@@ -404,7 +398,6 @@ pub fn humanize_generic_args<'s, 'i, R: Copy + PartialEq>(
       })
   }
 */
-// mig: fn humanize_signature
 pub fn humanize_signature<'s, 'i, R>(
     code_map: &dyn Fn(CodeLocationS<'s>) -> String,
     signature: &'i SignatureI<'s, 'i, R>,

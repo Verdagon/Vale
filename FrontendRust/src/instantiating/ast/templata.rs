@@ -25,7 +25,6 @@ import scala.collection.immutable.List
 
 object ITemplataI {
 */
-// mig: fn expect_coord
 pub fn expect_coord<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> ITemplataI<'s, 'i, R> { panic!("Unimplemented: expect_coord"); }
 /*
   def expectCoord[R <: IRegionsModeI](templata: ITemplataI[R]): ITemplataI[R] = {
@@ -35,7 +34,6 @@ pub fn expect_coord<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> ITemplataI<'s
     }
   }
 */
-// mig: fn expect_coord_templata
 pub fn expect_coord_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> CoordTemplataI<'s, 'i, R> {
     match templata {
         ITemplataI::Coord(t) => t,
@@ -50,7 +48,6 @@ pub fn expect_coord_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> Coor
     }
   }
 */
-// mig: fn expect_integer_templata
 pub fn expect_integer_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> IntegerTemplataI<R> {
     match templata {
         ITemplataI::Integer(t) => t,
@@ -65,7 +62,6 @@ pub fn expect_integer_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> In
     }
   }
 */
-// mig: fn expect_mutability_templata
 pub fn expect_mutability_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> MutabilityTemplataI<R> {
     match templata {
         ITemplataI::Mutability(m) => m,
@@ -80,7 +76,6 @@ pub fn expect_mutability_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) ->
     }
   }
 */
-// mig: fn expect_variability_templata
 pub fn expect_variability_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> VariabilityTemplataI<R> {
     match templata {
         ITemplataI::Variability(t) => t,
@@ -95,7 +90,6 @@ pub fn expect_variability_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -
     }
   }
 */
-// mig: fn expect_kind
 pub fn expect_kind<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> ITemplataI<'s, 'i, R> { panic!("Unimplemented: expect_kind"); }
 /*
   def expectKind[R <: IRegionsModeI](templata: ITemplataI[R]): ITemplataI[R] = {
@@ -105,7 +99,6 @@ pub fn expect_kind<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> ITemplataI<'s,
     }
   }
 */
-// mig: fn expect_kind_templata
 pub fn expect_kind_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> KindTemplataI<'s, 'i, R> { panic!("Unimplemented: expect_kind_templata"); }
 /*
   def expectKindTemplata[R <: IRegionsModeI](templata: ITemplataI[R]): KindTemplataI[R] = {
@@ -115,7 +108,6 @@ pub fn expect_kind_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> KindT
     }
   }
 */
-// mig: fn expect_region_templata
 pub fn expect_region_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> RegionTemplataI<R> { panic!("Unimplemented: expect_region_templata"); }
 /*
   def expectRegionTemplata[R <: IRegionsModeI](templata: ITemplataI[R]): RegionTemplataI[R] = {
@@ -128,7 +120,6 @@ pub fn expect_region_templata<'s, 'i, R>(templata: ITemplataI<'s, 'i, R>) -> Reg
 }
 
 */
-// mig: enum ITemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum ITemplataI<'s, 'i, R> {
@@ -153,11 +144,9 @@ pub enum ITemplataI<'s, 'i, R> {
   Region(RegionTemplataI<R>),
   ExternFunction(ExternFunctionTemplataI<'s, 'i, R>),
 }
-// mig: impl ITemplataI
 /*
 sealed trait ITemplataI[+R <: IRegionsModeI] {
 */
-// mig: fn expect_coord_templata
 impl<'s, 'i, R> ITemplataI<'s, 'i, R> {
   pub fn expect_coord_templata(&self) -> CoordTemplataI<'s, 'i, R> { panic!("Unimplemented: expect_coord_templata"); }
 /*
@@ -168,7 +157,6 @@ impl<'s, 'i, R> ITemplataI<'s, 'i, R> {
     }
   }
 */
-// mig: fn expect_region_templata
   pub fn expect_region_templata(&self) -> RegionTemplataI<R> { panic!("Unimplemented: expect_region_templata"); }
 }
 /*
@@ -190,14 +178,12 @@ impl<'s, 'i, R> ITemplataI<'s, 'i, R> {
 //}
 
 */
-// mig: struct CoordTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct CoordTemplataI<'s, 'i, R> {
   pub region: RegionTemplataI<R>,
   pub coord: CoordI<'s, 'i, R>,
 }
-// mig: impl CoordTemplataI
 /*
 case class CoordTemplataI[+R <: IRegionsModeI](
     region: RegionTemplataI[R],
@@ -228,13 +214,11 @@ case class CoordTemplataI[+R <: IRegionsModeI](
 //override def hashCode(): Int = hash;
 //}
 */
-// mig: struct KindTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct KindTemplataI<'s, 'i, R> {
   pub kind: KindIT<'s, 'i, R>,
 }
-// mig: impl KindTemplataI
 /*
 case class KindTemplataI[+R <: IRegionsModeI](kind: KindIT[R]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -242,13 +226,11 @@ case class KindTemplataI[+R <: IRegionsModeI](kind: KindIT[R]) extends ITemplata
 
 }
 */
-// mig: struct RuntimeSizedArrayTemplateTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct RuntimeSizedArrayTemplateTemplataI<R> {
   pub _marker: PhantomData<R>,
 }
-// mig: impl RuntimeSizedArrayTemplateTemplataI
 /*
 case class RuntimeSizedArrayTemplateTemplataI[+R <: IRegionsModeI]() extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -256,13 +238,11 @@ case class RuntimeSizedArrayTemplateTemplataI[+R <: IRegionsModeI]() extends ITe
 
 }
 */
-// mig: struct StaticSizedArrayTemplateTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct StaticSizedArrayTemplateTemplataI<R> {
   pub _marker: PhantomData<R>,
 }
-// mig: impl StaticSizedArrayTemplateTemplataI
 /*
 case class StaticSizedArrayTemplateTemplataI[+R <: IRegionsModeI]() extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -273,13 +253,11 @@ case class StaticSizedArrayTemplateTemplataI[+R <: IRegionsModeI]() extends ITem
 
 
 */
-// mig: struct FunctionTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct FunctionTemplataI<'s, 'i, R> {
   pub env_id: IdI<'s, 'i, R>,
 }
-// mig: impl FunctionTemplataI
 /*
 case class FunctionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, FunctionTemplateNameI[R]]
@@ -289,7 +267,6 @@ case class FunctionTemplataI[+R <: IRegionsModeI](
 
 
 */
-// mig: fn get_template_name
 impl<'s, 'i, R> FunctionTemplataI<'s, 'i, R> {
   pub fn get_template_name(&self) -> IdI<'s, 'i, R> { panic!("Unimplemented: get_template_name"); }
 }
@@ -298,14 +275,12 @@ impl<'s, 'i, R> FunctionTemplataI<'s, 'i, R> {
 }
 
 */
-// mig: struct StructDefinitionTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct StructDefinitionTemplataI<'s, 'i, R> {
   pub env_id: IdI<'s, 'i, R>,
   pub tyype: TemplateTemplataType<'s>,
 }
-// mig: impl StructDefinitionTemplataI
 /*
 case class StructDefinitionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, StructTemplateNameI[R]],
@@ -316,26 +291,22 @@ case class StructDefinitionTemplataI[+R <: IRegionsModeI](
 }
 
 */
-// mig: enum CitizenDefinitionTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum CitizenDefinitionTemplataI<'s, 'i, R> {
   Struct(StructDefinitionTemplataI<'s, 'i, R>),
   Interface(InterfaceDefinitionTemplataI<'s, 'i, R>),
 }
-// mig: impl CitizenDefinitionTemplataI
 /*
 sealed trait CitizenDefinitionTemplataI[+R <: IRegionsModeI] extends ITemplataI[R]
 
 */
-// mig: struct InterfaceDefinitionTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct InterfaceDefinitionTemplataI<'s, 'i, R> {
   pub env_id: IdI<'s, 'i, R>,
   pub tyype: TemplateTemplataType<'s>,
 }
-// mig: impl InterfaceDefinitionTemplataI
 /*
 case class InterfaceDefinitionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, InterfaceTemplateNameI[R]],
@@ -346,13 +317,11 @@ case class InterfaceDefinitionTemplataI[+R <: IRegionsModeI](
 }
 
 */
-// mig: struct ImplDefinitionTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct ImplDefinitionTemplataI<'s, 'i, R> {
   pub env_id: IdI<'s, 'i, R>,
 }
-// mig: impl ImplDefinitionTemplataI
 /*
 case class ImplDefinitionTemplataI[+R <: IRegionsModeI](
   envId: IdI[R, INameI[R]]
@@ -376,14 +345,12 @@ case class ImplDefinitionTemplataI[+R <: IRegionsModeI](
 }
 
 */
-// mig: struct OwnershipTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct OwnershipTemplataI<R> {
   pub ownership: OwnershipI,
   pub _marker: PhantomData<R>,
 }
-// mig: impl OwnershipTemplataI
 /*
 case class OwnershipTemplataI[+R <: IRegionsModeI](ownership: OwnershipI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -391,14 +358,12 @@ case class OwnershipTemplataI[+R <: IRegionsModeI](ownership: OwnershipI) extend
 
 }
 */
-// mig: struct VariabilityTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct VariabilityTemplataI<R> {
   pub variability: VariabilityI,
   pub _marker: PhantomData<R>,
 }
-// mig: impl VariabilityTemplataI
 /*
 case class VariabilityTemplataI[+R <: IRegionsModeI](variability: VariabilityI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -406,14 +371,12 @@ case class VariabilityTemplataI[+R <: IRegionsModeI](variability: VariabilityI) 
 
 }
 */
-// mig: struct MutabilityTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct MutabilityTemplataI<R> {
   pub mutability: MutabilityI,
   pub _marker: PhantomData<R>,
 }
-// mig: impl MutabilityTemplataI
 /*
 case class MutabilityTemplataI[+R <: IRegionsModeI](mutability: MutabilityI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -421,14 +384,12 @@ case class MutabilityTemplataI[+R <: IRegionsModeI](mutability: MutabilityI) ext
 
 }
 */
-// mig: struct LocationTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct LocationTemplataI<R> {
   pub location: LocationI,
   pub _marker: PhantomData<R>,
 }
-// mig: impl LocationTemplataI
 /*
 case class LocationTemplataI[+R <: IRegionsModeI](location: LocationI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -437,14 +398,12 @@ case class LocationTemplataI[+R <: IRegionsModeI](location: LocationI) extends I
 }
 
 */
-// mig: struct BooleanTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct BooleanTemplataI<R> {
   pub value: bool,
   pub _marker: PhantomData<R>,
 }
-// mig: impl BooleanTemplataI
 /*
 case class BooleanTemplataI[+R <: IRegionsModeI](value: Boolean) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -452,14 +411,12 @@ case class BooleanTemplataI[+R <: IRegionsModeI](value: Boolean) extends ITempla
 
 }
 */
-// mig: struct IntegerTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct IntegerTemplataI<R> {
   pub value: i64,
   pub _marker: PhantomData<R>,
 }
-// mig: impl IntegerTemplataI
 /*
 case class IntegerTemplataI[+R <: IRegionsModeI](value: Long) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -467,14 +424,12 @@ case class IntegerTemplataI[+R <: IRegionsModeI](value: Long) extends ITemplataI
 
 }
 */
-// mig: struct StringTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct StringTemplataI<'s, R> {
   pub value: StrI<'s>,
   pub _marker: PhantomData<R>,
 }
-// mig: impl StringTemplataI
 /*
 case class StringTemplataI[+R <: IRegionsModeI](value: String) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -482,13 +437,11 @@ case class StringTemplataI[+R <: IRegionsModeI](value: String) extends ITemplata
 
 }
 */
-// mig: struct PrototypeTemplataI
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct PrototypeTemplataI<'s, 'i, R> {
   pub declaration_range: RangeS<'s>,
   pub prototype: &'i PrototypeI<'s, 'i, R>,
 }
-// mig: impl PrototypeTemplataI
 /*
 case class PrototypeTemplataI[+R <: IRegionsModeI](declarationRange: RangeS, prototype: PrototypeI[R]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -496,7 +449,6 @@ case class PrototypeTemplataI[+R <: IRegionsModeI](declarationRange: RangeS, pro
 
 }
 */
-// mig: struct IsaTemplataI
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct IsaTemplataI<'s, 'i, R> {
   pub declaration_range: RangeS<'s>,
@@ -504,7 +456,6 @@ pub struct IsaTemplataI<'s, 'i, R> {
   pub sub_kind: KindIT<'s, 'i, R>,
   pub super_kind: KindIT<'s, 'i, R>,
 }
-// mig: impl IsaTemplataI
 /*
 case class IsaTemplataI[+R <: IRegionsModeI](declarationRange: RangeS, implName: IdI[R, IImplNameI[R]], subKind: KindIT[R], superKind: KindIT[R]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -512,13 +463,11 @@ case class IsaTemplataI[+R <: IRegionsModeI](declarationRange: RangeS, implName:
 
 }
 */
-// mig: struct CoordListTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct CoordListTemplataI<'s, 'i, R> {
   pub coords: &'i[CoordI<'s, 'i, R>],
 }
-// mig: impl CoordListTemplataI
 /*
 case class CoordListTemplataI[+R <: IRegionsModeI](coords: Vector[CoordI[R]]) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -527,14 +476,12 @@ case class CoordListTemplataI[+R <: IRegionsModeI](coords: Vector[CoordI[R]]) ex
   vpass()
 }
 */
-// mig: struct RegionTemplataI
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct RegionTemplataI<R> {
   pub pure_height: i32,
   pub _marker: PhantomData<R>,
 }
-// mig: impl RegionTemplataI
 /*
 case class RegionTemplataI[+R <: IRegionsModeI](pureHeight: Int) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)
@@ -550,13 +497,11 @@ case class RegionTemplataI[+R <: IRegionsModeI](pureHeight: Int) extends ITempla
 // by plugins, but theyre also used internally.
 
 */
-// mig: struct ExternFunctionTemplataI
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ExternFunctionTemplataI<'s, 'i, R> {
   pub header: &'i FunctionHeaderI<'s, 'i>,
   pub _marker: PhantomData<R>,
 }
-// mig: impl ExternFunctionTemplataI
 /*
 case class ExternFunctionTemplataI[+R <: IRegionsModeI](header: FunctionHeaderI) extends ITemplataI[R] {
   val hash = runtime.ScalaRunTime._hashCode(this)

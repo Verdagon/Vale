@@ -57,7 +57,6 @@ class StructHammer(
     translateReference: (HinputsI, HamutsBox, CoordI[cI]) => CoordH[KindHT]) {
 */
 
-// mig: fn translate_interfaces
 impl<'s, 'i, 'h, 'ctx> Hammer<'s, 'i, 'h, 'ctx>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -77,7 +76,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_interface_methods
     pub fn translate_interface_methods(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -111,7 +109,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_interface
     pub fn translate_interface(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -192,7 +189,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_structs
     pub fn translate_structs(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -219,7 +215,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_struct_i
     pub fn translate_struct_i(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -309,7 +304,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_opaque_i
     pub fn translate_opaque_i(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -377,7 +371,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_members
     pub fn translate_members(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -396,7 +389,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_member
     pub fn translate_member(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -458,7 +450,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn make_box
     pub fn make_box(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -558,7 +549,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_edges_for_struct (Scala overload — disambiguated.)
     pub fn translate_edges_for_struct(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -584,7 +574,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_edges_for_struct_with_edges (Scala overload — disambiguated.)
     pub fn translate_edges_for_struct_with_edges(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -605,7 +594,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn translate_edge
     pub fn translate_edge(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -654,7 +642,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn lookup_struct
     pub fn lookup_struct(
         &self,
         hinputs: &HinputsI<'s, 'i>,
@@ -670,7 +657,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   }
 */
 
-// mig: fn lookup_interface
     pub fn lookup_interface(
         &self,
         hinputs: &HinputsI<'s, 'i>,

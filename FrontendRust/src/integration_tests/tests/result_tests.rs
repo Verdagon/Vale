@@ -8,7 +8,6 @@ use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonInt;
 use crate::von::ast::VonStr;
-// mig: struct ResultTests
 pub struct ResultTests;
 
 /*
@@ -20,7 +19,6 @@ import org.scalatest._
 
 class ResultTests extends FunSuite with Matchers {
 */
-// mig: fn test_borrow_is_ok_and_expect_for_ok
 #[test]
 fn test_borrow_is_ok_and_expect_for_ok() {
     let compilation_bump = bumpalo::Bump::new();
@@ -73,7 +71,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn test_is_err_and_borrow_expect_err_for_err
 #[test]
 fn test_is_err_and_borrow_expect_err_for_err() {
     let compilation_bump = bumpalo::Bump::new();
@@ -126,7 +123,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("file not found!") => }
   }
 */
-// mig: fn test_owning_expect
 #[test]
 fn test_owning_expect() {
     let compilation_bump = bumpalo::Bump::new();
@@ -177,7 +173,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn test_owning_expect_err
 #[test]
 fn test_owning_expect_err() {
     let compilation_bump = bumpalo::Bump::new();
@@ -228,7 +223,6 @@ exported func main() str {
     compile.evalForKind(Vector()) match { case VonStr("file not found!") => }
   }
 */
-// mig: fn test_expect_panics_for_err
 #[test]
 fn test_expect_panics_for_err() {
     let compilation_bump = bumpalo::Bump::new();
@@ -284,7 +278,6 @@ exported func main() int {
     }
   }
 */
-// mig: fn test_expect_err_panics_for_ok
 #[test]
 fn test_expect_err_panics_for_ok() {
     let compilation_bump = bumpalo::Bump::new();

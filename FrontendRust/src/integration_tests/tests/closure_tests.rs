@@ -57,7 +57,6 @@ use crate::von::ast::VonInt;
 use std::marker::PhantomData;
 use crate::postparsing::expressions::IVariableUseCertainty::NotUsed;
 use crate::postparsing::expressions::IVariableUseCertainty::Used;
-// mig: struct ClosureTests
 pub struct ClosureTests;
 /*
 package dev.vale
@@ -79,7 +78,6 @@ import dev.vale.von.VonInt
 
 class ClosureTests extends FunSuite with Matchers {
 */
-// mig: fn addressibility
 #[test]
 pub fn addressibility() {
     let scout_bump = bumpalo::Bump::new();
@@ -182,7 +180,6 @@ pub fn addressibility() {
     calc(NotUsed, NotUsed, NotUsed, NotUsed, NotUsed, Used) shouldEqual (true, true)
   }
 */
-// mig: fn captured_own_is_borrow
 #[test]
 pub fn captured_own_is_borrow() {
     let compilation_bump = bumpalo::Bump::new();
@@ -249,7 +246,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 */
-// mig: fn test_closure_s_local_variables
 #[test]
 fn test_closure_s_local_variables() {
     let compilation_bump = bumpalo::Bump::new();
@@ -350,7 +346,6 @@ fn test_closure_s_local_variables() {
     })
   }
 */
-// mig: fn test_returning_a_nonmutable_closured_variable_from_the_closure
 #[test]
 fn test_returning_a_nonmutable_closured_variable_from_the_closure() {
     let compilation_bump = bumpalo::Bump::new();
@@ -561,7 +556,6 @@ fn test_returning_a_nonmutable_closured_variable_from_the_closure() {
     compile.evalForKind(Vector()) match { case VonInt(4) => }
   }
 */
-// mig: fn mutates_from_inside_a_closure
 #[test]
 fn mutates_from_inside_a_closure() {
     let compilation_bump = bumpalo::Bump::new();
@@ -681,7 +675,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn mutates_from_inside_a_closure_inside_a_closure
 #[test]
 pub fn mutates_from_inside_a_closure_inside_a_closure() {
     let compilation_bump = bumpalo::Bump::new();
@@ -714,7 +707,6 @@ pub fn mutates_from_inside_a_closure_inside_a_closure() {
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
 */
-// mig: fn read_from_inside_a_closure_inside_a_closure
 #[test]
 fn read_from_inside_a_closure_inside_a_closure() {
     let compilation_bump = bumpalo::Bump::new();
@@ -758,7 +750,6 @@ exported func main() int {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 */
-// mig: fn mutable_lambda
 #[test]
 pub fn mutable_lambda() {
     let compilation_bump = bumpalo::Bump::new();

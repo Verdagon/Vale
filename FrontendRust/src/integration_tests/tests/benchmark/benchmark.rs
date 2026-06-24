@@ -12,7 +12,6 @@ import dev.vale.typing.CompilerErrorHumanizer
 object Benchmark {
 */
 
-// mig: const roguelike_src
 pub const ROGUELIKE_SRC: &str = "";
 /*
   val roguelikeSrc =
@@ -51,7 +50,6 @@ pub const ROGUELIKE_SRC: &str = "";
       |""".stripMargin
 */
 
-// mig: fn go
 pub fn go(use_optimization: bool) -> i64 { panic!("Unimplemented: go"); }
 /*
   def go(useOptimization: Boolean): Long = {
@@ -127,7 +125,6 @@ pub fn go(use_optimization: bool) -> i64 { panic!("Unimplemented: go"); }
   }
 */
 
-// mig: fn main
 pub fn main(args: Vec<String>) { panic!("Unimplemented: main"); }
 /*
   def main(args: Array[String]): Unit = {

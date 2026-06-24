@@ -20,7 +20,6 @@ import scala.collection.immutable.List
 
 object HammerTestCompilation {
 */
-// mig: fn test
 pub fn test<'s, 'h, 'ctx, 't, 'i, 'p>(
   interner: &'ctx HammerInterner<'s, 'h>,
   typing_interner: &'ctx TypingInterner<'s, 't>,

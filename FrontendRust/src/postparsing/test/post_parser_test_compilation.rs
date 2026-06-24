@@ -14,7 +14,6 @@ import dev.vale.options.GlobalOptions
 
 object PostParserTestCompilation {
 */
-// mig: fn test
 pub fn test<'s, 'ctx, 'p>(
   scout_arena: &'ctx ScoutArena<'s>,
   keywords: &'ctx Keywords<'s>,

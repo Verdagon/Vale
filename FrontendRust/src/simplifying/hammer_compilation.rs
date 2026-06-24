@@ -43,7 +43,6 @@ import dev.vale.typing.{HinputsT, ICompileErrorT}
 import scala.collection.immutable.List
 */
 
-// mig: struct HammerCompilationOptions
 //
 // Drops PartialEq/Eq/Hash because `debug_out: Arc<dyn Fn(...)>` and
 // `global_options: GlobalOptions` don't impl them. Scala uses vcurious.
@@ -51,8 +50,6 @@ pub struct HammerCompilationOptions {
   pub debug_out: Arc<dyn Fn(&str) + Send + Sync>,
   pub global_options: GlobalOptions,
 }
-// mig: impl HammerCompilationOptions
-// mig: fn hash_code (realized-by-impl Hash)
 // (Realized by `impl Hash for HammerCompilationOptions` or `#[derive(Hash)]`.)
 /*
 case class HammerCompilationOptions(
@@ -64,13 +61,11 @@ case class HammerCompilationOptions(
   val hash = runtime.ScalaRunTime._hashCode(this);
 override def hashCode(): Int = hash;
 */
-// mig: fn eq (realized-by-impl PartialEq)
 // (Realized by `impl PartialEq for HammerCompilationOptions` or `#[derive(PartialEq)]`.)
 /*
 override def equals(obj: Any): Boolean = vcurious(); }
 */
 
-// mig: fn new
 // Mirrors Scala's `object HammerCompilationOptions { def apply() }` zero-arg
 // constructor (the case-class default-arg apply pattern). Defaults match
 // Scala: `debugOut = (x => println("##: " + x))`, `globalOptions = GlobalOptions()`.
@@ -90,7 +85,6 @@ impl HammerCompilationOptions {
 }
 /* Guardian: disable-all */
 
-// mig: struct HammerCompilation
 pub struct HammerCompilation<'s, 'h, 'ctx, 't, 'i, 'p>
 where 's: 'h, 's: 'i,
 {
@@ -127,8 +121,6 @@ class HammerCompilation(
   var hamutsCache: Option[ProgramH] = None
   var vonHammerCache: Option[VonHammer] = None
 */
-// mig: impl HammerCompilation
-// mig: fn new
 impl<'s, 'h, 'ctx, 't, 'i, 'p> HammerCompilation<'s, 'h, 'ctx, 't, 'i, 'p>
 where 's: 'h, 's: 't, 's: 'i, 'p: 'ctx,
 {
@@ -173,7 +165,6 @@ where 's: 'h, 's: 't, 's: 'i, 'p: 'ctx,
 }
 /*
 */
-// mig: fn get_code_map
 impl<'s, 'h, 'ctx, 't, 'i, 'p> HammerCompilation<'s, 'h, 'ctx, 't, 'i, 'p>
 where 's: 'h, 's: 'i, 'i: 'h,
 {
@@ -184,7 +175,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = instantiatedCompilation.getCodeMap()
 */
 
-// mig: fn get_parseds
   pub fn get_parseds(&mut self) -> Result<FileCoordinateMap<'p, (FileP<'p>, Vec<RangeL>)>, FailedParse<'p>> {
     self.instantiated_compilation.get_parseds()
   }
@@ -192,7 +182,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getParseds(): Result[FileCoordinateMap[(FileP, Vector[RangeL])], FailedParse] = instantiatedCompilation.getParseds()
 */
 
-// mig: fn get_vpst_map
   pub fn get_vpst_map(&mut self) -> Result<FileCoordinateMap<'p, String>, FailedParse<'p>> {
     self.instantiated_compilation.get_vpst_map()
   }
@@ -200,7 +189,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getVpstMap(): Result[FileCoordinateMap[String], FailedParse] = instantiatedCompilation.getVpstMap()
 */
 
-// mig: fn get_scoutput
   pub fn get_scoutput(&mut self) -> Result<&FileCoordinateMap<'s, ProgramS<'s>>, ICompileErrorS<'s>> {
     self.instantiated_compilation.get_scoutput()
   }
@@ -208,7 +196,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getScoutput(): Result[FileCoordinateMap[ProgramS], ICompileErrorS] = instantiatedCompilation.getScoutput()
 */
 
-// mig: fn get_astrouts
   pub fn get_astrouts(&mut self) -> Result<&crate::utils::code_hierarchy::PackageCoordinateMap<'s, crate::higher_typing::ast::ProgramA<'s>>, crate::higher_typing::astronomer_error_reporter::ICompileErrorA<'s>> {
     self.instantiated_compilation.get_astrouts()
   }
@@ -216,7 +203,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getAstrouts(): Result[PackageCoordinateMap[ProgramA], ICompileErrorA] = instantiatedCompilation.getAstrouts()
 */
 
-// mig: fn get_compiler_outputs
   pub fn get_compiler_outputs(&mut self) -> Result<&HinputsT<'s, 't>, ICompileErrorT<'s, 't>> {
     self.instantiated_compilation.get_compiler_outputs()
   }
@@ -224,7 +210,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getCompilerOutputs(): Result[HinputsT, ICompileErrorT] = instantiatedCompilation.getCompilerOutputs()
 */
 
-// mig: fn get_monouts
   pub fn get_monouts(&mut self) -> &HinputsI<'s, 'i> {
     self.instantiated_compilation.get_monouts()
   }
@@ -232,7 +217,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def getMonouts(): HinputsI = instantiatedCompilation.getMonouts()
 */
 
-// mig: fn expect_compiler_outputs
   pub fn expect_compiler_outputs(&mut self) -> &HinputsT<'s, 't> {
     self.instantiated_compilation.expect_compiler_outputs()
   }
@@ -240,7 +224,6 @@ where 's: 'h, 's: 'i, 'i: 'h,
   def expectCompilerOutputs(): HinputsT = instantiatedCompilation.expectCompilerOutputs()
 */
 
-// mig: fn get_hamuts
   pub fn get_hamuts(&mut self) -> &'h ProgramH<'s, 'h> {
     match self.hamuts_cache {
       Some(hamuts) => hamuts,

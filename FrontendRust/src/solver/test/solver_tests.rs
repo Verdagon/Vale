@@ -24,7 +24,6 @@ use super::test_rules::Send;
 use super::test_rules::Call;
 use super::test_rules::Lookup;
 use crate::scout_arena::ScoutArena;
-// mig: const complex_rule_set
 const COMPLEX_RULE_SET_RULES: Vec<()> = vec![];
 /*
   val complexRuleSet =
@@ -38,14 +37,12 @@ const COMPLEX_RULE_SET_RULES: Vec<()> = vec![];
       CoordComponents(-1L, -2L, -3L),
       Equals(-6L, -7L))
 */
-// mig: const complex_rule_set_equals_rules
 const COMPLEX_RULE_SET_EQUALS_RULES: Vec<i32> = vec![];
 /*
   val complexRuleSetEqualsRules = Vector(3, 5, 7)
 */
 /*
 */
-// mig: fn test_simple_and_optimized
     fn test_simple_and_optimized() {
         panic!("Unimplemented: test_simple_and_optimized");
     }
@@ -160,7 +157,6 @@ fn advance(
     Ok(false)
   }
 */
-// mig: fn simple_int_rule
     #[test]
     fn simple_int_rule() {
 
@@ -179,7 +175,6 @@ fn advance(
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
 */
-// mig: fn equals_transitive
     #[test]
     fn equals_transitive() {
 
@@ -208,7 +203,6 @@ fn advance(
       Map(-1L -> "1337", -2L -> "1337")
   }
 */
-// mig: fn incomplete_solve
     #[test]
     fn incomplete_solve() {
 
@@ -228,7 +222,6 @@ fn advance(
     getConclusions(rules, false) shouldEqual Map()
   }
 */
-// mig: fn half_complete_solve
     #[test]
     fn half_complete_solve() {
 
@@ -257,7 +250,6 @@ fn advance(
     getConclusions(rules, false) shouldEqual Map(-2L -> "1337")
   }
 */
-// mig: fn one_of
     #[test]
     fn one_of() {
 
@@ -285,7 +277,6 @@ fn advance(
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
 */
-// mig: fn solves_a_components_rule
     #[test]
     fn solves_a_components_rule() {
 
@@ -325,7 +316,6 @@ fn advance(
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
   }
 */
-// mig: fn reverse_solve_a_components_rule
     #[test]
     fn reverse_solve_a_components_rule() {
 
@@ -360,7 +350,6 @@ fn advance(
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
   }
 */
-// mig: fn test_infer_pack
     #[test]
     fn test_infer_pack() {
 
@@ -393,7 +382,6 @@ fn advance(
       Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
   }
 */
-// mig: fn test_infer_pack_from_result
     #[test]
     fn test_infer_pack_from_result() {
 
@@ -427,7 +415,6 @@ fn advance(
       Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
   }
 */
-// mig: fn test_infer_pack_from_empty_result
     #[test]
     fn test_infer_pack_from_empty_result() {
 
@@ -455,7 +442,6 @@ fn advance(
       Map(-3L -> "")
   }
 */
-// mig: fn test_cant_solve_empty_pack
     #[test]
     fn test_cant_solve_empty_pack() {
 
@@ -475,7 +461,6 @@ fn advance(
     getConclusions(rules, false) shouldEqual Map()
   }
 */
-// mig: fn complex_rule_set
     #[test]
     fn complex_rule_set() {
 
@@ -527,7 +512,6 @@ fn advance(
     conclusions.get(-7L) shouldEqual Some("1337/1448/1337/1448")
   }
 */
-// mig: fn test_receiving_struct_to_struct
     #[test]
     fn test_receiving_struct_to_struct() {
 
@@ -560,7 +544,6 @@ fn advance(
       Map(-1L -> "Firefly", -2L -> "Firefly")
   }
 */
-// mig: fn test_receive_struct_from_sent_interface
     #[test]
     fn test_receive_struct_from_sent_interface() {
 
@@ -643,7 +626,6 @@ fn advance(
     }
   }
 */
-// mig: fn test_receive_interface_from_sent_struct
     #[test]
     fn test_receive_interface_from_sent_struct() {
 
@@ -682,7 +664,6 @@ fn advance(
       Map(-1L -> "ISpaceship", -2L -> "Firefly")
   }
 */
-// mig: fn test_complex_solve_most_specific_ancestor
     // Tests @CSCDSRZ: complex solve infers the receiver kind from senders.
     #[test]
     fn test_complex_solve_most_specific_ancestor() {
@@ -717,7 +698,6 @@ fn advance(
       Map(-1L -> "Firefly", -2L -> "Firefly")
   }
 */
-// mig: fn test_complex_solve_calculate_common_ancestor
     // Tests @CSCDSRZ: complex solve finds the common ancestor of multiple senders.
     #[test]
     fn test_complex_solve_calculate_common_ancestor() {
@@ -763,7 +743,6 @@ fn advance(
       Map(-1L -> "ISpaceship", -2L -> "Firefly", -3L -> "Serenity")
   }
 */
-// mig: fn test_complex_solve_descendant_satisfying_call
     // Tests @CSCDSRZ: complex solve picks a descendant that satisfies a call constraint.
     #[test]
     fn test_complex_solve_descendant_satisfying_call() {
@@ -815,7 +794,6 @@ fn advance(
         -3 -> "IWeapon")
   }
 */
-// mig: fn partial_solve
     #[test]
     fn partial_solve() {
 
@@ -915,7 +893,6 @@ fn advance(
       Map(-1 -> "Firefly", -2 -> "A", -3 -> "Firefly:A")
   }
 */
-// mig: fn predicting
     #[test]
     fn predicting() {
 
@@ -961,7 +938,6 @@ fn advance(
     // This is useful for recursive types.
     // See: Recursive Types Must Have Types Predicted (RTMHTP)
 */
-// mig: fn solve_with_puzzler
     fn solve_with_puzzler(
         puzzler: Box<dyn Fn(&super::test_rules::TestRule) -> Vec<Vec<i64>>>,
     ) -> HashMap<i64, String> {
@@ -1050,7 +1026,6 @@ fn advance(
     conclusions shouldEqual Map(-1L -> "Firefly", -2L -> "1337", -3L -> "Firefly:1337")
   }
 */
-// mig: fn test_conflict
     #[test]
     fn test_conflict() {
 
@@ -1089,7 +1064,6 @@ fn advance(
     }
   }
 */
-// mig: fn expect_solve_failure
     fn expect_solve_failure(
         rules: Vec<super::test_rules::TestRule>,
     ) -> FailedSolve<TestRule, i64, String, String> {
@@ -1153,7 +1127,6 @@ fn advance(
     vfail("Incorrectly completed the solve")
   }
 */
-// mig: fn get_conclusions
     fn get_conclusions(
         rules: Vec<super::test_rules::TestRule>,
         expect_complete_solve: bool,

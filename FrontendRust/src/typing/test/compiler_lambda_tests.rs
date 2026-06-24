@@ -17,10 +17,8 @@ use crate::builtins::builtins::get_embedded_modulized_code_map;
 use crate::collect_only_tnode;
 use crate::tests::tests::get_package_to_resource_resolver;
 
-// mig: struct CompilerLambdaTests
 pub struct CompilerLambdaTests;
 
-// mig: impl CompilerLambdaTests
 impl CompilerLambdaTests {}
 
 /*
@@ -47,7 +45,6 @@ import scala.io.Source
 class CompilerLambdaTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 */
-// mig: fn read_code_from_resource
 fn read_code_from_resource(resource_filename: &str) -> String {
     panic!("Unimplemented: read_code_from_resource");
 }
@@ -58,7 +55,6 @@ fn read_code_from_resource(resource_filename: &str) -> String {
     is.mkString("")
   }
 */
-// mig: fn simple_lambda
 #[test]
 fn simple_lambda() {
 
@@ -94,7 +90,6 @@ fn simple_lambda() {
     coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, RegionT(DefaultRegionT), IntT.i32)
   }
 */
-// mig: fn lambda_with_one_magic_arg
 #[test]
 fn lambda_with_one_magic_arg() {
 
@@ -150,7 +145,6 @@ fn lambda_with_one_magic_arg() {
       CoordT(ShareT, RegionT(DefaultRegionT), IntT.i32)
   }
 */
-// mig: fn lambda_is_reused
 #[test]
 fn lambda_is_reused() {
 
@@ -198,7 +192,6 @@ exported func main() {
     vassert(lambdas.size == 1)
   }
 */
-// mig: fn lambda_called_with_different_types
 #[test]
 fn lambda_called_with_different_types() {
 
@@ -246,7 +239,6 @@ exported func main() {
     vassert(lambdas.size == 2)
   }
 */
-// mig: fn curried_lambda
 #[test]
 fn curried_lambda() {
 
@@ -298,7 +290,6 @@ exported func main() {
 
   // Test that the lambda's arg is the right type, and the name is right
 */
-// mig: fn lambda_with_a_type_specified_param
 #[test]
 fn lambda_with_a_type_specified_param() {
 
@@ -371,7 +362,6 @@ exported func main() int {
     Collector.only(main, { case FunctionCallTE(callee, _, _) if coutputs.nameIsLambdaIn(callee.id, "main") => })
   }
 */
-// mig: fn tests_lambda_and_concept_function
 #[test]
 fn tests_lambda_and_concept_function() {
 
@@ -423,7 +413,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn lambda_inside_different_function_with_same_name
 #[test]
 fn lambda_inside_different_function_with_same_name() {
 
@@ -481,7 +470,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn lambda_inside_template
 #[test]
 fn lambda_inside_template() {
 
@@ -539,7 +527,6 @@ exported func main() {
     val coutputs = compile.expectCompilerOutputs()
   }
 */
-// mig: fn curried_lambda_inside_template
 #[test]
 fn curried_lambda_inside_template() {
 
