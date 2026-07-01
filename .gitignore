@@ -11,8 +11,6 @@ Catalyst/testing/test*/out/
 removeextra.sh
 target
 project
-jdk-11.0.10+9-jre
-adoptopenjdk.tar.gz
 auditor-history/
 .idea/
 .opencode/
@@ -23,7 +21,6 @@ testbuild/
 conversation_log.txt
 loopdetection.md
 regions-release-mac/
-rust_externs.h
 stdout.txt
 test_integration.sh
 test_output/
@@ -35,8 +32,6 @@ test_output/
 guardian-cache
 target
 tmp
-migration-drive-todo.md
-migration-drive-todo.legacy.md
 
 # VmdSiteGen test setup (copied in, not part of Vale3)
 /VmdSiteGen/
