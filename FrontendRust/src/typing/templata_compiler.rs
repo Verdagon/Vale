@@ -169,7 +169,6 @@ where 's: 't,
         })
     }
 
-    // Rust adaptation: associated fn (no &self) — Scala's TemplataCompiler.getNameTemplate is a companion-object static.
     pub fn get_name_template(
         name: INameT<'s, 't>,
     ) -> INameT<'s, 't> {
@@ -179,7 +178,6 @@ where 's: 't,
         }
     }
 
-    // Rust adaptation: associated fn (no &self) — Scala's TemplataCompiler.getSuperTemplate is a companion-object static.
     pub fn get_super_template(
         interner: &TypingInterner<'s, 't>,
         id: IdT<'s, 't>,
@@ -194,7 +192,6 @@ where 's: 't,
         })
     }
 
-    // Rust adaptation: associated fn (no &self) — Scala's TemplataCompiler.getRootSuperTemplate is a companion-object static.
     pub fn get_root_super_template(
         interner: &TypingInterner<'s, 't>,
         id: IdT<'s, 't>,
@@ -811,9 +808,6 @@ where 's: 't,
                 tentative_id
             }
         };
-        // Rust adaptation: Scala had vassert(substitutedFuncName.getClass.equals(funcName.getClass))
-        // and vassert(originalPrototype.getClass.equals(prototype.getClass)) to guard the cast-back
-        // to T. Rust has no generic T to cast back to, so these class-equality asserts are omitted.
         interner.intern_prototype(PrototypeValT {
             id: IdValT { package_coord: perhaps_imported_id.package_coord, init_steps: perhaps_imported_id.init_steps, local_name: perhaps_imported_id.local_name },
             return_type: substituted_return_type,
@@ -1073,9 +1067,6 @@ where
     > {
         match name_s {
             IImpreciseNameS::LambdaStructImpreciseName(_) => {
-                // Scala: vregionmut() // Take out with regions
-                // Lambdas look up their struct as a KindTemplata in their environment, they don't
-                // look up the origin template by name. (Scala comment from astronomizeLambda.)
                 Ok(IRuneTypeSolverLookupResult::Templata(
                     TemplataLookupResult {
                         templata: ITemplataType::KindTemplataType(

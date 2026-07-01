@@ -5,8 +5,6 @@ use crate::utils::code_hierarchy::PackageCoordinate;
 use std::fs::File;
 use std::io::read_to_string;
 
-// Rust adaptation: Scala's `vassert(source != null)` is dropped — `read_to_string`
-// returns Result<String>, so `.unwrap()` already enforces non-null by the type system.
 pub fn load(resource_filename: &str) -> Option<String> {
   let full_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
     .join("src/tests")

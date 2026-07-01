@@ -40,10 +40,6 @@ where 's: 't,
         let body = ReferenceExpressionTE::Block(self.typing_interner.alloc(BlockTE {
             inner: ReferenceExpressionTE::Return(self.typing_interner.alloc(ReturnTE {
                 source_expr: ReferenceExpressionTE::PopRuntimeSizedArray({
-                    // Rust adaptation: Scala's PopRuntimeSizedArrayTE has a `private val elementType`
-                    // computed in the class body from `arrayExpr.result.coord.kind`. Rust has no
-                    // class-body computed fields, so element_type is stored on the struct and
-                    // computed here at construction.
                     let array_expr = ReferenceExpressionTE::ArgLookup(self.typing_interner.alloc(ArgLookupTE {
                         param_index: 0,
                         coord: param_coords[0].tyype,

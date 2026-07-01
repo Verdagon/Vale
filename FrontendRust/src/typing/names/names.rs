@@ -389,26 +389,14 @@ impl<'s, 't> IInstantiationNameT<'s, 't> where 's: 't {
             IInstantiationNameT::RuntimeSizedArray(x) => ITemplateNameT::RuntimeSizedArrayTemplate(x.template),
             IInstantiationNameT::KindPlaceholder(x) => ITemplateNameT::KindPlaceholderTemplate(x.template),
             IInstantiationNameT::OverrideDispatcher(x) => ITemplateNameT::OverrideDispatcherTemplate(x.template),
-            // Scala: `override def template: ITemplateNameT = this`. The
-            // OverrideDispatcherCaseNameT extends both IInstantiationNameT
-            // and ITemplateNameT, so it is its own template — Rust's wide
-            // ITemplateNameT enum carries an `OverrideDispatcherCase` variant
-            // that wraps the same `&'t OverrideDispatcherCaseNameT` payload.
             IInstantiationNameT::OverrideDispatcherCase(x) => ITemplateNameT::OverrideDispatcherCase(x),
             IInstantiationNameT::Extern(x) => ITemplateNameT::ExternTemplate(x.template),
-            // Scala: `override def template: IFunctionTemplateNameT = this`.
-            // ExternFunctionNameT extends both IFunctionNameT and
-            // IFunctionTemplateNameT, so it is its own template — Rust's wide
-            // ITemplateNameT enum carries an `ExternFunction` variant.
             IInstantiationNameT::ExternFunction(x) => ITemplateNameT::ExternFunction(x),
             IInstantiationNameT::Function(x) => ITemplateNameT::FunctionTemplate(x.template),
             IInstantiationNameT::ForwarderFunction(x) => ITemplateNameT::ForwarderFunctionTemplate(x.template),
             IInstantiationNameT::FunctionBound(x) => ITemplateNameT::FunctionBoundTemplate(x.template),
             IInstantiationNameT::PredictedFunction(x) => ITemplateNameT::PredictedFunctionTemplate(x.template),
             IInstantiationNameT::LambdaCallFunction(x) => ITemplateNameT::LambdaCallFunctionTemplate(x.template),
-            // Scala: `template: IStructTemplateNameT` (covariant override
-            // narrowing the trait's `ITemplateNameT` return). Rust flattens
-            // IStructTemplateNameT's three variants into ITemplateNameT.
             IInstantiationNameT::Struct(x) => match x.template {
                 IStructTemplateNameT::StructTemplate(t) => ITemplateNameT::StructTemplate(t),
                 IStructTemplateNameT::LambdaCitizenTemplate(t) => ITemplateNameT::LambdaCitizenTemplate(t),

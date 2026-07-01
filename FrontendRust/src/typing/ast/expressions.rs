@@ -410,7 +410,6 @@ impl<'s, 't> DeferTE<'s, 't> where 's: 't, {
         inner_expr: ReferenceExpressionTE<'s, 't>,
         deferred_expr: ReferenceExpressionTE<'s, 't>,
     ) -> DeferTE<'s, 't> {
-        // Rust adaptation: Scala class-body vassert moved to constructor.
         let inner_coord = inner_expr.result().coord;
         assert!(deferred_expr.result().coord == CoordT {
             ownership: OwnershipT::Share,
@@ -429,15 +428,11 @@ where 's: 't,
     pub condition: ReferenceExpressionTE<'s, 't>,
     pub then_call: ReferenceExpressionTE<'s, 't>,
     pub else_call: ReferenceExpressionTE<'s, 't>,
-    // Rust adaptation: Scala's `private val commonSupertype` stored as a field.
     pub common_supertype: CoordT<'s, 't>,
 }
 
 impl<'s, 't> IfTE<'s, 't> {
 
-    // Rust adaptation: Scala's class-body `private val`s and runtime `match`
-    // assertions live here in the constructor. Only `common_supertype` escapes
-    // as a stored field; the other three intermediates are locals.
     pub fn new(
         condition: ReferenceExpressionTE<'s, 't>,
         then_call: ReferenceExpressionTE<'s, 't>,
@@ -478,9 +473,6 @@ where 's: 't,
 }
 
 impl<'s, 't> WhileTE<'s, 't> {
-    // Rust adaptation: Scala's `val resultCoord = ... match { ... }` is a class-body
-    // computed val. Rust has no class-body computed fields, so the same computation
-    // lives in this constructor and the result is stored on the struct.
     pub fn new(block: BlockTE<'s, 't>) -> WhileTE<'s, 't> {
         let result_coord = match block.result().coord.kind {
             KindT::Void(_) => block.result().coord,

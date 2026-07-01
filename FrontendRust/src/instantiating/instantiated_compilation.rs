@@ -142,9 +142,6 @@ where
     self.monouts_cache.as_ref().unwrap()
   }
 
-  // Rust adaptation: `&self` read of the already-computed monouts so a caller can borrow it
-  // alongside another field of this struct in one expression (`&mut get_monouts` would
-  // conflict). Caller must have run `get_monouts` first to populate the cache.
   pub fn cached_monouts(&self) -> &HinputsI<'s, 'i> {
     self.monouts_cache.as_ref().expect("monouts not computed")
   }

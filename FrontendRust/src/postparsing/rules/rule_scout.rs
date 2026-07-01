@@ -453,11 +453,6 @@ impl<'s> Equivalencies<'s> {
   }
 }
 
-// Rust adaptation: callers in the typing pass have `&[IRulexSR<'s>]` but no
-// `Equivalencies` instance (Scala constructed one ad-hoc at each call site:
-// `new Equivalencies(rulesS).getKindEquivalentRunes(runes)`). This free fn
-// preserves the call-site shape; it constructs the Equivalencies internally
-// and delegates.
 pub fn get_kind_equivalent_runes_iter<'s, I>(
   rules_s: &[IRulexSR<'s>],
   runes: I,

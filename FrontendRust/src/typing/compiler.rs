@@ -232,11 +232,6 @@ where 's: 't,
         }
     }
 
-    // Rust adaptation: collides with Compiler::is_descendant lifted from
-    // ImplCompiler.scala (which Rust flattened onto Compiler); appended `_kind`
-    // suffix to disambiguate this delegate-class isDescendant from
-    // ImplCompiler's. Scala uses class-level disambiguation (Compiler's
-    // anonymous CompilerSolverDelegate vs ImplCompiler) that Rust lacks.
     pub fn is_descendant_kind(
         &self,
         _envs: &InferEnv<'s, 't>,
@@ -264,8 +259,6 @@ where 's: 't,
         }
     }
 
-    // Rust adaptation: see is_descendant_kind above for the `_kind` suffix
-    // rationale (ImplCompiler/Compiler flattening collision).
     pub fn is_ancestor_kind(
         &self,
         _envs: &InferEnv<'s, 't>,
@@ -288,8 +281,6 @@ where 's: 't,
         self.lookup_templata_by_rune(envs.self_env, state, range, name)
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn predict_static_sized_array_kind(
         &self,
         _envs: InferEnv<'s, 't>,
@@ -303,8 +294,6 @@ where 's: 't,
         self.resolve_static_sized_array(mutability, variability, size, element, region)
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn predict_runtime_sized_array_kind(
         &self,
         _envs: InferEnv<'s, 't>,
@@ -316,8 +305,6 @@ where 's: 't,
         self.resolve_runtime_sized_array(element, array_mutability, region)
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn kind_is_from_template(
         &self,
         _coutputs: &mut CompilerOutputs<'s, 't>,
@@ -336,8 +323,6 @@ where 's: 't,
         }
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn get_ancestors(
         &self,
         envs: InferEnv<'s, 't>,
@@ -360,8 +345,6 @@ where 's: 't,
         result
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn struct_is_closure(
         &self,
         _state: &mut CompilerOutputs<'s, 't>,
@@ -370,8 +353,6 @@ where 's: 't,
         panic!("Unimplemented: struct_is_closure");
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn predict_function(
         &self,
         envs: InferEnv<'s, 't>,
@@ -419,8 +400,6 @@ where 's: 't,
         )
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn assemble_prototype(
         &self,
         envs: InferEnv<'s, 't>,
@@ -444,8 +423,6 @@ where 's: 't,
         result
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn assemble_impl(
         &self,
         env: InferEnv<'s, 't>,
@@ -506,8 +483,6 @@ where 's: 't,
         self.evaluate_generic_function_from_non_call(coutputs, parent_ranges, call_location, function_templata)
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IInfererDelegate
-    // (which Rust flattened onto Compiler).
     pub fn scout_expected_function_for_prototype(
         &self,
         _env: IInDenizenEnvironmentT<'s, 't>,
@@ -525,10 +500,6 @@ where 's: 't,
         panic!("Unimplemented: scout_expected_function_for_prototype");
     }
     
-    // Rust adaptation: lifted from Compiler.scala's anonymous IFunctionCompilerDelegate
-    // (which Rust flattened onto Compiler). Scala's `functionCompilerCore: FunctionCompilerCore`,
-    // `structCompiler`, `destructorCompiler`, `arrayCompiler` parameters are absorbed
-    // into `&self` since all four compilers are flattened onto `Compiler` in Rust.
     pub fn generate_function(
         &self,
         _generator: IFunctionGenerator,

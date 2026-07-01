@@ -453,8 +453,6 @@ pub fn get_imprecise_name<'s, 't>(
     INameT::Function(f) => get_imprecise_name(scout_arena, INameT::FunctionTemplate(f.template)),
     INameT::ForwarderFunction(f) => get_imprecise_name(scout_arena, INameT::ForwarderFunctionTemplate(f.template)),
     INameT::ForwarderFunctionTemplate(f) => get_imprecise_name(scout_arena, f.inner.into()),
-    // Scala: ImplTemplateNameT(_) => vwat() — should never be called for impl entries (they are
-    // indexed under ImplImpreciseNameS in TemplatasStore.buildFor, never via getImpreciseName(key)).
     INameT::ImplTemplate(_) => panic!("Unimplemented or unreachable: ImplTemplateNameT — Scala vwat()"),
     INameT::AnonymousSubstructTemplate(astn) => {
         let inner_name = get_imprecise_name(scout_arena, astn.interface.into());

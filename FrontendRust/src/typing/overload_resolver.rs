@@ -252,7 +252,6 @@ where 's: 't,
         candidate: ICalleeCandidate<'s, 't>,
         exact: bool,
     ) -> Result<Result<AttemptedCandidate<'s, 't>, IFindFunctionFailureReason<'s, 't>>, ICompileErrorT<'s, 't>> {
-        // Scala: anonymous `new IRuneTypeSolverEnv { override def lookup(...) }` inside attemptCandidateBanner
         struct OverloadRuneTypeSolverEnv<'a, 's, 't> where 's: 't {
             calling_env: IInDenizenEnvironmentT<'s, 't>,
             typing_interner: &'a TypingInterner<'s, 't>,
@@ -322,8 +321,6 @@ where 's: 't,
                     let rune_type_solve_env =
                         OverloadRuneTypeSolverEnv { calling_env, typing_interner: self.typing_interner, scout_arena: self.scout_arena };
 
-                    // Scala: runeTypeSolver.solve(sanityCheck, useOptimizedSolver, env, ...)
-                    // Note: Rust solve_rune_type doesn't accept useOptimizedSolver (pre-existing API difference)
                     let rules_s_deref: Vec<IRulexSR<'s>> =
                         explicit_template_arg_rules_with_connections.clone();
                     let combined_explicit_runes: Vec<IRuneS<'s>> = {
@@ -766,7 +763,6 @@ where 's: 't,
         }
     }
 
-    // Rust adaptation: arena-allocated ReferenceExpressionTE — caller needs to keep the value to pass to DestroyStaticSizedArrayIntoFunctionTE, so we take &'t.
     pub fn get_array_consumer_prototype(
         &self,
         coutputs: &mut CompilerOutputs<'s, 't>,

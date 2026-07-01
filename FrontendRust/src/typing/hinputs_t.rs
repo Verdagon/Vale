@@ -132,12 +132,6 @@ impl<'s, 't> HinputsT<'s, 't> {
         panic!("Unimplemented: lookup_citizen_by_template_id");
     }
     
-    // Rust adaptation: Scala's `_.templateName.localName == structTemplateName`
-    // compares directly because Scala's covariant `templateName.localName`
-    // narrows to `IStructTemplateNameT`. Rust's `template_name.local_name`
-    // stays in the wide `INameT` enum, so we must extract the struct-template
-    // case before structural comparison. `vassertOne` is inlined as a match on
-    // the result count.
     pub fn lookup_struct_by_template_name(&self, struct_template_name: StructTemplateNameT<'s>) -> &'t StructDefinitionT<'s, 't> {
         let matches: Vec<&'t StructDefinitionT<'s, 't>> = self.structs.iter()
             .filter(|s| match s.template_name.local_name {

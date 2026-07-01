@@ -36,7 +36,6 @@ pub struct HammerCompilationOptions {
 
 // Mirrors Scala's `object HammerCompilationOptions { def apply() }` zero-arg
 // constructor (the case-class default-arg apply pattern). Defaults match
-// Scala: `debugOut = (x => println("##: " + x))`, `globalOptions = GlobalOptions()`.
 impl HammerCompilationOptions {
   pub fn new() -> Self {
     HammerCompilationOptions {

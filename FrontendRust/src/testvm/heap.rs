@@ -581,10 +581,6 @@ impl<'v, 'h, 's> HeapV<'v, 'h, 's> {
     }
 
     // Scala signature: getCurrentCall(callId: CallId): Call returns the Call by reference (Scala mutable shared object).
-    // Rust adaptation: CallV is held inside a Cell-wrapped HashMap and contains Cell-of-HashMap fields, so it can't be
-    // returned by-value or by-borrow with a clean lifetime. We take the callback-passing shape — caller hands in a
-    // closure that operates on `&CallV`, and we hold the RefCell borrow for that scope. Exception-B class (borrow/Cell
-    // adaptation forced by Rust ownership).
     pub fn get_current_call<R>(&mut self, expected_call_id: CallIdV<'v, 'h, 's>, f: impl FnOnce(&mut CallV<'v, 'h, 's>) -> R) -> R {
         assert_eq!(*self.call_id_stack.last().expect("call_id_stack empty"), expected_call_id);
         let call = self.calls_by_id.get_mut(&expected_call_id).expect("get_current_call: not in calls_by_id");

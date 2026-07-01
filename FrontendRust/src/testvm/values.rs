@@ -552,10 +552,6 @@ impl<'v, 'h, 's> CallIdV<'v, 'h, 's> {
   }
 }
 
-// Rust adaptation: Scala's `case class CallId` gets `toString` autoboxed into
-// string-concat via `+`. The Rust port realizes that as `impl Display`, mirroring
-// the Scala `toString` body line-for-line. The `to_string(&self) -> StrI<'s>`
-// method above stays panic-stubbed until a caller needs the interned form.
 impl<'v, 'h, 's> Display for CallIdV<'v, 'h, 's> {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     write!(f, "ƒ{}/{}", self.call_depth, self.function.id.shortened_name.0)
