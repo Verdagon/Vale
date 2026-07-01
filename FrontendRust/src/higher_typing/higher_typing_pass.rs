@@ -969,7 +969,6 @@ pub struct HigherTypingCompilation<'s, 'ctx, 'p> {
 impl<'s, 'ctx, 'p> HigherTypingCompilation<'s, 'ctx, 'p>
 {
   
-  // From HigherTypingPass.scala lines 793-799
   pub fn new(
     scout_arena: &'ctx ScoutArena<'s>,
     keywords: &'ctx Keywords<'s>,

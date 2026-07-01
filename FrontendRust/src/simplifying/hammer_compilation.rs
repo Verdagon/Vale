@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/HammerCompilation.scala
 // Coordinates the Hammer (simplifying) pass
 
 use bumpalo::Bump;

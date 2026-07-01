@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/MutateHammer.scala
 //
 // Per typing-pass `Compiler` precedent, `MutateHammer` is not a Rust struct.
 // Methods become `impl Hammer { ... }` blocks colocated here.

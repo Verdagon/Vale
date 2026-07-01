@@ -359,7 +359,6 @@ where
     'p: 'ctx,
 {
   /// Parse a while loop
-  /// Mirrors parseWhile in ExpressionParser.scala lines 242-279
   fn parse_while(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -408,7 +407,6 @@ where
   }
   
   /// Parse an explicit block
-  /// Mirrors parseExplicitBlock in ExpressionParser.scala lines 281-311
   fn parse_explicit_block(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -535,7 +533,6 @@ where
   }
 
   /// Parse an if ladder (if/else if/else)
-  /// Mirrors parseIfLadder in ExpressionParser.scala lines 388-478
   fn parse_if_ladder(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -729,7 +726,6 @@ where
   }
   
   /// Parse a single if part (condition and then block)
-  /// Mirrors parseIfPart in ExpressionParser.scala lines 313-386
   fn parse_if_part(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -775,7 +771,6 @@ where
   }
 
   /// Parse a block from a curlied expression
-  /// Mirrors parseBlock in ExpressionParser.scala lines 586-589
   pub fn parse_block(
     &self,
     block_l: &CurliedLE<'p>,
@@ -787,7 +782,6 @@ where
   }
   
   /// Parse block contents
-  /// Mirrors parseBlockContents in ExpressionParser.scala lines 590-640
   pub fn parse_block_contents(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -844,34 +838,27 @@ where
   
   /// Parse lone block
   /// Parse lone block expression
-  /// Mirrors parseLoneBlock in ExpressionParser.scala lines 642-676
   fn parse_lone_block(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
     templex_parser: &TemplexParser<'p, 'ctx>,
     pattern_parser: &PatternParser<'p, 'ctx>,
   ) -> ParseResult<Option<IExpressionPE<'p>>> {
-    // Mirrors ExpressionParser.scala line 645
     let mut tentative_iter = iter.clone();
 
-    // Mirrors ExpressionParser.scala lines 647-650
     // The pure/unsafe is a hack to get syntax highlighting work for
     // the future pure block feature.
     tentative_iter.try_skip_word(self.keywords.r#unsafe);
     let pure = tentative_iter.try_skip_word(self.keywords.pure);
 
-    // Mirrors ExpressionParser.scala lines 652-654
     if tentative_iter.try_skip_word(self.keywords.block).is_none() {
       return Ok(None);
     }
 
-    // Mirrors ExpressionParser.scala lines 656-657
     iter.skip_to(&tentative_iter);
 
-    // Mirrors ExpressionParser.scala line 659
     let begin = iter.get_pos();
 
-    // Mirrors ExpressionParser.scala lines 661-673
     let inner = match iter.peek_cloned() {
       Some(INodeLEEnum::Curlied(curlied)) => {
         let curlied_contents = curlied.contents.clone();
@@ -887,7 +874,6 @@ where
       }
     };
 
-    // Mirrors ExpressionParser.scala line 675
     Ok(Some(IExpressionPE::Block(BlockPE {
       range: RangeL(begin, iter.get_prev_end_pos()),
       maybe_pure: pure,
@@ -903,22 +889,18 @@ where
     templex_parser: &TemplexParser<'p, 'ctx>,
     pattern_parser: &PatternParser<'p, 'ctx>,
   ) -> ParseResult<Option<IExpressionPE<'p>>> {
-    // Mirrors ExpressionParser.scala line 682
     let begin = iter.get_pos();
 
-    // Mirrors ExpressionParser.scala lines 683-685
     if iter.try_skip_word(self.keywords.destruct).is_none() {
       return Ok(None);
     }
 
-    // Mirrors ExpressionParser.scala lines 687-691
     let inner_expr =
         match self.parse_expression(iter, stop_on_curlied, templex_parser, pattern_parser) {
           Err(e) => return Err(e),
           Ok(x) => x,
         };
 
-    // Mirrors ExpressionParser.scala line 693
     Ok(Some(IExpressionPE::Destruct(DestructPE {
       range: RangeL(begin, iter.get_prev_end_pos()),
       inner: self.parse_arena.alloc(inner_expr),
@@ -926,7 +908,6 @@ where
   }
   
   /// Parse unlet
-  /// Mirrors parseUnlet in ExpressionParser.scala
   fn parse_unlet(&self, iter: &mut ScrambleIterator<'p, '_>) -> ParseResult<Option<IExpressionPE<'p>>> {
     // Check for 'unlet' keyword
     if let Some(range) = iter.try_skip_word(self.keywords.unlet) {
@@ -989,7 +970,6 @@ where
   }
   
   /// Parse a statement
-  /// Mirrors parseStatement in ExpressionParser.scala lines 746-829
   pub fn parse_statement(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1064,9 +1044,7 @@ where
   }
   
   /// Get operator precedence
-  /// Mirrors getPrecedence in ExpressionParser.scala lines 831-844
   /// Get operator precedence
-  /// Mirrors getPrecedence in ExpressionParser.scala lines 831-843
   pub fn get_precedence(&self, str: StrI<'_>) -> i32 {
     if str == self.keywords.dot_dot {
       6
@@ -1092,7 +1070,6 @@ where
   }
   
   /// Parse an expression
-  /// Mirrors parseExpression in ExpressionParser.scala lines 845-897
   pub fn parse_expression(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1153,7 +1130,6 @@ where
   }
   
   /// Parse a lookup expression
-  /// Mirrors parseLookup in ExpressionParser.scala lines 898-939
   pub fn parse_lookup(&self, iter: &mut ScrambleIterator<'p, '_>) -> Option<IExpressionPE<'p>> {
     let begin = iter.get_pos();
     match iter.peek3_cloned() {
@@ -1214,7 +1190,6 @@ where
   }
 
   /// Parse a boolean literal
-  /// Mirrors parseBoolean in ExpressionParser.scala lines 940-954
   pub fn parse_boolean(&self, iter: &mut ScrambleIterator<'p, '_>) -> Option<IExpressionPE<'p>> {
     if let Some(range) = iter.try_skip_word(self.keywords.truue) {
       return Some(IExpressionPE::ConstantBool(ConstantBoolPE {
@@ -1232,7 +1207,6 @@ where
   }
   
   /// Parse an atomic expression
-  /// Mirrors parseAtom in ExpressionParser.scala lines 955-1092
   pub fn parse_atom(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1358,7 +1332,6 @@ where
   }
   
   /// Parse a spree step (method call, field access, etc.)
-  /// Mirrors parseSpreeStep in ExpressionParser.scala lines 1093-1223
   pub fn parse_spree_step(
     &self,
     spree_begin: i32,
@@ -1549,7 +1522,6 @@ where
   }
   
   /// Parse a function call
-  /// Mirrors parseFunctionCall in ExpressionParser.scala lines 1224-1245
   pub fn parse_function_call(
     &self,
     original_iter: &mut ScrambleIterator<'p, '_>,
@@ -1577,7 +1549,6 @@ where
   }
   
   /// Parse an atom and tight suffixes
-  /// Mirrors parseAtomAndTightSuffixes in ExpressionParser.scala lines 1246-1272
   pub fn parse_atom_and_tight_suffixes(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1614,7 +1585,6 @@ where
   }
   
   /// Parse chevron pack (template arguments)
-  /// Mirrors parseChevronPack in ExpressionParser.scala lines 1273-1292
   pub fn parse_chevron_pack(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1642,7 +1612,6 @@ where
   }
   
   /// Parse a template lookup
-  /// Mirrors parseTemplateLookup in ExpressionParser.scala lines 1293-1313
   pub fn parse_template_lookup(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1671,7 +1640,6 @@ where
   }
   
   /// Parse a pack (parens, squares, or curlies)
-  /// Mirrors parsePack in ExpressionParser.scala lines 1314-1333
   pub fn parse_pack(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1699,7 +1667,6 @@ where
   }
   
   /// Parse a square pack (array/seq literal)
-  /// Mirrors parseSquarePack in ExpressionParser.scala lines 1334-1352
   pub fn parse_square_pack(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1728,7 +1695,6 @@ where
   }
   
   /// Parse a brace pack
-  /// Mirrors parseBracePack in ExpressionParser.scala lines 1353-1371
   pub fn parse_brace_pack(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1757,7 +1723,6 @@ where
   }
   
   /// Parse a tuple or sub-expression
-  /// Mirrors parseTupleOrSubExpression in ExpressionParser.scala lines 1372-1417
   pub fn parse_tuple_or_sub_expression(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1791,7 +1756,6 @@ where
           }
         } else {
           // Then we have e.g. (true,) or (true,true) etc.
-          // Mirrors ExpressionParser.scala lines 1394-1400
           let mut element_iters = if !iters.last().unwrap().has_next() {
             // Last is empty, like in (true,) so take it out
             iters.pop();
@@ -1818,7 +1782,6 @@ where
   }
   
   /// Parse expression data element
-  /// Mirrors parseExpressionDataElement in ExpressionParser.scala lines 1418-1543
   pub fn parse_expression_data_element(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -1965,13 +1928,11 @@ where
   }
   
   /// Parse a braced body
-  /// Mirrors parseBracedBody in ExpressionParser.scala lines 1544-1561
   pub fn parse_braced_body(&self, _iter: &mut ScrambleIterator<'p, '_>) -> ParseResult<BlockPE<'p>> {
     panic!("parse_braced_body: NOT IMPLEMENTED - marked vimpl() in Scala ExpressionParser.scala line 1545")
   }
   
   /// Parse single-arg lambda begin
-  /// Mirrors parseSingleArgLambdaBegin in ExpressionParser.scala lines 1562-1585
   pub fn parse_single_arg_lambda_begin(
     &self,
     _original_iter: &mut ScrambleIterator<'p, '_>,
@@ -1980,7 +1941,6 @@ where
   }
   
   /// Parse multi-arg lambda begin
-  /// Mirrors parseMultiArgLambdaBegin in ExpressionParser.scala lines 1586-1634
   pub fn parse_multi_arg_lambda_begin(
     &self,
     _original_iter: &mut ScrambleIterator<'p, '_>,
@@ -1989,7 +1949,6 @@ where
   }
   
   /// Parse a lambda
-  /// Mirrors parseLambda in ExpressionParser.scala lines 1635-1728
   pub fn parse_lambda(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -2120,7 +2079,6 @@ where
       (_, _, _) => return Ok(None),
     };
 
-    // Mirrors ExpressionParser.scala lines 1693-1723
     let body_p = match iter.peek_cloned() {
       Some(INodeLEEnum::Curlied(block_l)) => {
         let block_l = block_l.clone();
@@ -2163,7 +2121,6 @@ where
   }
   
   /// Parse an array literal
-  /// Mirrors parseArray in ExpressionParser.scala lines 1729-1822
   pub fn parse_array(
     &self,
     original_iter: &mut ScrambleIterator<'p, '_>,
@@ -2249,7 +2206,6 @@ where
   }
   
   /// Descramble - converts scrambled expression elements to properly structured AST
-  /// Mirrors descramble in ExpressionParser.scala lines 1823-1880
   fn descramble_elements(
     &self,
     elements: &[ExpressionElement<'p>],
@@ -2348,7 +2304,6 @@ where
   }
   
   /// Parse a binary call
-  /// Mirrors parseBinaryCall in ExpressionParser.scala lines 1881-1923
   pub fn parse_binary_call(&self, iter: &mut ScrambleIterator<'p, '_>) -> ParseResult<Option<NameP<'p>>> {
     let name = match iter.peek3_cloned() {
       (Some(INodeLEEnum::Word(WordLE { range, str })), _, _) => {
@@ -2435,7 +2390,6 @@ where
   }
   
   /// Check if at expression end
-  /// Mirrors atExpressionEnd in ExpressionParser.scala lines 1924-1933
   pub fn at_expression_end(&self, iter: &ScrambleIterator, stop_on_curlied: bool) -> bool {
     match iter.peek_cloned() {
       None => true,

@@ -1,4 +1,3 @@
-// From Frontend/PassManager/src/dev/vale/passmanager/FullCompilation.scala
 // Coordinates the full compilation pipeline
 
 use bumpalo::Bump;
@@ -23,13 +22,11 @@ use crate::postparsing::post_parser::ICompileErrorS;
 use crate::typing::compiler_error_reporter::ICompileErrorT;
 use crate::typing::hinputs_t::HinputsT;
 
-// From FullCompilation.scala lines 23-28: FullCompilationOptions
 pub struct FullCompilationOptions {
   pub global_options: GlobalOptions,
   pub debug_out: Arc<dyn Fn(&str) + Send + Sync>,
 }
 
-// From FullCompilation.scala lines 30-57: FullCompilation class
 pub struct FullCompilation<'s, 'h, 'ctx, 't, 'i, 'p>
 where
   's: 'h,
@@ -47,7 +44,6 @@ where
   's: 'i,
   'p: 'ctx,
 {
-  // From FullCompilation.scala lines 30-45
   pub fn new(
     scout_arena: &'ctx ScoutArena<'s>,
     interner: &'ctx HammerInterner<'s, 'h>,

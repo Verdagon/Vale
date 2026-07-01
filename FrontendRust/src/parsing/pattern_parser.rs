@@ -32,7 +32,6 @@ where
   }
 
   /// Parse a parameter
-  /// Mirrors parseParameter in PatternParser.scala lines 13-72
   pub fn parse_parameter(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -130,7 +129,6 @@ where
   }
 
   /// Parse a pattern
-  /// Mirrors parsePattern in PatternParser.scala lines 74-221
   pub fn parse_pattern(
     &self,
     iter: &mut ScrambleIterator<'p, '_>,
@@ -142,7 +140,6 @@ where
     is_in_lambda: bool,
     maybe_name_from_parameter: Option<WordLE<'p>>,
   ) -> ParseResult<PatternPP<'p>> {
-    // Mirrors PatternParser.scala lines 75-88
     // The Scala code used to have an early return here, but it was dead code and has been commented out.
     // We just check for empty pattern with no name.
     if !iter.has_next() {

@@ -15,7 +15,6 @@ use crate::Keywords;
 use std::collections::HashMap;
 use crate::parse_arena::ParseArena;
 
-// From ParseAndExplore.scala lines 35-101: parseAndExplore
 pub fn parse_and_explore<'p, 'ctx, D, F, R, HandleParsedDenizen, FileHandler>(
   parse_arena: &'ctx ParseArena<'p>,
   keywords: &'ctx Keywords<'p>,
@@ -32,7 +31,6 @@ where
   HandleParsedDenizen: FnMut(&'p FileCoordinate<'p>, &str, &[ImportL<'p>], IDenizenP<'p>) -> D,
   FileHandler: FnMut(&'p FileCoordinate<'p>, &str, &[RangeL], Vec<D>) -> F,
 {
-  // From ParseAndExplore.scala lines 45-100: Call lexAndExplore with parsing logic
   lex_and_explore::lex_and_explore(
     parse_arena,
     keywords,
@@ -43,10 +41,8 @@ where
      imports: &[ImportL<'p>],
      denizen_l: &IDenizenL<'p>|
      -> D {
-      // From ParseAndExplore.scala lines 51-95: Parse each denizen type
       let denizen_p: IDenizenP<'p> = match denizen_l {
         IDenizenL::TopLevelImport(import) => {
-          // From ParseAndExplore.scala lines 53-59
           IDenizenP::TopLevelImport(
             parser
               .parse_import(import.clone())
@@ -54,7 +50,6 @@ where
           )
         }
         IDenizenL::TopLevelFunction(function_l) => {
-          // From ParseAndExplore.scala lines 60-66
           IDenizenP::TopLevelFunction(
             parser
               .parse_function(function_l.clone(), false)
@@ -62,7 +57,6 @@ where
           )
         }
         IDenizenL::TopLevelStruct(struct_l) => {
-          // From ParseAndExplore.scala lines 67-73
           IDenizenP::TopLevelStruct(
             parser
               .parse_struct(struct_l.clone())
@@ -70,7 +64,6 @@ where
           )
         }
         IDenizenL::TopLevelInterface(interface_l) => {
-          // From ParseAndExplore.scala lines 74-80
           IDenizenP::TopLevelInterface(
             parser
               .parse_interface(interface_l.clone())
@@ -78,7 +71,6 @@ where
           )
         }
         IDenizenL::TopLevelImpl(impl_l) => {
-          // From ParseAndExplore.scala lines 81-87
           IDenizenP::TopLevelImpl(
             parser
               .parse_impl(impl_l.clone())
@@ -86,7 +78,6 @@ where
           )
         }
         IDenizenL::TopLevelExportAs(export) => {
-          // From ParseAndExplore.scala lines 88-94
           IDenizenP::TopLevelExportAs(
             parser
               .parse_export_as(export.clone())
@@ -94,7 +85,6 @@ where
           )
         }
       };
-      // From ParseAndExplore.scala line 96
       handle_parsed_denizen(file_coord, code, imports, denizen_p)
     },
     |file_coord: &'p FileCoordinate<'p>,
@@ -102,7 +92,6 @@ where
      comment_ranges: &[RangeL],
      denizens: Vec<D>|
      -> F {
-      // From ParseAndExplore.scala lines 98-100
       file_handler(file_coord, code, comment_ranges, denizens)
     },
   )

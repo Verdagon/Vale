@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/Hammer.scala
 //
 // Central `Hammer` god struct (typing-pass `Compiler` precedent — sub-hammers
 // like `BlockHammer`/`ExpressionHammer`/etc. are NOT held as Rust struct

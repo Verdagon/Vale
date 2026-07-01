@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/Hamuts.scala
 //
 // Mutable bookkeeping state threaded through every simplifying-pass translation.
 // Per the Slab 17 architect directive, the Rust port mirrors typing pass's

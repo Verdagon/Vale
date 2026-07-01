@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/test/dev/vale/simplifying/HammerTest.scala
 
 use bumpalo::Bump;
 use crate::keywords::Keywords;

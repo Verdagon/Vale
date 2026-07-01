@@ -12,7 +12,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 /// Helper function that collects all denizens and files
-/// From LexAndExplore.scala lines 12-40
 /// TODO: Fix closure lifetime issues - collect pattern causes borrow checker to reject.
 /// Workaround: Implement without using lex_and_explore's callback, or change handler to take owned data.
 #[allow(dead_code)]
@@ -36,7 +35,6 @@ where
 }
 
 /// Main generic lexing function with import-driven package discovery
-/// From LexAndExplore.scala lines 43-150
 pub fn lex_and_explore<'p, 'ctx, D, F, R>(
   parse_arena: &'ctx ParseArena<'p>,
   keywords: &'ctx Keywords<'p>,

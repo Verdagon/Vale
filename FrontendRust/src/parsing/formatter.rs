@@ -1,4 +1,3 @@
-// From Frontend/ParsingPass/src/dev/vale/parsing/Formatter.scala
 // Code formatting utilities
 
 pub enum IClass {

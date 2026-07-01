@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/Conversions.scala
 #[allow(unused_imports)]
 use crate::utils::range::CodeLocationS;
 #[allow(unused_imports)]

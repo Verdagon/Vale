@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/BlockHammer.scala
 //
 // Scala's `BlockHammer` is collapsed: per typing-pass `Compiler` precedent
 // (no sub-`StructCompiler`/`ExpressionCompiler`/etc.), all sub-hammer methods

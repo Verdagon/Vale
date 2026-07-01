@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/src/dev/vale/simplifying/NameHammer.scala
 //
 // Per typing-pass `Compiler` precedent, `NameHammer` is not a Rust struct.
 // Its methods live as `impl Hammer { ... }` blocks colocated here; its free

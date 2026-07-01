@@ -1,4 +1,3 @@
-// From Frontend/PassManager/src/dev/vale/passmanager/PassManager.scala
 // Main entry point for the Vale compiler
 
 use crate::compile_options::GlobalOptions;
@@ -56,7 +55,6 @@ impl<'a> IFrontendInput<'a> {
   }
 }
 
-// From PassManager.scala lines 52-68: Options
 pub struct Options<'a> {
   pub inputs: Vec<IFrontendInput<'a>>,
   pub output_dir_path: Option<String>,
@@ -71,7 +69,6 @@ pub struct Options<'a> {
   pub debug_output: bool,
 }
 
-// From PassManager.scala lines 71-150: parseOpts
 pub fn parse_opts<'a>(parse_arena: &'a ParseArena<'a>, opts: Options<'a>, list: Vec<String>) -> Options<'a> {
   parse_opts_recursive(parse_arena, opts, &list, 0)
 }
@@ -82,17 +79,14 @@ fn parse_opts_recursive<'a>(
   list: &[String],
   index: usize,
 ) -> Options<'a> {
-  // From PassManager.scala line 72-73: case Nil => opts
   if index >= list.len() {
     return opts;
   }
 
   let arg = &list[index];
 
-  // From PassManager.scala lines 74-111: Handle flags
   match arg.as_str() {
     "--output_dir" => {
-      // From PassManager.scala lines 74-77
       if index + 1 >= list.len() {
         eprintln!("--output_dir requires a value");
         exit(22);
@@ -105,7 +99,6 @@ fn parse_opts_recursive<'a>(
       parse_opts_recursive(parse_arena, opts, list, index + 2)
     }
     "--output_vast" => {
-      // From PassManager.scala lines 85-87
       if index + 1 >= list.len() {
         eprintln!("--output_vast requires a value");
         exit(22);
@@ -114,7 +107,6 @@ fn parse_opts_recursive<'a>(
       parse_opts_recursive(parse_arena, opts, list, index + 2)
     }
     "--sanity_check" => {
-      // From PassManager.scala lines 88-90
       if index + 1 >= list.len() {
         eprintln!("--sanity_check requires a value");
         exit(22);
@@ -123,7 +115,6 @@ fn parse_opts_recursive<'a>(
       parse_opts_recursive(parse_arena, opts, list, index + 2)
     }
     "--include_builtins" => {
-      // From PassManager.scala lines 91-93
       if index + 1 >= list.len() {
         eprintln!("--include_builtins requires a value");
         exit(22);
@@ -132,7 +123,6 @@ fn parse_opts_recursive<'a>(
       parse_opts_recursive(parse_arena, opts, list, index + 2)
     }
     "--use_overload_index" => {
-      // From PassManager.scala lines 94-96
       if index + 1 >= list.len() {
         eprintln!("--use_overload_index requires a value");
         exit(22);
@@ -141,7 +131,6 @@ fn parse_opts_recursive<'a>(
       parse_opts_recursive(parse_arena, opts, list, index + 2)
     }
     "--simple_solver" => {
-      // From PassManager.scala lines 97-99
       if index + 1 >= list.len() {
         eprintln!("--simple_solver requires a value");
         exit(22);
@@ -150,35 +139,27 @@ fn parse_opts_recursive<'a>(
       parse_opts_recursive(parse_arena, opts, list, index + 2)
     }
     "--benchmark" => {
-      // From PassManager.scala lines 100-102
       opts.benchmark = true;
       parse_opts_recursive(parse_arena, opts, list, index + 1)
     }
     "-v" | "--verbose" => {
-      // From PassManager.scala lines 106-108
       opts.verbose_errors = true;
       parse_opts_recursive(parse_arena, opts, list, index + 1)
     }
     "--debug_output" => {
-      // From PassManager.scala lines 109-111
       opts.debug_output = true;
       parse_opts_recursive(parse_arena, opts, list, index + 1)
     }
     _ if arg.starts_with("-") => {
-      // From PassManager.scala line 112
       eprintln!("Unknown option {}", arg);
       exit(22);
     }
     _ => {
-      // From PassManager.scala lines 113-149: Handle positional arguments
       if opts.mode.is_none() {
-        // From PassManager.scala lines 114-115
         opts.mode = Some(arg.clone());
         parse_opts_recursive(parse_arena, opts, list, index + 1)
       } else {
-        // From PassManager.scala lines 116-148
         if arg.contains("=") {
-          // From PassManager.scala lines 117-144
           let parts: Vec<&str> = arg.split('=').collect();
           if parts.len() != 2 {
             eprintln!("Arguments can only have 1 equals. Saw: {}", arg);
@@ -196,7 +177,6 @@ fn parse_opts_recursive<'a>(
           let package_coord_str = parts[0];
           let path = parts[1];
 
-          // From PassManager.scala lines 123-134
           let package_coordinate = if package_coord_str.contains(".") {
             let package_coord_parts: Vec<&str> = package_coord_str.split('.').collect();
             let module = parse_arena.intern_str(package_coord_parts[0]);
@@ -209,7 +189,6 @@ fn parse_opts_recursive<'a>(
             parse_arena.intern_package_coordinate(parse_arena.intern_str(package_coord_str), &[])
           };
 
-          // From PassManager.scala lines 135-143
           let input = if path.ends_with(".vale") {
             IFrontendInput::DirectFilePathInput {
               package_coord: package_coordinate,
@@ -229,7 +208,6 @@ fn parse_opts_recursive<'a>(
           opts.inputs.push(input);
           parse_opts_recursive(parse_arena, opts, list, index + 1)
         } else {
-          // From PassManager.scala lines 145-147
           eprintln!("Unrecognized input: {}", arg);
           exit(22);
         }
@@ -238,7 +216,6 @@ fn parse_opts_recursive<'a>(
   }
 }
 
-// From PassManager.scala lines 153-201: Resolver that reads .vale files from filesystem
 pub struct FileSystemResolver<'a> {
   module_roots: HashMap<String, PathBuf>,
   direct_file_inputs: HashMap<&'a PackageCoordinate<'a>, PathBuf>,
@@ -257,9 +234,7 @@ impl<'a> FileSystemResolver<'a> {
 }
 
 impl<'a> IPackageResolver<'a, HashMap<String, String>> for FileSystemResolver<'a> {
-  // From PassManager.scala lines 153-201
   fn resolve(&self, package_coord: &'a PackageCoordinate<'a>) -> Option<HashMap<String, String>> {
-    // From PassManager.scala lines 190-196: Check for DirectFilePathInput first
     if let Some(file_path) = self.direct_file_inputs.get(package_coord) {
       if let Ok(code) = fs::read_to_string(file_path) {
         let filepath = file_path.to_string_lossy().to_string();
@@ -269,7 +244,6 @@ impl<'a> IPackageResolver<'a, HashMap<String, String>> for FileSystemResolver<'a
       }
     }
 
-    // From PassManager.scala lines 168-189: ModulePathInput - find all files in directory
     let module_name = package_coord.module.as_str();
     let module_root = self.module_roots.get(module_name)?;
 
@@ -302,18 +276,15 @@ impl<'a> IPackageResolver<'a, HashMap<String, String>> for FileSystemResolver<'a
   }
 }
 
-// From PassManager.scala lines 153-201: resolvePackageContents
 fn resolve_package_contents<'a>(
   parse_arena: &ParseArena<'a>,
   inputs: &[IFrontendInput<'a>],
   package_coord: &PackageCoordinate<'a>,
 ) -> Option<HashMap<String, String>>
 {
-  // From PassManager.scala line 158
   let module = &package_coord.module;
   let packages = &package_coord.packages;
 
-  // From PassManager.scala lines 162-197
   let mut source_inputs: Vec<(String, String)> = Vec::new();
 
   for (index, input) in inputs.iter().enumerate() {
@@ -327,7 +298,6 @@ fn resolve_package_contents<'a>(
         name,
         code,
       } => {
-        // From PassManager.scala lines 164-167: SourceInput (for .vpst and .vale direct inputs)
         if packages.is_empty() {
           source_inputs.push((format!("{}({})", index, name), code.clone()));
         }
@@ -336,7 +306,6 @@ fn resolve_package_contents<'a>(
         module: _,
         module_path,
       } => {
-        // From PassManager.scala lines 168-188: ModulePathInput
         let mut directory_path = module_path.clone();
         for package_step in packages {
           directory_path.push('/');
@@ -362,7 +331,6 @@ fn resolve_package_contents<'a>(
         package_coord: _,
         path,
       } => {
-        // From PassManager.scala lines 190-196: DirectFilePathInput
         if let Ok(code) = fs::read_to_string(path) {
           source_inputs.push((path.clone(), code));
         }
@@ -370,7 +338,6 @@ fn resolve_package_contents<'a>(
     }
   }
 
-  // From PassManager.scala lines 198-200: Group by filepath and check for overlaps
   let mut filepath_to_source: HashMap<String, String> = HashMap::new();
   for (filepath, code) in source_inputs {
     if filepath_to_source.contains_key(&filepath) {
@@ -663,7 +630,6 @@ where
   })
 }
 
-// From PassManager.scala lines 551-560: writeFile
 fn write_file(filepath: &str, s: &str) {
   if filepath == "stdout:" {
     println!("{}", s);

@@ -1,4 +1,3 @@
-// From Frontend/Builtins/src/dev/vale/Builtins.scala
 
 use crate::utils::code_hierarchy::FileCoordinateMap;
 use crate::parse_arena::ParseArena;
@@ -6,7 +5,6 @@ use crate::keywords::Keywords;
 use std::fs;
 use std::path::Path;
 
-// From Builtins.scala lines 9-39: moduleToFilename
 pub const MODULE_TO_FILENAME: &[(&str, &str)] = &[
     ("arith", "arith.vale"),
     ("logic", "logic.vale"),
@@ -45,7 +43,6 @@ pub const MODULE_TO_FILENAME: &[(&str, &str)] = &[
 // the `get_embedded_modulized_code_map` precedent above.
 const BUILTINS_DIR: &str = "src/builtins/resources";
 
-// From Builtins.scala lines 41-70: load
 // Note: In Scala this loads from embedded resources. In Rust CLI, we load from filesystem.
 pub fn load(builtins_dir: &str, resource_filename: &str) -> Result<String, String> {
     let path = Path::new(builtins_dir).join(resource_filename);
@@ -53,7 +50,6 @@ pub fn load(builtins_dir: &str, resource_filename: &str) -> Result<String, Strin
         .map_err(|e| format!("Failed to load builtin file {}: {}", path.display(), e))
 }
 
-// From Builtins.scala lines 78-90: getModulizedCodeMap
 // Modulized is a made up word, it means we're pretending the builtins are in different modules.
 // This lets tests import only certain kinds of builtins.
 // The more basic foundational tests will choose not to import any builtins, so they can test the
@@ -77,7 +73,6 @@ pub fn get_modulized_code_map<'a>(
     Ok(result)
 }
 
-// From Builtins.scala lines 78-90: getModulizedCodeMap (embedded variant — no Scala counterpart).
 // Same as get_modulized_code_map but embeds the .vale resource files at compile time via
 // include_str!, mirroring Scala's resource-loading model. Used by tests (deterministic, no
 // filesystem / working-directory dependency). Scala doesn't need a separate function because
@@ -126,7 +121,6 @@ pub fn get_embedded_modulized_code_map<'a>(
     result
 }
 
-// From Builtins.scala lines 94-111: getCodeMap
 // Add an empty v.builtins.whatever so that the aforementioned imports still work.
 // But load the actual files all inside the root package.
 pub fn get_code_map<'a>(

@@ -1,4 +1,3 @@
-// From Frontend/FinalAST/src/dev/vale/finalast/instructions.scala
 //
 // H-side instruction set: 50+ ExpressionH variants describing the lowered
 // program. Mirrors src/instantiating/ast/expressions.rs pattern — enum

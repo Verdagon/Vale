@@ -4,7 +4,6 @@ use crate::utils::code_hierarchy::{FileCoordinate, FileCoordinateMap};
 use crate::utils::range::{CodeLocationS, RangeS};
 use crate::utils::code_hierarchy::PackageCoordinate;
 
-// Mirrors SourceCodeUtils.scala:humanizePos(humanizedFilePath, source, pos)
 pub fn humanize_pos_path(humanized_file_path: &str, source: &str, pos: i32) -> String {
   let mut line = 0;
   let mut line_begin = 0;

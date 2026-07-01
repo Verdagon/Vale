@@ -1,4 +1,3 @@
-// From Frontend/SimplifyingPass/test/dev/vale/simplifying/TestCompilation.scala
 use bumpalo::Bump;
 use crate::compile_options::GlobalOptions;
 use crate::keywords::Keywords;

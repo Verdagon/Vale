@@ -1,4 +1,3 @@
-// From Frontend/Utils/src/dev/vale/CodeHierarchy.scala
 
 use indexmap::IndexMap;
 use std::collections::HashMap;

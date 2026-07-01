@@ -724,7 +724,6 @@ where 's: 't,
         let name_to_top_level_environment =
             self.typing_interner.alloc_slice_from_vec(namespace_name_to_templatas_vec);
 
-        // Mirrors Scala compiler.scala:1170-1187 nameToFunctionBodyMacro Map population.
         let mut name_to_function_body_macro =
             self.typing_interner.alloc_index_map::<StrI<'s>, FunctionBodyMacro>();
         name_to_function_body_macro.insert(self.keywords.abstract_body, FunctionBodyMacro::AbstractBody);

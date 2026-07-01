@@ -1,4 +1,3 @@
-// From Frontend/InstantiatingPass/src/dev/vale/instantiating/InstantiatedCompilation.scala
 // Coordinates the Instantiating pass
 
 use bumpalo::Bump;
@@ -51,7 +50,6 @@ where
     's: 'i,
     'p: 'ctx,
 {
-  // From InstantiatedCompilation.scala lines 19-34
   // Rust adaptation (SPDMX Exception B): `typing_interner` borrowed from test wrapper, threaded down to TypingPassCompilation (mirrors Scala `val interner` flowing from RunCompilation through the pipeline).
   pub fn new(
     typing_interner: &'ctx TypingInterner<'s, 't>,

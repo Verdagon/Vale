@@ -1,4 +1,3 @@
-// From Frontend/FinalAST/src/dev/vale/finalast/types.scala
 //
 // H-side output types for the simplifying pass. Mirrors src/instantiating/ast/types.rs
 // pattern: Polyvalue + Interned compounds + Val pairs + dispatch enum. Lifetimes

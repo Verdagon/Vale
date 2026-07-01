@@ -1,5 +1,4 @@
 use std::result::Result as StdResult;
-// From Frontend/Utils/src/dev/vale/CodeHierarchy.scala
 
 pub mod arena_index_map;
 pub mod arena_utils;

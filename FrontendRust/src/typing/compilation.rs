@@ -1,4 +1,3 @@
-// From Frontend/TypingPass/src/dev/vale/typing/Compilation.scala
 // Coordinates the Typing pass
 
 use bumpalo::Bump;

@@ -1,4 +1,3 @@
-// From Frontend/FinalAST/src/dev/vale/finalast/ast.scala
 //
 // H-side output AST types for the simplifying (hammer) pass. Mirrors
 // src/instantiating/ast/ast.rs pattern: Temporary-state structs hold real

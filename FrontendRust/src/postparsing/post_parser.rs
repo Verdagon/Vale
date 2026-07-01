@@ -1,4 +1,3 @@
-// From Frontend/PostParsingPass/src/dev/vale/postparsing/PostParser.scala
 // Coordinates the Scout (post-parsing) pass
 
 // AFTERM: rename Denizen to Definition, and maybe Citizen to TypeDefinition
@@ -1801,7 +1800,6 @@ impl<'s, 'ctx, 'p> ScoutCompilation<'s, 'ctx, 'p>
     self.parser_compilation.get_vpst_map()
   }
   
-  // From PostParser.scala lines 935-950: getScoutput
   pub fn get_scoutput(&mut self) -> Result<&FileCoordinateMap<'s, ProgramS<'s>>, ICompileErrorS<'s>> {
     if self.scoutput_cache.is_some() {
       return Ok(self.scoutput_cache.as_ref().unwrap());
@@ -1858,7 +1856,6 @@ impl<'s, 'ctx, 'p> ScoutCompilation<'s, 'ctx, 'p>
     Ok(self.scoutput_cache.as_ref().unwrap())
   }
 
-  // From PostParser.scala lines 951-964: expectScoutput
   pub fn expect_scoutput(&mut self) -> &FileCoordinateMap<'s, ProgramS<'s>> {
     match self.get_scoutput() {
       Ok(x) => x,
