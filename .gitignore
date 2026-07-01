@@ -2,7 +2,6 @@ release-ubuntu
 release-mac
 release-windows
 release-unix
-Driver.jar
 .DS_Store
 __MACOSX
 Catalyst/catalyst/.*
@@ -12,7 +11,6 @@ Catalyst/testing/test*/out/
 removeextra.sh
 target
 project
-.metals
 jdk-11.0.10+9-jre
 adoptopenjdk.tar.gz
 auditor-history/
@@ -25,9 +23,7 @@ testbuild/
 conversation_log.txt
 loopdetection.md
 regions-release-mac/
-rust_defs.txt
 rust_externs.h
-scala_defs.txt
 stdout.txt
 test_integration.sh
 test_output/
@@ -39,9 +35,6 @@ test_output/
 guardian-cache
 target
 tmp
-for-tl.md
-for-jr.md
-TL.md
 migration-drive-todo.md
 migration-drive-todo.legacy.md
 
