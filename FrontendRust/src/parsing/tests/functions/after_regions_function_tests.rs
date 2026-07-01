@@ -17,7 +17,8 @@ import org.scalatest._
 class AfterRegionsFunctionTests extends FunSuite with Collector with TestParseUtils {
 */
 #[test]
-#[ignore = "blocked - Rust parser produces TopLevelFunction for `func sum<T>() func moo(&T)void {3}` instead of ParseError::FuncBoundWithoutWhere. Tracked in migration-drive-todo.md Phase 4e."]
+// V: unignore this
+#[ignore = "blocked - Rust parser produces TopLevelFunction for `func sum<T>() func moo(&T)void {3}` instead of ParseError::FuncBoundWithoutWhere."]
 fn func_with_func_bound_with_missing_where() {
   // This test does not pass yet, use #[ignore].
   let parse_bump = Bump::new();
