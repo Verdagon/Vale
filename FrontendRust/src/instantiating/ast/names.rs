@@ -231,7 +231,7 @@ pub enum ITemplateNameI<'s, 'i, R> {
     AnonymousSubstructConstructorTemplate(&'i AnonymousSubstructConstructorTemplateNameI<'s, 'i, R>),
 }
 
-// Rust-only narrowing INameI -> ITemplateNameI (mirrors T-side TryFrom<INameT>). No Scala counterpart.
+// Rust-only narrowing INameI -> ITemplateNameI (mirrors T-side TryFrom<INameT>).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for ITemplateNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -274,7 +274,7 @@ pub enum IFunctionTemplateNameI<'s, 'i, R> {
     AnonymousSubstructConstructorTemplate(&'i AnonymousSubstructConstructorTemplateNameI<'s, 'i, R>),
 }
 
-// Rust-only widening IFunctionTemplateNameI -> INameI (mirrors T-side). No Scala counterpart.
+// Rust-only widening IFunctionTemplateNameI -> INameI (mirrors T-side).
 impl<'s, 'i, R> From<IFunctionTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> {
     fn from(t: IFunctionTemplateNameI<'s, 'i, R>) -> Self {
         match t {
@@ -290,7 +290,7 @@ impl<'s, 'i, R> From<IFunctionTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> {
     }
 }
 
-// Rust-only narrowing INameI -> IFunctionTemplateNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IFunctionTemplateNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IFunctionTemplateNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -342,7 +342,7 @@ impl<'s, 'i, R> IInstantiationNameI<'s, 'i, R> where 's: 'i, R: Copy {
             IInstantiationNameI::OverrideDispatcher(x) => x.template_args,
             IInstantiationNameI::OverrideDispatcherCase(x) => x.independent_impl_template_args,
             IInstantiationNameI::Extern(x) => interner.alloc_slice_from_vec(vec![ITemplataI::Region(x.region)]),
-            IInstantiationNameI::ExternFunction(_) => panic!("Unimplemented: template_args on ExternFunctionNameI (Scala: templateArgs field)"),
+            IInstantiationNameI::ExternFunction(_) => panic!("Unimplemented: template_args on ExternFunctionNameI"),
             IInstantiationNameI::Function(x) => x.template_args,
             IInstantiationNameI::ForwarderFunction(f) => f.inner.template_args(),
             IInstantiationNameI::FunctionBound(x) => x.template_args,
@@ -393,7 +393,7 @@ impl<'s, 'i, R> IInstantiationNameI<'s, 'i, R> where 's: 'i {
     }
 }
 // Rust-only narrowing from the wide INameI to the IInstantiationNameI subset
-// (mirrors the T-side `TryFrom<INameT> for IInstantiationNameT`). No Scala counterpart.
+// (mirrors the T-side `TryFrom<INameT> for IInstantiationNameT`).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IInstantiationNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -438,7 +438,7 @@ impl<'s, 'i, R> IFunctionNameI<'s, 'i, R> where 's: 'i {
     pub fn template_args(&self) -> &'i [ITemplataI<'s, 'i, R>] {
         match self {
             IFunctionNameI::OverrideDispatcher(x) => x.template_args,
-            IFunctionNameI::ExternFunction(_) => panic!("Unimplemented: template_args on ExternFunctionNameI (Scala: templateArgs field)"),
+            IFunctionNameI::ExternFunction(_) => panic!("Unimplemented: template_args on ExternFunctionNameI"),
             IFunctionNameI::Function(x) => x.template_args,
             IFunctionNameI::ForwarderFunction(f) => f.inner.template_args(),
             IFunctionNameI::FunctionBound(x) => x.template_args,
@@ -449,7 +449,7 @@ impl<'s, 'i, R> IFunctionNameI<'s, 'i, R> where 's: 'i {
     pub fn template(&self) -> IFunctionTemplateNameI<'s, 'i, R> {
         match self {
             IFunctionNameI::OverrideDispatcher(x) => IFunctionTemplateNameI::OverrideDispatcherTemplate(&x.template),
-            IFunctionNameI::ExternFunction(_) => panic!("Unimplemented: template on ExternFunctionNameI (Scala: override def template = ExternFunctionTemplateNameI(humanName) — needs interner)"),
+            IFunctionNameI::ExternFunction(_) => panic!("Unimplemented: template on ExternFunctionNameI"),
             IFunctionNameI::Function(x) => IFunctionTemplateNameI::FunctionTemplate(&x.template),
             IFunctionNameI::ForwarderFunction(x) => IFunctionTemplateNameI::ForwarderFunctionTemplate(&x.template),
             IFunctionNameI::FunctionBound(x) => IFunctionTemplateNameI::FunctionBoundTemplate(&x.template),
@@ -469,7 +469,7 @@ impl<'s, 'i, R> IFunctionNameI<'s, 'i, R> where 's: 'i {
         }
     }
 }
-// Rust-only narrowing INameI -> IFunctionNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IFunctionNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IFunctionNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -486,7 +486,7 @@ impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IFunctionNameI<'s, 'i, R> where '
     }
 }
 // Rust-only widening IFunctionNameI -> INameI (mirrors Scala `IFunctionNameI extends INameI`
-// subtyping; reverse of the TryFrom above, same as the template-name From widenings below). No Scala counterpart.
+// subtyping; reverse of the TryFrom above, same as the template-name From widenings below).
 impl<'s, 'i, R> From<IFunctionNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IFunctionNameI<'s, 'i, R>) -> Self {
         match name {
@@ -563,7 +563,7 @@ impl<'s, 'i, R> From<ICitizenTemplateNameI<'s, 'i, R>> for ISubKindTemplateNameI
         }
     }
 }
-// Rust-only narrowing INameI -> ICitizenTemplateNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> ICitizenTemplateNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for ICitizenTemplateNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -589,7 +589,7 @@ impl<'s, 'i, R> From<IInterfaceTemplateNameI<'s, 'i, R>> for ICitizenTemplateNam
     }
 }
 
-// Rust-only narrowing ICitizenTemplateNameI -> IStructTemplateNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing ICitizenTemplateNameI -> IStructTemplateNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<ICitizenTemplateNameI<'s, 'i, R>> for IStructTemplateNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: ICitizenTemplateNameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -602,7 +602,7 @@ impl<'s, 'i, R> TryFrom<ICitizenTemplateNameI<'s, 'i, R>> for IStructTemplateNam
     }
 }
 
-// Rust-only narrowing ICitizenTemplateNameI -> IInterfaceTemplateNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing ICitizenTemplateNameI -> IInterfaceTemplateNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<ICitizenTemplateNameI<'s, 'i, R>> for IInterfaceTemplateNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: ICitizenTemplateNameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -613,7 +613,7 @@ impl<'s, 'i, R> TryFrom<ICitizenTemplateNameI<'s, 'i, R>> for IInterfaceTemplate
     }
 }
 
-// Rust-only narrowing INameI -> IStructTemplateNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IStructTemplateNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IStructTemplateNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -654,7 +654,7 @@ impl<'s, 'i, R> ISuperKindNameI<'s, 'i, R> where 's: 'i {
         }
     }
 }
-// Rust-only narrowing INameI -> ISuperKindNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> ISuperKindNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for ISuperKindNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -702,7 +702,7 @@ impl<'s, 'i, R> ISubKindNameI<'s, 'i, R> where 's: 'i, R: Copy {
         }
     }
 }
-// Rust-only narrowing INameI -> ISubKindNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> ISubKindNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for ISubKindNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -755,7 +755,7 @@ impl<'s, 'i, R> ICitizenNameI<'s, 'i, R> where 's: 'i, R: Copy {
         }
     }
 }
-// Rust-only narrowing INameI -> ICitizenNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> ICitizenNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for ICitizenNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -771,7 +771,7 @@ impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for ICitizenNameI<'s, 'i, R> where 's
     }
 }
 // Rust-only widening ICitizenNameI -> INameI (mirrors Scala subtyping; reverse of the TryFrom above,
-// same family as the IFunctionNameI widening — feeds translateCitizenId's IdI.local_name). No Scala counterpart.
+// same family as the IFunctionNameI widening — feeds translateCitizenId's IdI.local_name).
 impl<'s, 'i, R> From<ICitizenNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: ICitizenNameI<'s, 'i, R>) -> Self {
         match name {
@@ -811,7 +811,7 @@ impl<'s, 'i, R> IStructNameI<'s, 'i, R> where 's: 'i, R: Copy {
         }
     }
 }
-// Rust-only narrowing INameI -> IStructNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IStructNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IStructNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -824,7 +824,7 @@ impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IStructNameI<'s, 'i, R> where 's:
     }
 }
 // Rust-only widening IStructNameI -> INameI (mirrors Scala subtyping; reverse of the TryFrom above,
-// same family as the IFunctionNameI widening — feeds translateStructId's IdI.local_name). No Scala counterpart.
+// same family as the IFunctionNameI widening — feeds translateStructId's IdI.local_name).
 impl<'s, 'i, R> From<IStructNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IStructNameI<'s, 'i, R>) -> Self {
         match name {
@@ -835,7 +835,7 @@ impl<'s, 'i, R> From<IStructNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i
     }
 }
 // Rust-only widening IStructNameI -> ICitizenNameI (mirrors Scala `IStructNameI extends ICitizenNameI`
-// subtyping; same shape as the INameI widening just above). No Scala counterpart.
+// subtyping; same shape as the INameI widening just above).
 impl<'s, 'i, R> From<IStructNameI<'s, 'i, R>> for ICitizenNameI<'s, 'i, R> where 's: 'i {
     fn from(name: IStructNameI<'s, 'i, R>) -> Self {
         match name {
@@ -847,7 +847,7 @@ impl<'s, 'i, R> From<IStructNameI<'s, 'i, R>> for ICitizenNameI<'s, 'i, R> where
 }
 
 // Rust-only widening IInterfaceNameI -> ICitizenNameI (mirrors Scala `IInterfaceNameI extends
-// ICitizenNameI` subtyping; same family as the IStructNameI widening just above). No Scala counterpart.
+// ICitizenNameI` subtyping; same family as the IStructNameI widening just above).
 impl<'s, 'i, R> From<IInterfaceNameI<'s, 'i, R>> for ICitizenNameI<'s, 'i, R> where 's: 'i {
     fn from(name: IInterfaceNameI<'s, 'i, R>) -> Self {
         match name {
@@ -858,7 +858,7 @@ impl<'s, 'i, R> From<IInterfaceNameI<'s, 'i, R>> for ICitizenNameI<'s, 'i, R> wh
 
 // Rust-only widening IStructTemplateNameI -> INameI (mirrors Scala `IStructTemplateNameI extends
 // ITemplateNameI extends INameI`; needed so humanize_name can recurse on a struct name's `template`
-// without inline matching at the call site). No Scala counterpart.
+// without inline matching at the call site).
 impl<'s, 'i, R> From<IStructTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IStructTemplateNameI<'s, 'i, R>) -> Self {
         match name {
@@ -869,7 +869,7 @@ impl<'s, 'i, R> From<IStructTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> wher
     }
 }
 
-// Rust-only widening IInterfaceTemplateNameI -> INameI. No Scala counterpart.
+// Rust-only widening IInterfaceTemplateNameI -> INameI.
 impl<'s, 'i, R> From<IInterfaceTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IInterfaceTemplateNameI<'s, 'i, R>) -> Self {
         match name {
@@ -878,7 +878,7 @@ impl<'s, 'i, R> From<IInterfaceTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> w
     }
 }
 
-// Rust-only widening ICitizenTemplateNameI -> INameI. No Scala counterpart.
+// Rust-only widening ICitizenTemplateNameI -> INameI.
 impl<'s, 'i, R> From<ICitizenTemplateNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: ICitizenTemplateNameI<'s, 'i, R>) -> Self {
         match name {
@@ -913,7 +913,7 @@ impl<'s, 'i, R> IInterfaceNameI<'s, 'i, R> where 's: 'i {
         }
     }
 }
-// Rust-only narrowing INameI -> IInterfaceNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IInterfaceNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IInterfaceNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -924,7 +924,7 @@ impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IInterfaceNameI<'s, 'i, R> where 
     }
 }
 // Rust-only widening IInterfaceNameI -> INameI (mirrors Scala subtyping; reverse of the TryFrom above,
-// same family as the IFunctionNameI widening — feeds translateInterfaceId's IdI.local_name). No Scala counterpart.
+// same family as the IFunctionNameI widening — feeds translateInterfaceId's IdI.local_name).
 impl<'s, 'i, R> From<IInterfaceNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IInterfaceNameI<'s, 'i, R>) -> Self {
         match name {
@@ -968,7 +968,7 @@ impl<'s, 'i, R> IImplNameI<'s, 'i, R> where 's: 'i, R: Copy {
         }
     }
 }
-// Rust-only narrowing INameI -> IImplNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IImplNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IImplNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -981,7 +981,7 @@ impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IImplNameI<'s, 'i, R> where 's: '
     }
 }
 // Rust-only widening IImplNameI -> INameI (mirrors Scala subtyping; reverse of the TryFrom above,
-// same family as the IFunctionNameI widening — feeds translateImplId's IdI.local_name). No Scala counterpart.
+// same family as the IFunctionNameI widening — feeds translateImplId's IdI.local_name).
 impl<'s, 'i, R> From<IImplNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IImplNameI<'s, 'i, R>) -> Self {
         match name {
@@ -1212,7 +1212,7 @@ pub enum IVarNameI<'s, 'i, R> {
     Self_(&'i SelfNameI<R>),
 }
 
-// Rust-only narrowing INameI -> IVarNameI (mirrors T-side). No Scala counterpart.
+// Rust-only narrowing INameI -> IVarNameI (mirrors T-side).
 impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IVarNameI<'s, 'i, R> where 's: 'i {
     type Error = ();
     fn try_from(name: INameI<'s, 'i, R>) -> Result<Self, ()> {
@@ -1239,7 +1239,7 @@ impl<'s, 'i, R> TryFrom<INameI<'s, 'i, R>> for IVarNameI<'s, 'i, R> where 's: 'i
     }
 }
 // Rust-only widening IVarNameI -> INameI (mirrors Scala `IVarNameI extends INameI` subtyping;
-// reverse of the TryFrom above, same shape as the From<IFunctionNameI> widening). No Scala counterpart.
+// reverse of the TryFrom above, same shape as the From<IFunctionNameI> widening).
 impl<'s, 'i, R> From<IVarNameI<'s, 'i, R>> for INameI<'s, 'i, R> where 's: 'i {
     fn from(name: IVarNameI<'s, 'i, R>) -> Self {
         match name {

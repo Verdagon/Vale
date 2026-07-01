@@ -219,7 +219,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     }
   }
   
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn lookup_nearest_with_imprecise_name(
     &self,
     name_s: IImpreciseNameS<'s>,
@@ -230,7 +230,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     as_env.lookup_nearest_with_imprecise_name(name_s, lookup_filter, interner)
   }
   
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn lookup_nearest_with_name(
     &self,
     name_s: INameT<'s, 't>,
@@ -241,7 +241,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     as_env.lookup_nearest_with_name(name_s, lookup_filter, interner)
   }
   
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn lookup_all_with_name(
     &self,
     name_s: INameT<'s, 't>,
@@ -251,7 +251,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     as_env.lookup_all_with_name(name_s, lookup_filter)
   }
   
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn lookup_all_with_imprecise_name(
     &self,
     name_s: IImpreciseNameS<'s>,
@@ -262,7 +262,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     as_env.lookup_all_with_imprecise_name(name_s, lookup_filter, interner)
   }
 
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn lookup_with_name_inner(
     &self,
     name_s: INameT<'s, 't>,
@@ -274,7 +274,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     as_env.lookup_with_name_inner(name_s, lookup_filter, get_only_nearest, interner)
   }
   
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn lookup_with_imprecise_name_inner(
     &self,
     name_s: IImpreciseNameS<'s>,
@@ -286,7 +286,7 @@ impl<'s, 't> IInDenizenEnvironmentT<'s, 't> where 's: 't {
     as_env.lookup_with_imprecise_name_inner(name_s, lookup_filter, get_only_nearest, interner)
   }
   
-// Inherited from IEnvironmentT (Scala: IInDenizenEnvironmentT extends IEnvironmentT)
+// Inherited from IEnvironmentT
   pub fn templatas(&self) -> &'t TemplatasStoreT<'s, 't> {
     match self {
       IInDenizenEnvironmentT::Citizen(e) => e.templatas,

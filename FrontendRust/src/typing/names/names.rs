@@ -455,7 +455,7 @@ impl<'s, 't> IFunctionNameT<'s, 't> where 's: 't {
     pub fn template(&self) -> IFunctionTemplateNameT<'s, 't> {
         match self {
             IFunctionNameT::OverrideDispatcher(x) => IFunctionTemplateNameT::OverrideDispatcherTemplate(x.template),
-            IFunctionNameT::ExternFunction(_) => panic!("Unimplemented: template on ExternFunctionNameT (Scala: override def template = ExternFunctionTemplateNameT(humanName) — needs interner)"),
+            IFunctionNameT::ExternFunction(_) => panic!("Unimplemented: template on ExternFunctionNameT"),
             IFunctionNameT::Function(x) => IFunctionTemplateNameT::FunctionTemplate(x.template),
             IFunctionNameT::ForwarderFunction(x) => IFunctionTemplateNameT::ForwarderFunctionTemplate(x.template),
             IFunctionNameT::FunctionBound(x) => IFunctionTemplateNameT::FunctionBoundTemplate(x.template),

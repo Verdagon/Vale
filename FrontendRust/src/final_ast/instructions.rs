@@ -2,7 +2,7 @@
 // H-side instruction set: 50+ ExpressionH variants describing the lowered
 // program. Mirrors src/instantiating/ast/expressions.rs pattern — enum
 // dispatch with arena refs (no `dyn`). Per typing-pass parity, expression
-// types opt out of `PartialEq`/`Hash` (Scala uses `vcurious`); just
+// types opt out of `PartialEq`/`Hash`; just
 // `Copy/Clone/Debug`.
 //
 // All variant payload structs are bare-placeholder (PhantomData) for now.
