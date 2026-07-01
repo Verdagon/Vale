@@ -1,14 +1,4 @@
-/*
-package dev.vale.instantiating
 
-import dev.vale.instantiating.RegionCounter._
-import dev.vale.instantiating.ast._
-import dev.vale.{U, vassert, vimpl, vwat}
-
-import scala.collection.mutable
-
-object RegionCounter {
-*/
 use crate::instantiating::ast::names::{IdI, INameI, IFunctionNameI, FunctionNameIX, ExternFunctionNameI};
 use crate::instantiating::ast::ast::PrototypeI;
 use crate::instantiating::ast::types::{CoordI, KindIT};
@@ -48,22 +38,11 @@ impl CounterI {
     pub fn new() -> Self {
         CounterI { set: HashSet::new() }
     }
-/*
-  class Counter {
-    // TODO(optimize): Use an array for this, with a minimum index and maximum index (similar to
-    // what a circular queue uses)
-    val set: mutable.HashSet[Int] = mutable.HashSet[Int]()
 
-*/
     pub fn count<'s, 'i>(&mut self, region: RegionTemplataI<sI>) where 's: 'i {
         self.set.insert(region.pure_height);
     }
-/*
-    def count(region: RegionTemplataI[sI]): Unit = {
-      set.add(region.pureHeight)
-    }
 
-*/
     pub fn assemble_map(&self) -> HashMap<i32, i32> {
         let num_regions = self.set.len();
         // Let's say we have a set that contains 3, 5, -2, 0, 4, it becomes...
@@ -77,64 +56,14 @@ impl CounterI {
             .collect()
     }
 }
-/*
-    def assembleMap(): Map[Int, Int] = {
-      val numRegions = set.size
-      // Let's say we have a set that contains 3, 5, -2, 0, 4, it becomes...
-      set.toVector
-        .sorted // -2, 0, 3, 4, 5
-        .zipWithIndex // (-2, 0), (0, 1), (3, 2), (4, 3), (5, 4)
-        .map({ case (subjectiveRegion, i) =>
-          // If we have 4 regions, then they should go from -3 to 0
-          subjectiveRegion -> (i - numRegions + 1)
-        }) // (-2, -4), (0, -3), (3, -2), (4, -1), (5, 0)
-        .toMap
-    }
 
-//    def assembleMap(counter: Counter): Vector[Int] = {
-//      var numRegions = 0
-//      U.foreach(counts.toVector, (hasRegion: Boolean) => {
-//        if (hasRegion) {
-//          numRegions = numRegions + 1
-//        }
-//      })
-//      // If we have 4 regions, then they should go from -3 to 0
-//      var nextRegion = -numRegions + 1
-//      U.mapWithIndex(counts.toVector, (i, hasRegion: Boolean) => {
-//        if (hasRegion) {
-//          val region = nextRegion
-//          nextRegion = nextRegion + 1
-//          region
-//        } else {
-//          Int.MaxValue
-//        }
-//      })
-//    }
-
-    //    private def count(counter: Counter, region: RegionTemplataI[sI]): Unit = {
-//      while (region.pureHeight >= counts.size) {
-//        counts += false
-//      }
-//      counts(region.pureHeight) = true
-//    }
-
-  }
-
-*/
 pub fn count_prototype<'s, 'i>(counter: &mut CounterI, prototype: &PrototypeI<'s, 'i, sI>)
 where 's: 'i {
     let PrototypeI { id, return_type, .. } = *prototype;
     count_function_id(counter, &id);
     count_coord(counter, &return_type);
 }
-/*
-  def countPrototype(counter: Counter, prototype: PrototypeI[sI]): Unit = {
-    val PrototypeI(id, returnType) = prototype
-    countFunctionId(counter, id)
-    countCoord(counter, returnType)
-  }
 
-*/
 pub fn count_id<'s, 'i>(counter: &mut CounterI, id_i: &IdI<'s, 'i, sI>, func: impl Fn(&mut CounterI, &INameI<'s, 'i, sI>))
 where 's: 'i {
     let IdI { package_coord: _package_coord, init_steps, local_name } = *id_i;
@@ -143,34 +72,12 @@ where 's: 'i {
     }
     func(counter, &local_name);
 }
-/*
-  def countId[T <: INameI[sI]](
-    counter: Counter,
-    id: IdI[sI, T],
-    func: T => Unit):
-  Unit = {
-    val IdI(packageCoord, initSteps, localName) = id
-    initSteps.foreach(x => countName(counter, x))
-    func(localName)
-  }
 
-*/
 pub fn count_function_id<'s, 'i>(counter: &mut CounterI, id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, id, |counter, x| count_function_name(counter, &IFunctionNameI::try_from(*x).unwrap()))
 }
-/*
-  def countFunctionId(
-    counter: Counter,
-    id: IdI[sI, IFunctionNameI[sI]]):
-  Unit = {
-    countId[IFunctionNameI[sI]](
-      counter: Counter,
-      id,
-      x => countFunctionName(counter, x))
-  }
 
-*/
 pub fn count_function_name<'s, 'i>(counter: &mut CounterI, name: &IFunctionNameI<'s, 'i, sI>)
 where 's: 'i {
     match *name {
@@ -203,46 +110,7 @@ where 's: 'i {
         _ => panic!("Unimplemented: count_function_name other"),
     }
 }
-/*
-  def countFunctionName(
-    counter: Counter,
-    name: IFunctionNameI[sI]):
-  Unit = {
-    name match {
-      case FunctionNameIX(FunctionTemplateNameI(humanName, codeLocation), templateArgs, parameters) => {
-        templateArgs.foreach(countTemplata(counter, _))
-        parameters.foreach(countCoord(counter, _))
-      }
-      case ExternFunctionNameI(humanName, templateArgs, parameters) => {
-        templateArgs.foreach(countTemplata(counter, _))
-        parameters.foreach(countCoord(counter, _))
-      }
-      case LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLoc, paramsTT), templateArgs, parameters) => {
-        templateArgs.foreach(countTemplata(counter, _))
-        parameters.foreach(countCoord(counter, _))
-      }
-      case AnonymousSubstructConstructorNameI(AnonymousSubstructConstructorTemplateNameI(substruct), templateArgs, parameters) => {
-        countName(counter, substruct)
-        templateArgs.foreach(countTemplata(counter, _))
-        parameters.foreach(countCoord(counter, _))
-      }
-      case ForwarderFunctionNameI(ForwarderFunctionTemplateNameI(funcTemplateName, index), funcName) => {
-        countName(counter, funcTemplateName)
-        countFunctionName(counter, funcName)
-      }
-    //   case OverrideDispatcherNameI(OverrideDispatcherTemplateNameI(implId), templateArgs, parameters) => {
-    //     countId(counter, implId, x => countName(counter, x))
-    //     templateArgs.foreach(countTemplata(counter, _))
-    //     parameters.foreach(countCoord(counter, _))
-    //   }
-    //   case CaseFunctionFromImplNameI(CaseFunctionFromImplTemplateNameI(humanName, runeInImpl, runeInCitizen), templateArgs, parameters) => {
-    //     templateArgs.foreach(countTemplata(counter, _))
-    //     parameters.foreach(countCoord(counter, _))
-    //   }
-    }
-  }
 
-*/
 pub fn count_citizen_name<'s, 'i>(counter: &mut CounterI, name: &ICitizenNameI<'s, 'i, sI>) {
     match name {
         ICitizenNameI::Struct(StructNameI { template: _, template_args }) => {
@@ -260,45 +128,11 @@ pub fn count_citizen_name<'s, 'i>(counter: &mut CounterI, name: &ICitizenNameI<'
         ICitizenNameI::RuntimeSizedArray(_) => panic!("count_citizen_name: RuntimeSizedArray branch (no Scala counterpart)"),
     }
 }
-/*
-  def countCitizenName(
-      counter: Counter,
-      name: ICitizenNameI[sI]):
-  Unit = {
-    name match {
-      case StructNameI(StructTemplateNameI(humanName), templateArgs) => {
-        templateArgs.foreach(countTemplata(counter, _))
-      }
-      case LambdaCitizenNameI(template) => {
-      }
-      case InterfaceNameI(InterfaceTemplateNameI(humanName), templateArgs) => {
-        templateArgs.foreach(countTemplata(counter, _))
-      }
-      case AnonymousSubstructNameI(AnonymousSubstructTemplateNameI(interface), templateArgs) => {
-        countName(counter, interface)
-        templateArgs.foreach(countTemplata(counter, _))
-      }
-    }
-  }
 
-*/
 pub fn count_var_name() {
     panic!("Unimplemented: count_var_name");
 }
-/*
-  def countVarName(
-    counter: Counter,
-    name: IVarNameI[sI]):
-  Unit = {
-    name match {
-      case CodeVarNameI(name) =>
-      case TypingPassBlockResultVarNameI(life) =>
-      case TypingPassTemporaryVarNameI(life) =>
-      case TypingPassFunctionResultVarNameI() =>
-    }
-  }
 
-*/
 pub fn count_name<'s, 'i>(counter: &mut CounterI, name: &INameI<'s, 'i, sI>)
 where 's: 'i {
     match name {
@@ -328,46 +162,7 @@ where 's: 'i {
         other => panic!("Unimplemented: count_name {:?}", discriminant(other)),
     }
 }
-/*
-  def countName(
-    counter: Counter,
-    name: INameI[sI]):
-  Unit = {
-    name match {
-      case z : IFunctionNameI[_] => {
-        // Scala can't seem to match generics.
-        val x = z.asInstanceOf[IFunctionNameI[sI]]
-        countFunctionName(counter, x)
-      }
-      case ExportNameI(template, region) => {
-        counter.count(region)
-      }
-      case ExternNameI(template, region) => {
-        counter.count(region)
-      }
-      case c : ICitizenNameI[_] => {
-        // Scala can't seem to match generics.
-        val x = c.asInstanceOf[ICitizenNameI[sI]]
-        countCitizenName(counter, x)
-      }
-      case StructNameI(template, templateArgs) => {
-        templateArgs.foreach(arg => countTemplata(counter, arg))
-      }
-      case StructTemplateNameI(_) =>
-      case LambdaCitizenTemplateNameI(_) =>
-      case InterfaceTemplateNameI(humanNamee) =>
-      case AnonymousSubstructTemplateNameI(interface) => {
-        countName(counter, interface)
-      }
-      case FunctionTemplateNameI(humanName, codeLocation) =>
-      // case AnonymousSubstructImplTemplateNameI(interface) => {
-      //   countName(counter, interface)
-      // }
-      case other => vimpl(other)
-    }
-  }
 
-*/
 pub fn count_templata<'s, 'i>(_counter: &mut CounterI, _templata: &ITemplataI<'s, 'i, sI>) {
     match _templata {
         ITemplataI::Coord(c) => {
@@ -382,52 +177,17 @@ pub fn count_templata<'s, 'i>(_counter: &mut CounterI, _templata: &ITemplataI<'s
         _ => panic!("count_templata: unimplemented variant"),
     }
 }
-/*
-  def countTemplata(
-    counter: Counter,
-    templata: ITemplataI[sI]):
-  Unit = {
-    templata match {
-      case CoordTemplataI(region, coord) => {
-        countTemplata(counter, region)
-        countCoord(counter, coord)
-      }
-      case KindTemplataI(kind) => countKind(counter, kind)
-      case r @ RegionTemplataI(_) => counter.count(r)
-      case MutabilityTemplataI(mutability) =>
-      case IntegerTemplataI(_) =>
-      case VariabilityTemplataI(variability) =>
-      case other => vimpl(other)
-    }
-  }
 
-*/
 pub fn count_coord<'s, 'i>(counter: &mut CounterI, coord: &CoordI<'s, 'i, sI>)
 where 's: 'i {
     let CoordI { ownership: _ownership, kind } = *coord;
     count_kind(counter, &kind);
 }
-/*
-  def countCoord(
-    counter: Counter,
-    coord: CoordI[sI]):
-  Unit = {
-    val CoordI(ownership, kind) = coord
-    countKind(counter, kind)
-  }
 
-*/
 pub fn count_kind_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_kind");
 }
-/*
-  def countKind(kind: KindIT[sI]): Map[Int, Int] = {
-    val map = new RegionCounter.Counter()
-    RegionCounter.countKind(map, kind)
-    map.assembleMap()
-  }
 
-*/
 pub fn count_kind<'s, 'i>(counter: &mut CounterI, kind: &KindIT<'s, 'i, sI>)
 where 's: 'i {
     match kind {
@@ -469,42 +229,7 @@ where 's: 'i {
         }
     }
 }
-/*
-  def countKind(
-    counter: Counter,
-    kind: KindIT[sI]):
-  Unit = {
-    kind match {
-      case NeverIT(_) =>
-      case VoidIT() =>
-      case IntIT(_) =>
-      case BoolIT() =>
-      case FloatIT() =>
-      case StrIT() =>
-      case StructIT(id) => countStructId(counter, id)
-      case InterfaceIT(id) => countInterfaceId(counter, id)
-      case StaticSizedArrayIT(ssaId) => {
-        countId[StaticSizedArrayNameI[sI]](
-          counter,
-          ssaId,
-          { case StaticSizedArrayNameI(template, size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
-            countTemplata(elementType)
-            counter.count(selfRegion)
-          })
-      }
-      case RuntimeSizedArrayIT(ssaId) => {
-        countId[RuntimeSizedArrayNameI[sI]](
-          counter,
-          ssaId,
-          { case RuntimeSizedArrayNameI(template, RawArrayNameI(mutability, elementType, selfRegion)) =>
-            countTemplata(elementType)
-            counter.count(selfRegion)
-          })
-      }
-    }
-  }
 
-*/
 pub fn count_runtime_sized_array<'s, 'i>(counter: &mut CounterI, rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) {
     let rsa_id = rsa.name;
     count_id(counter, &rsa_id, |counter, local_name| {
@@ -519,22 +244,7 @@ pub fn count_runtime_sized_array<'s, 'i>(counter: &mut CounterI, rsa: &RuntimeSi
         }
     });
 }
-/*
-  def countRuntimeSizedArray(
-    counter: Counter,
-    rsa: RuntimeSizedArrayIT[sI]):
-  Unit = {
-    val RuntimeSizedArrayIT(rsaId) = rsa
-    countId[RuntimeSizedArrayNameI[sI]](
-      counter,
-      rsaId,
-      { case RuntimeSizedArrayNameI(template, RawArrayNameI(mutability, elementType, selfRegion)) =>
-        countTemplata(counter, elementType)
-        counter.count(selfRegion)
-      })
-  }
 
-*/
 pub fn count_static_sized_array<'s, 'i>(counter: &mut CounterI, ssa: &StaticSizedArrayIT<'s, 'i, sI>) {
     let ssa_id = ssa.name;
     count_id(counter, &ssa_id, |counter, local_name| {
@@ -549,22 +259,7 @@ pub fn count_static_sized_array<'s, 'i>(counter: &mut CounterI, ssa: &StaticSize
         }
     });
 }
-/*
-  def countStaticSizedArray(
-    counter: Counter,
-    ssa: StaticSizedArrayIT[sI]):
-  Unit = {
-    val StaticSizedArrayIT(ssaId) = ssa
-    countId[StaticSizedArrayNameI[sI]](
-      counter,
-      ssaId,
-      { case StaticSizedArrayNameI(template, size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
-        countTemplata(elementType)
-        counter.count(selfRegion)
-      })
-  }
 
-*/
 pub fn count_citizen_id<'s, 'i>(counter: &mut CounterI, citizen_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     match citizen_id.local_name {
@@ -573,38 +268,12 @@ where 's: 'i {
         _ => panic!("count_citizen_id: non-citizen local name"),
     }
 }
-/*
-  def countCitizenId(
-      counter: Counter,
-      citizenId: IdI[sI, ICitizenNameI[sI]]):
-  Unit = {
-    citizenId match {
-      case IdI(packageCoord, initSteps, localName: IStructNameI[_]) => {
-        countStructId(IdI(packageCoord, initSteps, localName.asInstanceOf[IStructNameI[sI]]))
-      }
-      case IdI(packageCoord, initSteps, localName: IInterfaceNameI[_]) => {
-        countInterfaceId(IdI(packageCoord, initSteps, localName.asInstanceOf[IInterfaceNameI[sI]]))
-      }
-    }
-  }
 
-*/
 pub fn count_struct_id<'s, 'i>(counter: &mut CounterI, struct_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, struct_id, |counter, x| count_struct_name(counter, &IStructNameI::try_from(*x).unwrap()))
 }
-/*
-  def countStructId(
-    counter: Counter,
-    structId: IdI[sI, IStructNameI[sI]]):
-  Unit = {
-    countId[IStructNameI[sI]](
-      counter,
-      structId,
-      countStructName(counter, _))
-  }
 
-*/
 pub fn count_struct_template_name<'s, 'i>(_counter: &mut CounterI, struct_name: &IStructTemplateNameI<'s, 'i, sI>)
 where 's: 'i {
     match struct_name {
@@ -612,17 +281,7 @@ where 's: 'i {
         _ => panic!("count_struct_template_name: other"),
     }
 }
-/*
-  def countStructTemplateName(
-      counter: Counter,
-      structName: IStructTemplateNameI[sI]):
-  Unit = {
-    structName match {
-      case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
-    }
-  }
 
-*/
 pub fn count_struct_name<'s, 'i>(counter: &mut CounterI, struct_name: &IStructNameI<'s, 'i, sI>)
 where 's: 'i {
     match struct_name {
@@ -636,41 +295,12 @@ where 's: 'i {
         }
     }
 }
-/*
-  def countStructName(
-      counter: Counter,
-      structName: IStructNameI[sI]):
-  Unit = {
-    structName match {
-      case StructNameI(template, templateArgs) => {
-        countStructTemplateName(counter, template)
-        templateArgs.foreach(countTemplata(counter, _))
-      }
-      case LambdaCitizenNameI(template) => {
-      }
-      case AnonymousSubstructNameI(template, templateArgs) => {
-        templateArgs.foreach(countTemplata(counter, _))
-      }
-    }
-  }
 
-*/
 pub fn count_impl_id<'s, 'i>(counter: &mut CounterI, struct_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, struct_id, |counter, x| count_impl_name(counter, &IImplNameI::try_from(*x).unwrap()))
 }
-/*
-  def countImplId(
-    counter: Counter,
-    structId: IdI[sI, IImplNameI[sI]]):
-  Unit = {
-    countId[IImplNameI[sI]](
-      counter,
-      structId,
-      x => countImplName(counter, x))
-  }
 
-*/
 pub fn count_impl_name<'s, 'i>(counter: &mut CounterI, impl_id: &IImplNameI<'s, 'i, sI>)
 where 's: 'i {
     match impl_id {
@@ -687,29 +317,7 @@ where 's: 'i {
         IImplNameI::ImplBound(_) => panic!("count_impl_name: ImplBound branch"),
     }
 }
-/*
-  def countImplName(
-      counter: Counter,
-      implId: IImplNameI[sI]):
-  Unit = {
-    implId match {
-      case ImplNameI(template, templateArgs, subCitizen) => {
-        countImplTemplateName(counter, template)
-        templateArgs.foreach(countTemplata(counter, _))
-        countCitizenId(subCitizen.id)
-      }
-      case AnonymousSubstructImplNameI(AnonymousSubstructImplTemplateNameI(interface), templateArgs, subCitizen) => {
-        countName(counter, interface)
-        templateArgs.foreach(countTemplata(counter, _))
-        countCitizenId(subCitizen.id)
-      }
-      case ImplBoundNameI(ImplBoundTemplateNameI(codeLocationS), templateArgs) => {
-        templateArgs.foreach(countTemplata(counter, _))
-      }
-    }
-  }
 
-*/
 pub fn count_impl_template_name<'s, 'i>(_counter: &mut CounterI, name: &IImplTemplateNameI<'s, 'i, sI>)
 where 's: 'i {
     match name {
@@ -717,247 +325,97 @@ where 's: 'i {
         _ => panic!("count_impl_template_name: other"),
     }
 }
-/*
-  def countImplTemplateName(
-    counter: Counter,
-    structName: IImplTemplateNameI[sI]):
-  Unit = {
-    structName match {
-      case ImplTemplateNameI(humanName) => ImplTemplateNameI(humanName)
-    }
-  }
 
-*/
 pub fn count_export_id<'s, 'i>(id_i: &IdI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_id(&mut counter, id_i, |counter, x| count_name(counter, x));
     counter.assemble_map()
 }
-/*
-  def countExportId(idI: IdI[sI, ExportNameI[sI]]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countId(counter, idI, (x: ExportNameI[sI]) => RegionCounter.countName(counter, x))
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_extern_id<'s, 'i>(id_i: &IdI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_id(&mut counter, id_i, |counter, x| count_name(counter, x));
     counter.assemble_map()
 }
-/*
-  def countExternId(idI: IdI[sI, ExternNameI[sI]]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countId(counter, idI, (x: ExternNameI[sI]) => RegionCounter.countName(counter, x))
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_struct_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_struct_id");
 }
-/*
-  def countStructId(idI: IdI[sI, IStructNameI[sI]]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countId(counter, idI, (x: IStructNameI[sI]) => RegionCounter.countName(counter, x))
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_interface_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_interface_id");
 }
-/*
-  def countInterfaceId(idI: IdI[sI, IInterfaceNameI[sI]]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    countInterfaceId(counter, idI)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_interface_id<'s, 'i>(counter: &mut CounterI, interface_id: &IdI<'s, 'i, sI>)
 where 's: 'i {
     count_id(counter, interface_id, |counter, x| count_name(counter, x))
 }
-/*
-  def countInterfaceId(
-      counter: Counter,
-      interfaceId: IdI[sI, IInterfaceNameI[sI]]):
-  Unit = {
-    RegionCounter.countId(counter, interfaceId, (x: IInterfaceNameI[sI]) => RegionCounter.countName(counter, x))
-  }
 
-*/
 pub fn count_function_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_function_id");
 }
-/*
-  def countFunctionId(idI: IdI[sI, IFunctionNameI[sI]]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countId(counter, idI, (x: IFunctionNameI[sI]) => RegionCounter.countName(counter, x))
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_impl_id_map<'s, 'i>(id_i: &IdI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_id(&mut counter, id_i, |counter, x| count_impl_name(counter, &IImplNameI::try_from(*x).unwrap()));
     counter.assemble_map()
 }
-/*
-  def countImplId(
-    implId: IdI[sI, IImplNameI[sI]]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countId(
-      counter, implId, (x: IImplNameI[sI]) => RegionCounter.countImplName(counter, x))
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_coord_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_coord");
 }
-/*
-  def countCoord(coord: CoordI[sI]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countCoord(counter, coord)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_var_name_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_var_name");
 }
-/*
-  def countVarName(
-    name: IVarNameI[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countVarName(counter, name)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_static_sized_array_map<'s, 'i>(ssa: &StaticSizedArrayIT<'s, 'i, sI>) -> HashMap<i32, i32> {
     let mut counter = CounterI::new();
     count_static_sized_array(&mut counter, ssa);
     counter.assemble_map()
 }
-/*
-  def countStaticSizedArray(
-    ssa: StaticSizedArrayIT[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countStaticSizedArray(counter, ssa)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_runtime_sized_array_map<'s, 'i>(rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_runtime_sized_array(&mut counter, rsa);
     counter.assemble_map()
 }
-/*
-  def countRuntimeSizedArray(
-    rsa: RuntimeSizedArrayIT[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countRuntimeSizedArray(counter, rsa)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_prototype_map<'s, 'i>(prototype: &PrototypeI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_prototype(&mut counter, prototype);
     counter.assemble_map()
 }
-/*
-  def countPrototype(prototype: PrototypeI[sI]): Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countPrototype(counter, prototype)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_function_name_map<'s, 'i>(name: &IFunctionNameI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_function_name(&mut counter, name);
     counter.assemble_map()
 }
-/*
-  def countFunctionName(
-    name: IFunctionNameI[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countFunctionName(counter, name)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_impl_name_map<'s, 'i>(name: &IImplNameI<'s, 'i, sI>) -> HashMap<i32, i32>
 where 's: 'i {
     let mut counter = CounterI::new();
     count_impl_name(&mut counter, name);
     counter.assemble_map()
 }
-/*
-  def countImplName(
-      name: IImplNameI[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countImplName(counter, name)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_citizen_name_map<'s, 'i>(name: &ICitizenNameI<'s, 'i, sI>) -> HashMap<i32, i32> {
     let mut counter = CounterI::new();
     count_citizen_name(&mut counter, name);
     counter.assemble_map()
 }
-/*
-  def countCitizenName(
-      name: ICitizenNameI[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countCitizenName(counter, name)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_citizen_id_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_citizen_id");
 }
-/*
-  def countCitizenId(
-      name: IdI[sI, ICitizenNameI[sI]]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countCitizenId(counter, name)
-    counter.assembleMap()
-  }
 
-*/
 pub fn count_templata_map() -> HashMap<i32, i32> {
     panic!("Unimplemented: count_templata");
 }
-/*
-  def countTemplata(
-      name: ITemplataI[sI]):
-  Map[Int, Int] = {
-    val counter = new RegionCounter.Counter()
-    RegionCounter.countTemplata(counter, name)
-    counter.assembleMap()
-  }
-}
-*/

@@ -4,15 +4,9 @@ use crate::parse_arena::ParseArena;
 use crate::scout_arena::ScoutArena;
 use crate::simplifying::hammer_interner::HammerInterner;
 use crate::typing::typing_interner::TypingInterner;
-/*
-package dev.vale
 
-import org.scalatest._
-*/
 pub struct PrintTests;
-/*
-class PrintTests extends FunSuite with Matchers {
-*/
+
 #[test]
 fn printlning_an_int() {
     let compilation_bump = bumpalo::Bump::new();
@@ -40,19 +34,7 @@ exported func main() {
     );
     assert_eq!(compile.eval_for_stdout(Vec::new()).unwrap(), "6\n");
 }
-/*
-  test("Println'ing an int") {
-    val compile = RunCompilation.test(
-      """
-        |import printutils.*;
-        |exported func main() {
-        |  println(6);
-        |}
-      """.stripMargin)
 
-    compile.evalForStdout(Vector()) shouldEqual "6\n"
-  }
-*/
 #[test]
 fn printlning_a_bool() {
     let compilation_bump = bumpalo::Bump::new();
@@ -80,19 +62,4 @@ exported func main() {
     );
     assert_eq!(compile.eval_for_stdout(Vec::new()).unwrap(), "true\n");
 }
-/*
-  test("Println'ing a bool") {
-    val compile = RunCompilation.test(
-      """
-        |import printutils.*;
-        |exported func main() {
-        |  println(true);
-        |}
-      """.stripMargin)
 
-    compile.evalForStdout(Vector()) shouldEqual "true\n"
-  }
-*/
-/*
-}
-*/

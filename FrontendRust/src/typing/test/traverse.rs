@@ -1,4 +1,3 @@
-/* Guardian: disable-all */
 
 // Test-only traversal helper for the typing pass. Mirrors `src/postparsing/test/traverse.rs`.
 //

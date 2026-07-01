@@ -1,6 +1,3 @@
-/*
-Guardian: disable-all
-*/
 
 // ScoutArena: arena + interning maps for the postparsing (scout) pass.
 // Has string/coord interning (like ParseArena) plus name/rune/imprecise-name interning.

@@ -6,17 +6,9 @@ use crate::simplifying::hammer_interner::HammerInterner;
 use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonBool;
-/*
-package dev.vale
 
-import dev.vale.von.VonBool
-import org.scalatest._
-
-*/
 pub struct ConjunctionTests;
-/*
-class ConjunctionTests extends FunSuite with Matchers {
-*/
+
 #[test]
 fn and() {
     let compilation_bump = bumpalo::Bump::new();
@@ -42,12 +34,7 @@ fn and() {
         other => panic!("expected VonBool(true), got {:?}", other),
     }
 }
-/*
-  test("And") {
-    val compile = RunCompilation.test("exported func main() bool { return true and true; }")
-    compile.evalForKind(Vector()) match { case VonBool(true) => }
-  }
-*/
+
 #[test]
 fn or() {
     let compilation_bump = bumpalo::Bump::new();
@@ -73,12 +60,7 @@ fn or() {
         other => panic!("expected VonBool(true), got {:?}", other),
     }
 }
-/*
-  test("Or") {
-    val compile = RunCompilation.test("exported func main() bool { return true or false; }")
-    compile.evalForKind(Vector()) match { case VonBool(true) => }
-  }
-*/
+
 #[test]
 fn and_short_circuiting() {
     let compilation_bump = bumpalo::Bump::new();
@@ -101,17 +83,7 @@ fn and_short_circuiting() {
     );
     assert_eq!(compile.eval_for_stdout(Vec::new()).unwrap(), "bork!");
 }
-/*
-  test("And short-circuiting") {
-    val compile = RunCompilation.test(
-      """
-        |func printAndFalse() bool { print("bork!"); return false; }
-        |exported func main() bool { return printAndFalse() and printAndFalse(); }
-        |""".stripMargin)
 
-    compile.evalForStdout(Vector()) shouldEqual "bork!"
-  }
-*/
 #[test]
 fn or_short_circuiting() {
     let compilation_bump = bumpalo::Bump::new();
@@ -134,16 +106,4 @@ fn or_short_circuiting() {
     );
     assert_eq!(compile.eval_for_stdout(Vec::new()).unwrap(), "bork!");
 }
-/*
-  test("Or short-circuiting") {
-    val compile = RunCompilation.test(
-      """
-        |func printAndTrue() bool { print("bork!"); return true; }
-        |exported func main() bool { return printAndTrue() or printAndTrue(); }
-        |""".stripMargin)
 
-    compile.evalForStdout(Vector()) shouldEqual "bork!"
-  }
-}
-
-*/

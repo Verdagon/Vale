@@ -16,21 +16,9 @@ use crate::simplifying::hammer_interner::HammerInterner;
 use crate::typing::typing_interner::TypingInterner;
 use crate::von::ast::IVonData;
 use crate::von::ast::VonInt;
-/*
-package dev.vale
 
-import dev.vale.postparsing._
-import dev.vale.postparsing._
-import dev.vale.typing._
-import dev.vale.typing.types.BoolT
-import dev.vale.von.VonInt
-import org.scalatest._
-
-*/
 pub struct BlockTests;
-/*
-class BlockTests extends FunSuite with Matchers {
-*/
+
 #[test]
 fn empty_block() {
     let compilation_bump = bumpalo::Bump::new();
@@ -83,29 +71,6 @@ exported func main() int {
     }
 }
 
-/*
-  test("Empty block") {
-    val compile = RunCompilation.test(
-      """
-        |exported func main() int {
-        |  block {
-        |  }
-        |  return 3;
-        |}
-      """.stripMargin)
-    val fileCoord =
-      compile.interner.intern(FileCoordinate(
-        compile.interner.intern(PackageCoordinate(
-          compile.interner.intern(StrI("test")),
-          Vector.empty)),
-        "0.vale"))
-    val scoutput = compile.getScoutput().getOrDie().fileCoordToContents(fileCoord)
-    val main = scoutput.lookupFunction("main")
-    main.body match { case CodeBodyS(BodySE(_, _,BlockSE(_, _,ConsecutorSE(Vector(BlockSE(_, _,_), _))))) => }
-
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-*/
 #[test]
 fn simple_block_with_a_variable() {
     let compilation_bump = bumpalo::Bump::new();
@@ -175,34 +140,6 @@ exported func main() int {
     }
 }
 
-/*
-  test("Simple block with a variable") {
-    val compile = RunCompilation.test(
-      """
-        |exported func main() int {
-        |  block {
-        |    y = 6;
-        |  }
-        |  return 3;
-        |}
-      """.stripMargin)
-    val fileCoord =
-      compile.interner.intern(FileCoordinate(
-        compile.interner.intern(PackageCoordinate(
-          compile.interner.intern(StrI("test")),
-          Vector.empty)),
-        "0.vale"))
-    val scoutput = compile.getScoutput().getOrDie().fileCoordToContents(fileCoord)
-    val main = scoutput.lookupFunction("main")
-    val block = main.body match { case CodeBodyS(BodySE(_, _,BlockSE(_, _, ConsecutorSE(Vector(b @ BlockSE(_, _,_), _))))) => b }
-    vassert(block.locals.size == 1)
-    block.locals.head match {
-      case LocalS(CodeVarNameS(StrI("y")), NotUsed, NotUsed, NotUsed, NotUsed, NotUsed, NotUsed) =>
-    }
-
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-*/
 #[test]
 fn simple_block_with_a_variable_another_variable_outside_with_same_name() {
     let compilation_bump = bumpalo::Bump::new();
@@ -238,22 +175,3 @@ exported func main() int {
     }
 }
 
-/*
-  test("Simple block with a variable, another variable outside with same name") {
-    val compile = RunCompilation.test(
-      """
-        |exported func main() int {
-        |  block {
-        |    y = 6;
-        |  }
-        |  y = 3;
-        |  return y;
-        |}
-      """.stripMargin)
-    val scoutput = compile.getScoutput().getOrDie()
-
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-}
-
-*/

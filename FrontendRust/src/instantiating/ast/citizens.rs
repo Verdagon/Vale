@@ -5,23 +5,8 @@ use crate::instantiating::ast::names::{IdI, IVarNameI};
 use crate::instantiating::ast::ast::{ICitizenAttributeI, PrototypeI};
 use std::marker::PhantomData;
 
-/*
-package dev.vale.instantiating.ast
-
-import dev.vale.postparsing._
-import dev.vale._
-
-import scala.collection.immutable.Map
-
-// A "citizen" is a struct or an interface.
-*/
 pub trait CitizenDefinitionI<'s, 'i, R> {}
-/*
-trait CitizenDefinitionI {
-//  def genericParamTypes: Vector[ITemplataType]
-  def instantiatedCitizen: ICitizenIT[cI]
-}
-*/
+
 // Rust-only dispatch enum for the `CitizenDefinitionI` trait (architect-directed).
 // Scala uses `CitizenDefinitionI` polymorphically (StructDefinitionI / InterfaceDefinitionI
 // both extend it); per NEDCX we use a concrete enum here instead of a `&dyn` trait object.
@@ -42,65 +27,17 @@ pub struct StructDefinitionI<'s, 'i, R> {
     pub rune_to_function_bound: ArenaIndexMap<'i, IRuneS<'s>, IdI<'s, 'i, cI>>,
     pub rune_to_impl_bound: ArenaIndexMap<'i, IRuneS<'s>, IdI<'s, 'i, cI>>,
 }
-/*
-case class StructDefinitionI(
-//  templateName: IdI[cI, IStructTemplateNameI],
-  // In typing pass, this will have placeholders. Monomorphizing will give it a real name.
-  instantiatedCitizen: StructIT[cI],
-  attributes: Vector[ICitizenAttributeI],
-  weakable: Boolean,
-  mutability: MutabilityI,
-  members: Vector[StructMemberI],
-  isClosure: Boolean,
-  runeToFunctionBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
-  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
-) extends CitizenDefinitionI {
-//  override def genericParamTypes: Vector[ITemplataType] = {
-//    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
-//  }
-*/
-// (Realized by `impl PartialEq for StructDefinitionI` below.)
-/*
-  override def equals(obj: Any): Boolean = vcurious();
-*/
-// (Realized by `impl Hash for StructDefinitionI` below.)
-/*
-override def hashCode(): Int = vcurious()
 
-//  override def getRef: StructIT = ref
-//
-//  def getMember(memberName: StrI): StructMemberI = {
-//    members.find(p => p.name.equals(CodeVarNameI(memberName))) match {
-//      case None => vfail("Couldn't find member " + memberName)
-//      case Some(member) => member
-//    }
-//  }
-//
-//  private def getIndex(memberName: IVarNameI): Int = {
-//    members.zipWithIndex.find(p => p._1.name.equals(memberName)) match {
-//      case None => vfail("wat")
-//      case Some((member, index)) => index
-//    }
-//  }
-*/
+// (Realized by `impl PartialEq for StructDefinitionI` below.)
+
+// (Realized by `impl Hash for StructDefinitionI` below.)
+
 impl<'s, 'i, R> StructDefinitionI<'s, 'i, R> {
     pub fn get_member_and_index(&self, needle_name: IVarNameI<'s, 'i, cI>) -> Option<(&StructMemberI<'s, 'i, R>, usize)> {
         panic!("Unimplemented: get_member_and_index")
     }
 }
-/*
-  def getMemberAndIndex(needleName: IVarNameI[cI]): Option[(StructMemberI, Int)] = {
-    members.zipWithIndex
-      .foreach({
-        case (m @ StructMemberI(hayName, _, _), index) if hayName == needleName => {
-          return Some((m, index))
-        }
-        case _ =>
-      })
-    None
-  }
-}
-*/
+
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct StructMemberI<'s, 'i, R> {
@@ -108,26 +45,14 @@ pub struct StructMemberI<'s, 'i, R> {
     pub variability: VariabilityI,
     pub tyype: IMemberTypeI<'s, 'i, R>,
 }
-/*
-case class StructMemberI(
-  name: IVarNameI[cI],
-  // In the case of address members, this refers to the variability of the pointee variable.
-  variability: VariabilityI,
-  tyype: IMemberTypeI
-) {
-  vpass()
-}
-*/
+
 /// Polyvalue
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum IMemberTypeI<'s, 'i, R> {
     ReferenceMemberTypeI(&'i ReferenceMemberTypeI<'s, 'i, R>),
     AddressMemberTypeI(&'i AddressMemberTypeI<'s, 'i, R>),
 }
-/*
-sealed trait IMemberTypeI  {
-*/
-/* Guardian: disable-all */
+
 impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
     pub fn expect_reference_member(&self) -> () {
         match self {
@@ -135,15 +60,7 @@ impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
         }
     }
 }
-/*
-  def expectReferenceMember(): ReferenceMemberTypeI = {
-    this match {
-      case r @ ReferenceMemberTypeI(_) => r
-      case a @ AddressMemberTypeI(_) => vfail("Expected reference member, was address member!")
-    }
-  }
-*/
-/* Guardian: disable-all */
+
 impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
     pub fn expect_address_member(&self) -> &'i AddressMemberTypeI<'s, 'i, R> {
         match *self {
@@ -153,33 +70,21 @@ impl<'s, 'i, R> IMemberTypeI<'s, 'i, R> {
         }
     }
 }
-/*
-  def expectAddressMember(): AddressMemberTypeI = {
-    this match {
-      case r @ ReferenceMemberTypeI(_) => vfail("Expected reference member, was address member!")
-      case a @ AddressMemberTypeI(_) => a
-    }
-  }
-}
-*/
+
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct AddressMemberTypeI<'s, 'i, R> {
     pub reference: CoordI<'s, 'i, cI>,
     pub _marker: PhantomData<R>,
 }
-/*
-case class AddressMemberTypeI(reference: CoordI[cI]) extends IMemberTypeI
-*/
+
 /// Temporary state
 #[derive(PartialEq, Eq, Hash)]
 pub struct ReferenceMemberTypeI<'s, 'i, R> {
     pub reference: CoordI<'s, 'i, cI>,
     pub _marker: PhantomData<R>,
 }
-/*
-case class ReferenceMemberTypeI(reference: CoordI[cI]) extends IMemberTypeI
-*/
+
 /// Temporary state
 pub struct InterfaceDefinitionI<'s, 'i, R> {
     pub instantiated_interface: &'i InterfaceIT<'s, 'i, cI>,
@@ -191,40 +96,13 @@ pub struct InterfaceDefinitionI<'s, 'i, R> {
     pub internal_methods: &'i [(&'i PrototypeI<'s, 'i, cI>, i32)],
     pub _marker: PhantomData<R>,
 }
-/*
-case class InterfaceDefinitionI(
-//  templateName: IdI[cI, IInterfaceTemplateNameI],
-  instantiatedInterface: InterfaceIT[cI],
-//  ref: InterfaceIT,
-  attributes: Vector[ICitizenAttributeI],
-  weakable: Boolean,
-  mutability: MutabilityI,
-  runeToFunctionBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
-  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
-  // This does not include abstract functions declared outside the interface.
-  // Note from later: Though, sometimes macros add functions into the inside.
-  // See IMRFDI for why we need to remember only the internal methods here.
-  internalMethods: Vector[(PrototypeI[cI], Int)]
-) extends CitizenDefinitionI {
-//  override def genericParamTypes: Vector[ITemplataType] = {
-//    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
-//  }
-*/
+
 impl<'s, 'i, R> InterfaceDefinitionI<'s, 'i, R> {
     pub fn instantiated_citizen(&self) -> ICitizenIT<'s, 'i, cI> {
         panic!("Unimplemented: instantiated_citizen")
     }
 }
-/*
-  override def instantiatedCitizen: ICitizenIT[cI] = instantiatedInterface
-*/
+
 // (Realized by `impl PartialEq for InterfaceDefinitionI` below.)
-/*
-  override def equals(obj: Any): Boolean = vcurious();
-*/
+
 // (Realized by `impl Hash for InterfaceDefinitionI` below.)
-/*
-override def hashCode(): Int = vcurious()
-//  override def getRef = ref
-}
-*/

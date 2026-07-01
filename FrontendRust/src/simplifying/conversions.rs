@@ -7,96 +7,43 @@ use crate::instantiating::ast::types::{MutabilityI, VariabilityI, OwnershipI, Lo
 use crate::final_ast::types::{CodeLocation, Mutability, Variability, OwnershipH, LocationH};
 #[allow(unused_imports)]
 use crate::postparsing::itemplatatype::ITemplataType;
-/*
-package dev.vale.simplifying
 
-import dev.vale.{CodeLocationS, finalast, vimpl}
-import dev.vale.finalast._
-import dev.vale.postparsing._
-import dev.vale.highertyping._
-import dev.vale.finalast._
-import dev.vale.instantiating.ast._
-import dev.vale.postparsing.rules._
-import dev.vale.{finalast => m, postparsing => s}
-
-object Conversions {
-*/
 pub fn evaluate_code_location(loc: CodeLocationS) -> CodeLocation {
     panic!("Unimplemented: evaluate_code_location");
 }
-/*
-  def evaluateCodeLocation(loc: CodeLocationS): CodeLocation = {
-    val CodeLocationS(line, col) = loc
-    finalast.CodeLocation(line, col)
-  }
-*/
+
 pub fn evaluate_mutability(mutability: MutabilityI) -> Mutability {
     match mutability {
         MutabilityI::Mutable => Mutability::Mutable,
         MutabilityI::Immutable => Mutability::Immutable,
     }
 }
-/*
-  def evaluateMutability(mutability: MutabilityI): Mutability = {
-    mutability match {
-      case MutableI => Mutable
-      case ImmutableI => Immutable
-    }
-  }
-*/
+
 pub fn evaluate_mutability_templata(mutability: MutabilityI) -> Mutability {
     match mutability {
         MutabilityI::Mutable => Mutability::Mutable,
         MutabilityI::Immutable => Mutability::Immutable,
     }
 }
-/*
-  def evaluateMutabilityTemplata(mutability: MutabilityI): Mutability = {
-    mutability match {
-      case MutableI => Mutable
-      case ImmutableI => Immutable
-    }
-  }
-*/
+
 pub fn evaluate_variability_templata(mutability: VariabilityI) -> Variability {
     match mutability {
         VariabilityI::Varying => Variability::Varying,
         VariabilityI::Final => Variability::Final,
     }
 }
-/*
-  def evaluateVariabilityTemplata(mutability: VariabilityI): Variability = {
-    mutability match {
-      case VaryingI => Varying
-      case FinalI => Final
-    }
-  }
-*/
+
 pub fn evaluate_location(location: LocationI) -> LocationH {
     panic!("Unimplemented: evaluate_location");
 }
-/*
-  def evaluateLocation(location: LocationI): LocationH = {
-    location match {
-      case InlineI => InlineH
-      case YonderI => YonderH
-    }
-  }
-*/
+
 pub fn evaluate_variability(variability: VariabilityI) -> Variability {
     match variability {
         VariabilityI::Final => Variability::Final,
         VariabilityI::Varying => Variability::Varying,
     }
 }
-/*
-  def evaluateVariability(variability: VariabilityI): Variability = {
-    variability match {
-      case FinalI => Final
-      case VaryingI => Varying
-    }
-  }
-*/
+
 pub fn evaluate_ownership(ownership: OwnershipI) -> OwnershipH {
     match ownership {
         OwnershipI::Own => OwnershipH::OwnH,
@@ -107,34 +54,8 @@ pub fn evaluate_ownership(ownership: OwnershipI) -> OwnershipH {
         OwnershipI::Weak => OwnershipH::WeakH,
     }
 }
-/*
-  def evaluateOwnership(ownership: OwnershipI): OwnershipH = {
-    ownership match {
-      case OwnI => OwnH
-      case ImmutableBorrowI => ImmutableBorrowH
-      case MutableBorrowI => MutableBorrowH
-      case ImmutableShareI => ImmutableShareH
-      case MutableShareI => MutableShareH
-      case WeakI => WeakH
-    }
-  }
-*/
+
 pub fn unevaluate_templata_type(tyype: ITemplataType) -> ITemplataType {
     panic!("Unimplemented: unevaluate_templata_type");
 }
-/*
-  def unevaluateTemplataType()(tyype: ITemplataType): ITemplataType = {
-    tyype match {
-      case CoordTemplataType() => CoordTemplataType()
-      case KindTemplataType() => KindTemplataType()
-      case IntegerTemplataType() => IntegerTemplataType()
-      case BooleanTemplataType() => BooleanTemplataType()
-      case MutabilityTemplataType() => MutabilityTemplataType()
-      case LocationTemplataType() => LocationTemplataType()
-      case OwnershipTemplataType() => OwnershipTemplataType()
-      case VariabilityTemplataType() => VariabilityTemplataType()
-      case TemplateTemplataType(_, _) => vimpl() // can we even specify template types in the syntax?
-    }
-  }
-}
-*/
+

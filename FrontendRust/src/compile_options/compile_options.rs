@@ -8,11 +8,7 @@ pub struct GlobalOptions {
 }
 
 impl GlobalOptions {
-  /*
-  package dev.vale.options
-
-  object GlobalOptions {
-  */
+  
   pub fn apply() -> GlobalOptions {
     GlobalOptions {
       sanity_check: false,
@@ -22,16 +18,7 @@ impl GlobalOptions {
       debug_output: false,
     }
   }
-  /*
-    def apply(): GlobalOptions = {
-      GlobalOptions(
-        sanityCheck = false,
-        useOverloadIndex = false,
-        useOptimizedSolver = true,
-        verboseErrors = false,
-        debugOutput = false)
-    }
-  */
+  
   pub fn test() -> GlobalOptions {
     GlobalOptions {
       sanity_check: true,
@@ -41,19 +28,6 @@ impl GlobalOptions {
       debug_output: true,
     }
   }
-  /*
-    def test(): GlobalOptions = {
-      GlobalOptions(true, false, true, true, true)
-    }
-  }
-  */
+  
 }
 
-/*
-case class GlobalOptions(
-  sanityCheck: Boolean,
-  useOverloadIndex: Boolean,
-  useOptimizedSolver: Boolean,
-  verboseErrors: Boolean,
-  debugOutput: Boolean)
-*/

@@ -10,18 +10,6 @@ use crate::postparsing::names::{CodeRuneS, IRuneValS};
 use crate::utils::code_hierarchy::{self, IPackageResolver, PackageCoordinate};
 use std::collections::HashMap;
 // TODO: rename
-/*
-package dev.vale.highertyping
-
-import dev.vale.{Err, Ok, PackageCoordinate, vassertSome, vfail}
-import dev.vale.postparsing._
-import dev.vale.parsing.Parser
-import dev.vale.postparsing.RuneTypeSolveError
-import dev.vale._
-import org.scalatest._
-
-class HigherTypingPassTests extends FunSuite with Matchers  {
-*/
 
 fn compile_program_for_error<'s, 'ctx, 'p>(
     compilation: &mut HigherTypingCompilation<'s, 'ctx, 'p>,
@@ -32,14 +20,7 @@ fn compile_program_for_error<'s, 'ctx, 'p>(
         Err(err) => err,
     }
 }
-/*
-  def compileProgramForError(compilation: HigherTypingCompilation): ICompileErrorA = {
-    compilation.getAstrouts() match {
-      case Ok(result) => vfail("Expected error, but actually parsed invalid program:\n" + result)
-      case Err(err) => err
-    }
-  }
-*/
+
 fn setup_test<'s, 'ctx, 'p>(
     scout_arena: &'ctx ScoutArena<'s>,
     keywords: &'ctx Keywords<'s>,
@@ -80,16 +61,7 @@ fn type_simple_main_function() {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple main function") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-      """exported func main() {
-        |}
-        |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn type_simple_generic_function() {
     let scout_bump = Bump::new();
@@ -103,16 +75,7 @@ fn type_simple_generic_function() {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple generic function") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """exported func moo<T>() where T Ref {
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn infer_coord_type_from_parameters() {
     let scout_bump = Bump::new();
@@ -136,19 +99,7 @@ fn infer_coord_type_from_parameters() {
         ITemplataType::CoordTemplataType(CoordTemplataType {})
     );
 }
-/*
-  test("Infer coord type from parameters") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """exported func moo<T>(x T) {
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
-    val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
-  }
-*/
+
 #[test]
 fn type_simple_struct() {
     let scout_bump = Bump::new();
@@ -162,16 +113,7 @@ fn type_simple_struct() {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple struct") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """struct Moo {
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn type_simple_generic_struct() {
     let scout_bump = Bump::new();
@@ -189,17 +131,7 @@ struct Moo<T> {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple generic struct") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """struct Moo<T> {
-          |  bork T;
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn template_call_recursively_evaluate() {
     let scout_bump = Bump::new();
@@ -230,23 +162,7 @@ struct Bork<T> {
         ITemplataType::CoordTemplataType(CoordTemplataType {})
     );
 }
-/*
-  test("Template call, recursively evaluate") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """struct Moo<T> {
-          |  bork T;
-          |}
-          |struct Bork<T> {
-          |  x Moo<T>;
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
-    val main = program.lookupStruct("Bork")
-    main.headerRuneToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
-  }
-*/
+
 #[test]
 fn type_simple_interface() {
     let scout_bump = Bump::new();
@@ -260,16 +176,7 @@ fn type_simple_interface() {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple interface") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """interface Moo {
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn type_simple_generic_interface() {
     let scout_bump = Bump::new();
@@ -283,16 +190,7 @@ fn type_simple_generic_interface() {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple generic interface") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """interface Moo<T> where T Ref {
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn type_simple_generic_interface_method() {
     let scout_bump = Bump::new();
@@ -310,17 +208,7 @@ interface Moo<T> where T Ref {
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-  test("Type simple generic interface method") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """interface Moo<T> where T Ref {
-          |  func bork(virtual self &Moo<T>) int;
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-  }
-*/
+
 #[test]
 fn infer_generic_type_through_param_type_template_call() {
     let scout_bump = Bump::new();
@@ -350,22 +238,7 @@ exported func moo<T>(x List<T>) {
         ITemplataType::CoordTemplataType(CoordTemplataType {})
     );
 }
-/*
-  test("Infer generic type through param type template call") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """struct List<T> {
-          |  moo T;
-          |}
-          |exported func moo<T>(x List<T>) {
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
-    val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
-  }
-*/
+
 #[test]
 fn test_evaluate_pack() {
     let scout_bump = Bump::new();
@@ -396,22 +269,7 @@ where T = Refs(int, bool)
         })
     );
 }
-/*
-Guardian: disable: NRAFX
-  test("Test evaluate Pack") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """func moo<T RefList>()
-          |where T = Refs(int, bool)
-          |{
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
-    val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual PackTemplataType(CoordTemplataType())
-  }
-*/
+
 #[test]
 fn test_infer_pack_from_result() {
     let scout_bump = Bump::new();
@@ -440,21 +298,7 @@ where func moo(T, bool)str
         ITemplataType::CoordTemplataType(CoordTemplataType {})
     );
 }
-/*
-  test("Test infer Pack from result") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """func moo<T>()
-          |where func moo(T, bool)str
-          |{
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
-    val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
-  }
-*/
+
 #[test]
 fn test_infer_pack_from_empty_result() {
     let scout_bump = Bump::new();
@@ -485,40 +329,11 @@ where P = Refs(), Prot[P, str]
         })
     );
 }
-/*
-  test("Test infer Pack from empty result") {
-    val compilation =
-      HigherTypingTestCompilation.test(
-        """func moo<P RefList>()
-          |where P = Refs(), Prot[P, str]
-          |{
-          |}
-          |""".stripMargin)
-    val astrouts = compilation.expectAstrouts()
-    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
-    val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.interner.intern(StrI("P")))) shouldEqual PackTemplataType(CoordTemplataType())
-  }
-//  test("Test cant solve empty Pack") {
-//    val compilation =
-//      AstronomerTestCompilation.test(
-//        """func moo<P>()
-//          |where P = ()
-//          |{
-//          |}
-//          |""".stripMargin)
-//    compilation.getAstrouts() match {
-//      case Err(CouldntSolveRulesA(_, RuneTypeSolveError(range, IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes)))) => {
-//        vassert(unknownRunes.contains(CodeRuneS(StrI("P"))))
-//      }
-//    }
-//  }
-}
-*/
+
 // NOVEL CODE
 #[test]
 fn type_simple_impl() {
-    /* Guardian: disable-all */
+    
     let scout_bump = Bump::new();
     let parser_arena = Bump::new();
     let scout_arena = ScoutArena::new(&scout_bump);
@@ -536,6 +351,4 @@ impl IMoo for Moo;
     let mut compilation = setup_test(&scout_arena, &scout_keywords, &parser_keywords, &parse_arena, &resolver);
     let _astrouts = compilation.expect_astrouts();
 }
-/*
-// MIGALLOW: no corresponding scala test
-*/
+

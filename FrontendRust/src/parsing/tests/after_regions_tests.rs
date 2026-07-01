@@ -4,16 +4,6 @@ use crate::keywords::Keywords;
 use crate::lexing::errors::ParseError;
 use crate::parsing::tests::utils::{compile_statement, compile_block_contents};
 
-/*
-package dev.vale.parsing
-
-import dev.vale.lexing.{BadExpressionEnd, BadStartOfStatementError, ForgotSetKeyword}
-import dev.vale.parsing.ast._
-import dev.vale.{Collector, StrI}
-import org.scalatest._
-
-class AfterRegionsTests extends FunSuite with Collector with TestParseUtils {
-*/
 #[test]
 fn forgetting_set_when_changing() {
   // This test does not pass yet, use #[ignore].
@@ -30,17 +20,7 @@ fn forgetting_set_when_changing() {
     other => panic!("Expected ForgotSetKeyword, got {:?}", other),
   }
 }
-/*
-  // This test does not pass yet, use #[ignore].
-  test("Forgetting set when changing") {
-    val error =
-      compileStatement(
-        """ship.x = 4;""".stripMargin).expectErr()
-    error match {
-      case ForgotSetKeyword(_) =>
-    }
-  }
-*/
+
 #[test]
 #[ignore = "blocked - Rust parser produces Consecutor(...) for `set x = 7 )` instead of ParseError::BadStartOfStatementError on the stray `)`. Tracked in migration-drive-todo.md Phase 4e."]
 fn report_leaving_out_semicolon_or_ending_body_after_expression_for_paren() {
@@ -60,17 +40,4 @@ fn report_leaving_out_semicolon_or_ending_body_after_expression_for_paren() {
     other => panic!("Expected BadStartOfStatementError, got {:?}", other),
   }
 }
-/*
-  // This test does not pass yet, use #[ignore].
-  test("Report leaving out semicolon or ending body after expression, for paren") {
-    compileBlockContents(
-      """
-        |  a = 3;
-        |  set x = 7 )
-        """.stripMargin).expectErr() match {
-      case BadStartOfStatementError(_) =>
-    }
-  }
 
-}
-*/

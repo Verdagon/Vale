@@ -26,39 +26,9 @@ use crate::typing::hinputs_t::HinputsT;
 use crate::typing::typing_interner::TypingInterner;
 use std::any::Any;
 
-
-/*
-package dev.vale.instantiating
-
-import dev.vale.highertyping.{ICompileErrorA, ProgramA}
-import dev.vale.instantiating.ast.HinputsI
-import dev.vale.lexing.{FailedParse, RangeL}
-import dev.vale.options.GlobalOptions
-import dev.vale.parsing.ast.FileP
-import dev.vale.postparsing.{ICompileErrorS, ProgramS}
-import dev.vale.{FileCoordinateMap, IPackageResolver, Interner, Keywords, PackageCoordinate, PackageCoordinateMap, Result, vassertSome, vcurious}
-import dev.vale.typing.{HinputsT, ICompileErrorT, TypingPassCompilation, TypingPassOptions}
-
-*/
 pub struct InstantiatorCompilationOptions {
   pub debug_out: Arc<dyn Fn(&str) + Send + Sync>,
 }
-/*
-case class InstantiatorCompilationOptions(
-  globalOptions: GlobalOptions = GlobalOptions(),
-  debugOut: (=> String) => Unit = (x => {
-    println("##: " + x)
-  })
-) {
-  val hash = runtime.ScalaRunTime._hashCode(this);
-*/
-/*
-override def hashCode(): Int = hash;
-*/
-/*
-override def equals(obj: Any): Boolean = vcurious(); }
-
-*/
 
 pub struct InstantiatedCompilation<'s, 'ctx, 't, 'i, 'p>
 where 's: 't, 's: 'i,
@@ -74,14 +44,6 @@ where 's: 't, 's: 'i,
   pub instantiating_interner: InstantiatingInterner<'s, 'i>,
   monouts_cache: Option<HinputsI<'s, 'i>>,
 }
-/*
-class InstantiatedCompilation(
-  val interner: Interner,
-  val keywords: Keywords,
-  packagesToBuild: Vector[PackageCoordinate],
-  packageToContentsResolver: IPackageResolver[Map[String, String]],
-  options: InstantiatorCompilationOptions = InstantiatorCompilationOptions()) {
- */
 
 impl<'s, 'ctx, 't, 'i, 'p> InstantiatedCompilation<'s, 'ctx, 't, 'i, 'p>
 where
@@ -130,18 +92,7 @@ where
     }
   }
 }
-/*
-  var typingPassCompilation =
-    new TypingPassCompilation(
-      interner,
-      keywords,
-      packagesToBuild,
-      packageToContentsResolver,
-      TypingPassOptions(
-        options.globalOptions,
-        options.debugOut))
-  var monoutsCache: Option[HinputsI] = None
-*/
+
 impl<'s, 'ctx, 't, 'i, 'p> InstantiatedCompilation<'s, 'ctx, 't, 'i, 'p>
 where
     's: 't,
@@ -151,46 +102,31 @@ where
   pub fn get_code_map(&mut self) -> Result<FileCoordinateMap<'p, String>, FailedParse<'p>> {
     self.typing_pass_compilation.get_code_map()
   }
-/*
-  def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = typingPassCompilation.getCodeMap()
-*/
+
   pub fn get_parseds(&mut self) -> Result<FileCoordinateMap<'p, (FileP<'p>, Vec<RangeL>)>, FailedParse<'p>> {
     self.typing_pass_compilation.get_parseds()
   }
-/*
-  def getParseds(): Result[FileCoordinateMap[(FileP, Vector[RangeL])], FailedParse] = typingPassCompilation.getParseds()
-*/
+
   pub fn get_vpst_map(&mut self) -> Result<FileCoordinateMap<'p, String>, FailedParse<'p>> {
     self.typing_pass_compilation.get_vpst_map()
   }
-/*
-  def getVpstMap(): Result[FileCoordinateMap[String], FailedParse] = typingPassCompilation.getVpstMap()
-*/
+
   pub fn get_scoutput(&mut self) -> Result<&FileCoordinateMap<'s, ProgramS<'s>>, ICompileErrorS<'s>> {
     self.typing_pass_compilation.get_scoutput()
   }
-/*
-  def getScoutput(): Result[FileCoordinateMap[ProgramS], ICompileErrorS] = typingPassCompilation.getScoutput()
-*/
+
   pub fn get_astrouts(&mut self) -> Result<&crate::utils::code_hierarchy::PackageCoordinateMap<'s, crate::higher_typing::ast::ProgramA<'s>>, crate::higher_typing::astronomer_error_reporter::ICompileErrorA<'s>> {
     self.typing_pass_compilation.get_astrouts()
   }
-/*
-  def getAstrouts(): Result[PackageCoordinateMap[ProgramA], ICompileErrorA] = typingPassCompilation.getAstrouts()
-*/
+
   pub fn get_compiler_outputs(&mut self) -> Result<&HinputsT<'s, 't>, ICompileErrorT<'s, 't>> {
     self.typing_pass_compilation.get_compiler_outputs()
   }
-/*
-  def getCompilerOutputs(): Result[HinputsT, ICompileErrorT] = typingPassCompilation.getCompilerOutputs()
-*/
+
   pub fn expect_compiler_outputs(&mut self) -> &HinputsT<'s, 't> {
     self.typing_pass_compilation.expect_compiler_outputs()
   }
-/*
-  def expectCompilerOutputs(): HinputsT = typingPassCompilation.expectCompilerOutputs()
 
-*/
   // Returns HinputsI<'s, 'i>, where 'i is the InstantiatedCompilation's own
   // instantiating-arena lifetime (the `instantiating_interner` field), mirroring
   // how TypingPassCompilation::get_compiler_outputs returns HinputsT<'s, 't>.
@@ -207,30 +143,12 @@ where
     self.monouts_cache = Some(monouts);
     self.monouts_cache.as_ref().unwrap()
   }
-/*
-  def getMonouts(): HinputsI = {
-    monoutsCache match {
-      case Some(monouts) => monouts
-      case None => {
-        val monouts =
-          Instantiator.translate(
-            options.globalOptions, interner, keywords, typingPassCompilation.expectCompilerOutputs())
-        monoutsCache = Some(monouts)
-        monouts
-      }
-    }
-  }
-*/
-/*
-}
-*/
-  /*
-  */
+
   // Rust adaptation: `&self` read of the already-computed monouts so a caller can borrow it
   // alongside another field of this struct in one expression (`&mut get_monouts` would
   // conflict). Caller must have run `get_monouts` first to populate the cache.
   pub fn cached_monouts(&self) -> &HinputsI<'s, 'i> {
     self.monouts_cache.as_ref().expect("monouts not computed")
   }
-  /* Guardian: disable-all */
+  
 }

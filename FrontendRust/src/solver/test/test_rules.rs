@@ -1,12 +1,4 @@
-/*
-package dev.vale.solver
 
-import dev.vale.Err
-import org.scalatest._
-
-import scala.collection.immutable.Map
-
-*/
 pub trait IRule {
     fn all_runes(&self) -> Vec<i64>;
     fn all_puzzles(&self) -> Vec<Vec<i64>>;
@@ -53,12 +45,7 @@ impl TestRule {
         }
     }
 }
-/*
-sealed trait IRule {
-  def allRunes: Vector[Long]
-  def allPuzzles: Vector[Vector[Long]]
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Lookup {
     pub rune: i64,
@@ -72,12 +59,7 @@ impl IRule for Lookup {
         vec![vec![]]
     }
 }
-/*
-case class Lookup(rune: Long, name: String) extends IRule {
-  override def allRunes: Vector[Long] = Vector(rune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector())
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Literal {
     pub rune: i64,
@@ -91,12 +73,7 @@ impl IRule for Literal {
         vec![vec![]]
     }
 }
-/*
-case class Literal(rune: Long, value: String) extends IRule {
-  override def allRunes: Vector[Long] = Vector(rune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector())
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Equals {
     pub left_rune: i64,
@@ -110,12 +87,7 @@ impl IRule for Equals {
         vec![vec![self.left_rune], vec![self.right_rune]]
     }
 }
-/*
-case class Equals(leftRune: Long, rightRune: Long) extends IRule {
-  override def allRunes: Vector[Long] = Vector(leftRune, rightRune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector(leftRune), Vector(rightRune))
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct CoordComponents {
     pub coord_rune: i64,
@@ -133,12 +105,7 @@ impl IRule for CoordComponents {
         ]
     }
 }
-/*
-case class CoordComponents(coordRune: Long, ownershipRune: Long, kindRune: Long) extends IRule {
-  override def allRunes: Vector[Long] = Vector(coordRune, ownershipRune, kindRune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector(coordRune), Vector(ownershipRune, kindRune))
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct OneOf {
     pub coord_rune: i64,
@@ -152,12 +119,7 @@ impl IRule for OneOf {
         vec![vec![self.coord_rune]]
     }
 }
-/*
-case class OneOf(coordRune: Long, possibleValues: Vector[String]) extends IRule {
-  override def allRunes: Vector[Long] = Vector(coordRune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector(coordRune))
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Call {
     pub result_rune: i64,
@@ -175,12 +137,7 @@ impl IRule for Call {
         ]
     }
 }
-/*
-case class Call(resultRune: Long, nameRune: Long, argRune: Long) extends IRule {
-  override def allRunes: Vector[Long] = Vector(resultRune, nameRune, argRune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector(resultRune, nameRune), Vector(nameRune, argRune))
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Send {
     pub sender_rune: i64,
@@ -194,13 +151,7 @@ impl IRule for Send {
         vec![vec![self.receiver_rune]]
     }
 }
-/*
-// See IRFU and SRCAMP for what this rule is doing
-case class Send(senderRune: Long, receiverRune: Long) extends IRule {
-  override def allRunes: Vector[Long] = Vector(receiverRune, senderRune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector(receiverRune))
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Implements {
     pub sub_rune: i64,
@@ -214,12 +165,7 @@ impl IRule for Implements {
         vec![vec![self.sub_rune, self.super_rune]]
     }
 }
-/*
-case class Implements(subRune: Long, superRune: Long) extends IRule {
-  override def allRunes: Vector[Long] = Vector(subRune, superRune)
-  override def allPuzzles: Vector[Vector[Long]] = Vector(Vector(subRune, superRune))
-}
-*/
+
 #[derive(Clone, Debug)]
 pub struct Pack {
     pub result_rune: i64,
@@ -243,15 +189,4 @@ impl IRule for Pack {
         }
     }
 }
-/*
-case class Pack(resultRune: Long, memberRunes: Vector[Long]) extends IRule {
-  override def allRunes: Vector[Long] = Vector(resultRune) ++ memberRunes
-  override def allPuzzles: Vector[Vector[Long]] = {
-    if (memberRunes.isEmpty) {
-      Vector(Vector(resultRune))
-    } else {
-      Vector(Vector(resultRune), memberRunes)
-    }
-  }
-}
-*/
+

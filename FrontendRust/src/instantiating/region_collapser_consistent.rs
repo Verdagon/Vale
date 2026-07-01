@@ -1,14 +1,4 @@
-/*
-package dev.vale.instantiating
 
-import dev.vale.instantiating.ast._
-import dev.vale.{vassertSome, vimpl}
-
-// See ICRHRC for why/when we count the regions.
-// This one will use one map for the entire deep collapse, rather than making a new map for everything.
-object RegionCollapserConsistent {
-
-*/
 use crate::instantiating::instantiating_interner::InstantiatingInterner;
 use crate::instantiating::ast::ast::{PrototypeI, PrototypeIValI};
 use crate::instantiating::ast::names::{IdI, INameI, IFunctionNameI, FunctionNameIX, FunctionTemplateNameI};
@@ -70,15 +60,7 @@ where 's: 'i {
         return_type: collapse_coord(interner, &map, &return_type),
     })
 }
-/*
-  def collapsePrototype(map: Map[Int, Int], prototype: PrototypeI[sI]): PrototypeI[nI] = {
-    val PrototypeI(id, returnType) = prototype
-    PrototypeI(
-      collapseFunctionId(map, id),
-      collapseCoord(map, returnType))
-  }
 
-*/
 pub fn collapse_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, id_i: &IdI<'s, 'i, sI>, func: impl Fn(&INameI<'s, 'i, sI>) -> INameI<'s, 'i, nI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     let init_steps_c = id_i.init_steps.iter().map(|x| collapse_name(interner, map, x)).collect::<Vec<_>>();
@@ -88,36 +70,12 @@ where 's: 'i {
         local_name: func(&id_i.local_name),
     }
 }
-/*
-  def collapseId[T <: INameI[sI], Y <: INameI[nI]](
-      map: Map[Int, Int],
-      id: IdI[sI, T],
-      func: T => Y):
-  IdI[nI, Y] = {
-    val IdI(packageCoord, initSteps, localName) = id
-    IdI(
-      packageCoord,
-      initSteps.map(x => collapseName(map, x)),
-      func(localName))
-  }
 
-*/
 pub fn collapse_function_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, id, |x| INameI::from(collapse_function_name(interner, map, &IFunctionNameI::try_from(*x).unwrap())))
 }
-/*
-  def collapseFunctionId(
-      map: Map[Int, Int],
-      id: IdI[sI, IFunctionNameI[sI]]):
-  IdI[nI, IFunctionNameI[nI]] = {
-    collapseId[IFunctionNameI[sI], IFunctionNameI[nI]](
-      map,
-      id,
-      x => collapseFunctionName(map, x))
-  }
 
-*/
 pub fn collapse_function_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, name: &IFunctionNameI<'s, 'i, sI>) -> IFunctionNameI<'s, 'i, nI>
 where 's: 'i {
     match *name {
@@ -157,88 +115,9 @@ where 's: 'i {
         _ => panic!("Unimplemented: collapse_function_name other"),
     }
 }
-/*
-  def collapseFunctionName(
-      map: Map[Int, Int],
-      name: IFunctionNameI[sI]):
-  IFunctionNameI[nI] = {
-    name match {
-      case n @ FunctionNameIX(FunctionTemplateNameI(humanName, codeLocation), templateArgs, parameters) => {
-        val templateC = FunctionTemplateNameI[nI](humanName, codeLocation)
-        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
-        val paramsC =
-          parameters.map(param => {
-            collapseCoord(map, param)
-          })
-        FunctionNameIX[nI](templateC, templateArgsC, paramsC)
-      }
-      case ExternFunctionNameI(humanName, templateArgs, parameters) => {
-        val paramsC =
-          parameters.map(param => {
-            collapseCoord(map, param)
-          })
-        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
-        ExternFunctionNameI[nI](humanName, templateArgsC, paramsC)
-      }
-      case LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(codeLocation, paramsTT), templateArgs, parameters) => {
-        val templateC = LambdaCallFunctionTemplateNameI[nI](codeLocation, paramsTT.map(collapseCoord(map, _)))
-        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
-        val paramsC =
-          parameters.map(param => {
-            collapseCoord(map, param)
-          })
-        LambdaCallFunctionNameI[nI](templateC, templateArgsC, paramsC)
-      }
-      case AnonymousSubstructConstructorNameI(AnonymousSubstructConstructorTemplateNameI(substruct), templateArgs, parameters) => {
-        val templateC = AnonymousSubstructConstructorTemplateNameI[nI](collapseCitizenTemplateName(substruct))
-        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
-        val paramsC =
-          parameters.map(param => {
-            collapseCoord(map, param)
-          })
-        AnonymousSubstructConstructorNameI[nI](templateC, templateArgsC, paramsC)
-      }
-      // case OverrideDispatcherNameI(OverrideDispatcherTemplateNameI(implId), templateArgs, parameters) => {
-      //   val templateC = OverrideDispatcherTemplateNameI[nI](collapseImplTemplateId(map, implId))
-      //   val templateArgsC = templateArgs.map(collapseTemplata(map, _))
-      //   val paramsC =
-      //     parameters.map(param => {
-      //       collapseCoord(map, param)
-      //     })
-      //   OverrideDispatcherNameI[nI](templateC, templateArgsC, paramsC)
-      // }
-      // case CaseFunctionFromImplNameI(CaseFunctionFromImplTemplateNameI(humanName, runeInImpl, runeInCitizen), templateArgs, parameters) => {
-      //   val templateC = CaseFunctionFromImplTemplateNameI[nI](humanName, runeInImpl, runeInCitizen)
-      //   val templateArgsC = templateArgs.map(collapseTemplata(map, _))
-      //   val paramsC =
-      //     parameters.map(param => {
-      //       collapseCoord(map, param)
-      //     })
-      //   CaseFunctionFromImplNameI[nI](templateC, templateArgsC, paramsC)
-      // }
-      case ForwarderFunctionNameI(ForwarderFunctionTemplateNameI(funcTemplateName, index), funcName) => {
-        ForwarderFunctionNameI(
-          ForwarderFunctionTemplateNameI(collapseFunctionTemplateName(funcTemplateName), index),
-          collapseFunctionName(map, funcName))
-      }
-    }
-  }
 
-*/
 pub fn collapse_var_name() { panic!("Unimplemented: collapse_var_name"); }
-/*
-  def collapseVarName(
-    name: IVarNameI[sI]):
-  IVarNameI[sI] = {
-    name match {
-      case TypingPassBlockResultVarNameI(life) => TypingPassBlockResultVarNameI(life)
-      case CodeVarNameI(name) => CodeVarNameI(name)
-      case TypingPassTemporaryVarNameI(life) => TypingPassTemporaryVarNameI(life)
-      case TypingPassFunctionResultVarNameI() => TypingPassFunctionResultVarNameI()
-    }
-  }
 
-*/
 pub fn collapse_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, name: &INameI<'s, 'i, sI>) -> INameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -264,31 +143,7 @@ where 's: 'i {
         other => panic!("Unimplemented: collapse_name {:?}", discriminant(other)),
     }
 }
-/*
-  def collapseName(
-      map: Map[Int, Int],
-      name: INameI[sI]):
-  INameI[nI] = {
-    name match {
-      case s: IStructTemplateNameI[_] => {
-        collapseStructTemplateName(s.asInstanceOf[IStructTemplateNameI[sI]])
-      }
-      case s: IInterfaceTemplateNameI[_] => {
-        collapseInterfaceTemplateName(s.asInstanceOf[IInterfaceTemplateNameI[sI]])
-      }
-      case s: IFunctionTemplateNameI[_] => {
-        collapseFunctionTemplateName(s.asInstanceOf[IFunctionTemplateNameI[sI]])
-      }
-      case n : IFunctionNameI[_] => {
-        collapseFunctionName(map, n.asInstanceOf[IFunctionNameI[sI]])
-      }
-      case n @ LambdaCallFunctionNameI(_, _, _) => collapseFunctionName(map, n)
-      case s @ StructNameI(_, _) => collapseStructName(map, s)
-      case other => vimpl(other)
-    }
-  }
 
-*/
 pub fn collapse_coord_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, templata: CoordTemplataI<'s, 'i, sI>) -> CoordTemplataI<'s, 'i, nI>
 where 's: 'i {
     let CoordTemplataI { region, coord } = templata;
@@ -297,16 +152,7 @@ where 's: 'i {
         coord: collapse_coord(interner, map, &coord),
     }
 }
-/*
-  def collapseCoordTemplata(
-      map: Map[Int, Int],
-      templata: CoordTemplataI[sI]):
-  CoordTemplataI[nI] = {
-    val CoordTemplataI(region, coord) = templata
-    CoordTemplataI(collapseRegionTemplata(map, region), collapseCoord(map, coord))
-  }
 
-*/
 pub fn collapse_templata<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, templata: &ITemplataI<'s, 'i, sI>) -> ITemplataI<'s, 'i, nI>
 where 's: 'i {
     match templata {
@@ -319,53 +165,19 @@ where 's: 'i {
         _ => panic!("collapse_templata: unimplemented variant"),
     }
 }
-/*
-  def collapseTemplata(
-    map: Map[Int, Int],
-    templata: ITemplataI[sI]):
-  ITemplataI[nI] = {
-    templata match {
-      case c @ CoordTemplataI(_, _) => collapseCoordTemplata(map, c)
-      case KindTemplataI(kind) => KindTemplataI(collapseKind(map, kind))
-      case r @ RegionTemplataI(_) => collapseRegionTemplata(map, r)
-      case MutabilityTemplataI(mutability) => MutabilityTemplataI(mutability)
-      case IntegerTemplataI(x) => IntegerTemplataI(x)
-      case VariabilityTemplataI(variability) => VariabilityTemplataI(variability)
-      case other => vimpl(other)
-    }
-  }
 
-*/
 pub fn collapse_region_templata<'s, 'i>(map: &HashMap<i32, i32>, templata: RegionTemplataI<sI>) -> RegionTemplataI<nI>
 where 's: 'i {
     let RegionTemplataI { pure_height: old_pure_height, .. } = templata;
     RegionTemplataI { pure_height: *map.get(&old_pure_height).expect("collapse_region_templata: missing"), _marker: PhantomData }
 }
-/*
-  def collapseRegionTemplata(
-    map: Map[Int, Int],
-    templata: RegionTemplataI[sI]):
-  RegionTemplataI[nI] = {
-    val RegionTemplataI(oldPureHeight) = templata
-    RegionTemplataI[nI](vassertSome(map.get(oldPureHeight)))
-  }
 
-*/
 pub fn collapse_coord<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, coord: &CoordI<'s, 'i, sI>) -> CoordI<'s, 'i, nI>
 where 's: 'i {
     let CoordI { ownership, kind } = *coord;
     CoordI { ownership, kind: collapse_kind(interner, map, &kind) }
 }
-/*
-  def collapseCoord(
-      map: Map[Int, Int],
-      coord: CoordI[sI]):
-  CoordI[nI] = {
-    val CoordI(ownership, kind) = coord
-    CoordI(ownership, collapseKind(map, kind))
-  }
 
-*/
 pub fn collapse_kind<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, kind: &KindIT<'s, 'i, sI>) -> KindIT<'s, 'i, nI>
 where 's: 'i {
     match kind {
@@ -381,26 +193,7 @@ where 's: 'i {
         KindIT::RuntimeSizedArrayIT(rsa) => KindIT::RuntimeSizedArrayIT(interner.alloc(collapse_runtime_sized_array(interner, map, rsa))),
     }
 }
-/*
-  def collapseKind(
-      map: Map[Int, Int],
-      kind: KindIT[sI]):
-  KindIT[nI] = {
-    kind match {
-      case NeverIT(fromBreak) => NeverIT(fromBreak)
-      case VoidIT() => VoidIT()
-      case IntIT(x) => IntIT(x)
-      case BoolIT() => BoolIT()
-      case FloatIT() => FloatIT()
-      case StrIT() => StrIT()
-      case StructIT(id) => StructIT(collapseStructId(map, id))
-      case InterfaceIT(id) => InterfaceIT(collapseInterfaceId(map, id))
-      case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(map, ssa)
-      case rsa @ RuntimeSizedArrayIT(_) => collapseRuntimeSizedArray(map, rsa)
-    }
-  }
 
-*/
 pub fn collapse_runtime_sized_array<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, rsa: &RuntimeSizedArrayIT<'s, 'i, sI>) -> RuntimeSizedArrayIT<'s, 'i, nI>
 where 's: 'i {
     let rsa_id = rsa.name;
@@ -423,27 +216,7 @@ where 's: 'i {
     });
     *interner.intern_runtime_sized_array_it_ni(crate::instantiating::ast::types::RuntimeSizedArrayITValI { name: collapsed_id })
 }
-/*
-  def collapseRuntimeSizedArray(
-    map: Map[Int, Int],
-    rsa: RuntimeSizedArrayIT[sI]):
-  RuntimeSizedArrayIT[nI] = {
-    val RuntimeSizedArrayIT(ssaId) = rsa
-    RuntimeSizedArrayIT(
-      collapseId[RuntimeSizedArrayNameI[sI], RuntimeSizedArrayNameI[nI]](
-        map,
-        ssaId,
-        { case RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(), RawArrayNameI(mutability, elementType, selfRegion)) =>
-          RuntimeSizedArrayNameI(
-            RuntimeSizedArrayTemplateNameI(),
-            RawArrayNameI(
-              mutability,
-              collapseTemplata(map, elementType).expectCoordTemplata(),
-              collapseRegionTemplata(map, selfRegion)))
-        }))
-  }
 
-*/
 pub fn collapse_static_sized_array<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, ssa: &StaticSizedArrayIT<'s, 'i, sI>) -> StaticSizedArrayIT<'s, 'i, nI>
 where 's: 'i {
     let ssa_id = ssa.name;
@@ -468,29 +241,7 @@ where 's: 'i {
     });
     *interner.intern_static_sized_array_it_ni(crate::instantiating::ast::types::StaticSizedArrayITValI { name: collapsed_id })
 }
-/*
-  def collapseStaticSizedArray(
-    map: Map[Int, Int],
-    ssa: StaticSizedArrayIT[sI]):
-  StaticSizedArrayIT[nI] = {
-    val StaticSizedArrayIT(ssaId) = ssa
-    StaticSizedArrayIT(
-      collapseId[StaticSizedArrayNameI[sI], StaticSizedArrayNameI[nI]](
-        map,
-        ssaId,
-        { case StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(), size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
-          StaticSizedArrayNameI(
-            StaticSizedArrayTemplateNameI(),
-            size,
-            variability,
-            RawArrayNameI(
-              mutability,
-              collapseTemplata(map, elementType).expectCoordTemplata(),
-              collapseRegionTemplata(map, selfRegion)))
-        }))
-  }
 
-*/
 pub fn collapse_citizen<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, citizen: &ICitizenIT<'s, 'i, sI>) -> ICitizenIT<'s, 'i, nI>
 where 's: 'i {
     match citizen {
@@ -498,44 +249,11 @@ where 's: 'i {
         ICitizenIT::InterfaceIT(i) => ICitizenIT::InterfaceIT(interner.intern_interface_it_ni(InterfaceITValI { id: collapse_interface_id(interner, map, &i.id) })),
     }
 }
-/*
-  def collapseCitizen(
-      map: Map[Int, Int],
-      citizen: ICitizenIT[sI]):
-  ICitizenIT[nI] = {
-    citizen match {
-      case StructIT(structId) => StructIT(collapseStructId(map, structId))
-      case InterfaceIT(structId) => InterfaceIT(collapseInterfaceId(map, structId))
-    }
-  }
 
-*/
 pub fn collapse_citizen_id() { panic!("Unimplemented: collapse_citizen_id"); }
-/*
-  def collapseCitizenId(
-      map: Map[Int, Int],
-      implId: IdI[sI, ICitizenNameI[sI]]):
-  IdI[nI, ICitizenNameI[nI]] = {
-    collapseId[ICitizenNameI[sI], ICitizenNameI[nI]](
-      map,
-      implId,
-      collapseCitizenName(map, _))
-  }
 
-*/
 pub fn collapse_citizen_name() { panic!("Unimplemented: collapse_citizen_name"); }
-/*
-  def collapseCitizenName(
-      map: Map[Int, Int],
-      citizenName: ICitizenNameI[sI]):
-  ICitizenNameI[nI] = {
-    citizenName match {
-      case s: IStructNameI[_] => collapseStructName(map, s.asInstanceOf[IStructNameI[sI]])
-      case i: IInterfaceNameI[_] => collapseInterfaceName(map, i.asInstanceOf[IInterfaceNameI[sI]])
-    }
-  }
 
-*/
 pub fn collapse_struct_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, struct_name: &IStructNameI<'s, 'i, sI>) -> IStructNameI<'s, 'i, nI>
 where 's: 'i {
     match struct_name {
@@ -563,29 +281,7 @@ where 's: 'i {
         }
     }
 }
-/*
-  def collapseStructName(
-      map: Map[Int, Int],
-      structName: IStructNameI[sI]):
-  IStructNameI[nI] = {
-    structName match {
-      case StructNameI(template, templateArgs) => {
-        StructNameI(
-          collapseStructTemplateName(template),
-          templateArgs.map(collapseTemplata(map, _)))
-      }
-      case LambdaCitizenNameI(LambdaCitizenTemplateNameI(codeLocation)) => {
-        LambdaCitizenNameI(LambdaCitizenTemplateNameI(codeLocation))
-      }
-      case AnonymousSubstructNameI(AnonymousSubstructTemplateNameI(interface), templateArgs) => {
-        AnonymousSubstructNameI(
-          AnonymousSubstructTemplateNameI(collapseInterfaceTemplateName(interface)),
-          templateArgs.map(collapseTemplata(map, _)))
-      }
-    }
-  }
 
-*/
 pub fn collapse_struct_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, struct_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, struct_id, |x| {
@@ -593,18 +289,7 @@ where 's: 'i {
         collapse_struct_name(interner, map, &narrowed).into()
     })
 }
-/*
-  def collapseStructId(
-    map: Map[Int, Int],
-    structId: IdI[sI, IStructNameI[sI]]):
-  IdI[nI, IStructNameI[nI]] = {
-    collapseId[IStructNameI[sI], IStructNameI[nI]](
-      map,
-      structId,
-      collapseStructName(map, _))
-  }
 
-*/
 pub fn collapse_interface_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, interface_name: &IInterfaceNameI<'s, 'i, sI>) -> IInterfaceNameI<'s, 'i, nI>
 where 's: 'i {
     match interface_name {
@@ -618,21 +303,7 @@ where 's: 'i {
         }
     }
 }
-/*
-  def collapseInterfaceName(
-      map: Map[Int, Int],
-      interfaceName: IInterfaceNameI[sI]):
-  IInterfaceNameI[nI] = {
-    interfaceName match {
-      case InterfaceNameI(template, templateArgs) => {
-        InterfaceNameI(
-          collapseInterfaceTemplateName(template),
-          templateArgs.map(collapseTemplata(map, _)))
-      }
-    }
-  }
 
-*/
 pub fn collapse_interface_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, interface_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, interface_id, |x| {
@@ -644,52 +315,11 @@ where 's: 'i {
         }
     })
 }
-/*
-  def collapseInterfaceId(
-      map: Map[Int, Int],
-      interfaceId: IdI[sI, IInterfaceNameI[sI]]):
-  IdI[nI, IInterfaceNameI[nI]] = {
-    collapseId[IInterfaceNameI[sI], IInterfaceNameI[nI]](
-      map,
-      interfaceId,
-      collapseInterfaceName(map, _))
-  }
 
-*/
 pub fn collapse_export_id() { panic!("Unimplemented: collapse_export_id"); }
-/*
-  def collapseExportId(
-    map: Map[Int, Int],
-    structId: IdI[sI, ExportNameI[sI]]):
-  IdI[nI, ExportNameI[nI]] = {
-    collapseId[ExportNameI[sI], ExportNameI[nI]](
-      map,
-      structId,
-      { case ExportNameI(ExportTemplateNameI(codeLoc), templateArg) =>
-        ExportNameI(
-          ExportTemplateNameI(codeLoc),
-          collapseRegionTemplata(map, templateArg))
-      })
-  }
 
-*/
 pub fn collapse_extern_id() { panic!("Unimplemented: collapse_extern_id"); }
-/*
-  def collapseExternId(
-    map: Map[Int, Int],
-    structId: IdI[sI, ExternNameI[sI]]):
-  IdI[nI, ExternNameI[nI]] = {
-    collapseId[ExternNameI[sI], ExternNameI[nI]](
-      map,
-      structId,
-      { case ExternNameI(ExternTemplateNameI(codeLoc), templateArg) =>
-        ExternNameI(
-          ExternTemplateNameI(codeLoc),
-          collapseRegionTemplata(map, templateArg))
-      })
-  }
 
-*/
 pub fn collapse_citizen_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, citizen_name: &ICitizenTemplateNameI<'s, 'i, sI>) -> ICitizenTemplateNameI<'s, 'i, nI> where 's: 'i {
     match citizen_name {
         ICitizenTemplateNameI::StructTemplate(_) | ICitizenTemplateNameI::LambdaCitizenTemplate(_) | ICitizenTemplateNameI::AnonymousSubstructTemplate(_) => {
@@ -703,21 +333,7 @@ pub fn collapse_citizen_template_name<'s, 'i>(interner: &InstantiatingInterner<'
         _ => panic!("Unimplemented: collapse_citizen_template_name other"),
     }
 }
-/*
-  def collapseCitizenTemplateName(
-      citizenName: ICitizenTemplateNameI[sI]):
-  ICitizenTemplateNameI[nI] = {
-    citizenName match {
-      case s : IStructTemplateNameI[_] => {
-        collapseStructTemplateName(s.asInstanceOf[IStructTemplateNameI[nI]])
-      }
-      case s: IInterfaceTemplateNameI[_] => {
-        collapseInterfaceTemplateName(s.asInstanceOf[IInterfaceTemplateNameI[nI]])
-      }
-    }
-  }
 
-*/
 pub fn collapse_struct_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, struct_name: &IStructTemplateNameI<'s, 'i, sI>) -> IStructTemplateNameI<'s, 'i, nI>
 where 's: 'i {
     match struct_name {
@@ -730,34 +346,14 @@ where 's: 'i {
         }
     }
 }
-/*
-  def collapseStructTemplateName(
-    structName: IStructTemplateNameI[sI]):
-  IStructTemplateNameI[nI] = {
-    structName match {
-      case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
-      case AnonymousSubstructTemplateNameI(interface) => AnonymousSubstructTemplateNameI(collapseInterfaceTemplateName(interface))
-      case LambdaCitizenTemplateNameI(codeLocation) => LambdaCitizenTemplateNameI(codeLocation)
-    }
-  }
 
-*/
 pub fn collapse_function_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, function_name: &IFunctionTemplateNameI<'s, 'i, sI>) -> IFunctionTemplateNameI<'s, 'i, nI> where 's: 'i {
     match function_name {
         IFunctionTemplateNameI::FunctionTemplate(FunctionTemplateNameI { human_name, code_location, .. }) => IFunctionTemplateNameI::FunctionTemplate(interner.intern_function_template_name_ni(FunctionTemplateNameI { _marker: PhantomData, human_name: *human_name, code_location: *code_location })),
         _ => panic!("Unimplemented: collapse_function_template_name other"),
     }
 }
-/*
-  def collapseFunctionTemplateName(
-      structName: IFunctionTemplateNameI[sI]):
-  IFunctionTemplateNameI[nI] = {
-    structName match {
-      case FunctionTemplateNameI(humanName, codeLocation) => FunctionTemplateNameI(humanName, codeLocation)
-    }
-  }
 
-*/
 pub fn collapse_interface_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, name: &IInterfaceTemplateNameI<'s, 'i, sI>) -> IInterfaceTemplateNameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -766,16 +362,7 @@ where 's: 'i {
         }
     }
 }
-/*
-  def collapseInterfaceTemplateName(
-      structName: IInterfaceTemplateNameI[sI]):
-  IInterfaceTemplateNameI[nI] = {
-    structName match {
-      case InterfaceTemplateNameI(humanName) => InterfaceTemplateNameI(humanName)
-    }
-  }
 
-*/
 pub fn collapse_impl_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, name: &IImplNameI<'s, 'i, sI>) -> IImplNameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -803,33 +390,7 @@ where 's: 'i {
         IImplNameI::ImplBound(_) => panic!("collapse_impl_name: ImplBound branch"),
     }
 }
-/*
-  def collapseImplName(
-      map: Map[Int, Int],
-      name: IImplNameI[sI]):
-  IImplNameI[nI] = {
-    name match {
-      case ImplNameI(template, templateArgs, subCitizen) => {
-        ImplNameI(
-          collapseImplTemplateName(map, template),
-          templateArgs.map(collapseTemplata(map, _)),
-          collapseCitizen(map, subCitizen))
-      }
-      case AnonymousSubstructImplNameI(AnonymousSubstructImplTemplateNameI(interface), templateArgs, subCitizen) => {
-        AnonymousSubstructImplNameI(
-          AnonymousSubstructImplTemplateNameI(collapseInterfaceTemplateName(interface)),
-          templateArgs.map(collapseTemplata(map, _)),
-          collapseCitizen(map, subCitizen))
-      }
-      case ImplBoundNameI(ImplBoundTemplateNameI(codeLocationS), templateArgs) => {
-        ImplBoundNameI(
-          ImplBoundTemplateNameI(codeLocationS),
-          templateArgs.map(collapseTemplata(map, _)))
-      }
-    }
-  }
 
-*/
 pub fn collapse_impl_id<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, map: &HashMap<i32, i32>, impl_id: &IdI<'s, 'i, sI>) -> IdI<'s, 'i, nI>
 where 's: 'i {
     collapse_id(interner, map, impl_id, |x| {
@@ -837,31 +398,9 @@ where 's: 'i {
         collapse_impl_name(interner, map, &narrowed).into()
     })
 }
-/*
-  def collapseImplId(
-    map: Map[Int, Int],
-    structId: IdI[sI, IImplNameI[sI]]):
-  IdI[nI, IImplNameI[nI]] = {
-    collapseId[IImplNameI[sI], IImplNameI[nI]](
-      map,
-      structId,
-      collapseImplName(map, _))
-  }
 
-*/
 pub fn collapse_impl_template_id() { panic!("Unimplemented: collapse_impl_template_id"); }
-/*
-  def collapseImplTemplateId(
-      map: Map[Int, Int],
-      structId: IdI[sI, IImplTemplateNameI[sI]]):
-  IdI[nI, IImplTemplateNameI[nI]] = {
-    collapseId[IImplTemplateNameI[sI], IImplTemplateNameI[nI]](
-      map,
-      structId,
-      collapseImplTemplateName(map, _))
-  }
 
-*/
 pub fn collapse_impl_template_name<'s, 'i>(interner: &InstantiatingInterner<'s, 'i>, _map: &HashMap<i32, i32>, name: &IImplTemplateNameI<'s, 'i, sI>) -> IImplTemplateNameI<'s, 'i, nI>
 where 's: 'i {
     match name {
@@ -871,16 +410,3 @@ where 's: 'i {
         _ => panic!("collapse_impl_template_name: other"),
     }
 }
-/*
-  def collapseImplTemplateName(
-    map: Map[Int, Int],
-    structName: IImplTemplateNameI[sI]):
-  IImplTemplateNameI[nI] = {
-    structName match {
-      case ImplTemplateNameI(humanName) => ImplTemplateNameI(humanName)
-      case AnonymousSubstructImplTemplateNameI(interface) => AnonymousSubstructImplTemplateNameI(collapseInterfaceTemplateName(interface))
-    }
-  }
-
-}
-*/
