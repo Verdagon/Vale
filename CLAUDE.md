@@ -70,12 +70,17 @@ Instead, use the same file.
 ## SEE ALSO (auto)
 
 - **Read when planning or making a large change to the typing pass (FrontendRust/src/typing/).** → docs/architecture/typing-pass-ai-guide.md
+- **Read when an external real-world program surfaces a compiler bug and you need to reduce it to a minimal in-tree repro before fixing.** → docs/skills/bug-investigation.md
 - **Read when investigating a compiler bug by tracing execution with debug printouts and narrowing the call graph.** → docs/skills/collapsed-call-tree.md
 - **Read when starting a new feature, to follow the gated discuss/plan/stub/test/implement sequence.** → docs/skills/feature-development-flow.md
 - **Read when the architect says the literal phrase "fire commit" (or you're about to commit + sync as a TL).** → docs/skills/fire-commit.md
 - **Read when the architect says the literal phrase "fire rebase".** → docs/skills/fire-rebase.md
 - **Read when reviewing or critiquing a plan for testing correctness before implementation.** → docs/skills/good-testing.md
 - **Read when a Guardian shield just fired or failed at hook time and you need to diagnose it.** → docs/skills/guardian-diagnose.md
+- **Read when acting as JR in a Guardian-gated loop.** → docs/skills/guardian-jr.md
+- **Read when a human tells you to ordain yourself or gives you the Guardian ordain password.** → docs/skills/guardian-ordain.md
 - **Read when promoting an LLM-mode shield to Rust mode with a deterministic companion program.** → docs/skills/guardian-rustify.md
+- **Read when acting as or setting up the architect, TL, or JR in a Guardian-gated loop.** → docs/skills/guardian-tl.md
+- **Read when the architect asks what `experimental` has that `master` might want, or asks to pull specific commits from `experimental`.** → docs/skills/merging-from-experimental.md
 - **Read when authoring or running any bulk-edit script (`./tmp/scripts/*.py`, shell loops over many files, or any per-file transform across more than a handful of files).** → docs/skills/scripting.md
 - **Read when writing a plan that includes implementation work — every such plan needs an RFIGA list, defined here.** → docs/skills/tdd.md
